@@ -1,0 +1,18 @@
+<rdf:RDF
+  xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+  xmlns:vCard='http://www.w3.org/2001/vcard-rdf/3.0#'
+   >
+
+  <rdf:Description rdf:about="http://somewhere/JohnSmith/">
+   
+	<vCard:Family>Smith</vCard:Family>
+	<vCard:Given>John</vCard:Given>
+
+  </rdf:Description>
+
+ 
+
+</rdf:RDF>
+
+
+
