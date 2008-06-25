@@ -514,11 +514,11 @@ class AllegroGraph(object):
         elif type == AGU_NODE:
             return Node(self, id, val)
         elif type == AGU_LITERAL:
-            return Literal(self, id, val, None, None, Literal.LANG_NONE, None)
+            return Literal(self, id, val, None, None, Literal.LANG_NOT_KNOWN, None)
         elif type == AGU_LITERAL_LANG:
-            return Literal(self, id, val, None, None, Literal.LANG_KNOWN, mod)
+            return Literal(self, id, val, None, None, Literal.LANG_IS_KNOWN, mod)
         elif type == AGU_TYPED_LITERAL:
-            return Literal(self, id, val, None, mod, Literal.LANG_NONE, None)
+            return Literal(self, id, val, None, mod, Literal.LANG_NOT_KNOWN, None)
         elif type == AGU_TRIPLE:
             idn = id.getCode()
             if idn > -1:
@@ -725,19 +725,24 @@ class AllegroGraph(object):
         self.verifyEnabled().discardCursors(self, refs)
 
     def getPartsForUPI(self, id):
+        """
+        Access the server to retrieve pieces for a single UPI,
+        """
         r = self.verifyEnabled().getParts(self, id)
-        return ""
+        return [self.typeToString(r[0]), str(r[1]), str([2])]
 
     def getParts(self, ids, types=None, vals=None, mods=None):
+        """
+        Access the server to retrieve pieces for a single UPI, or if 'ids'
+        is an array, retrieve all pieces for all of the UPIs in the array. 
+        """
         if isinstance(ids, UPI): return self.getPartsForUPI(ids)
         ## 
-        tnums = [int() for __idx0 in range(len(ids))]
+        tnums = [0 for i in range(len(ids))]
         self.verifyEnabled().getParts(self, ids, tnums, vals, mods)
         ## for-while
-        i = 0
-        while i < len(ids):
+        for i in range(len(ids)):
             types[i] = self.typeToString(tnums[i])
-            i += 1
 
     def getPartsInternalForUPI(self, id):
         return self.verifyEnabled().getParts(self, id)
@@ -775,9 +780,9 @@ class AllegroGraph(object):
 
     def createTypedLiteral(self, text, type):
         if isinstance(type, UPI):
-            return Literal(self, None, text, type, None, Literal.LANG_NONE, None)
+            return Literal(self, None, text, type, None, Literal.LANG_NOT_KNOWN, None)
         else:
-            return Literal(self, None, text, None, type, Literal.LANG_NONE, None)
+            return Literal(self, None, text, None, type, Literal.LANG_NOT_KNOWN, None)
 
     def addTypedLiteral(self, text, type):
         if isinstance(type, URI): return self.addTypedLiteral_for_URI(text, type)
@@ -786,9 +791,9 @@ class AllegroGraph(object):
         try:
             id = self.verifyEnabled().newLiteral(self, text, type, None)
             if isinstance(type, UPI):
-                b = Literal(self, id, text, None, type, Literal.LANG_NONE, None)
+                b = Literal(self, id, text, None, type, Literal.LANG_NOT_KNOWN, None)
             else:
-                b = Literal(self, id, text, type, None, Literal.LANG_NONE, None)
+                b = Literal(self, id, text, type, None, Literal.LANG_NOT_KNOWN, None)
         except (AllegroGraphException, ), e:
             ee = e
         if b is None:
@@ -905,7 +910,7 @@ class AllegroGraph(object):
                 datatype = str(datatype)
         if not datatype:
             uri = AllegroGraph.python_type_to_uri[type(value)]
-        return Literal(self, None, str(value), None, uri, Literal.LANG_KNOWN if language else Literal.LANG_NONE, language)
+        return Literal(self, None, str(value), None, uri, Literal.LANG_IS_KNOWN if language else Literal.LANG_NOT_KNOWN, language)
 
     def addLiteral(self, value, language=None, datatype=None):
         """
@@ -929,7 +934,7 @@ class AllegroGraph(object):
             return self.addTypedLiteral(value, datatype)
         try:
             id = self.verifyEnabled().newLiteral(self, str(value), None, language)
-            b = Literal(self, None, str(value), None, uri, Literal.LANG_KNOWN if language else Literal.LANG_NONE, language)
+            b = Literal(self, None, str(value), None, uri, Literal.LANG_IS_KNOWN if language else Literal.LANG_NOT_KNOWN, language)
         except (AllegroGraphException, ), e:
             ee = e
         if b is None:
@@ -946,7 +951,7 @@ class AllegroGraph(object):
         while i < len(values):
             ts = self.stringElt(datatypes, i)
             ls = self.stringElt(languages, i)
-            v[i] = Literal(self, ids[i], values[i], None, ts, Literal.LANG_KNOWN, ls)
+            v[i] = Literal(self, ids[i], values[i], None, ts, Literal.LANG_IS_KNOWN, ls)
             i += 1
         return v
 

@@ -114,8 +114,8 @@ class StartUp(object):
         agConn.setHost(host)
         agConn.setDebug(StartUp.debug)
         ## WE MESS WITH DEBUG SETTING HERE:
-        print "ENABLING DEBUGGING AT LEVEL 2"
-        agConn.setDebug(2)
+        ##print "ENABLING DEBUGGING AT LEVEL 2"
+        ##agConn.setDebug(2)
         ## END MESSING
         if startServer:
             StartUp.startServer(agConn, agJavaServerPath)

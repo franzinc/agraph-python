@@ -30,7 +30,7 @@ from franz.allegrograph.upi import UPI
 from franz.allegrograph.quad import Quad
 from franz.openrdf.modelimpl.valueimpl import BNodeImpl, URIImpl
 from franz.openrdf.modelimpl.literalimpl import LiteralImpl
-
+ 
 
 ## Value to return when an SPO value is missing:
 NO_TRIPLE = -1
@@ -171,14 +171,12 @@ class Cursor:
         self.cacheIndex = 0
         self.nextp = True
         clen = len(self.cache)
-        self.cTypes = [int() for i in range(clen)]
+        self.cTypes = [0 for i in range(clen)]
         self.cVals = [None for i in range(clen)]
         self.cMods = [None for i in range(clen)]
         sx = 0
         cy = 0
-        ## for-while
-        i = 0
-        while i < clen:
+        for i in range(clen):
             ce = self.cache[i]
             cen = ce.getCode()
             if ce.upi is None and cen < 0:
@@ -192,75 +190,70 @@ class Cursor:
                     self.cTypes[i] = 6
                     self.cVals[i] = None
                     self.cMods[i] = None
-                    break
                 else:
                     sx = self.decodeDef(newdefs, sx, i, self.cTypes, self.cVals, self.cMods)
             if (cy == 4):
                 cy = 0
             else:
                 cy += 1
-            i += 1
 
     @staticmethod
     def decodeDef(defs, sx, i, types, vals, mods):
         defn = defs[sx]
         dl = len(defn)
-        if not defn.startsWith("%") or dl < 2:
+        if not defn.startswith("%") or dl < 2:
             raise IllegalArgumentException("Ill-formed node ref(a) " + defn)
-        if defn.regionMatches(True, 1, "P", 0, 1):
+        if Cursor.regionMatchesOne(defn, 1, "P", "p"):
             return Cursor.decodeDef(defs, sx + 1, i, types, vals, mods)
-        if defn.regionMatches(True, 1, "B", 0, 1):
+        if Cursor.regionMatchesOne(defn, 1, "B", "b"):
             types[i] = AGU_ANON
-            vals[i] = defn.substring(2)
+            vals[i] = defn[2:]
             mods[i] = None
-        else:
-            if defn.regionMatches(True, 1, "N", 0, 1):
+        elif Cursor.regionMatchesOne(defn, 1, "N", "n"):
                 types[i] = AGU_NODE
-                vals[i] = defn.substring(2)
+                vals[i] = defn[2:]
                 mods[i] = None
-            else:
-                if defn.regionMatches(True, 1, "L", 0, 1):
-                    types[i] = AGU_LITERAL
-                    vals[i] = defn.substring(2)
-                    mods[i] = None
+        elif Cursor.regionMatchesOne(defn, 1, "L", "l"):
+                types[i] = AGU_LITERAL
+                vals[i] = defn[2:]
+                mods[i] = None
+        elif Cursor.regionMatchesOne(defn, 1, "G", "g"):
+                types[i] = AGU_LITERAL_LANG
+                Cursor.decodeBaseFifty(defn, i, mods, vals)
+        elif Cursor.regionMatchesOne(defn, 1, "T", "t"):
+                types[i] = AGU_TYPED_LITERAL
+                Cursor.decodeBaseFifty(defn, i, vals, mods)
+        elif Cursor.regionMatchesOne(defn, 1, "M", "m"):
+                types[i] = AGU_NODE
+                Cursor.decodeNodeWithPrefix(defs, sx, i, vals, mods)
+        elif (Cursor.regionMatchesOne(defn, 1, "X", "x") and
+              Cursor.regionMatchesOne(defn, 2, "D", "d")):
+                types[i] = AGU_DEFAULT_GRAPH
+                vals[i] = "default graph"
+                mods[i] = None
+        elif Cursor.regionMatchesOne(defn, 1, "E", "e"):
+                br = defn.indexOf(";", 2)
+                if br < 4:
+                    raise IllegalArgumentException("Ill-formed node ref(c) " + defn)
+                mods[i] = defn[2:br]
+                vals[i] = defn[br + 2:]
+                if Cursor.regionMatchesOne(defn, br + 1, "S", "s"):
+                    types[i] = AGU_ENCODED_STRING
+                elif Cursor.regionMatchesOne(defn, br + 1, "N", "n"):
+                        types[i] = AGU_ENCODED_INTEGER
+                elif Cursor.regionMatchesOne(defn, br + 1, "D", "d"):
+                        types[i] = AGU_ENCODED_FLOAT
                 else:
-                    if defn.regionMatches(True, 1, "G", 0, 1):
-                        types[i] = AGU_LITERAL_LANG
-                        Cursor.decodeBaseFifty(defn, i, mods, vals)
-                    else:
-                        if defn.regionMatches(True, 1, "T", 0, 1):
-                            types[i] = AGU_TYPED_LITERAL
-                            Cursor.decodeBaseFifty(defn, i, vals, mods)
-                        else:
-                            if defn.regionMatches(True, 1, "M", 0, 1):
-                                types[i] = AGU_NODE
-                                Cursor.decodeNodeWithPrefix(defs, sx, i, vals, mods)
-                            else:
-                                if defn.regionMatches(True, 1, "XD", 0, 2):
-                                    types[i] = AGU_DEFAULT_GRAPH
-                                    vals[i] = "default graph"
-                                    mods[i] = None
-                                else:
-                                    if defn.regionMatches(True, 1, "E", 0, 1):
-                                        br = defn.indexOf(";", 2)
-                                        if br < 4:
-                                            raise IllegalArgumentException("Ill-formed node ref(c) " + defn)
-                                        mods[i] = defn.substring(2, br)
-                                        vals[i] = defn.substring(br + 2)
-                                        if defn.regionMatches(True, br + 1, "S", 0, 1):
-                                            types[i] = AGU_ENCODED_STRING
-                                        else:
-                                            if defn.regionMatches(True, br + 1, "N", 0, 1):
-                                                types[i] = AGU_ENCODED_INTEGER
-                                            else:
-                                                if defn.regionMatches(True, br + 1, "D", 0, 1):
-                                                    types[i] = AGU_ENCODED_FLOAT
-                                                else:
-                                                    raise IllegalArgumentException("Ill-formed node ref(d) " + defn)
-                                    else:
-                                        raise IllegalArgumentException("Ill-formed node ref(e) " + defn)
+                    raise IllegalArgumentException("Ill-formed node ref(d) " + defn)
+        else:
+            raise IllegalArgumentException("Ill-formed node ref(e) " + defn)
         return sx + 1
-
+    
+    @staticmethod
+    def regionMatchesOne(string, offset, chr1, chr2):
+        "Return true is the character in 'string' at offset 'offset' matches either chr1 or chr2."
+        return string[offset] == chr1 or string[offset] == chr2 
+    
     @staticmethod
     def baseFiftyDigit(defn, j, d):
         digitChar = defn.charAt(j)
@@ -274,8 +267,8 @@ class Cursor:
         j = 2
         while j < len(defn):
             if defn.regionMatches(True, j, "X", 0, 1):
-                s1[i] = defn.substring(j + 1, j + 1 + d)
-                s2[i] = defn.substring(j + 1 + d)
+                s1[i] = defn[j + 1:j + 1 + d]
+                s2[i] = defn[j + 1 + d:]
                 return
             d = Cursor.baseFiftyDigit(defn, j, d)
             j += 1
@@ -289,7 +282,7 @@ class Cursor:
         j = 2
         while j < len(defn):
             if defn.regionMatches(True, j, "X", 0, 1):
-                s1[i] = defs[d].substring(2) + defn.substring(j + 1)
+                s1[i] = defs[d][2:] + defn[j + 1:]
                 s2[i] = None
                 return
             d = Cursor.baseFiftyDigit(defn, j, d)

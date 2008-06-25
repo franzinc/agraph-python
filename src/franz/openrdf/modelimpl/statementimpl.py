@@ -38,7 +38,7 @@ class StatementImpl(Statement):
     def setQuad(self, quad):
         self.quad = quad
 
-    def getSubject(self): 
+    def getSubject(self):         
         if not self.subject:
             if self.quad: self.subject = self.quad.getSubject()
         return self.subject

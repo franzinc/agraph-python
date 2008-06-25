@@ -195,7 +195,8 @@ class AGDirectConnector(AGConnector):
             return Cursor.emptyCursor
         if (4 == len(v)):
             return Cursor(ag, v[2], toUPIArray(v[3]))
-        return Cursor(ag, v[2], toUPIArray(v[3]), v[4])
+        else:
+            return Cursor(ag, v[2], toUPIArray(v[3]), v[4])
 
 
     def getTriplesInRange(self, ag, s, p, o, c, subend, predend, obend, cxend, lh):

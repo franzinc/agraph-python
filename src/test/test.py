@@ -193,6 +193,7 @@ def test9():
     print "Repository is up!"
     conn = myRepository.getConnection();
     statements = conn.getStatements(None, None, None, False, None)    
+    print "GOT THE STATEMENTS.  NOW PRINT ONE BY ONE"
     try:
         for s in statements:
             print s

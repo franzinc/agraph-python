@@ -83,7 +83,7 @@ class AGDirectLinkDebug(AGDirectLink):
         self.dp(4, "portOutInteger: " + str(x) + "  " + str(xx))
         return super(AGDirectLinkDebug, self).portOutInteger(x)
 
-    def portInLong(self, tag=None):
+    def portInLong(self, tag=None):         
         if not tag: return super(AGDirectLinkDebug, self).portInLong(tag) 
         self.dp(2, "portInLong: tag=0x" + integer_to_hex(tag))
         r = super(AGDirectLinkDebug, self).portInLong(tag)

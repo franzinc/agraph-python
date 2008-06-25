@@ -6,9 +6,6 @@ from franz.valuenode import ValueNode
 from franz.allegrograph.upi import UPI
 
 
-LANG_IS_KNOWN = 'known'
-LANG_NOT_KNOWN = 'unknown'
-
 class Literal(ValueNode):
     """ 
      * This class represents an instance of a literal node in AllegroGraph.
@@ -22,6 +19,8 @@ class Literal(ValueNode):
      * There is no public constructor.  Literal instances are created by calls
      * to TripleStore methods.
     """
+    LANG_IS_KNOWN = 'known'
+    LANG_NOT_KNOWN = 'unknown'
     def __init__(self, ts, i, newLabel, newTypeId, newType, newLangSlot, newLanguage):
         super(Literal, self)
         self.typeId = None
@@ -73,13 +72,13 @@ class Literal(ValueNode):
     def getLanguage(self):
         if self.language is not None:
             return self.language
-        if (self.LANG_KNOWN == self.langSlot):
+        if (Literal.LANG_IS_KNOWN == self.langSlot):
             return self.language
-        if (self.LANG_NONE == self.langSlot):
+        if (Literal.LANG_NOT_KNOWN == self.langSlot):
             return
         try:
             self.language = self.owner.getLangPart(self.nodeUPI)
-            self.langSlot = self.LANG_KNOWN
+            self.langSlot = self.LANG_IS_KNOWN
         except (AllegroGraphException, ), e:
             pass
         return self.language
@@ -87,13 +86,13 @@ class Literal(ValueNode):
     def __str__(self):
         tail = ""
         if self.typeId is None and self.type is None:
-            if (self.langSlot == self.LANG_NONE):
+            if (self.langSlot == Literal.LANG_NOT_KNOWN):
                 tail = ""
             else:
                 if self.langSlot is None:
                     tail = "@?"
                 else:
-                    if (self.langSlot != self.LANG_KNOWN):
+                    if (self.langSlot != self.LANG_IS_KNOWN):
                         tail = "@<err>"
                     else:
                         if self.language is None:
@@ -138,10 +137,10 @@ class Literal(ValueNode):
             return
         if self.typeId is not None:
             raise IllegalStateException("Cannot add Literal with unknown type.")
-        if (self.langSlot == self.LANG_KNOWN) and self.language is not None:
+        if (self.langSlot == self.LANG_IS_KNOWN) and self.language is not None:
             nodeUPI = self.owner.verifyEnabled().newLiteral(self.owner, self.label, self.type, self.language)
             return
-        if (self.langSlot == self.LANG_NONE):
+        if (self.langSlot == Literal.LANG_NOT_KNOWN):
             nodeUPI = self.owner.verifyEnabled().newLiteral(self.owner, self.label, self.type, self.language)
             return
         raise IllegalStateException("Cannot add uninitialized Literal.")

@@ -234,6 +234,7 @@ class Quad:
         """
         Database access to get stuff; sounds expensive
         """
+        print "MAKING A DATABASE ACCESS TO FILL IN PIECES FOR A SINGLE SPOC COMPONENT!!!"
         v = self.internal_store.agConnection.getServer().getParts(self.internal_store, part)
         type = int(v[0])
         if partIndex == 1:
@@ -313,7 +314,7 @@ class Quad:
         else:
             raise IllegalArgumentException("Unknown component component_type " + component_type + "  " + label + "  " + mod)
 
-    def getTripleComponent(self, upi, spocIndex):
+    def getTripleComponent(self, upi, spocIndex):         
         if not upi:
             return None
         componentType = self.getPartType_FromIndex(spocIndex)

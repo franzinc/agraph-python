@@ -40,8 +40,6 @@ class UPI:
     WIDTH = UPI_WIDTH ## width in bytes
     WILD = None
     def __init__(self, long_or_byte_array=None):
-        if long_or_byte_array == -5:
-            print "NEGATIVE FIVE RETRIEVED FROM STORE!"
         self.upi = None
         self.setWidth = 0
         self.code = UPI.CODE_LOWEST
