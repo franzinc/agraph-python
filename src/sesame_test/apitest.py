@@ -66,9 +66,10 @@ def test4():
     statements = conn.getStatements(alice, None, None, True, [])
     for s in statements:
         print s
-    resultSet = conn.getJDBCStatements(None, None, None, True, [])
+    print "Same thing using JDBC:"
+    resultSet = conn.getJDBCStatements(alice, None, None, True, [])
     while resultSet.next():
-        print resultSet.getRow()
+        #print resultSet.getRow()
         print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
                
 import dircache, os
@@ -79,7 +80,7 @@ def test5():
         print f
         
     myRepository = test1()        
-    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agpython/src/test/vc-db-1.rdf")        
+    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
     baseURI = "http://example.org/example/local"
     baseURI = None
     try:
@@ -87,11 +88,11 @@ def test5():
         conn.add(file, base=baseURI, format=RDFFormat.RDFXML); 
         print "After loading, repository contains %s triples." % conn.size(None)
         try:
-            for s in conn.getStatements(None, None, None, True, []):
+            for s in conn.getStatements(None, None, None, False, []):
                 print s
              
             print "\n\nAnd here it is JDBC-style"
-            resultSet = conn.getJDBCStatements(None, None, None, True, [])
+            resultSet = conn.getJDBCStatements(None, None, None, False, [])
             while resultSet.next():
                 print resultSet.getRow()
                 
@@ -107,7 +108,7 @@ def test5():
 
 def test6():
     myRepository = test1() 
-    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agpython/src/test/vc-db-1.rdf")        
+    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
     baseURI = "http://example.org/example/local"
     try:
         conn = myRepository.getConnection();
@@ -129,7 +130,7 @@ def test6():
         
 def test7():
     myRepository = test1() 
-    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agpython/src/test/vc-db-1.rdf")        
+    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
     baseURI = "http://example.org/example/local"
     try:
         conn = myRepository.getConnection();
@@ -146,9 +147,9 @@ def test7():
 import urlparse
 
 def test8():
-    location = "/Users/bmacgregor/Documents/eclipse-franz-python/agpython/src/test/vc_db_1_rdf"      
-    url = "/Users/bmacgregor/Documents/eclipse-franz-python/agpython/src/test/vc-db-1.rdf"      
-    url = "/Users/bmacgregor/Documents/eclipse-franz-python/agpython/src/test/sample-bad.rdf"
+    location = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/test/vc_db_1_rdf"      
+    url = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf"      
+    url = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/sample-bad.rdf"
     baseURI = location
     myRepository = test1() 
     context = myRepository.getValueFactory().createURI(location)
@@ -168,8 +169,11 @@ def test8():
     finally:
         statements.close()
     ## Export all statements in the context to System.out, in NTriples format
-    ntriplesWriter = NTriplesWriter(None)
-    #ntriplesWriter = NTriplesWriter("/users/bmacgregor/Desktop/temp.nt")
+    outputFile = "/users/bmacgregor/Desktop/temp.nt"
+    outputFile = None
+    if outputFile == None:
+        print "Writing to Standard Out instead of to a file"
+    ntriplesWriter = NTriplesWriter(outputFile)
     conn.export(ntriplesWriter, context);    
     ## Remove all statements in the context from the repository
     conn.clear(context)
@@ -182,6 +186,7 @@ def test8():
         statements.close()
    
 def test9():
+    test2()
     sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
     store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
                               sesameDir, port=4567)
@@ -193,7 +198,6 @@ def test9():
     print "Repository is up!"
     conn = myRepository.getConnection();
     statements = conn.getStatements(None, None, None, False, None)    
-    print "GOT THE STATEMENTS.  NOW PRINT ONE BY ONE"
     try:
         for s in statements:
             print s
@@ -205,15 +209,19 @@ def test10():
     print "X ", hasattr([], '__iter__')
     
 if __name__ == '__main__':
-    choice = 9
-    if choice == 1: test1()
-    elif choice == 2: test2()
-    elif choice == 3: test3()
-    elif choice == 4: test4()    
-    elif choice == 5: test5()        
-    elif choice == 6: test6()            
-    elif choice == 7: test7()                
-    elif choice == 8: test8()                
-    elif choice == 9: test9()                        
-    elif choice == 10: test10()                            
+    choices = [i for i in range(9)]
+    choices = [5]
+    for choice in choices:
+        print "\n==========================================================================="
+        print "Test Run Number ", choice, "\n"
+        if choice == 1: test1()
+        elif choice == 2: test2()
+        elif choice == 3: test3()
+        elif choice == 4: test4()    
+        elif choice == 5: test5()        
+        elif choice == 6: test6()            
+        elif choice == 7: test7()                
+        elif choice == 8: test8()                
+        elif choice == 9: test9()                        
+        elif choice == 10: test10()                            
     

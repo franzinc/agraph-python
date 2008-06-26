@@ -113,6 +113,12 @@ class Quad:
     def getContextLabel(self):
         self.cVal = self.getPartLabel(self.c, 4, self.cType, self.cVal)
         return self.cVal
+    
+    def getUPI(self, index):
+        if index == 1: return self.s
+        elif index == 2: return self.p
+        elif index == 3: return self.o
+        elif index == 4: return self.c                
 
     def queryPartType(self, px):
         if px == 1:
@@ -224,8 +230,10 @@ class Quad:
         if part is None:
             return 0
         if (type == 0):
+            ## see if the piece we want is already stored in the cursor:
             type = self.queryPartType(spocIndex)
         if (type == 0):
+            ## bad new, we need to do DB access to get the pieces:
             v = self.getAll(part, spocIndex)
             type = int(v[0])
         return type
@@ -234,7 +242,7 @@ class Quad:
         """
         Database access to get stuff; sounds expensive
         """
-        print "MAKING A DATABASE ACCESS TO FILL IN PIECES FOR A SINGLE SPOC COMPONENT!!!"
+        print "ENTIRE ACCESS FOR SINGLE SPOC COMPONENT"
         v = self.internal_store.agConnection.getServer().getParts(self.internal_store, part)
         type = int(v[0])
         if partIndex == 1:

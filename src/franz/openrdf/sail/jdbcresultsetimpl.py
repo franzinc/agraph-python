@@ -25,6 +25,7 @@
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
+from franz.transport.agc import AGU_ANON
 
 
 ## A JDBSResultSet is a JDBC ResultSet iterator over a collection of tuple results
@@ -97,8 +98,14 @@ class JDBCResultSetImpl(JDBCResultSet):
         """
         if self.cursor:
             self._validate_cursor_index(index)
-            quad = self.cursor.current_quad   
-            return quad.queryPartLabel(index)         
+            quad = self.cursor.current_quad
+            label = quad.queryPartLabel(index)
+            component_type = quad.getPartType_FromIndex(index)            
+            if component_type == AGU_ANON:
+                ## code here mimics BNode code:
+                return "_:%s" % label
+            else:
+                return label         
         raise JDBCException("JDBC-style SELECT results not yet implemented")
     
     def getValue(self, index=None, columnName=None):

@@ -203,7 +203,7 @@ class AGDirectConnector(AGConnector):
         if lh < 1:
             lh = Cursor.defaultLookAhead
         v = self.tsApplyA(ag, AG_GET_TRIPLE_RANGE, [s, p, o, c, subend, predend, obend, cxend, lh, 1])
-        if 4 > len(v):
+        if len(v) < 4:
             return Cursor.emptyCursor
         if (4 == len(v)):
             return Cursor(ag, v[2], toUPIArray(v[3]))

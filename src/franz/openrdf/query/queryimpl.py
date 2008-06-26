@@ -132,8 +132,7 @@ class GraphQueryImpl(GraphQuery, AbstractQuery):
         Execute the embedded query against the RDF store.  Return
         an iterator that produces for each step a Statement
         """
-        more = ['rdf-format', ':ntriples']
-        ##more = []
+        more = []
         statementIt = self.direct_caller.twinqlFind(self.queryString, 0, 0, includeInferred=self.includeInferred, more=more)
         return statementIt
 

@@ -256,8 +256,8 @@ class Cursor:
     
     @staticmethod
     def baseFiftyDigit(defn, j, d):
-        digitChar = defn.charAt(j)
-        digit = "0123456789abcdefghijklmnopqrstABCDEFGHIJKLMNOPQRST".indexOf(digitChar)
+        digitChar = defn[j]
+        digit = "0123456789abcdefghijklmnopqrstABCDEFGHIJKLMNOPQRST".find(digitChar)
         return d * 50 + digit
 
     @staticmethod
@@ -266,7 +266,7 @@ class Cursor:
         ## for-while
         j = 2
         while j < len(defn):
-            if defn.regionMatches(True, j, "X", 0, 1):
+            if Cursor.regionMatchesOne(defn, j, "X", "x"):
                 s1[i] = defn[j + 1:j + 1 + d]
                 s2[i] = defn[j + 1 + d:]
                 return
@@ -281,7 +281,7 @@ class Cursor:
         ## for-while
         j = 2
         while j < len(defn):
-            if defn.regionMatches(True, j, "X", 0, 1):
+            if Cursor.regionMatchesOne(defn, j, "X", "x"):
                 s1[i] = defs[d][2:] + defn[j + 1:]
                 s2[i] = None
                 return

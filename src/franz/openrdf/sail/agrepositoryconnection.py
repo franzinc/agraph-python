@@ -216,14 +216,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         if contexts and not isinstance(contexts, list):
             contexts = [contexts]
-        if isinstance(arg0, Value):
-            return self.addTriple(arg0, arg1, arg2, contexts=contexts)
-        elif isinstance(arg0, Statement):
-            return self.addStatement(arg0, contexts=contexts)
-        elif hasattr(arg0, '__iter__'):
-            for s in arg0:
-                self.addStatement(s, contexts=contexts, base=base, format=format)
-        elif isinstance(arg0, (str, file)):
+        if isinstance(arg0, (str, file)):
             if contexts:
                 if len(contexts) > 1:
                     raise IllegalArgumentException("Only one context may be specified when loading from a file.")
@@ -231,6 +224,13 @@ class AllegroGraphRepositoryConnection(SailConnection):
             else:
                 context = None
             return self.addFile(arg0, base=base, format=format, context=context)
+        elif isinstance(arg0, Value):
+            return self.addTriple(arg0, arg1, arg2, contexts=contexts)
+        elif isinstance(arg0, Statement):
+            return self.addStatement(arg0, contexts=contexts)
+        elif hasattr(arg0, '__iter__'):
+            for s in arg0:
+                self.addStatement(s, contexts=contexts)
         else:
             raise IllegalArgumentException("Illegal first argument to 'add'.  Expected a Value, Statement, File, or string.")
             

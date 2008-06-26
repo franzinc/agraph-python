@@ -21,7 +21,7 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.model.value import URI
+from franz.openrdf.model.value import URI, BNode
 from franz.openrdf.model.literal import Literal
 
 def spoc2sparqlTerm(term):
@@ -30,6 +30,9 @@ def spoc2sparqlTerm(term):
     """
     if isinstance(term, URI):
         return '<%s> ' % term.getURI()
+    elif isinstance(term, BNode):
+        ## BUG: THIS WRITES OUT BNODES WITH NO LEADING CHAR:
+        return str(term) + ' '
     elif isinstance(term, Literal):
         type = term.getDatatype()
         if type:

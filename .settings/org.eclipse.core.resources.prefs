@@ -1,4 +1,26 @@
-#Fri Jun 20 11:57:33 PDT 2008
+#Wed Jun 25 18:06:59 PDT 2008
 eclipse.preferences.version=1
+encoding//src/franz/allegrograph/allegrograph.py=UTF-8
+encoding//src/franz/allegrograph/cursor.py=UTF-8
+encoding//src/franz/allegrograph/directcalls.py=UTF-8
+encoding//src/franz/allegrograph/quad.py=UTF-8
+encoding//src/franz/allegrograph/startup.py=UTF-8
+encoding//src/franz/allegrograph/upi.py=UTF-8
 encoding//src/franz/blanknode.py=UTF-8
+encoding//src/franz/literal.py=UTF-8
 encoding//src/franz/openrdf/model/literal.py=UTF-8
+encoding//src/franz/openrdf/model/statement.py=UTF-8
+encoding//src/franz/openrdf/model/valuefactory.py=UTF-8
+encoding//src/franz/openrdf/modelimpl/statementimpl.py=UTF-8
+encoding//src/franz/openrdf/modelimpl/valueimpl.py=UTF-8
+encoding//src/franz/openrdf/query/queryimpl.py=UTF-8
+encoding//src/franz/openrdf/rio/converter.py=UTF-8
+encoding//src/franz/openrdf/rio/rdfwriter.py=UTF-8
+encoding//src/franz/openrdf/sail/agrepositoryconnection.py=UTF-8
+encoding//src/franz/openrdf/sail/jdbcresultsetimpl.py=UTF-8
+encoding//src/franz/openrdf/sail/repositoryresultimpl.py=UTF-8
+encoding//src/franz/transport/agc.py=UTF-8
+encoding//src/franz/transport/agconnector.py=UTF-8
+encoding//src/franz/transport/agdirectconnector.py=UTF-8
+encoding//src/franz/transport/agdirectlink.py=UTF-8
+encoding//src/franz/transport/agdirectlinkdebug.py=UTF-8

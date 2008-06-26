@@ -85,12 +85,12 @@ class DirectCaller(object):
     def getTriples(self, subject, predicate, object, contexts, includeInferred=False):
         """
         """
-        if contexts is None:
+        if not contexts:
             theContext = None
         elif len(contexts) == 1:
             theContext = contexts[0]
         else:
-            raise Exception("Retrieval over multiple contexts is not yet implemented")
+            raise Exception("'getStatements' over multiple contexts is not yet implemented")
         mgr = self.term2InternalMgr
         if includeInferred:
             return self.agDirectConnector.getInfTriples(self.internal_ag_store,
