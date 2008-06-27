@@ -99,8 +99,8 @@ class JDBCResultSetImpl(JDBCResultSet):
         if self.cursor:
             self._validate_cursor_index(index)
             quad = self.cursor.current_quad
-            label = quad.queryPartLabel(index)
             component_type = quad.getPartType_FromIndex(index)            
+            label = quad.queryPartLabel(index)
             if component_type == AGU_ANON:
                 ## code here mimics BNode code:
                 return "_:%s" % label
