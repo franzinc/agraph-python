@@ -61,7 +61,6 @@ class AGDirectLink(object):
 
     """
     debugClient = 0
-    AGDIRECT_LEVEL = 2
     agServerLevel = 0
     state = PORT_CLOSED
     ERR_PORT_CLOSED = -101
@@ -137,7 +136,7 @@ class AGDirectLink(object):
         elif reply == TAG_NULL:
             self.socket.close()
             raise IOException("Connection rejected.")
-        elif (reply == TAG_START + self.AGDIRECT_LEVEL):
+        elif (reply == TAG_START + AG_DIRECT_LEVEL):
             self.socket.close()
             raise IOException("Unexpected initial reply " + reply)
 
@@ -173,7 +172,7 @@ class AGDirectLink(object):
         return "Client was ", oldc, " now ", AGDirectLink.debugClient
 
     def query(self):
-        r = self.sendOp1(OP_VERIFY, 1, 0, self.AGDIRECT_LEVEL)
+        r = self.sendOp1(OP_VERIFY, 1, 0, AG_DIRECT_LEVEL)
         if isinstance(r, str):
             s = r
             if s.startsWith("AGDirect Version"):
@@ -907,7 +906,7 @@ class AGDirectLink(object):
         return self.endpos
 
     def portOut_upi(self, x):
-        if (None == x.upi):
+        if (None == x.getUPI()):
             return self.portOut_long(x.getCode())
         rc = self.portReserveSpace(1)
         if rc < 0:

@@ -54,6 +54,8 @@ class UPI:
         else:
             self.upi = [0 for i in range(self.WIDTH)]
 
+    def getUPI(self): return self.upi
+        
     @staticmethod    
     def wildUPI ():
         return UPI.WILD

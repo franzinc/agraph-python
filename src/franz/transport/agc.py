@@ -70,6 +70,9 @@ PORT_MESSAGE = 1
 PORT_INVOKE = 5
 PORT_WAITING_RESULT = 6
 UPI_WIDTH = 12
+##  Operation: :call    
+##  Arguments: op-string arg...       
+##    Results: value-of-call...         
 OP_CALL = ":call"
 OP_VERIFY = ":verify"
 OP_DISCONNECT = ":disconnect"
@@ -114,21 +117,20 @@ AGU_ENCODED_INTEGER = 9
 AGU_ENCODED_FLOAT = 10
 AGU_ENCODED_TRIPLE_ID = 11
 AGU_UNKNOWN = 0
-AGU_PROTOCOL_LEVEL = 6
+AGU_PROTOCOL_LEVEL = 7
+AG_DIRECT_LEVEL = 2
 AG_ACCESS_TRIPLE_STORE = "db.agraph.servers::ag-access-triple-store"
 AG_EXISTS_P = "db.agraph.servers::ag-exists-p"
 AGJ_EVAL = "db.agraph.servers::agj-eval"
+AGJ_EVAL_A = "agj-eval" ;
 AGJ_BIND = "db.agraph.servers::agj-bind"
 AGJ_TRACE = "db.agraph:agj-trace"
 AG_SERVER_TRACE = "db.agraph:ag-server-trace"
 AGJ_TRACE_INT = "db.agraph.servers::agj-trace-int"
+AGJ_TRACE_INT_A = "agj-trace-int" ;
 AGJ_NAMESPACES = "db.agraph.servers::agj-namespaces"
+AGJ_NAMESPACES_A = "agj-namespaces"
 AGJ_SERVER_OPTIONS = "db.agraph.servers::agj-server-options"
-DLR_AG_PROTOCOL_LEVEL_DLR = "db.agraph.servers::*ag-protocol-level*"
-DLR_AG_JAVA_BATCH_DLR = "db.agraph.servers::*ag-java-batch*"
-DLR_AG_JAVA_DEBUG_DLR = "db.agraph.servers::*ag-java-debug*"
-AG_DLR_MAXIMUM_INDEXING_SORT_CHUNK_SIZE_DLR = "db.agraph:*maximum-indexing-sort-chunk-size*"
-AG_DLR_DEFAULT_EXPECTED_UNIQUE_RESOURCES_DLR = "db.agraph:*default-expected-unique-resources*"
 AG_STOP_AGJ_APPLICATION = "db.agraph.servers::stop-agj-application"
 AG_APPLY = "db.agraph.servers::ag-apply"
 AG_SYNC = "ag-sync"

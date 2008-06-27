@@ -40,6 +40,18 @@ class AGDirectConnector(AGConnector):
     def __init__(self):
         super(AGDirectConnector, self).__init__()
         self.trs = None
+        
+    @staticmethod
+    def createConnector(mode):
+        if mode is None:
+            mode = ""
+        if "direct" == mode.lower(): 
+            return AGDirectConnector()
+        ## mode must be "jlinker"
+        ## return new AGJLinkerConnector();
+        raise IllegalStateException("Unknown mode: " + mode)    
+        
+    def transportVersion(self): return AG_DIRECT_LEVEL
 
     def verifyLink(self):
         if self.trs is None:
@@ -53,11 +65,21 @@ class AGDirectConnector(AGConnector):
         except (IOException, ), e:
             raise AllegroGraphException(e)
 
+    ## Call a function and return all the values
+    ## @param fn function name
+    ## @param args an array of argument
+    ## @return the result array (includes 2extra leading entries)
     def tsApplyA(self, ag, fn, args):
         testIndex(ag)
         try:
             return self.verifyLink().sendOp3n(OP_CALL, 1, -1, AG_APPLY, ag.tsx, fn, args)
         except IOException, e:
+            raise AllegroGraphException(e)
+
+    def applyA(self, fn, args):
+        try:
+            return self.verifyLink().sendOp1n(OP_CALL, 1, -1, fn, args)
+        except Exception, e:
             raise AllegroGraphException(e)
 
     def intValue(self, r):
@@ -460,7 +482,7 @@ class AGDirectConnector(AGConnector):
             return self.traceServer_withoutAG(ag, onoff)
         ## do trace with 'ag':
         arg = outFile if outFile is not None else 1 if onoff else 0
-        self.tsApply0(ag, AGJ_TRACE_INT, [arg])
+        self.tsApply0(ag, AGJ_TRACE_INT_A, [arg])
         
     def serverId(self):
         try:
@@ -493,14 +515,14 @@ class AGDirectConnector(AGConnector):
             s[i] = r[i + 2]
         return s
     
-    def evalInServer(self, ag, expression=None, environment=None):
+    def evalInServer(self, ag, expression=None):
         if not isinstance(ag, AllegroGraph):
             return self.evalInServer_2(ag, expression) ## shift variables one left
         else:
-            r = self.tsApplyA(ag, AGJ_EVAL, [expression, (environment if environment else -1)])
+            r = self.tsApplyA(ag, AGJ_EVAL_A, [expression, (environment if environment else -1)])
             return self.valuesOnly(r)
 
-    def evalInServer_2(self, expression, environment):
+    def evalInServer_2(self, expression):
         try:
             ## NOT CONSISTENT: SOME OF THE JAVA CONVERTS NULL 'environment' TO -1; OTHER OMITS IT ENTIRELY:
             if environment:
@@ -587,25 +609,10 @@ class AGDirectConnector(AGConnector):
     def mapping(self, ag, mode, map):
         return self.tsApply0(ag, AG_MAPPING, [mode, map])
 
-    def namespaces(self, arg0, arg1=None):
-        if arg1:
-            ag = arg0
-            map = arg1
-        else:
-            ag = None
-            map = arg0
-        if not ag:
-            r = None
-            try:
-                r = self.verifyLink().sendOp1n(OP_CALL, 1, 0, AGJ_NAMESPACES, [map])
-            except (IOException, ), e:
-                raise AllegroGraphException(e)
-            rs = self.stringArray(r)
-            return rs
-        else:  ## yes 'ag':
-            r = self.tsApply0(ag, AGJ_NAMESPACES, [map])
-            rs = self.stringArray(r)
-            return rs
+    def namespaces(self, ag, map):
+        r = self.tsApply0(ag, AGJ_NAMESPACES_A, [map])
+        rs = self.stringArray(r)
+        return rs
 
     def addPart(self, ag, part):
         if self.serverLevel(2):
@@ -677,4 +684,18 @@ class AGDirectConnector(AGConnector):
             w[i] = v[i + 2]
         return w
 
+    def applyFn(self, fn, args):
+        v = self.applyA(fn, args)
+        if v is None: return 0
+        if 3 > len(v): return 0
+        w = len(v) - 2
+        for i in range(len(w)):
+            w[i] = v[i+2]
+        return w    
+    
+    def serverOption(self, name, val):
+        v = self.applyA(AGJ_SERVER_OPTIONS, [name, val])
+        if v is None: return None
+        if 3 > len(v): return None
+        return v[2]
 

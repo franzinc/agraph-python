@@ -314,13 +314,9 @@ class AllegroGraphConnection(object):
 #     * @return true if the connection was not enabled and now is.
 #     *     Return false if the connection was already enabled.
     def enable(self):
-        if self.agc is None:
-            if self.mode.lower() == "direct".lower():
-                self.agc = AGDirectConnector()
-            else:
-                raise IllegalStateException("Unknown mode: " + self.mode)
-        else:
-            if -1 < self.agc.query():
+        if self.agc is None:            
+            self.agc = AGDirectConnector.createConnector(self.mode)
+        elif -1 < self.agc.query():
                 return False
         self.agc.initialize(self.port, self.port2, self.host, self.pollCount, self.pollInterval, self.debug, self.timeout)
         self.agc.enable()
@@ -328,37 +324,39 @@ class AllegroGraphConnection(object):
             self.traceServer(True)
         v = None
         db = 0
-#        try:
-        v = self.agc.evalInServer(DLR_AG_JAVA_DEBUG_DLR)
-#        except Exception, e:
-#            pass
-        if v is not None and 0 < len(v):
-            db = agconnector.toInt(v[0])
+        w = None
+        try:
+            w = self.agc.serverOption("client-debug", "")
+        except Exception:
+            pass
+        if v:
+            db = agconnector.toInt(w)        
         l = 0
-#        try:
-        v = self.agc.evalInServer(DLR_AG_JAVA_BATCH_DLR)
-#        except (Exception, ), e:
-#            pass
-        if v is not None and 0 < len(v):
-            l = agconnector.toInt(v[0])
+        try:
+            w = self.agc.serverOption("client-batch", "")
+        except Exception:
+            pass
+        if w:
+            l = agconnector.toInt(w)
         if l > 0:
             Cursor.defaultLookAhead = l
         pr = 0
-#        try:
-        v = self.agc.evalInServer(DLR_AG_PROTOCOL_LEVEL_DLR)
-#        except (Exception, ), e:
-#            pass
-        if v is not None and 0 < len(v):
-            pr = agconnector.toInt(v[0])
+        try:
+            w = self.agc.serverOption("server-level", "")
+        except Exception:
+            pass
+        if w:
+            pr = agconnector.toInt(w)
         if pr < AGU_PROTOCOL_LEVEL:
-            raise AllegroGraphException("AllegroGraph server is out of date: ", pr, "<" , AGU_PROTOCOL_LEVEL)
-        else:
-            if pr > AGU_PROTOCOL_LEVEL:
-                raise AllegroGraphException("Library agraph.jar is out of date: ", pr, ">", AGU_PROTOCOL_LEVEL)
-#        try:
-            v = self.agc.evalInServer("(" + AGJ_SERVER_OPTIONS + " :client-level " + str(AGU_PROTOCOL_LEVEL) + ")")
-#        except Exception, e:
-#            pass
+            raise AllegroGraphException(
+                "AllegroGraph server is out of date: " + pr + "<" + AGU_PROTOCOL_LEVEL)
+        elif pr > AGU_PROTOCOL_LEVEL:
+            raise AllegroGraphException(
+                "Library agraph.jar is out of date: " + pr + ">" + AGU_PROTOCOL_LEVEL)        
+        try:
+            self.agc.serverOption("client-level", AGU_PROTOCOL_LEVEL)
+        except Exception:
+            pass
         self.debugMask = db | 0x40000000
         self.serverId = self.agc.serverId()
         if self.serverId < 101:
@@ -434,31 +432,31 @@ class AllegroGraphConnection(object):
         return self.help_access(AllegroGraphConnection.REPLACE, name=name, directory=directory, ag_store=ag_store)  
 
     def getChunkSize(self):
-        v = self.getServer().evalInServer(AG_DLR_MAXIMUM_INDEXING_SORT_CHUNK_SIZE_DLR)
-        if v is not None and 0 < len(v):
-            return agconnector.longValue(v[0])
-        raise AllegroGraphException("Cannot get chunk size.")
+        w = self.getServer().serverOption("chunk-size", -1)
+        if w: return agconnector.longValue(w);
+        else: raise AllegroGraphException("Cannot get chunk size.")
 
     def setChunkSize(self, s):
-        self.getServer().evalInServer("(setf " + AG_DLR_MAXIMUM_INDEXING_SORT_CHUNK_SIZE_DLR + " " + s + ")")
+        if s < 1: raise IllegalArgumentException("ChunkSize must be positive.")
+        else: self.getServer().serverOption("chunk-size", long(s))
 
     def getDefaultExpectedResources(self):
-        v = self.getServer().evalInServer(AG_DLR_DEFAULT_EXPECTED_UNIQUE_RESOURCES_DLR)
-        if v is not None and 0 < len(v):
-            return agconnector.longValue(v[0])
-        raise AllegroGraphException("Cannot get expected resource number.")
+        w = self.getServer().serverOption("expected", -1)
+        if w: return agconnector.longValue(w)
+        else: raise AllegroGraphException("Cannot get expected resource number.")
 
     def setDefaultExpectedResources(self, s):
-        self.getServer().evalInServer("(cl:setf " + AG_DLR_DEFAULT_EXPECTED_UNIQUE_RESOURCES_DLR + " " + s + ")")
+        if s < 1: raise IllegalArgumentException( "ExpectedResources must be positive.")
+        else: self.getServer().serverOption("expected", long(s))        
 
-    def evalInServer(self, expression, environment=None):
-        return self.getServer().evalInServer(expression, environment)
+    def evalInServer(self, expression):
+        return self.getServer().evalInServer(expression)
 
-    def bindInServer_0(self, var, value, environment=None):
-        if (None == environment):
-            self.evalInServer("(" + AGJ_BIND + " '" + var + " " + value + ")")
-        else:
-            self.evalInServer("(" + AGJ_BIND + " '" + var + " '" + value + ")", environment)
+#    def bindInServer_0(self, var, value):
+#        if (None == environment):
+#            self.evalInServer("(" + AGJ_BIND + " '" + var + " " + value + ")")
+#        else:
+#            self.evalInServer("(" + AGJ_BIND + " '" + var + " '" + value + ")", environment)
 
     def traceServer(self, onoff):
         try:
@@ -645,7 +643,7 @@ class AllegroGraphConnection(object):
             for i in range(len(cmd)):
                 m = m + " " + cmd[i]
             print "startServer command:" + m
-        self.ag_process = subprocess.Popen([cmd]);
+        self.ag_process = subprocess.Popen([cmd])
         try:
             time.sleep(1)  ## sleep time in seconds
         except InterruptedException, e:

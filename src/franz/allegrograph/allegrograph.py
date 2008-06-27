@@ -250,7 +250,7 @@ class AllegroGraph(object):
          * @return An array of strings for the AllegroGraph version, 
          *    the server protocol level, and the socket protocol level.
         """
-        return [AllegroGraph.version, str(AGU_PROTOCOL_LEVEL), AGDirectLink.AGDIRECT_LEVEL,]
+        return [AllegroGraph.version, str(AGU_PROTOCOL_LEVEL), AG_DIRECT_LEVEL,]
 
     @staticmethod
     def versionLabels():
@@ -1534,8 +1534,8 @@ class AllegroGraph(object):
             return r
         return []
 
-    def evalInServer(self, expression, environment=None):
-        return self.verifyEnabled().evalInServer(self, expression, environment)
+    def evalInServer(self, expression):
+        return self.verifyEnabled().evalInServer(self, expression)
 
     def serverTrace_with_boolean(self, onoff):
         try:

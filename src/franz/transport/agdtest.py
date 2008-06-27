@@ -6,7 +6,7 @@ import datetime
 from franz.exceptions import IOException, IllegalArgumentException
 from franz.transport.agdirectlink import AGDirectLink
 from franz.transport.agdirectlinkdebug import AGDirectLinkDebug
-from franz.upi import UPI
+from franz.allegrograph.upi import UPI
 
 class AGDTest(object):
     """ generated source for AGDTest
@@ -114,6 +114,10 @@ class AGDTest(object):
             ra = r
             if not (2 == len(ra)):
                 raise IOException(":call (values) r.length=" + ra.length)
+            ## AGDTest datatypes byte short int long
+            for i in range(300):
+                AGDTest.test11(ts, i)
+                AGDTest.test11(ts,-i)
             AGDTest.test11(ts, 100)
             AGDTest.test11(ts, 1000)
             AGDTest.test11(ts, 10000)

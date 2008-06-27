@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from franz.resourcenode import ResourceNode
+from franz.openrdf.model.value import BNode
 
 class BlankNode(ResourceNode):
     """ generated source for BlankNode
