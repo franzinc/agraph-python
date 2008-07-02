@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns="http://www.co-ode.org/ontologies/amino-acid/2005/10/11/amino-acid.owl#"
+  xml:base="http://www.co-ode.org/ontologies/amino-acid/2005/10/11/amino-acid.owl">
+  <owl:Class rdf:ID="TinyPolarAminoAcid">
+    <owl:equivalentClass>
+      <owl:Class>
+        <owl:intersectionOf rdf:parseType="Collection">
+          <owl:Class rdf:ID="AminoAcid"/>
+         </owl:intersectionOf>
+      </owl:Class>
+    </owl:equivalentClass>
+  </owl:Class>
+ </rdf:RDF>

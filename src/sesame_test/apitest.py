@@ -7,10 +7,33 @@ from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.rdfwriter import RDFXMLWriter, NTriplesWriter
 
+import os, urllib, datetime
+
+CURRENT_DIRECTORY = os.getcwd() 
+
+def test0():
+    """
+    Test to see if you have the module settings correctly set.
+    """
+    print "Welcome to the PythonAPI"
+    file1 = open("./vc-db-1.rdf")
+    print file1.name, os.path.abspath(file1.name)
+    file2 = open(CURRENT_DIRECTORY + "/vc-db-1.rdf")
+    print file2.name 
+    
+    try:
+        fname, headers = urllib.urlretrieve("http://www.co-ode.org/ontologies/amino-acid/2005/10/11/amino-acid.owl", "/tmp/myfile")
+        file3 = open(fname) 
+    except Exception, e:
+        print "Failed ", e
+    for line in file3:
+        print line
+    print "MADE IT"
+    
 
 def test1():
     sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
-    store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testP",
+    store = AllegroGraphStore(AllegroGraphStore.RENEW, "192.168.1.102", "testP",
                               sesameDir, port=4567)
     myRepository = SailRepository(store)
     myRepository.initialize()
@@ -79,22 +102,25 @@ def test5():
     for f in dircache.listdir("."):
         print f
         
-    myRepository = test1()        
+    myRepository = test1()       
+    print "CURDIR ", os.getcwd() 
     file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
+    file = open("./vc-db-1.rdf")            
+    #file = open("./agraph-python/src/sesame_test/vc-db-1.rdf")                
     baseURI = "http://example.org/example/local"
     baseURI = None
     try:
         conn = myRepository.getConnection();
-        conn.add(file, base=baseURI, format=RDFFormat.RDFXML); 
+        conn.add("./vc-db-1.rdf", base=baseURI, format=RDFFormat.RDFXML); 
         print "After loading, repository contains %s triples." % conn.size(None)
         try:
-            for s in conn.getStatements(None, None, None, False, []):
+            for s in conn.getStatements(None, None, None, True, []):
                 print s
              
-            print "\n\nAnd here it is JDBC-style"
-            resultSet = conn.getJDBCStatements(None, None, None, False, [])
-            while resultSet.next():
-                print resultSet.getRow()
+#            print "\n\nAnd here it is JDBC-style"
+#            resultSet = conn.getJDBCStatements(None, None, None, False, [])
+#            while resultSet.next():
+#                print resultSet.getRow()
                 
             print "\n\nAnd here it is without the objects"
             resultSet = conn.getJDBCStatements(None, None, None, True, [])
@@ -196,7 +222,7 @@ def test9():
     #store.internal_ag_store.serverTrace(True)
     ## END TEMPORARY
     print "Repository is up!"
-    conn = myRepository.getConnection();
+    conn = myRepository.getConnection()
     statements = conn.getStatements(None, None, None, False, None)    
     try:
         for s in statements:
@@ -206,15 +232,91 @@ def test9():
     return myRepository
 
 def test10():
-    print "X ", hasattr([], '__iter__')
+    myRepository = test1()
+    conn = myRepository.getConnection()
+    aminoFile = "amino.owl"
+    aminoFile = "/Users/bmacgregor/Desktop/rdf/ciafactbook.nt"
+    print "Begin loading triples from ", aminoFile, " into AG ..."
+    conn.add(aminoFile)
+    print "Loaded ", conn.size(None), " triples."
+#    f = myRepository.getValueFactory()
+#    rdfsLabel = f.createURI("http://www.w3.org/2000/01/rdf-schema#label")
+#    glutamine = f.createLiteral("Glutamine")
+    ##
+    count = 0         
+    ##statements = conn.getStatements(None, None, glutamine, True, None)
+    print "Begin retrieval ", datetime.datetime.now()
+    beginTime = datetime.datetime.now()    
+    statements = conn.getStatements(None, None, None, False, None)
+    elapsed = datetime.datetime.now() - beginTime
+    print "Retrieval took %s milliseconds" % (elapsed.microseconds / 1000)
+    print "Begin counting statements ... ", datetime.datetime.now()
+    beginTime = datetime.datetime.now()   
+    for s in statements:
+        #print s
+        count += 1
+        if (count % 50) == 0:  print '.',
+        if (count % 4000) == 0: print "M"
+    elapsed = datetime.datetime.now() - beginTime
+    print "Counted %i statements in %s milliseconds" % (count, (elapsed.microseconds / 1000))
+    print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
     
+    print "Begin JDBC retrieval ", datetime.datetime.now()
+    beginTime = datetime.datetime.now()    
+    resultSet = conn.getJDBCStatements(None, None, None, False, [])
+    count = 0
+    while resultSet.next():
+        #print s
+        count += 1
+        if (count % 50) == 0:  print '.',
+        if (count % 1000) == 0: print
+    elapsed = datetime.datetime.now() - beginTime
+    print "Counted %i JDBC statements in %s milliseconds" % (count, (elapsed.microseconds / 1000))
+    print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
+
+
+
+def test11():
+    """
+    Reading from a URL
+    """
+    myRepository = test1()
+    conn = myRepository.getConnection()
+    tempAminoFile = "/tmp/myfile.rdf"
+    try:
+        websource = "http://www.co-ode.org/ontologies/amino-acid/2005/10/11/amino-acid.owl"
+        websource = "http://www.ontoknowledge.org/oil/case-studies/CIA-facts.rdf"        
+        print "Begin downloading ", websource, " triples ..."
+        fname, headers = urllib.urlretrieve(websource, tempAminoFile)
+        print "Triples in temp file"
+        tempAminoFile = open(fname) 
+    except Exception, e:
+        print "Failed ", e
+    print "Begin loading triples into AG ..."
+    conn.add(tempAminoFile)
+    print "Loaded ", conn.size(None), " triples."
+    if True:
+        outputFile = "/users/bmacgregor/Desktop/ciafactbook.nt"
+        print "Saving to ", outputFile 
+        ntriplesWriter = NTriplesWriter(outputFile)
+        conn.export(ntriplesWriter, None);   
+    count = 0
+    print "Retrieving statements ..."
+    statements = conn.getStatements(None, None, None, False, None)
+    print "Counting statements ..."
+    for s in statements:
+        count += 1
+        if (count % 50) == 0:  print '.',
+    print "Counted %i statements" % count
+   
 if __name__ == '__main__':
     choices = [i for i in range(9)]
-    choices = [5]
+    choices = [10]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
-        if choice == 1: test1()
+        if choice == 0: test0()
+        elif choice == 1: test1()
         elif choice == 2: test2()
         elif choice == 3: test3()
         elif choice == 4: test4()    
@@ -224,4 +326,5 @@ if __name__ == '__main__':
         elif choice == 8: test8()                
         elif choice == 9: test9()                        
         elif choice == 10: test10()                            
+        elif choice == 11: test11()                                    
     

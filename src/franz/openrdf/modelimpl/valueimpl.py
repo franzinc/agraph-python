@@ -86,11 +86,13 @@ class BNodeImpl(BNode):
     """
     def __init__(self, upi=None, id=None, store=None):
         self.upi = upi
-        self.id = id
+        firstChar = id[:1]
+            
+        self.id = id if firstChar.isalpha() else "A%s" % id 
         self.store = store
         ## QUESTION: WHAT THE HECK IS AN 'idString'.  Is it different than an ID???
         if id:
-            self.idString = "_:%s" % id
+            self.idString = "_:A%s" % id
         else:
             self.idString = "_:blank" + upi.blankNodeID()
             

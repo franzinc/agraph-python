@@ -28,6 +28,7 @@ from franz import util
 from franz.exceptions import NiceException, RuntimeException, AllegroGraphException, IOException, ConnectException, FakeException
 #from franz.agconnector import AGConnector
 from franz.transport.agconnection import AllegroGraphConnection
+from franz.allegrograph.quad import Quad
 
 class StartUp(object):
     """ 
@@ -36,6 +37,7 @@ class StartUp(object):
     debug = 0
     quiet = False
     DEFAULT_AGSERVER_LOCATION_MAP = {"Darwin": "/Applications/AllegroGraph/AllegroGraphJavaServer", }
+    Quad.COMPLAIN_BITTERLY = True
 
     @staticmethod
     def startServer(agConn, agJavaServerPath):
@@ -74,6 +76,9 @@ class StartUp(object):
         agJavaServerPath = None
         exitWait = 0
         startServer = agJavaServerPath is not None
+        host = '192.168.1.102'
+        print "HOST: ", host
+        
         for flag, value in access_options.iteritems():
             if flag == "-p":
                 port = int(value)
@@ -114,8 +119,8 @@ class StartUp(object):
         agConn.setHost(host)
         agConn.setDebug(StartUp.debug)
         ## WE MESS WITH DEBUG SETTING HERE:
-        ##print "ENABLING DEBUGGING AT LEVEL 2"
-        ##agConn.setDebug(2)
+        print "ENABLING DEBUGGING AT LEVEL 0"
+        agConn.setDebug(0)
         ## END MESSING
         if startServer:
             StartUp.startServer(agConn, agJavaServerPath)

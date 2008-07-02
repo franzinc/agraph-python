@@ -46,13 +46,16 @@ def test4():
         print r[0], r[1], r[2]
 
 def test5():
-    pass
+    print character_to_integer('c'), " ", ord('c')
+    print character_to_integer(' '), " ", ord(' ')
+    
+    
 
 def test6():
     pass
 
 if __name__ == '__main__':
-    test = 4
+    test = 5
     if test == 1: test1()
     elif test == 2: test2()
     elif test == 3: test3()

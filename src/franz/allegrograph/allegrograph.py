@@ -1651,7 +1651,7 @@ class AllegroGraph(object):
         self.sync = s
 
     def __str__(self):
-        return str(type(self)) + "<" + self.tsx + " " + self.storeName + ">"
+        return str(type(self)) + "<" + str(self.tsx) + " " + self.storeName + ">"
 
     def getSNAExtension(self):
         if (None == self.sna):

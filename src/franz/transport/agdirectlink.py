@@ -55,6 +55,7 @@ class Op(object):
     def getVals(self):
         return self.vals
 
+EXPERIMENTAL = True
 
 class AGDirectLink(object):
     """ generated source for AGDirectLink
@@ -373,7 +374,7 @@ class AGDirectLink(object):
         if ret < 0:
             self.throwIOErr("sendOp", ret)
         if style < 0:
-            return
+            return None
         self.state = PORT_WAITING_REPLY
         return self.opResIn(op, opix, rx)
 
@@ -546,20 +547,18 @@ class AGDirectLink(object):
         return wl
 
     def portInSeqString(self, len):
-        c = ''
-        wl = [c for i in range(len)]
-        ## for-while
+        wl = [None for i in range(len)]
         i = 0
         while i < len:
             next = self.portIn_8()
             if (next == TAG_DUP):
-                j = self.portInLong()
+                j = int(self.portInLong())
                 wl[i] = wl[i - j]
                 i += 1
             else:
                 if (next == TAG_REP):
-                    j = self.portInLong()
-                    n = self.portInLong()
+                    j = int(self.portInLong())
+                    n = int(self.portInLong())
                     v = wl[i - j]
                     ## for-while
                     for k in range(n):
@@ -576,24 +575,6 @@ class AGDirectLink(object):
 
     def portInSeqObject(self, len):
         wl = [None for i in range(len)]
-        for i in range(len):
-            next = self.portIn_8()
-            if (next == TAG_DUP):
-                j = self.portInLong()
-                wl[i] = wl[i - j]
-            elif (next == TAG_REP):
-                    j = self.portInLong()
-                    n = self.portInLong()
-                    v = wl[i - j]
-                    for k in range(n):
-                        wl[i] = v
-            else:
-                wl[i] = self.streamInValue(next)
-        return wl
-
-    def portInSeqUPI(self, len):
-        wl = [None for i in range(len)]
-        ## for-while
         i = 0
         while i < len:
             next = self.portIn_8()
@@ -601,21 +582,40 @@ class AGDirectLink(object):
                 j = self.portInLong()
                 wl[i] = wl[i - j]
                 i += 1
-            else:
-                if (next == TAG_REP):
+            elif (next == TAG_REP):
                     j = self.portInLong()
                     n = self.portInLong()
                     v = wl[i - j]
-                    for i in range(n):
+                    for k in range(n):
                         wl[i] = v
                         i += 1
-                else:
-                    if (next == TAG_UPI):
-                        wl[i] = self.portInUPI(next)
-                        i += 1
-                    else:
-                        wl[i] = UPI(self.portInLong(next))
-                        i += 1                        
+            else:
+                wl[i] = self.streamInValue(next)
+                i += 1
+        return wl
+
+    def portInSeqUPI(self, len):
+        wl = [None for i in range(len)]
+        i = 0
+        while i < len:
+            next = self.portIn_8()
+            if (next == TAG_DUP):
+                j = int(self.portInLong())
+                wl[i] = wl[i - j]
+                i += 1
+            elif (next == TAG_REP):
+                j = int(self.portInLong())
+                n = int(self.portInLong())
+                v = wl[i - j]
+                for k in range(n):
+                    wl[i] = v
+                    i += 1
+            elif (next == TAG_UPI):
+                wl[i] = self.portInUPI(next)
+                i += 1
+            else:
+                wl[i] = UPI(self.portInLong(next))
+                i += 1
         return wl
 
     def portInSeqBody(self, tag, len, sub):
@@ -709,7 +709,9 @@ class AGDirectLink(object):
         res = 0
         try:
             chr = self.socket.recv(1)
-            res = util.character_to_integer(chr)
+            # EXPERIMENT
+            #res = util.character_to_integer(chr)
+            res = ord(chr)
         except IOException, e:
             res = self.ERR_PORT_IO
         if res < 0:
@@ -1262,12 +1264,13 @@ class AGDirectLink(object):
 
     def portInLong(self, tag=None):
         if not tag:
-            return self.portInLong(self.portIn_8())
+            ## EXPERIMENT
+            ##return self.portInLong(self.portIn_8())
+            tag = self.portIn_8()
         ##
         if tag < TAG_INT_START or not tag < TAG_INT_END:
-            raise IOException("portInLong tag " + tag)
+            raise IOException("portInLong tag " + str(tag))
         s = tag & (TAG_INT_MASK | TAG_SIGN_MASK)
-        count = 0
         neg = False
         if s < TAG_IMM_TOP:
             return s

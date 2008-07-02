@@ -21,6 +21,7 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+import os
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.sail.sail import Sail, SailConnection
@@ -241,14 +242,22 @@ class AllegroGraphRepositoryConnection(SailConnection):
         which context the triples will be loaded into.
         """
         if isinstance(filePath, file):
-            filePath = filePath.name
+            filePath = os.path.abspath(filePath.name)
+        elif isinstance(filePath, str):
+            if not filePath.startswith('/') and not filePath.lower().startswith('c:') and not filePath.lower().startswith("http:"):
+                ## looks like its a relative file path; test to see if there is a local file that matches.
+                ## If so, generate an absolute path name to enable AG server to read it:
+                if os.path.exists(os.path.abspath(filePath)):
+                    filePath = os.path.abspath(filePath)                    
         contextString = self.directCaller.canonicalize_context_argument(context)
-        if format == RDFFormat.NTRIPLES:
+        if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
             ## PASSING "NTRIPLE" AS 'ext' ARG FAILS HERE.  THE DOCUMENTATION DOESN'T
             ## SAY WHAT THE ACCEPTABLE VALUE(S) ARE:
             self.internal_store.verifyEnabled().loadNTriples(self.internal_store, filePath, contextString, None, None, None, None)
-        elif format == RDFFormat.RDFXML:
+        elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):
             self.internal_store.verifyEnabled().loadRDF(self.internal_store, filePath, contextString, base, None)
+        else:
+            raise Exception("Failed to specify a format for the file '%s'." % filePath)
     
     def addTriple(self, subject, predicate, object, contexts=None):
         """

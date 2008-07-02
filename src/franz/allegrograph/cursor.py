@@ -34,7 +34,8 @@ from franz.openrdf.modelimpl.literalimpl import LiteralImpl
 
 ## Value to return when an SPO value is missing:
 NO_TRIPLE = -1
-
+DEFAULT_LOOKAHEAD = 1000
+    
 class Cursor:
     """ 
     This class implements a generator for multiple Triple instances.
@@ -42,7 +43,7 @@ class Cursor:
     results. These operations return a Cursor instance which may be used to
     iterate through the available results.
     """
-    defaultLookAhead = 1000
+    defaultLookAhead = DEFAULT_LOOKAHEAD
     emptyCursor = None     
     NO_VALUE = -1
     def __init__(self, internal_store, cursor, newts=None, newdefs=None):
@@ -88,7 +89,7 @@ class Cursor:
     @staticmethod
     def setDefaultLookAhead(lh):
         if lh < 1:
-            Cursor.defaultLookAhead = 1000
+            Cursor.defaultLookAhead = DEFAULT_LOOKAHEAD
         else:
             Cursor.defaultLookAhead = lh
 
@@ -398,7 +399,7 @@ class Cursor:
         if self.source is None:
             return False
         if self.withParts:
-            v = self.agStore.agConnection.nextCursorAndParts(self.agStore, self.source, self.lookAhead)
+            v = self.agStore.agConnection.getServer().nextCursorAndParts(self.agStore, self.source, self.lookAhead)
             r = v[0]
             d = v[1]
             if r is None:
@@ -406,7 +407,7 @@ class Cursor:
                 return False
             self.setCache(r, newdefs=d)
         else:
-            r = self.agStore.agConnection.nextCursor(self.agStore, self.source, self.lookAhead)
+            r = self.agStore.agConnection.getServer().nextCursor(self.agStore, self.source, self.lookAhead)
             if r is None:
                 self.setCache(None, setNext=True)
                 return False

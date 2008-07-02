@@ -71,10 +71,10 @@ class AGDirectConnector(AGConnector):
     ## @return the result array (includes 2extra leading entries)
     def tsApplyA(self, ag, fn, args):
         testIndex(ag)
-        try:
-            return self.verifyLink().sendOp3n(OP_CALL, 1, -1, AG_APPLY, ag.tsx, fn, args)
-        except IOException, e:
-            raise AllegroGraphException(e)
+        #try:
+        return self.verifyLink().sendOp3n(OP_CALL, 1, -1, AG_APPLY, ag.tsx, fn, args)
+        #except IOException, e:
+        #    raise AllegroGraphException(e)        
 
     def applyA(self, fn, args):
         try:
@@ -281,10 +281,10 @@ class AGDirectConnector(AGConnector):
                 gt = 8
             else:
                 gt = 4
-        len = 4
+        lng = 4
         if (None != ext):
-            len = len + 2
-        args = [None for i in range(len)]
+            lng = lng + 2
+        args = [None for i in range(lng)]
         args[0] = name
         args[1] = context
         args[2] = source
@@ -298,7 +298,7 @@ class AGDirectConnector(AGConnector):
         r = self.tsApplyA(ag, AG_LOAD, args)
         if r is None:
             return 0
-        if 4 > len(r):
+        if len(r) < 4:
             return longValue(r[2])
         if place is not None and 0 < len(place):
             place[0] = r[3]

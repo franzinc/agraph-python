@@ -37,6 +37,7 @@ class Quad:
     """
     Historical note: Carves out logic that was previously replicated in Cursor and Triple
     """
+    COMPLAIN_BITTERLY = True
     def __init__(self, internal_store):
         self.internal_store = internal_store
         self.id = NO_TRIPLE
@@ -242,7 +243,8 @@ class Quad:
         """
         Database access to get stuff; sounds expensive
         """
-        print "ENTIRE ACCESS FOR SINGLE SPOC COMPONENT"
+        if Quad.COMPLAIN_BITTERLY:
+            print "ENTIRE ACCESS FOR SINGLE SPOC COMPONENT"
         v = self.internal_store.agConnection.getServer().getParts(self.internal_store, part)
         type = int(v[0])
         if partIndex == 1:

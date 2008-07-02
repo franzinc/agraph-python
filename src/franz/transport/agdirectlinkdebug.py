@@ -54,7 +54,8 @@ class AGDirectLinkDebug(AGDirectLink):
 
     def opResIn(self, op, opix, rx):
         r = super(AGDirectLinkDebug, self).opResIn(op, opix, rx)
-        self.dp(1, "opRes=" + str(op) + " " + str(opix) + " " + str(r))
+        rexpanded = [str(item) for item in r] if isinstance(r, list) else r
+        self.dp(1, "opRes=" + str(op) + " " + str(opix) + " " + str(rexpanded))
         return r
 
     def streamInValue(self, tag=None):
