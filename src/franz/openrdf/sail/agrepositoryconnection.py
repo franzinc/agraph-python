@@ -25,8 +25,8 @@ import os
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.sail.sail import Sail, SailConnection
-from franz.openrdf.sail.repositoryresultimpl import RepositoryResultImpl
-from franz.openrdf.sail.jdbcresultsetimpl import JDBCResultSetImpl
+from franz.openrdf.sail.repositoryresultimpl import RepositoryResultImpl, CompoundRepositoryResultImpl
+from franz.openrdf.sail.jdbcresultsetimpl import JDBCResultSetImpl, CompountJDBCResultSetImpl
 from franz.openrdf.model.value import Value, URI, BNode
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.query.queryimpl import AbstractQuery, TupleQueryImpl, GraphQueryImpl, BooleanQueryImpl
@@ -142,7 +142,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
 #     *        method operates on the entire repository.
 #     * @return The number of explicit statements from the specified contexts in
 #     *         this repository.
-    def size(self, contexts):
+    def size(self, contexts=None):
         """
         Returns the number of (explicit) statements that are in the specified
         contexts in this repository.
@@ -150,7 +150,12 @@ class AllegroGraphRepositoryConnection(SailConnection):
         if not contexts:
             return self.directCaller.numberOfTriples()
         else:
-            raise UnimplementedMethodException("Size doesn't handle 'contexts' yet.")
+            resultSet = self.getJDBCStatements(None, None, None, False, contexts)
+            count = 0
+            while resultSet.next():
+                count += 1
+            return count
+                
 
 #     * Returns <tt>true</tt> if this repository does not contain any (explicit)
 #     * statements.
@@ -197,8 +202,16 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         if not isinstance(contexts, list):
             contexts = [contexts]
-        cursor = self.directCaller.getTriples(subj, pred, obj, contexts, includeInferred=includeInferred)
-        return RepositoryResultImpl(cursor)
+        if len(contexts) <= 1:
+            cursor = self.directCaller.getTriples(subj, pred, obj, contexts, includeInferred=includeInferred)
+            return RepositoryResultImpl(cursor)
+        else:
+            ## kludge until AGraph can handle multiple contexts:
+            cursors = []
+            for cxt in contexts:
+                cursor = self.directCaller.getTriples(subj, pred, obj, [cxt], includeInferred=includeInferred)
+                cursors.append(cursor)
+            return CompoundRepositoryResultImpl(cursors)
 
     def getJDBCStatements(self, subj, pred,  obj, includeInferred, contexts):
         """
@@ -208,8 +221,19 @@ class AllegroGraphRepositoryConnection(SailConnection):
         to be selectively extracted from the result, without the bulky overhead
         of the OpenRDF BindingSet protocol.
         """
-        cursor = self.directCaller.getTriples(subj, pred, obj, contexts, includeInferred=includeInferred)
-        return JDBCResultSetImpl(cursor=cursor)
+        if not isinstance(contexts, list):
+            contexts = [contexts]
+        if len(contexts) <= 1:
+            cursor = self.directCaller.getTriples(subj, pred, obj, contexts, includeInferred=includeInferred)
+            return JDBCResultSetImpl(cursor=cursor)
+        else:
+            ## kludge until AGraph can handle multiple contexts:
+            cursors = []
+            for cxt in contexts:
+                cursor = self.directCaller.getTriples(subj, pred, obj, [cxt], includeInferred=includeInferred)
+                cursors.append(cursor)
+            return CompountJDBCResultSetImpl(cursors)
+
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
         """
@@ -300,7 +324,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         Add the supplied statement to the specified contexts in the repository.
         """        
-        self.addTriple(statement.getSubject(), statement.getPredicate(), statement.getObject,
+        self.addTriple(statement.getSubject(), statement.getPredicate(), statement.getObject(),
                        contexts=contexts)      
 
     def remove(self, arg0, arg1=None, arg2=None, contexts=None):

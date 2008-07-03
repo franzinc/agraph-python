@@ -23,29 +23,34 @@
 
 from franz.openrdf.model.value import BNode, URI
 from franz.openrdf.model.literal import Literal
+from franz.openrdf.model.valuefactory import ValueFactory
+from franz.openrdf.modelimpl.valueimpl import URIImpl, BNodeImpl
+from franz.openrdf.modelimpl.literalimpl import LiteralImpl
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
-
-class ValueFactory(object):
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
+    
+class ValueFactoryImpl(ValueFactory):
     """
-    A factory for creating URIs, blank nodes, literals and statements.
+    AllegroGraph-specific implementation of ValueFactory
     """
-    def __init__(self):
-        RDF.initialize(self)
+    def __init__(self, store):
+        self.store = store
+        RDF.reinitialize(self, store)
+        XMLSchema.reinitialize(self, store)        
 
     def createBNode(self, nodeID=None):
         """
         Creates a new blank node with the given node identifier.
         """
-        return BNode(nodeID)
+        return BNodeImpl(None, id=nodeID, store=self.store)
     
-    def createLiteral(self, label, datatype=None, language=None):
+    def createLiteral(self, value, datatype=None, language=None, upi=None, store=None):
         """
-        Create a new literal with label 'label'.  'datatype' if supplied,
-        should be a URI, in which case 'label' should be a string.
+        Create a new literal with value 'value'.  'datatype' if supplied,
+        should be a URI, in which case 'value' should be a string.
         """
-        return Literal(label, datatype=datatype, language=language)
-        
+        return LiteralImpl(value, datatype=datatype, language=language, upi=upi, store=store)
 
     def createStatement(self, subject, predicate, object, context=None):
         """
@@ -54,11 +59,9 @@ class ValueFactory(object):
         """
         return Statement(subject, predicate, object, context=context)
     
-    def createURI(self, uri=None, namespace=None, localname=None):
+    def createURI(self, uri=None, namespace=None, localname=None, store=None, upi=None):
         """
         Creates a new URI from the supplied string-representation(s)
         """
-        return URI(uri=uri, namespace=namespace, localname=localname)
-        
-        
+        return URIImpl(uri=uri, namespace=namespace, localname=localname, store=self.store, upi=upi)
 

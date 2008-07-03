@@ -1,11 +1,13 @@
 
-from franz.openrdf.repository.repository import Repository
 from franz.openrdf.sail.sail import SailRepository
 from franz.openrdf.sail.allegrographstore import AllegroGraphStore
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.query.dataset import Dataset
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.rdfwriter import RDFXMLWriter, NTriplesWriter
+
 
 import os, urllib, datetime
 
@@ -32,6 +34,9 @@ def test0():
     
 
 def test1():
+    """
+    Tests getting the repository up.  Is called by most of the other tests to do the startup.
+    """
     sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
     store = AllegroGraphStore(AllegroGraphStore.RENEW, "192.168.1.102", "testP",
                               sesameDir, port=4567)
@@ -173,6 +178,9 @@ def test7():
 import urlparse
 
 def test8():
+    """
+    Asserting into a context and matching against it.
+    """
     location = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/test/vc_db_1_rdf"      
     url = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf"      
     url = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/sample-bad.rdf"
@@ -186,7 +194,7 @@ def test8():
     conn = myRepository.getConnection();
     ## read the contents of a file into the context:
     conn.add(url, baseURI, format=RDFFormat.RDFXML, contexts=context);
-    print "RDF store contains %s triples" % conn.size(None)
+    print "RDF store contains %s triples" % conn.size()
     ## Get all statements in the context
     statements = conn.getStatements(None, None, None, False, context)    
     try:
@@ -235,7 +243,7 @@ def test10():
     myRepository = test1()
     conn = myRepository.getConnection()
     aminoFile = "amino.owl"
-    aminoFile = "/Users/bmacgregor/Desktop/rdf/ciafactbook.nt"
+    #aminoFile = "/Users/bmacgregor/Desktop/rdf/ciafactbook.nt"
     print "Begin loading triples from ", aminoFile, " into AG ..."
     conn.add(aminoFile)
     print "Loaded ", conn.size(None), " triples."
@@ -249,16 +257,15 @@ def test10():
     beginTime = datetime.datetime.now()    
     statements = conn.getStatements(None, None, None, False, None)
     elapsed = datetime.datetime.now() - beginTime
-    print "Retrieval took %s milliseconds" % (elapsed.microseconds / 1000)
+    print "Retrieval took %s milliseconds" % elapsed
     print "Begin counting statements ... ", datetime.datetime.now()
-    beginTime = datetime.datetime.now()   
     for s in statements:
         #print s
         count += 1
         if (count % 50) == 0:  print '.',
-        if (count % 4000) == 0: print "M"
+        if (count % 1000) == 0: print
     elapsed = datetime.datetime.now() - beginTime
-    print "Counted %i statements in %s milliseconds" % (count, (elapsed.microseconds / 1000))
+    print "Counted %i statements in time %s" % (count, elapsed)
     print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
     
     print "Begin JDBC retrieval ", datetime.datetime.now()
@@ -271,12 +278,39 @@ def test10():
         if (count % 50) == 0:  print '.',
         if (count % 1000) == 0: print
     elapsed = datetime.datetime.now() - beginTime
-    print "Counted %i JDBC statements in %s milliseconds" % (count, (elapsed.microseconds / 1000))
+    print "Counted %i JDBC statements in time %s " % (count, elapsed)
+    print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
+
+def test11():
+    ## Test query performance
+    myRepository = test1()
+    conn = myRepository.getConnection()
+    aminoFile = "amino.owl"
+    #aminoFile = "/Users/bmacgregor/Desktop/rdf/ciafactbook.nt"
+    print "Begin loading triples from ", aminoFile, " into AG ..."
+    conn.add(aminoFile)
+    print "Loaded ", conn.size(None), " triples."
+    count = 0         
+    print "Begin retrieval ", datetime.datetime.now()
+    beginTime = datetime.datetime.now()    
+    queryString = "SELECT ?s ?p ?o WHERE {?s ?p ?o .}"
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    #tupleQuery.setIncludeInferred(True)    ## Works, but is very slow, infers additional 44 statements
+    result = tupleQuery.evaluate();
+    elapsed = datetime.datetime.now() - beginTime
+    print "\nQuery evaluated, begin generating bindings; elapsed time ", elapsed
+    for bindingSet in result:
+#        s = bindingSet.getValue("s")
+#        p = bindingSet.getValue("p")
+#        o = bindingSet.getValue("o")              
+#        print "%s %s %s" % (s, p, o)
+        count += 1
+    elapsed = datetime.datetime.now() - beginTime
+    print "Counted %i statements; elapsed time %s" % (count, elapsed)
     print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
 
 
-
-def test11():
+def test12():
     """
     Reading from a URL
     """
@@ -308,10 +342,111 @@ def test11():
         count += 1
         if (count % 50) == 0:  print '.',
     print "Counted %i statements" % count
+    
    
+def test13():
+    """
+    Typed Literals
+    """
+    myRepository = test1()
+    conn = myRepository.getConnection()
+    f = myRepository.getValueFactory()
+    exns = "http://example.org/people/"
+    alice = f.createURI("http://example.org/people/alice")
+    age = f.createURI(namespace=exns, localname="age")
+    weight = f.createURI(namespace=exns, localname="weight")    
+    favoriteColor = f.createURI(namespace=exns, localname="favoriteColor")
+    birthdate = f.createURI(namespace=exns, localname="birthdate")
+    ted = f.createURI(namespace=exns, localname="Ted")
+    red = f.createLiteral('Red')
+    rouge = f.createLiteral('Rouge', language="fr")
+    fortyTwo = f.createLiteral('42', datatype=XMLSchema.INT)
+    fortyTwoInteger = f.createLiteral('42', datatype=XMLSchema.LONG)    
+    fortyTwoUntyped = f.createLiteral('42')
+    date = f.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
+    time = f.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME)         
+    stmt1 = f.createStatement(alice, age, fortyTwo)
+    stmt2 = f.createStatement(ted, age, fortyTwoUntyped)    
+    conn.add(stmt1)
+    conn.add(stmt2)
+    conn.add(alice, weight, f.createLiteral('20.5'))
+    conn.add(ted, weight, f.createLiteral('20.5', datatype=XMLSchema.FLOAT))
+    conn.add(alice, favoriteColor, red)
+    conn.add(ted, favoriteColor, rouge)
+    conn.add(alice, birthdate, date)
+    conn.add(ted, birthdate, time)    
+    for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
+                red, rouge]:
+        print "Retrieve triples matching '%s'." % obj
+        statements = conn.getStatements(None, None, obj, False, None)
+        for s in statements:
+            print s
+    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
+        print "Query triples matching '%s'." % obj
+        queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
+        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
+        """ % obj
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        result = tupleQuery.evaluate();    
+        for bindingSet in result:
+            s = bindingSet.getValue("s")
+            p = bindingSet.getValue("p")
+            o = bindingSet.getValue("o")              
+            print "%s %s %s" % (s, p, o)
+
+def test14():
+    """
+    Datasets
+    """
+    myRepository = test1();
+    conn = myRepository.getConnection()
+    f = myRepository.getValueFactory()
+    exns = "http://example.org/people/"
+    alice = f.createURI(namespace=exns, localname="alice")
+    bob = f.createURI(namespace=exns, localname="bob")
+    person = f.createURI(namespace=exns, localname="Person")
+    name = f.createURI(namespace=exns, localname="name")    
+    alicesName = f.createLiteral("Alice")    
+    bobsName = f.createLiteral("Bob")
+    context1 = f.createURI(namespace=exns, localname="cxt1")      
+    context2 = f.createURI(namespace=exns, localname="cxt2")          
+    conn.add(alice, RDF.TYPE, person, context1)
+    conn.add(alice, name, alicesName, context1)
+    conn.add(bob, RDF.TYPE, person, context2)
+    conn.add(bob, name, bobsName, context2)
+    ## first, retrieve all four quads
+    queryString = """
+    SELECT ?s ?p ?o ?c WHERE { GRAPH ?c {?s ?p ?o . } }
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet.getValue("s")
+        p = bindingSet.getValue("p")
+        o = bindingSet.getValue("o")            
+        c = bindingSet.getValue("c")            
+        print "%s %s %s %s" % (s, p, o, c)
+    ## first, retrieve all four quads        
+    ds = Dataset()
+    ds.addDefaultGraph(context1)
+    #ds.addNamedGraph(context2)
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setDataset(ds)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet.getValue("s")
+        p = bindingSet.getValue("p")
+        o = bindingSet.getValue("o")            
+        c = bindingSet.getValue("c")            
+        print "%s %s %s %s" % (s, p, o, c)
+    
+
+
+
+
 if __name__ == '__main__':
     choices = [i for i in range(9)]
-    choices = [10]
+    choices = [14]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -326,5 +461,13 @@ if __name__ == '__main__':
         elif choice == 8: test8()                
         elif choice == 9: test9()                        
         elif choice == 10: test10()                            
-        elif choice == 11: test11()                                    
+        elif choice == 11: test11()
+        elif choice == 12: test12()        
+        elif choice == 13: test13() 
+        elif choice == 14: test14()        
+        elif choice == 15: test15()        
+        elif choice == 16: test16()        
+        elif choice == 17: test17()                               
+        else:
+            print "No such test exists."
     

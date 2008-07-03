@@ -107,11 +107,15 @@ class RDF:
         
     
     @staticmethod
-    def name2URI (name):
+    def name2URI (name, exception_if_failure=True):
         """
         Given a URI string, return the OpenRDF URI object.
         """
-        return RDF.name2URIMap.get(name)
+        matchingURI = RDF.name2URIMap.get(name)
+        if matchingURI: return matchingURI
+        elif exception_if_failure:
+            raise IllegalArgumentException("Passed a non-XSD URI to 'XMLSchema.name2URI.")
+        else: return None
     
 
 

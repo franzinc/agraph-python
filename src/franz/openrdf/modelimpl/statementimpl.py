@@ -50,7 +50,7 @@ class StatementImpl(Statement):
         return self.predicate
      
     #def setPredicate(self, predicate):self.predicate = predicate
-    def getObject(self): 
+    def getObject(self):
         if not self.object:
             if self.quad: self.object = self.quad.getObject()
         return self.object

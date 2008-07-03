@@ -669,12 +669,12 @@ class AllegroGraph(object):
     def refLitInternal(self, prefix, part1, part2):
         if part2 is None:
             return prefix + part1
-        len = len(part1)
+        lnth = len(part1)
         dd = ""
         digits = "0123456789abcdefghijklmnopqrstABCDEFGHIJKLMNOPQRST"
-        while len > 0:
-            digit = len % 50
-            len = len / 50
+        while lnth > 0:
+            digit = lnth % 50
+            lnth = lnth / 50
             dd = digits[digit] + dd
         if (0 == len(dd)):
             dd = "0"

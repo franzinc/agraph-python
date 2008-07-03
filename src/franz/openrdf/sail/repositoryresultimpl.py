@@ -52,14 +52,14 @@ from franz.openrdf.repository.repositoryresult import RepositoryResult
 
 class RepositoryResultImpl(RepositoryResult):  ## inherits IterationWrapper
     def __init__(self, cursor):
-        self.cursor = cursor
+        self.socket_cursor = cursor
         
     def _createStatement(self):
         """
-        Allocate a StatementImpl and fill it in from the cursor.
+        Allocate a StatementImpl and fill it in from the socket_cursor.
         """
         stmt = StatementImpl(None, None, None, None)
-        stmt.setQuad(self.cursor.pop_current_quad())
+        stmt.setQuad(self.socket_cursor.pop_current_quad())
         return stmt
     
     def __iter__(self): return self
@@ -68,16 +68,16 @@ class RepositoryResultImpl(RepositoryResult):  ## inherits IterationWrapper
         """
         Shut down the iterator, to insure that resources are free'd up.
         """
-        if self.cursor:
-            self.cursor.close()
+        if self.socket_cursor:
+            self.socket_cursor.close()
         
     def next(self):
         """
         Return the next Statement in the answer, if there is one.  Otherwise,
         raise StopIteration exception.
         """
-        if self.cursor.hasNext():
-            self.cursor.step()
+        if self.socket_cursor.hasNext():
+            self.socket_cursor.step()
             return self._createStatement();
         else:
             raise StopIteration
@@ -111,3 +111,73 @@ class RepositoryResultImpl(RepositoryResult):  ## inherits IterationWrapper
             if isList: collection.append(stmt)
             else: collection.add(stmt)        
 
+class CompoundRepositoryResultImpl(RepositoryResultImpl):  ## inherits IterationWrapper
+    """
+    Combines multiple cursors into one.  Overcomes temporary inability of AG to 
+    handle multiple contexts in a getTriples.
+    """
+    def __init__(self, cursors):
+        self.cursors = cursors
+        self.current_cursor = cursors[0]
+        self.cursor_index = 0
+            
+    def __iter__(self): return self
+    
+    def close(self):
+        """
+        Shut down the iterator, to insure that resources are free'd up.
+        """
+        if self.current_cursor:
+            for i in range(self.cursor_index, len(self.cursors)):
+                self.cursors[i].close()
+            self.current_cursor = None
+            self.cursors = None
+        
+    def next(self):
+        """
+        Return the next Statement in the answer, if there is one.  Otherwise,
+        raise StopIteration exception.
+        """
+        if not self.current_cursor:
+            raise StopIteration
+        try:
+            stmt = self.current_cursor.next()
+            return stmt
+        except StopIteration:
+            self.cursor_index += 1
+            if self.cursor_index < len(self.cursors):
+                self.current_cursor = self.cursors[self.cursor_index]
+                return self.next()
+            else:
+                self.current_cursor = None
+                self.cursors = None
+                raise StopIteration
+
+#     * Switches on duplicate filtering while iterating over objects. The
+#     * RepositoryResult will keep track of the previously returned objects in a
+#     * {@link java.util.Set} and on calling next() or hasNext() will ignore any
+#     * objects that already occur in this Set.
+#     * <P>
+#     * Caution: use of this filtering mechanism is potentially memory-intensive.
+    def enableDuplicateFilterself(self):
+        raise UnimplementedMethodException()
+
+
+    def asList(self):
+        """
+        Returns a list containing all objects of this RepositoryResult in
+        order of iteration. The RepositoryResult is fully consumed and
+        automatically closed by this operation.
+        """
+        return self.addTo([])
+
+    def addTo(self, collection):
+        """
+        Adds all objects of this RepositoryResult to the supplied collection. The
+        RepositoryResult is fully consumed and automatically closed by this
+        operation.
+        """
+        isList = isinstance(collection, list)
+        for stmt in self:
+            if isList: collection.append(stmt)
+            else: collection.add(stmt)        

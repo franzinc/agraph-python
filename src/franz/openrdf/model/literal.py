@@ -32,23 +32,30 @@ class Literal(Value):
     Implementer note: If this is still too heavyweight, subclass but don't
     call super.__init__.  That's why Python is so cool!
     """
-    def __init__(self, value, datatype=None, language=None):
-        self.value = value
+    def __init__(self, label, datatype=None, language=None):
         self.datatype = datatype
-        self.language = language
-        self.label = None
+        self.language = language.lower() if language else None
+        self.label = label
 
-    def getLabel(self): 
-        if not self.label:
-            self.label = str(self.value)
-        return self.label
+    def getLabel(self): return self.label
+
+    def setLabel(self, label): self.label = label    
     
     def getLanguage(self): return self.language
+    
+    def setLanguage(self, language):
+        ## THE SESAME CODE HAS AN INCONSISTENCY HERE; IT DOESN'T CONVERT TO LOWER CASE, BUT
+        ## THE CONSTRUCTOR DOES CONVERT. WE ARE NOT SURE WHICH IS INTENDED  - RMM
+        self.language = language.lower() if language else None    
+    
     def getDatatype(self):
         """
         Return a URI representing the datatype for this literal, if there is one
         """ 
         return self.datatype
+    
+    def setDatatype(self, datatype):
+        self.datatype = datatype
 
     def __eq__(self, other):
         if not isinstance(other, Literal): return False

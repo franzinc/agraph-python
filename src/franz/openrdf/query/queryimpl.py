@@ -39,7 +39,7 @@ class AbstractQuery(Query):
         self.queryString = queryString
         self.baseURI = baseURI
         self.dataset = None
-        self.includeInferred = True
+        self.includeInferred = False
 
     def setBinding(self, name, value):
         """
@@ -192,20 +192,20 @@ class TupleQueryResultImpl(TupleQueryResult):
         self.totalBindingsCount = len(upis)
         self.tupleCount = self.totalBindingsCount / tupleWidth
         self.reusableRow = [None for k in range(tupleWidth)]
-        self.cursor = 0
+        self.socket_cursor = 0
         self.term2InternalMgr = None
     
     def __iter__(self): return self
     
     def next(self):
-        if self.cursor >= self.totalBindingsCount:
+        if self.socket_cursor >= self.totalBindingsCount:
             raise StopIteration()
         for i in range(self.tupleWidth):
-            offset = self.cursor
+            offset = self.socket_cursor
             term = self.term2InternalMgr.assembleOpenRDFValueTerm(self.upis[offset], 
                                     self.types[0][offset], self.labels[0][offset], self.mods[offset])
             self.reusableRow[i] = term
-            self.cursor += 1
+            self.socket_cursor += 1
         return DictBindingSet(self.variableNames, self.reusableRow)
     
     def setTerm2InternalManager(self, term2InternalMgr):

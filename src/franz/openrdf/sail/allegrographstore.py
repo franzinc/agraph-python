@@ -24,7 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.sail.sail import Sail
-from franz.openrdf.model.valuefactory import ValueFactory, ValueFactoryImpl
+from franz.openrdf.modelimpl.valuefactoryimpl import ValueFactoryImpl
 from franz.openrdf.sail.agrepositoryconnection import AllegroGraphRepositoryConnection
 from franz.openrdf.exceptions import *
 from franz.allegrograph.startup import StartUp

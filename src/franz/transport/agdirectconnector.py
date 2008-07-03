@@ -21,6 +21,7 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+import datetime
 
 from franz.exceptions import IllegalArgumentException, IllegalStateException, IOException, AllegroGraphException
 from franz.transport.agc import *
@@ -566,7 +567,10 @@ class AGDirectConnector(AGConnector):
         args[7] = infer
         for i in range(0, ml):
             args[8 + i] = more[i]
+        #print "Begin twinql select"
+        #beginTime = datetime.datetime.now()  
         r = self.tsApplyA(ag, AG_TWINQL_SELECT, args)
+        #print "\n   Return from twinql select; elapsed time ", (datetime.datetime.now() - beginTime)
         if (slimit == -1):
             return self.valuesOnly(r)
         return self.valuesResults(r)

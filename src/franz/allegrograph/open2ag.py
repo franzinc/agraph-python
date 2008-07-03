@@ -26,6 +26,7 @@ from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import BNode, URI
 from franz.openrdf.model.literal import Literal
 from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 from franz.allegrograph.upi import UPI
 
 class Term2InternalManager(object):
@@ -137,10 +138,13 @@ class Term2InternalManager(object):
         if type == 1: return self.lookupBlankNodeForUPI(id, True)
         elif type == 2:  return self.value_factory.createURI(val)
         elif type == 3:  return self.value_factory.createLiteral(val)
-        elif type == 4:  return self.value_factory.createLiteral(val, mod, False)    
+        elif type == 4:  return self.value_factory.createLiteral(val, language=mod)    
         elif type == 5:
-            datatype = RDF.name2URI(mod)
-            return self.value_factory.createLiteral(val, None, datatype)
+            datatype = XMLSchema.name2URI(mod, exception_if_failure=False)
+            if not datatype:
+                ## NOT SURE IF THERE ARE MATCHES HERE OR NOT.  IF SO, WHAT ABOUT RDFS MATCHES??? - RMM
+                datatype = RDF.name2URI(mod)
+            return self.value_factory.createLiteral(val, datatype=datatype)
         else:
             raise IllegalArgumentException("Cannot convert AG " 
                 + str(type) + "=" + self.internal_ag_store.typeToString(type) +

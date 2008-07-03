@@ -24,6 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.literal import Literal
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 
 LANG_IS_KNOWN = 'known'
@@ -33,18 +34,12 @@ class LiteralImpl(Literal):
     """
     Implementation of 'Literal' customized for AllegroGraph
     """
-    def __init__(self, value, datatype=None, language=None, store=None, upi=None):
-        super(LiteralImpl, self).__init__(value, datatype=datatype, language=language)
+    def __init__(self, label, datatype=None, language=None, store=None, upi=None):
+        super(LiteralImpl, self).__init__(label, datatype=datatype, language=language)
         self.internal_store = None
         self.upi = upi
-        self.typeId = None
-        self.type = ""
-        self.langSlot = None
-        self.language = ""
         self.upi = None
-        self.label = None
-        self.type = None
-        self.language = None
+        self.typeLabel = None
         self.typeId = None
         self.langSlot = LANG_NOT_KNOWN
 
@@ -53,10 +48,11 @@ class LiteralImpl(Literal):
         """
         self.internal_store = store
         self.upi = upi
-        self.label = newLabel
-        self.type = newType
+        self.label = newLabel        
+        if newType:
+            self.datatype = XMLSchema.name2URI(newType)
         self.language = newLanguage
         if newLanguage:
             self.langSlot = LANG_IS_KNOWN
-        self.typeId = newType
+        self.typeId = newTypeId
 

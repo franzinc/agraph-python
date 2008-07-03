@@ -1,4 +1,4 @@
-#Tue Jul 01 18:20:16 PDT 2008
+#Wed Jul 02 16:35:46 PDT 2008
 eclipse.preferences.version=1
 encoding//src/franz/allegrograph/allegrograph.py=UTF-8
 encoding//src/franz/allegrograph/cursor.py=UTF-8
@@ -12,8 +12,11 @@ encoding//src/franz/literal.py=UTF-8
 encoding//src/franz/openrdf/model/literal.py=UTF-8
 encoding//src/franz/openrdf/model/statement.py=UTF-8
 encoding//src/franz/openrdf/model/valuefactory.py=UTF-8
+encoding//src/franz/openrdf/modelimpl/literalimpl.py=UTF-8
 encoding//src/franz/openrdf/modelimpl/statementimpl.py=UTF-8
+encoding//src/franz/openrdf/modelimpl/valuefactoryimpl.py=UTF-8
 encoding//src/franz/openrdf/modelimpl/valueimpl.py=UTF-8
+encoding//src/franz/openrdf/query/dataset.py=UTF-8
 encoding//src/franz/openrdf/query/query.py=UTF-8
 encoding//src/franz/openrdf/query/queryimpl.py=UTF-8
 encoding//src/franz/openrdf/repository/jdbcresultset.py=UTF-8
@@ -21,8 +24,11 @@ encoding//src/franz/openrdf/rio/converter.py=UTF-8
 encoding//src/franz/openrdf/rio/rdfformat.py=UTF-8
 encoding//src/franz/openrdf/rio/rdfwriter.py=UTF-8
 encoding//src/franz/openrdf/sail/agrepositoryconnection.py=UTF-8
+encoding//src/franz/openrdf/sail/allegrographstore.py=UTF-8
 encoding//src/franz/openrdf/sail/jdbcresultsetimpl.py=UTF-8
 encoding//src/franz/openrdf/sail/repositoryresultimpl.py=UTF-8
+encoding//src/franz/openrdf/vocabulary/rdf.py=UTF-8
+encoding//src/franz/openrdf/vocabulary/xmlschema.py=UTF-8
 encoding//src/franz/transport/agc.py=UTF-8
 encoding//src/franz/transport/agconnection.py=UTF-8
 encoding//src/franz/transport/agconnector.py=UTF-8

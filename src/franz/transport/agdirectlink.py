@@ -107,6 +107,9 @@ class AGDirectLink(object):
         ## NOT SEEING PYTHON EQUIVALENT:
         ##client.setTcpNoDelay(True)
         self.socket = client
+        self.socket_cursor = 0
+        self.chunk_size = 0
+        self.socket_chunk = ""
         #self.inStream = client.getInputStream()
         #self.outStream = client.getOutputStream()
         self.state = PORT_IDLE
@@ -130,7 +133,9 @@ class AGDirectLink(object):
         if (flag == 0):
             self.socket.close()
             raise IOException("Connected but timed out.")
-        reply = self.socket.recv(1)
+        #EXPERIMENT
+        #reply = self.socket.recv(1)
+        reply = self.receive_next_byte()
         if reply == TAG_ENDER:
             self.socket.close()
             raise IOException("Too many connections.")
@@ -139,7 +144,10 @@ class AGDirectLink(object):
             raise IOException("Connection rejected.")
         elif (reply == TAG_START + AG_DIRECT_LEVEL):
             self.socket.close()
-            raise IOException("Unexpected initial reply " + reply)
+            raise IOException("Unexpected initial reply " + reply)        
+        ##TEMPORARY
+        self.PIS_COUNT = 0
+        self.PIL_COUNT = 0        
 
     connectFlag = False
 
@@ -379,6 +387,7 @@ class AGDirectLink(object):
         return self.opResIn(op, opix, rx)
 
     def opResIn(self, op, opix, rx):
+        #print "OPRESIN ",
         res = self.portInOp()
         if 2 > len(res):
             raise IOException("opResIn " + op + "[" + opix + "]" + " received " + len(res))
@@ -395,7 +404,7 @@ class AGDirectLink(object):
             return res
         if (rx == -2):
             if (2 == len(res)):
-                return
+                return None
             raise IOException("opResIn " + op + "[" + opix + "]" + " expected zero values, received " + len(res))
         if 0 <= rx and rx < len(res) - 2:
             return res[rx + 2]
@@ -469,10 +478,10 @@ class AGDirectLink(object):
         else:
             raise IOException(source + " subtag " + next)
 
-    def portInSeqLong(self, len):
-        wl = [long(0) for i in range(len)]
+    def portInSeqLong(self, lgth):
+        wl = [long(0) for i in range(lgth)]
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if self.isIntTag(next):
                 wl[i] = self.portInLong(next)
@@ -481,11 +490,11 @@ class AGDirectLink(object):
                 i = self.portInDupRep(next, i, wl, "portInSeqLong")
         return wl
 
-    def portInSeqByte(self, len):
-        wl = [0 for i in range(len)]
+    def portInSeqByte(self, lgth):
+        wl = [0 for i in range(lgth)]
         ## for-while
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if self.isIntTag(next):
                 wl[i] = self.portInLong(next)
@@ -494,11 +503,11 @@ class AGDirectLink(object):
                 i = self.portInDupRep(next, i, wl, "portInSeqByte")
         return wl
 
-    def portInSeqShort(self, len):
-        wl = [0 for i in range(len)]
+    def portInSeqShort(self, lgth):
+        wl = [0 for i in range(lgth)]
         ## for-while
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if self.isIntTag(next):
                 wl[i] = self.portInLong(next)
@@ -507,11 +516,11 @@ class AGDirectLink(object):
                 i = self.portInDupRep(next, i, wl, "portInSeqShort")
         return wl
 
-    def portInSeqInt(self, len):
-        wl = [0 for i in range(len)]
+    def portInSeqInt(self, lgth):
+        wl = [0 for i in range(lgth)]
         ## for-while
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if self.isIntTag(next):
                 wl[i] = self.portInLong(next)
@@ -520,11 +529,11 @@ class AGDirectLink(object):
                 i = self.portInDupRep(next, i, wl, "portInSeqInt")
         return wl
 
-    def portInSeqFloat(self, len):
-        wl = [float(0) for i in range(len)]
+    def portInSeqFloat(self, lgth):
+        wl = [float(0) for i in range(lgth)]
         ## for-while
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if (next == TAG_FLOAT):
                 wl[i] = self.at(next)
@@ -533,11 +542,11 @@ class AGDirectLink(object):
                 i = self.portInDupRep(next, i, wl, "portInSeqFloat")
         return wl
 
-    def portInSeqDouble(self, len):
-        wl = [float(0.0) for i in range(len)]
+    def portInSeqDouble(self, lgth):
+        wl = [float(0.0) for i in range(lgth)]
         ## for-while
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if (next == TAG_DOUBLE):
                 wl[i] = self.portInDouble(next)
@@ -546,10 +555,13 @@ class AGDirectLink(object):
                 i = self.portInDupRep(next, i, wl, "portInSeqDouble")
         return wl
 
-    def portInSeqString(self, len):
-        wl = [None for i in range(len)]
+    def portInSeqString(self, lgth):
+        print "PISS ", lgth,
+        #EXPERIMENT
+        #wl = [None for i in range(lgth)]
+        wl = [None] * lgth
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if (next == TAG_DUP):
                 j = int(self.portInLong())
@@ -561,9 +573,11 @@ class AGDirectLink(object):
                     n = int(self.portInLong())
                     v = wl[i - j]
                     ## for-while
-                    for k in range(n):
+                    k = 0
+                    while k < n:
                         wl[i] = v
                         i += 1
+                        k += 1
                 else:
                     s = self.portInString(next)
                     if s is None:
@@ -571,12 +585,13 @@ class AGDirectLink(object):
                     else:
                         wl[i] = str(s)
                     i += 1
+        print "EXIT PISS ",
         return wl
 
-    def portInSeqObject(self, len):
-        wl = [None for i in range(len)]
+    def portInSeqObject(self, lgth):
+        wl = [None for i in range(lgth)]
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if (next == TAG_DUP):
                 j = self.portInLong()
@@ -594,10 +609,11 @@ class AGDirectLink(object):
                 i += 1
         return wl
 
-    def portInSeqUPI(self, len):
-        wl = [None for i in range(len)]
+    def portInSeqUPI(self, lgth):
+        print "PISU ", lgth,
+        wl = [None for i in range(lgth)]
         i = 0
-        while i < len:
+        while i < lgth:
             next = self.portIn_8()
             if (next == TAG_DUP):
                 j = int(self.portInLong())
@@ -618,42 +634,40 @@ class AGDirectLink(object):
                 i += 1
         return wl
 
-    def portInSeqBody(self, tag, len, sub):
-        if (tag != TAG_SEQ):
+    def portInSeqBody(self, tag, lgth, sub):
+        if (not tag == TAG_SEQ):
             raise IOException("portInSequence tag " + tag)
         i = 0
         if sub < TAG_START:
             raise IOException("portInSequence subtag " + sub)
         if sub < TAG_INT_END:
-            return self.portInSeqLong(len)
+            return self.portInSeqLong(lgth)
         else:
             if sub < TAG_LSTR:
                 if sub == TAG_BYTE:
-                    return self.portInSeqByte(len)
+                    return self.portInSeqByte(lgth)
                 elif sub == TAG_UPI:
-                    return self.portInSeqUPI(len)
+                    return self.portInSeqUPI(lgth)
                 elif sub == TAG_SHORT:
-                    return self.portInSeqShort(len)
+                    return self.portInSeqShort(lgth)
                 elif sub == TAG_INT:
-                    return self.portInSeqInt(len)
+                    return self.portInSeqInt(lgth)
                 elif sub == TAG_LONG:
-                    return self.portInSeqLong(len)
+                    return self.portInSeqLong(lgth)
                 elif sub == TAG_CHAR:
-                    wc = ['' for i in range(len)]
-                    ## for-while
-                    while i < len:
+                    wc = [None for i in range(lgth)]
+                    while i < lgth:
                         wc[i] = self.portInLong()
                         i += 1
                     return wc
                 elif sub == TAG_FLOAT:
                     raise Exception("AAA WE SHOULDN'T BE SEEING FLOAT TAGS")
-                    return self.portInSeqFloat(len)
+                    return self.portInSeqFloat(lgth)
                 elif sub == TAG_DOUBLE:
-                    return self.portInSeqDouble(len)
+                    return self.portInSeqDouble(lgth)
                 elif sub == TAG_FALSE:
-                    wbl = [bool() for __idx0 in range(len)]
-                    ## for-while
-                    while i < len:
+                    wbl = [False for j in range(lgth)]
+                    while i < lgth:
                         b = self.portIn_8()
                         if b == TAG_TRUE:
                             wbl[i] = True
@@ -666,9 +680,9 @@ class AGDirectLink(object):
                         i += 1
                     return wbl
                 else:
-                    return self.portInSeqObject(len)
+                    return self.portInSeqObject(lgth)
             else:
-                return self.portInSeqString(len)
+                return self.portInSeqString(lgth)
 
     def portInSparse(self, tag):
         raise IOException("portInSparse not implemented " + tag)
@@ -687,20 +701,20 @@ class AGDirectLink(object):
             raise IOException("portInOp tag " + tag)
         op = self.portInString()
         opix = self.portInLong()
-        len = self.portInLong()
-        rr = [None for i in range(len)]
+        lgth = self.portInLong()
+        rr = [None for i in range(lgth)]
         ww = [op, long(opix), rr]
         ## for-while
         i = 0
-        while i < len:
+        while i < lgth:
             rr[i] = self.streamInValue()
             i += 1
         if opix < 0:
             s1 = "Unknown"
             s2 = "Unknown"
-            if len > 0:
+            if lgth > 0:
                 s1 = self.stringValue(rr[0])
-            if len > 1:
+            if lgth > 1:
                 s2 = self.stringValue(rr[1])
             raise IllegalArgumentException("Operation " + op + "[" + -opix + "] signaled an error in server: " + s1 + " -- " + s2)
         return ww
@@ -708,7 +722,9 @@ class AGDirectLink(object):
     def portIn_8(self):
         res = 0
         try:
-            chr = self.socket.recv(1)
+            # EXPERIMENT
+            #chr = self.socket.recv(1)
+            chr = self.receive_next_byte()
             # EXPERIMENT
             #res = util.character_to_integer(chr)
             res = ord(chr)
@@ -723,13 +739,13 @@ class AGDirectLink(object):
         Write the bits in integral number to the socket, omitting 
         all-zeros bytes in the top-most bytes.
         """
-        ## if 'x' is a character (len-1 string), need to convert
+        ## if 'x' is a character (lgth-1 string), need to convert
         ## it to an integer:
         if isinstance(v, str):
             v = util.character_to_integer(v)
         tag = 0
         top = 0
-        len = 0
+        lgth = 0
         sign = 0
         if v < 0:
             v = -(1 + v)
@@ -737,48 +753,41 @@ class AGDirectLink(object):
         if v < TAG_IMM_TOP:
             tag = -1
             top = 0
-            len = 1
+            lgth = 1
+        elif v < 0x100 + TAG_IMM_TOP:
+            tag = 0
+            top = 8
+            lgth = 2
+            v = v - TAG_IMM_TOP
+        elif v < 0x10000:
+            tag = 1
+            top = 16
+            lgth = 3
+        elif v < 0x1000000:
+            tag = 2
+            top = 24
+            lgth = 4
+        elif v < 0x100000000l:
+            tag = 3
+            top = 32
+            lgth = 5
+        elif v < 0x10000000000l:
+            tag = 4
+            top = 40
+            lgth = 6
+        elif v < 0x1000000000000l:
+            tag = 5
+            top = 48
+            lgth = 7
+        elif v < 0x100000000000000l:
+                tag = 6
+                top = 56
+                lgth = 8
         else:
-            if v < 0x100 + TAG_IMM_TOP:
-                tag = 0
-                top = 8
-                len = 2
-                v = v - TAG_IMM_TOP
-            else:
-                if v < 0x10000:
-                    tag = 1
-                    top = 16
-                    len = 3
-                else:
-                    if v < 0x1000000:
-                        tag = 2
-                        top = 24
-                        len = 4
-                    else:
-                        if v < 0x100000000l:
-                            tag = 3
-                            top = 32
-                            len = 5
-                        else:
-                            if v < 0x10000000000l:
-                                tag = 4
-                                top = 40
-                                len = 6
-                            else:
-                                if v < 0x1000000000000l:
-                                    tag = 5
-                                    top = 48
-                                    len = 7
-                                else:
-                                    if v < 0x100000000000000l:
-                                        tag = 6
-                                        top = 56
-                                        len = 8
-                                    else:
-                                        tag = 7
-                                        top = 64
-                                        len = 9
-        rc = self.portReserveSpace(len)
+            tag = 7
+            top = 64
+            lgth = 9
+        rc = self.portReserveSpace(lgth)
         if rc < 0:
             return rc
         if tag < 0:
@@ -873,14 +882,14 @@ class AGDirectLink(object):
     def portOut_long(self, x):
         return self.portOutTagAndValue(0, x)
 
-    def portOutSeqHead(self, source, len, tag):
+    def portOutSeqHead(self, source, lgth, tag):
         if (source == ""):
             source = ""
         rc = self.portReserveSpace(1)
         if rc < 0:
             return rc
         self.bufferOut_8(TAG_SEQ)
-        rc = self.portOutInteger(len)
+        rc = self.portOutInteger(lgth)
         if rc < 0:
             return rc
         rc = self.portReserveSpace(1)
@@ -1054,15 +1063,15 @@ class AGDirectLink(object):
         if x is None:
             return self.portOutNull()
         rc = 0
-        leng = len(x)
-        if leng < TAG_SSTR_MAX:
+        lgth = len(x)
+        if lgth < TAG_SSTR_MAX:
             rc = self.portReserveSpace(1)
             if rc < 0:
                 return rc
-            self.bufferOut_8(TAG_SSTR_START + leng)
+            self.bufferOut_8(TAG_SSTR_START + lgth)
             ## for-while
             i = 0
-            while i < leng:
+            while i < lgth:
                 self.portOutInteger(x[i])
                 i += 1
         else:
@@ -1070,14 +1079,14 @@ class AGDirectLink(object):
             if rc < 0:
                 return rc
             self.bufferOut_8(TAG_LSTR)
-            rc = self.portOutInteger(leng)
+            rc = self.portOutInteger(lgth)
             if rc < 0:
                 return rc
             run = 0
             runChar = 0
             ## for-while
             i = 0
-            while i < leng:
+            while i < lgth:
                 c = x[i]
                 if (run == 0):
                     run = 1
@@ -1231,23 +1240,25 @@ class AGDirectLink(object):
     def portInString(self, tag=None):
         if not tag:
             ## first read in a tag; then read in a string:
-            return self.portInString(self.portIn_8())
-        len = 0
+            #EXPERIMENT
+            #return self.portInString(self.portIn_8())
+            tag = self.portIn_8()
+        lgth = 0
         if (tag == TAG_NULL):
             return None
         if tag < TAG_LSTR:
             raise IOException("portInString tag " + tag)
         if (tag == TAG_LSTR):
-            len = self.portInLong()
+            lgth = self.portInLong()
         else:
             if not tag < TAG_SSTR_START and tag < TAG_SSTR_END:
-                len = tag - TAG_SSTR_START
+                lgth = tag - TAG_SSTR_START
             else:
                 raise IOException("portInString tag " + tag)
         v = []
         run = 0
         runChar = 0
-        for i in range(len):
+        for i in range(lgth):
             if (run == 0):
                 x = self.streamInCode()
                 if (x == TAG_FRAG):
@@ -1283,12 +1294,14 @@ class AGDirectLink(object):
         v = 0
         shift = 0
         w = long(0)
-        for j in range(count):
+        j = 0
+        while j < count:
             w = self.portIn_8()
             if w < 0:
                 raise IOException("portInLong->portIn_8=" + w)
             v = v | (w << shift)
             shift += 8
+            j += 1
         if (count == 1):
             v = v + TAG_IMM_TOP
         if neg:
@@ -1296,12 +1309,15 @@ class AGDirectLink(object):
         return v
 
     def portInSequence(self, tag=None):
+        print "PIS", 
         if not tag:
-            return self.portInSequence(self.streamInCode())
+            ## EXPERIMENT
+            #return self.portInSequence(self.streamInCode())
+            tag = self.streamInCode()
         ##
-        len = self.portInLong()
+        lgth = self.portInLong()
         sub = self.portIn_8()
-        return self.portInSeqBody(tag, len, sub)
+        return self.portInSeqBody(tag, lgth, sub)
 
     ## NOT YET FULLY-IMPLEMENTED.  
     def portInFloat(self, tag=None):
@@ -1350,6 +1366,7 @@ class AGDirectLink(object):
         NOTE: WE RETURN WRAPPED OBJECTS FOR Short, Byte, Float, and Character HERE
         BUT THAT MAY OR MAY NOT BE A MISTAKE.  I DON'T YET UNDERSTAND THIS CODE WELL ENOUGH TO KNOW - RMM
         """
+        #print "SIV ",
         if tag is None: 
             return self.streamInValue(self.streamInCode())
         if tag < TAG_START:
@@ -1457,24 +1474,37 @@ class AGDirectLink(object):
 
     def portInOp(self, tag=None):
         if not tag:
-            return self.portInOp(self.streamInCode())
+            #EXPERIMENT
+            tag = self.streamInCode()
         ##
         if (tag != TAG_OP):
             raise IOException("portInOp tag " + tag)
         op = self.portInString()
         opix = self.portInLong()
-        len = self.portInLong()
-        w = [None for i in range(len + 2)]
+        lgth = self.portInLong()
+        #w = [None for i in range(lgth + 2)]
+        w = [None] * (lgth + 2)
         w[0] = op
         w[1] = long(opix)
-        for i in range(len):
+        for i in range(lgth):
             w[i + 2] = self.streamInValue()
         s1 = "Unknown"
         s2 = "Unknown"
-        if len > 0:
+        if lgth > 0:
             s1 = self.stringValue(w[2])
-        if len > 1:
+        if lgth > 1:
             s2 = self.stringValue(w[3])
         if opix < 0:
             raise IllegalArgumentException("Operation " + str(op) + "[" + str(-opix) + "] signalled an error in server: " + str(s1) + " -- " + str(s2))
         return w
+    
+    def receive_next_byte(self):
+        self.socket_cursor += 1;
+        if self.socket_cursor >= len(self.socket_chunk):
+            self.socket_chunk = self.socket.recv(8192)
+            #self.socket_chunk = self.socket.recv(16384)            
+            #self.socket_chunk = self.socket.recv(32768)                        
+            self.socket_cursor = 0        
+            #print "R ", len(self.socket_chunk), " ",             
+        return self.socket_chunk[self.socket_cursor]
+        
