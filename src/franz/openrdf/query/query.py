@@ -199,6 +199,11 @@ class BindingSet:
     represent a single query solution. Values are indexed by name of the binding
     which typically corresponds to the names of the variables used in the
     projection of the orginal query.
+    
+    That said, my contention is that a Python programmer would never create
+    this style of binding set object.  Instead, the natural datastructure
+    is a dictionary.  Hence, in this implementation, in place of a BindingSet
+    we return an object of type  DictBindingSet which is a subclass of 'dict'.
     """
 
     def iterator(self):

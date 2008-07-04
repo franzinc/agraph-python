@@ -70,6 +70,7 @@ class RepositoryResultImpl(RepositoryResult):  ## inherits IterationWrapper
         """
         if self.socket_cursor:
             self.socket_cursor.close()
+            self.socket_cursor = None
         
     def next(self):
         """
@@ -117,8 +118,8 @@ class CompoundRepositoryResultImpl(RepositoryResultImpl):  ## inherits Iteration
     handle multiple contexts in a getTriples.
     """
     def __init__(self, cursors):
-        self.cursors = cursors
-        self.current_cursor = cursors[0]
+        self.cursors = [RepositoryResultImpl(crsr) for crsr in cursors]
+        self.current_cursor = self.cursors[0]
         self.cursor_index = 0
             
     def __iter__(self): return self

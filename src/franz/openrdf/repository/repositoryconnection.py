@@ -95,29 +95,29 @@ class RepositoryConnection(object):
     
 
 
-#     * Gets all statements with a specific subject, predicate and/or object from
-#     * the repository. The result is optionally restricted to the specified set
-#     * of named contexts.
-#     * 
-#     * @param subj
-#     *        A Resource specifying the subject, or <tt>null</tt> for a
-#     *        wildcard.
-#     * @param pred
-#     *        A URI specifying the predicate, or <tt>null</tt> for a wildcard.
-#     * @param obj
-#     *        A Value specifying the object, or <tt>null</tt> for a wildcard.
-#     * @param contexts
-#     *        The context(s) to get the data from. Note that this parameter is a
-#     *        vararg and as such is optional. If no contexts are supplied the
-#     *        method operates on the entire repository.
-#     * @param includeInferred
-#     *        if false, no inferred statements are returned; if true, inferred
-#     *        statements are returned if available. The default is true.
-#     * @return The statements matching the specified pattern. The result object
-#     *         is a {@link RepositoryResult} object, a lazy Iterator-like object
-#     *         containing {@link Statement}s and optionally throwing a
-#     *         {@link RepositoryException} when an error when a problem occurs
-#     *         during retrieval.
+#    ## Gets all statements with a specific subject, predicate and/or object from
+#    ## the repository. The result is optionally restricted to the specified set
+#    ## of named contexts.
+#    ## 
+#    ## @param subj
+#    ##        A Resource specifying the subject, or <tt>null</tt> for a
+#    ##        wildcard.
+#    ## @param pred
+#    ##        A URI specifying the predicate, or <tt>null</tt> for a wildcard.
+#    ## @param obj
+#    ##        A Value specifying the object, or <tt>null</tt> for a wildcard.
+#    ## @param contexts
+#    ##        The context(s) to get the data from. Note that this parameter is a
+#    ##        vararg and as such is optional. If no contexts are supplied the
+#    ##        method operates on the entire repository.
+#    ## @param includeInferred
+#    ##        if false, no inferred statements are returned; if true, inferred
+#    ##        statements are returned if available. The default is true.
+#    ## @return The statements matching the specified pattern. The result object
+#    ##         is a {@link RepositoryResult} object, a lazy Iterator-like object
+#    ##         containing {@link Statement}s and optionally throwing a
+#    ##         {@link RepositoryException} when an error when a problem occurs
+#    ##         during retrieval.
     #RepositoryResult<Statement> 
     def getStatements(self, subj, pred,  obj, includeInferred, contexts):
         """
@@ -138,22 +138,22 @@ class RepositoryConnection(object):
         """
         raise UnimplementedMethodException("getJDBCStatements")
 
-#     * Adds the supplied statement to this repository, optionally to one or more
-#     * named contexts.
-#     * 
-#     * @param st
-#     *        The statement to add.
-#     * @param contexts
-#     *        The contexts to add the statements to. Note that this parameter is
-#     *        a vararg and as such is optional. If no contexts are specified, the
-#     *        statement is added to any context specified in each statement, or
-#     *        if the statement contains no context, it is added without context.
-#     *        If one or more contexts are specified the statement is added to
-#     *        these contexts, ignoring any context information in the statement
-#     *        itself.
-#     * @throws RepositoryException
-#     *         If the statement could not be added to the repository, for example
-#     *         because the repository is not writable.
+#    ## Adds the supplied statement to this repository, optionally to one or more
+#    ## named contexts.
+#    ## 
+#    ## @param st
+#    ##        The statement to add.
+#    ## @param contexts
+#    ##        The contexts to add the statements to. Note that this parameter is
+#    ##        a vararg and as such is optional. If no contexts are specified, the
+#    ##        statement is added to any context specified in each statement, or
+#    ##        if the statement contains no context, it is added without context.
+#    ##        If one or more contexts are specified the statement is added to
+#    ##        these contexts, ignoring any context information in the statement
+#    ##        itself.
+#    ## @throws RepositoryException
+#    ##         If the statement could not be added to the repository, for example
+#    ##         because the repository is not writable.
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
         """
         Add a triple or a statement, or load a file into the repository.
@@ -181,34 +181,34 @@ class RepositoryConnection(object):
         """
         raise UnimplementedMethodException("add")
       
-#     * Removes the supplied statement from the specified contexts in the
-#     * repository.
-#     * @param st
-#     *        The statement to remove.
-#     * @param contexts
-#     *        The context(s) to remove the data from. Note that this parameter is
-#     *        is optional. If no contexts are supplied the
-#     *        method operates on the contexts associated with the statement
-#     *        itself, and if no context is associated with the statement, on the
-#     *        entire repository.
-#     * @throws RepositoryException
-#     *         If the statement could not be removed from the repository, for
-#     *         example because the repository is not writable.
+#    ## Removes the supplied statement from the specified contexts in the
+#    ## repository.
+#    ## @param st
+#    ##        The statement to remove.
+#    ## @param contexts
+#    ##        The context(s) to remove the data from. Note that this parameter is
+#    ##        is optional. If no contexts are supplied the
+#    ##        method operates on the contexts associated with the statement
+#    ##        itself, and if no context is associated with the statement, on the
+#    ##        entire repository.
+#    ## @throws RepositoryException
+#    ##         If the statement could not be removed from the repository, for
+#    ##         example because the repository is not writable.
     def remove(self, statement, contexts=None):
         """
         Removes the supplied statement from the specified contexts in the repository.
         """
         raise UnimplementedMethodException("remove")
 
-#     * Returns the number of (explicit) statements that are in the specified
-#     * contexts in this repository.
-#     * 
-#     * @param contexts
-#     *        The context(s) to get the data from. Note that this parameter is a
-#     *        vararg and as such is optional. If no contexts are supplied the
-#     *        method operates on the entire repository.
-#     * @return The number of explicit statements from the specified contexts in
-#     *         this repository.
+#    ## Returns the number of (explicit) statements that are in the specified
+#    ## contexts in this repository.
+#    ## 
+#    ## @param contexts
+#    ##        The context(s) to get the data from. Note that this parameter is a
+#    ##        vararg and as such is optional. If no contexts are supplied the
+#    ##        method operates on the entire repository.
+#    ## @return The number of explicit statements from the specified contexts in
+#    ##         this repository.
     def size(self, contexts):
         """
         Returns the number of (explicit) statements that are in the specified
@@ -216,27 +216,27 @@ class RepositoryConnection(object):
         """
         raise UnimplementedMethodException("size")
 
-#     * Returns <tt>true</tt> if this repository does not contain any (explicit)
-#     * statements.
-#     * 
-#     * @return <tt>true</tt> if this repository is empty, <tt>false</tt>
-#     *         otherwise.
-#     * @throws RepositoryException
-#     *         If the repository could not be checked to be empty.
+#    ## Returns <tt>true</tt> if this repository does not contain any (explicit)
+#    ## statements.
+#    ## 
+#    ## @return <tt>true</tt> if this repository is empty, <tt>false</tt>
+#    ##         otherwise.
+#    ## @throws RepositoryException
+#    ##         If the repository could not be checked to be empty.
     def isEmpty(self):
         raise UnimplementedMethodException("isEmpty")
        
 
 
-#     * Removes all statements from a specific contexts in the repository.
-#     * 
-#     * @param contexts
-#     *        The context(s) to remove the data from. Note that this parameter is
-#     *        a vararg and as such is optional. If no contexts are supplied the
-#     *        method operates on the entire repository.
-#     * @throws RepositoryException
-#     *         If the statements could not be removed from the repository, for
-#     *         example because the repository is not writable.
+#    ## Removes all statements from a specific contexts in the repository.
+#    ## 
+#    ## @param contexts
+#    ##        The context(s) to remove the data from. Note that this parameter is
+#    ##        a vararg and as such is optional. If no contexts are supplied the
+#    ##        method operates on the entire repository.
+#    ## @throws RepositoryException
+#    ##         If the statements could not be removed from the repository, for
+#    ##         example because the repository is not writable.
     def clear(self, contexts=None):
         """
         Removes all statements from a specific contexts in the repository.
@@ -283,4 +283,26 @@ class RepositoryConnection(object):
     def export(self, handler, contexts):
         self.exportStatements(None, None, None, False, contexts=contexts)
 
+
+    ## Gets all declared namespaces as a RepositoryResult of {@link Namespace}
+    def getNamespaces(self):
+        raise UnimplementedMethodException("getNamespaces")
+
+    ## Gets the namespace that is associated with the specified prefix, if any.
+    def getNamespace(self, prefix):
+        raise UnimplementedMethodException("getNamespace")
+
+
+    ## Sets the prefix for a namespace.
+    def setNamespace(self, prefix, name):
+        raise UnimplementedMethodException("setNamespace")
+
+    ## Removes a namespace declaration by removing the association between a
+    ## prefix and a namespace name.
+    def removeNamespace(self, prefix):
+        raise UnimplementedMethodException("removeNamespace")
+
+    ## Removes all namespace declarations from the repository.
+    def clearNamespaces(self):
+        raise UnimplementedMethodException("clearNamespaces")
 

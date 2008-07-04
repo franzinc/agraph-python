@@ -396,7 +396,7 @@ def test13():
 
 def test14():
     """
-    Datasets
+    Datasets and multiple contexts
     """
     myRepository = test1();
     conn = myRepository.getConnection()
@@ -414,39 +414,76 @@ def test14():
     conn.add(alice, name, alicesName, context1)
     conn.add(bob, RDF.TYPE, person, context2)
     conn.add(bob, name, bobsName, context2)
+    ##
+    statements = conn.getStatements(None, None, None, False, [context1, context2])
+    print "getStatements:"
+    for s in statements:
+        print s
+    resultSet = conn.getJDBCStatements(None, None, None, False, [context1, context2])
+    print "getJDBCStatements:"
+    while resultSet.next():
+        print resultSet.getString(1), resultSet.getString(2), resultSet.getString(3), resultSet.getString(4)
     ## first, retrieve all four quads
     queryString = """
-    SELECT ?s ?p ?o ?c WHERE { GRAPH ?c {?s ?p ?o . } }
+    SELECT ?s ?p ?o ?c
+    `+ WHERE { { GRAPH ?c {?s ?p ?o . } } UNION  {?s ?p ?o } }
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();    
     for bindingSet in result:
-        s = bindingSet.getValue("s")
-        p = bindingSet.getValue("p")
-        o = bindingSet.getValue("o")            
-        c = bindingSet.getValue("c")            
+        s = bindingSet['s']
+        p = bindingSet['p']
+        o = bindingSet['o']
+        c = bindingSet['c']            
         print "%s %s %s %s" % (s, p, o, c)
     ## first, retrieve all four quads        
     ds = Dataset()
     ds.addDefaultGraph(context1)
-    #ds.addNamedGraph(context2)
+    ds.addNamedGraph(context2)
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setDataset(ds)
     result = tupleQuery.evaluate();    
+    print "Query with dataset:"
     for bindingSet in result:
-        s = bindingSet.getValue("s")
-        p = bindingSet.getValue("p")
-        o = bindingSet.getValue("o")            
-        c = bindingSet.getValue("c")            
+        s = bindingSet['s']
+        p = bindingSet['p']
+        o = bindingSet['o']
+        c = bindingSet['c']            
         print "%s %s %s %s" % (s, p, o, c)
     
+def test15():
+    """
+    Namespaces
+    """
+    myRepository = test1();
+    conn = myRepository.getConnection()
+    f = myRepository.getValueFactory()
+    exns = "http://example.org/people/"
+    alice = f.createURI(namespace=exns, localname="alice")
+    person = f.createURI(namespace=exns, localname="Person")
+    conn.add(alice, RDF.TYPE, person)
+    myRepository.indexTriples()
+    conn.setNamespace('ex', exns)
+    queryString = """
+    SELECT ?s ?p ?o 
+    WHERE { ?s ?p ?o . FILTER ((?p = rdf:type) && (?o = ex:Person) ) }
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();  
+    print  
+    for bindingSet in result:
+        s = bindingSet.getValue("s")
+        s = bindingSet.get("s")
+        p = bindingSet['z']
+        o = bindingSet[2]
+        print "%s %s %s " % (s, p, o)
 
 
 
 
 if __name__ == '__main__':
     choices = [i for i in range(9)]
-    choices = [14]
+    choices = [15]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

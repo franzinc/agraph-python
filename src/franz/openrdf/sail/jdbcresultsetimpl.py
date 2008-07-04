@@ -145,19 +145,20 @@ class JDBCResultSetImpl(JDBCResultSet):
     def close(self):
         """
         Shut down the iterator, to insure that resources are free'd up.
-        NOT YET IMPLEMENTED
         """
-        pass
+        if self.socket_cursor:
+            self.socket_cursor.close()
+            self.socket_cursor = None
   
       
-class CompountJDBCResultSetImpl(JDBCResultSetImpl):
+class CompoundJDBCResultSetImpl(JDBCResultSetImpl):
     """
     Combines multiple cursors into one.  Overcomes temporary inability of AG to 
     handle multiple contexts in a getTriples.
     """
     def __init__(self, cursors):
-        self.cursors = cursors
-        self.current_cursor = cursors[0]
+        self.cursors = [JDBCResultSetImpl(crsr) for crsr in cursors]
+        self.current_cursor = self.cursors[0]
         self.cursor_index = 0
                     
     def close(self):
@@ -176,11 +177,10 @@ class CompountJDBCResultSetImpl(JDBCResultSetImpl):
         raise StopIteration exception.
         """
         if not self.current_cursor:
-            raise StopIteration
-        try:
-            stmt = self.current_cursor.next()
-            return stmt
-        except StopIteration:
+            return False
+        if self.current_cursor.next():
+            return True
+        else:
             self.cursor_index += 1
             if self.cursor_index < len(self.cursors):
                 self.current_cursor = self.cursors[self.cursor_index]
@@ -188,7 +188,7 @@ class CompountJDBCResultSetImpl(JDBCResultSetImpl):
             else:
                 self.current_cursor = None
                 self.cursors = None
-                raise StopIteration
+                return False
 
     def getInt(self, index):
         """
@@ -234,7 +234,7 @@ class CompountJDBCResultSetImpl(JDBCResultSetImpl):
         as values for the 'index' argument. 
         """
         if self.current_cursor:
-            return self.current_cursor.getString()
+            return self.current_cursor.getString(index)
         else:
             raise JDBCException("Called 'getString' on empty cursor.")
     
@@ -250,7 +250,7 @@ class CompountJDBCResultSetImpl(JDBCResultSetImpl):
         as values for the 'index' argument. 
         """
         if self.current_cursor:
-            return self.current_cursor.getValue()
+            return self.current_cursor.getValue(index=index, columnName=columnName)
         else:
             raise JDBCException("Called 'getValue' on empty cursor.")
       

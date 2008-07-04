@@ -145,7 +145,10 @@ class Term2InternalManager(object):
                 ## NOT SURE IF THERE ARE MATCHES HERE OR NOT.  IF SO, WHAT ABOUT RDFS MATCHES??? - RMM
                 datatype = RDF.name2URI(mod)
             return self.value_factory.createLiteral(val, datatype=datatype)
+        elif type == -1: return None  ## THIS IS AN EXPERIMENT; GAVE MUCH NICER RESULTS IN A SPARQL QUERY - RMM
         else:
+            ## This produced a result that I found completely unintelligible.  It made me think there was a bug
+            ## in the code.  I believe it imitates the Java.  If so, bad idea.  - RMM 
             raise IllegalArgumentException("Cannot convert AG " 
                 + str(type) + "=" + self.internal_ag_store.typeToString(type) +
                 "/" + str(val) + "/" + str(mod) + " to OpenRDF Value")

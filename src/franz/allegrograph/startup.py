@@ -28,6 +28,7 @@ from franz import util
 from franz.exceptions import NiceException, RuntimeException, AllegroGraphException, IOException, ConnectException, FakeException
 #from franz.agconnector import AGConnector
 from franz.transport.agconnection import AllegroGraphConnection
+from franz.transport.agdirectlink import AGDirectLink
 from franz.allegrograph.quad import Quad
 
 class StartUp(object):
@@ -71,6 +72,8 @@ class StartUp(object):
 
     @staticmethod
     def helpStartUpTripleStore(accessOption, host, dbName, dbDirectory, access_options):
+        ## TODO: PUT THIS SOMEWHERE NICER:
+        AGDirectLink.PERFORMANCE_TRACE = False
         port = 4567
         tripleFile = ""
         agJavaServerPath = None
@@ -92,7 +95,7 @@ class StartUp(object):
                 tripleFile = value
             elif flag == "-w":
                 exitWait = int(value)
-            ## BELOW HERE IS WRONG; THESE FLAGS SHOULD TAKE VALUES:x
+            ## BELOW HERE IS WRONG; THESE FLAGS SHOULD TAKE VALUES:
             elif flag == "-z":
                 StartUp.debug = 1
             elif flag == "-zz":

@@ -77,4 +77,31 @@ class BNode(Resource):
     def getId(self):
         return self.id
 
+class Namespace(object):
+    """
+    """
+    def __init__(self, prefix, name):
+        self.setPrefix(prefix)
+        self.setName(name)
     
+    def getName(self):
+        """
+        Gets the name of the current namespace (i.e. it's URI).
+        """
+        return self.name
+
+    def setName(self, name): self.name = name
+    
+    def getPrefix(self):
+        """
+        Gets the prefix of the current namespace.
+        """
+        return self.prefix
+
+    def setPrefix(self, prefix): self.prefix = prefix
+    
+    def __str__(self):
+        """
+        Return an odd name (that's what the Sesame code does).
+        """
+        return self.prefix + " :: " + self.name

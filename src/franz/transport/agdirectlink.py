@@ -57,10 +57,20 @@ class Op(object):
 
 EXPERIMENTAL = True
 
+def ptrace_nl(*args):
+    if AGDirectLink.PERFORMANCE_TRACE:
+        print ' '.join([str(a) for a in args])
+        
+def ptrace(*args):
+    if AGDirectLink.PERFORMANCE_TRACE:
+        print ' '.join([str(a) for a in args]),
+        
+
 class AGDirectLink(object):
     """ generated source for AGDirectLink
 
     """
+    PERFORMANCE_TRACE = False
     debugClient = 0
     agServerLevel = 0
     state = PORT_CLOSED
@@ -150,7 +160,7 @@ class AGDirectLink(object):
         self.PIL_COUNT = 0        
 
     connectFlag = False
-
+    
     def throwIOErr(self, where, e):
         err = "Unknown"
         if e == -1:
@@ -556,7 +566,7 @@ class AGDirectLink(object):
         return wl
 
     def portInSeqString(self, lgth):
-        print "PISS ", lgth,
+        ptrace("PISS ", lgth)
         #EXPERIMENT
         #wl = [None for i in range(lgth)]
         wl = [None] * lgth
@@ -585,7 +595,7 @@ class AGDirectLink(object):
                     else:
                         wl[i] = str(s)
                     i += 1
-        print "EXIT PISS ",
+        ptrace("EXIT PISS ")
         return wl
 
     def portInSeqObject(self, lgth):
@@ -610,7 +620,7 @@ class AGDirectLink(object):
         return wl
 
     def portInSeqUPI(self, lgth):
-        print "PISU ", lgth,
+        ptrace("PISU ", lgth)
         wl = [None for i in range(lgth)]
         i = 0
         while i < lgth:
@@ -1309,7 +1319,7 @@ class AGDirectLink(object):
         return v
 
     def portInSequence(self, tag=None):
-        print "PIS", 
+        ptrace("PIS") 
         if not tag:
             ## EXPERIMENT
             #return self.portInSequence(self.streamInCode())

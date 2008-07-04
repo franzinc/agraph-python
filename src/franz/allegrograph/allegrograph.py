@@ -413,11 +413,7 @@ class AllegroGraph(object):
          * depend on where and when the out-of-memory condition occurred.
          * The triple newStore may be in a partially indexed state.
         """
-        try:
-            self.verifyEnabled().indexTriples(self, wait)
-        except (IllegalArgumentException, ), e:
-            self.throwIndexError(e)
-        raise e
+        self.verifyEnabled().indexTriples(self, wait)
 
     def throwIndexError(self, e):
         m = str(e)

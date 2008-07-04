@@ -54,11 +54,13 @@ class Dataset:
             return "## empty dataset ##"
         sb = []
         for uri in self.defaultGraphs:
-            sb.append("FROM")
+            sb.append("FROM ")
             self._append_uri(sb, uri)
+            sb.append(" ")
         for uri in self.namedGraphs:
             sb.append("FROM NAMED ")
             self._append_uri(sb, uri)
+            sb.append(" ")            
         return ''.join(sb)
 
     def _append_uri(self, sb, uri):

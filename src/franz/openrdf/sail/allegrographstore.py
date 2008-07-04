@@ -117,6 +117,16 @@ class AllegroGraphStore(Sail):
         self.internal_ag_store = StartUp.startUpTripleStore(self.access_verb, self.host, self.database_name, 
                                                   self.database_directory, self.options)
         
+    def indexTriples(self):
+        """
+        (Re)index the triples in the store.  This should be done after every 
+        significant-sized load of triples into the store.
+        Note. Upon version 4.0, calling this will no longer be necessary.        
+        """
+        self.internal_ag_store.indexTriples()
+
+
+        
     def getInternalAllegroGraph(self):
         """
         Return the AllegroGraph instance for this store.  This is an internal

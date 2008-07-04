@@ -155,12 +155,19 @@ class TupleQueryImpl(TupleQuery, AbstractQuery):
                                          % QueryLanguage.SPARQL)
         super(TupleQueryImpl, self).__init__(queryLanguage, queryString, baseURI=baseURI)
         self.direct_caller = None
+        self.connection = None
         
     def setDirectCaller(self, caller):
         """
         Internal call to embed the evaluator context into the query.
         """
         self.direct_caller = caller
+        
+    def setConnection(self, connection):
+        """
+        Internal call to embed the conneciton into the query.
+        """
+        self.connection = connection
     
     def evaluate(self):
         """
@@ -169,10 +176,45 @@ class TupleQueryImpl(TupleQuery, AbstractQuery):
         (resources and literals) corresponding to the variables
         or expressions in a 'select' clause (or its equivalent).
         """
-        ##twinqlSelect(self, query, vars, limit, offset, useInference, moreArgs):
-        bindingsIt = self.direct_caller.twinqlSelect(self.queryString, None, 0, 0, self.includeInferred, [])
-        ## TODO: REWRITE TO USE AN OPENRDF BINDINGS THINGEE:
+        ## before executing, see if there is a dataset that needs to be incorporated into the
+        ## query
+        query = self.queryString
+        if self.getDataset():
+            query = self.spliceDatasetIntoQuery(query, self.getDataset())
+        if self.connection:
+            query = self.splicePrefixesIntoQuery(query, self.connection)
+        bindingsIt = self.direct_caller.twinqlSelect(query, None, 0, 0, self.includeInferred, [])
         return bindingsIt
+    
+    def spliceDatasetIntoQuery(self, query, dataset):
+        """
+        If 'query' has a dataset, splice its declarations into the query.
+        """
+        substituteFroms = str(dataset)
+        if not substituteFroms: return query
+        if not self.queryLanguage == QueryLanguage.SPARQL: return query
+        lcQuery = query.lower()
+        fromPos = lcQuery.find('from')
+        wherePos = lcQuery.find('where')
+        if wherePos < 0:
+            wherePos = len(query)        
+        if fromPos < 0:
+            fromPos = wherePos
+        splicedQuery = ''.join([query[:fromPos], substituteFroms, query[wherePos:]])
+        return splicedQuery
+
+    def splicePrefixesIntoQuery(self, query, connection):
+        """
+        Add build-in and registered prefixes to 'query' when needed.
+        """
+        lcQuery = query.lower()
+        referenced = []
+        for ns in connection.getNamespaces():
+            if lcQuery.find(ns.getPrefix()) >= 0 and lcQuery.find("prefix %s" % ns.getPrefix) < 0:
+                referenced.append(ns)
+        for ref in referenced:
+            query = "PREFIX %s: <%s> %s" % (ref.getPrefix(), ref.getName(), query)
+        return query
 
 class TupleQueryResultImpl(TupleQueryResult):
     """
@@ -223,15 +265,37 @@ class TupleQueryResultImpl(TupleQueryResult):
 
 class DictBindingSet(dict):
     """
-    A BindingSet is a set of named value bindings, which is used a.o. to
+    A BindingSet is a set of named value bindings, which is used to
     represent a single query solution. Values are indexed by name of the binding
     which typically corresponds to the names of the variables used in the
     projection of the original query.
     """
     def __init__(self, variableNames, values):
-        for i in range(len(values)):
-            self.addBindingPair(variableNames[i], values[i])
-
+        self.variable_names = variableNames
+        self.values = values
+#        for i in range(len(values)):
+#            self.addBindingPair(variableNames[i], values[i])
+    
+    def _validate_index(self, index):
+        if index >= 0 and index < len(self.values): return index
+        else:
+            raise IllegalArgumentException("Out-of-bounds index passed to BindingSet." +
+                                           "  Index must be between 1 and %s, inclusive." % len(self.values)) 
+        
+    def __getitem__(self, key):
+        result = self.get(key)
+        if result: return result
+        else:
+            raise Exception("Illegal key %s passed to binding set %s" % (key, self))
+ 
+    def get(self, key):
+        if isinstance(key, int): return self.values[self._validate_index(key)]
+        else:
+            for i in range(len(self.variable_names)):
+                if key == self.variable_names[i]:
+                    return self.values[i]
+            return None 
+        
     def addBindingPair(self, name, value):
         if value:
             self[name] = value
@@ -250,9 +314,10 @@ class DictBindingSet(dict):
         Creates an iterator over the bindings in this BindingSet. This only
         returns bindings with non-null values. An implementation is free to return
         the bindings in arbitrary order.
-        TODO: RIGHT NOW THIS DOESN'T PRODUCE BINDING OBJECTS.  NEEDS TO BE REWRITTEN TO DO SO
+        
+        Currently, we only support Python-style iteration over BindingSet dictionaries.
         """
-        raise UnimplementedMethodException("iterator")
+        raise UnimplementedMethodException("iterator")        
     
     def getBindingNames(self):
         """

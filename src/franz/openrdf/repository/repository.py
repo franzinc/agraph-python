@@ -57,6 +57,14 @@ class Repository:
         it can be used.
         """
         self.sail.initialize()
+        
+    def indexTriples(self):
+        """
+        (Re)index the triples in the store.  This should be done after every 
+        significant-sized load of triples into the store.
+        Note. Upon version 4.0, calling this will no longer be necessary.        
+        """
+        self.sail.indexTriples()
 
     def shutDown(self):
         """

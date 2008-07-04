@@ -26,9 +26,13 @@ import os
 from franz.openrdf.exceptions import *
 from franz.openrdf.sail.sail import Sail, SailConnection
 from franz.openrdf.sail.repositoryresultimpl import RepositoryResultImpl, CompoundRepositoryResultImpl
-from franz.openrdf.sail.jdbcresultsetimpl import JDBCResultSetImpl, CompountJDBCResultSetImpl
-from franz.openrdf.model.value import Value, URI, BNode
+from franz.openrdf.sail.jdbcresultsetimpl import JDBCResultSetImpl, CompoundJDBCResultSetImpl
+from franz.openrdf.model.value import Value, URI, BNode, Namespace
 from franz.openrdf.model.statement import Statement
+from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.rdfs import RDFS
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.query.queryimpl import AbstractQuery, TupleQueryImpl, GraphQueryImpl, BooleanQueryImpl
 from franz.allegrograph.directcalls import DirectCaller
 from franz.allegrograph.upi import UPI
@@ -108,6 +112,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         query = TupleQueryImpl(queryLanguage, queryString, baseURI=baseURI)
         query.setDirectCaller(self.directCaller)
+        query.setConnection(self)
         return query
 
     def prepareGraphQuery(self, queryLanguage, queryString, baseURI=None):
@@ -232,7 +237,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
             for cxt in contexts:
                 cursor = self.directCaller.getTriples(subj, pred, obj, [cxt], includeInferred=includeInferred)
                 cursors.append(cursor)
-            return CompountJDBCResultSetImpl(cursors)
+            return CompoundJDBCResultSetImpl(cursors)
 
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
@@ -425,5 +430,44 @@ class AllegroGraphRepositoryConnection(SailConnection):
         statements = self.getStatements(subj, pred, obj, includeInferred, contexts)
         handler.export(statements)
       
+    
+    #############################################################################################
+    ## In-memory implementation of namespaces
+    #############################################################################################
+    
+    NAMESPACES_MAP = {}
+    
+    def _get_map(self):
+        map = AllegroGraphRepositoryConnection.NAMESPACES_MAP
+        if not map:
+            map.update({"rdf": RDF.NAMESPACE, 
+                        "rdfs": RDFS.NAMESPACE,
+                        "xsd": XMLSchema.NAMESPACE,
+                        "owl": OWL.NAMESPACE,                                                
+                        })
+        return map
+    
+    ## Gets all declared namespaces as a RepositoryResult of {@link Namespace}
+    def getNamespaces(self):
+        return [Namespace(prefix, name) for prefix, name in self._get_map().iteritems()]
+
+    ## Gets the namespace that is associated with the specified prefix, if any.
+    def getNamespace(self, prefix):
+        name = self._get_map().get(prefix.lower())
+        if name: return Namespace(prefix.lower(), name)
+
+    ## Sets the prefix for a namespace.
+    def setNamespace(self, prefix, name):
+        self._get_map()[prefix.lower()] = name
+
+    ## Removes a namespace declaration by removing the association between a
+    ## prefix and a namespace name.
+    def removeNamespace(self, prefix):
+        self._get_map()[prefix] = None
+
+    ## Removes all namespace declarations from the repository.
+    def clearNamespaces(self):
+        self._get_map().clear()
+
 
 
