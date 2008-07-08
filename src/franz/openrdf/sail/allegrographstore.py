@@ -117,15 +117,18 @@ class AllegroGraphStore(Sail):
         self.internal_ag_store = StartUp.startUpTripleStore(self.access_verb, self.host, self.database_name, 
                                                   self.database_directory, self.options)
         
-    def indexTriples(self):
+    def indexTriples(self, all=False, asynchronous=False):
         """
-        (Re)index the triples in the store.  This should be done after every 
+        Index the newly-added triples in the store.  This should be done after every 
         significant-sized load of triples into the store.
+        If 'all', re-index all triples in the store.  If 'asynchronous', spawn
+        the indexing task as a separate thread, and don't wait for it to complete.
         Note. Upon version 4.0, calling this will no longer be necessary.        
         """
-        self.internal_ag_store.indexTriples()
-
-
+        if all:
+            self.internal_ag_store.indexAllTriples(wait=(not asynchronous))
+        else:
+            self.internal_ag_store.indexNewTriples(wait=(not asynchronous))
         
     def getInternalAllegroGraph(self):
         """

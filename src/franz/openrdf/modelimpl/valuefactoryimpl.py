@@ -26,9 +26,12 @@ from franz.openrdf.model.literal import Literal
 from franz.openrdf.model.valuefactory import ValueFactory
 from franz.openrdf.modelimpl.valueimpl import URIImpl, BNodeImpl
 from franz.openrdf.modelimpl.literalimpl import LiteralImpl
+from franz.openrdf.modelimpl.statementimpl import StatementImpl
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary.owl import OWL
     
 class ValueFactoryImpl(ValueFactory):
     """
@@ -37,7 +40,9 @@ class ValueFactoryImpl(ValueFactory):
     def __init__(self, store):
         self.store = store
         RDF.reinitialize(self, store)
-        XMLSchema.reinitialize(self, store)        
+        RDFS.reinitialize(self, store)        
+        XMLSchema.reinitialize(self, store)
+        OWL.reinitialize(self, store)                
 
     def createBNode(self, nodeID=None):
         """
@@ -57,7 +62,7 @@ class ValueFactoryImpl(ValueFactory):
         Create a new statement with the supplied subject, predicate and object
         and associated context.  Arguments have type Resource, URI, Value, and Resource.
         """
-        return Statement(subject, predicate, object, context=context)
+        return StatementImpl(subject, predicate, object, context=context, store=self.store)
     
     def createURI(self, uri=None, namespace=None, localname=None, store=None, upi=None):
         """

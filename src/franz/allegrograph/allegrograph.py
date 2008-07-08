@@ -25,24 +25,26 @@ from  __future__ import with_statement
 import threading
 import traceback
 
-from time import sleep
 from franz.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
 from franz.rdfconstants import XSD
 from franz.transport.agc import *
 from franz.namespaceregistry import NamespaceRegistry
-from franz.transport.agdirectconnector import AGDirectLink
-from franz.allegrograph.upi import UPI
-from franz.blanknode import BlankNode
-from franz.literal import Literal
-from franz.encodedliteral import EncodedLiteral
-from franz.triple import Triple
-from franz.openrdf.model.value import *
-from franz.node import Node
-from franz.valuenode import ValueNode
-from franz.resourcenode import ResourceNode
-from franz.defaultgraph import DefaultGraph
 from franz.transport import agconnector
 from franz.namedattributelist import NamedAttributeList
+from franz.allegrograph.upi import UPI
+from franz.allegrograph.encodedliteral import EncodedLiteral
+from franz.openrdf.model.value import Value, Resource, BNode, URI
+from franz.openrdf.modelimpl.valueimpl import URIImpl, BNodeImpl
+from franz.openrdf.modelimpl.literalimpl import LiteralImpl
+
+#from franz.node import Node
+#from franz.valuenode import ValueNode
+#from franz.resourcenode import ResourceNode
+#from franz.triple import Triple
+#from franz.blanknode import BlankNode
+#from franz.literal import Literal
+from franz.defaultgraph import DefaultGraph
+
 
 
 class valueMapEntry(object):
@@ -428,7 +430,7 @@ class AllegroGraph(object):
             return
         raise AllegroGraphException("too-many-index-chunks-error: " + m.substring(ch, ch2) + " files")
 
-    def indexAll(self):
+    def indexAllTriples(self, wait=True):
         """
          * Index all the triples in the triple newStore.
          * @throws AllegroGraphException if an error occurs during indexing.
@@ -436,7 +438,7 @@ class AllegroGraph(object):
          * See the discussion of chunk size at indexTriples().
          * @deprecated Use {@link #indexAllTriples()} instead
         """
-        self.indexAllTriples()
+        self.verifyEnabled().indexAll(self, wait)
 
     def stringElt(self, a, i):
         if a is None:
@@ -474,7 +476,7 @@ class AllegroGraph(object):
     def getText(self, id, lit):
         if lit is not None:
             return lit
-        if not UPI.canReference(id):
+        if not UPI.can_reference(id):
             raise IllegalStateException("getText " + id)
         try:
             return self.getTextPart(id)
@@ -484,37 +486,37 @@ class AllegroGraph(object):
     def getTextEx(self, id, lit):
         if lit is not None:
             return lit
-        if not UPI.canReference(id):
+        if not UPI.can_reference(id):
             raise IllegalStateException("getTextEx " + id)
         return self.getTextPart(id)
 
     def getTextPart(self, id):
-        if not UPI.canReference(id):
+        if not UPI.can_reference(id):
             raise IllegalStateException("getTextPart " + id)
         return self.verifyEnabled().getTextPart(self, id)
 
     def getTypePart(self, id):
-        if not UPI.canReference(id):
+        if not UPI.can_reference(id):
             raise IllegalStateException("getTypePart " + id)
         return self.verifyEnabled().getTypePart(self, id)
 
     def getLangPart(self, id):
-        if not UPI.canReference(id):
+        if not UPI.can_reference(id):
             raise IllegalStateException("getLangPart " + id)
         return self.verifyEnabled().getLangPart(self, id)
 
     def newValue(self, id, type=None, val=None, mod=None):
         if type is None: return self.newValue_with_id(id)
         if type == AGU_ANON:
-            return BlankNode(self, id, val)
+            return BNodeImpl(self, upi=id, id=val)
         elif type == AGU_NODE:
-            return Node(self, id, val)
+            return URIImpl(upi=id, uri=val, store=self)
         elif type == AGU_LITERAL:
-            return Literal(self, id, val, None, None, Literal.LANG_NOT_KNOWN, None)
+            return LiteralImpl(self, val, upi=id, typeid=None, datatype=None, langslot=LiteralImpl.LANG_NOT_KNOWN, language=None)
         elif type == AGU_LITERAL_LANG:
-            return Literal(self, id, val, None, None, Literal.LANG_IS_KNOWN, mod)
+            return LiteralImpl(self, val, upi=id, typeid=None, datatype=None, langslot=LiteralImpl.LANG_IS_KNOWN, language=mod)
         elif type == AGU_TYPED_LITERAL:
-            return Literal(self, id, val, None, mod, Literal.LANG_NOT_KNOWN, None)
+            return LiteralImpl(self, val, upi=id, typeid=None, datatype=mod, langslot=LiteralImpl.LANG_NOT_KNOWN, language=None)
         elif type == AGU_TRIPLE:
             idn = id.getCode()
             if idn > -1:
@@ -522,15 +524,15 @@ class AllegroGraph(object):
         elif type == AGU_DEFAULT_GRAPH:
             return self.getDefaultGraph(id)
         elif type == AGU_ENCODED_STRING:
-            newInstance = EncodedLiteral(self, val, mod)
+            newInstance = EncodedLiteral(val, encoding=mod, store=self)
             newInstance.nodeUPI = id
             return newInstance
         elif type == AGU_ENCODED_INTEGER:
-            newInstance = EncodedLiteral(self, long(val), mod)
+            newInstance = EncodedLiteral(long(val), encoding=mod, store=self)
             newInstance.nodeUPI = id
             return newInstance
         elif type == AGU_ENCODED_FLOAT:
-            newInstance = EncodedLiteral(self, float(val), mod)
+            newInstance = EncodedLiteral(float(val), encoding=mod, store=self)
             newInstance.nodeUPI = id
             return newInstance
         else:
@@ -538,7 +540,7 @@ class AllegroGraph(object):
 
     def newValue_with_id(self, id):
         v = None
-        if not UPI.canReference(id):
+        if not UPI.can_reference(id):
             raise IllegalStateException("AllegroGraph Id cannot be registered:" + id)
         try:
             r = self.verifyEnabled().getParts(self, id)
@@ -550,19 +552,19 @@ class AllegroGraph(object):
         return v
 
     def validID(self, id):
-        if UPI.canReference(id):
+        if UPI.can_reference(id):
             return id
         raise IllegalArgumentException("Id number may not be negative " + id)
 
     def refUPIToString(self, n):
         if n.isNullContext():
             return "" + str(n.getCode())
-        if UPI.canReference(n):
+        if UPI.can_reference(n):
             return "" + n.asChars("%Z")
         return "" + str(n.getCode())
 
     def agjRef(self, node, ifnull=None):
-        if not Node:
+        if not node:
             if ifnull: return self.agjRef(ifnull)
             else: return None
         if isinstance(node, UPI):
@@ -579,38 +581,38 @@ class AllegroGraph(object):
         if node is None:
             if ifnull: return self.refUPIToString(ifnull)
             else: return None
-        if isinstance(node, ValueNode):
+        if isinstance(node, Value):
             nd = node
-            n = nd.queryAGId()
+            n = nd.upi
             if UPI.can_reference(n):
                 if UPI.isNullContext(n):
                     return "" + AGU_NULL_CONTEXT
                 if n.isWild():
                     return "" + AGU_WILD
                 return "" + n.asChars("%Z")
-            if isinstance(nd, Node):
-                return self.uriToAGStringTerm(nd.queryURI())
+            if isinstance(nd, URI):
+                return self.uriToAGStringTerm(nd.uri)
             else:
-                if isinstance(nd, (BlankNode)):
+                if isinstance(nd, BNode):
                     return self.refAnonToString(nd.getID())
                 else:
-                    if isinstance(node, Literal):
+                    if isinstance(node, LiteralImpl):
                         lt = nd
-                        label = lt.queryLabel()
+                        label = lt.label
                         if label is None:
                             self.notValRef(node)
-                        lang = lt.queryLanguage()
+                        lang = lt.language
                         if lang is not None:
                             return self.literalToAGStringTerm(label, lang, None)
                         else:
-                            type = lt.queryType()
+                            type = lt.datatype
                             if type is not None:
                                 return self.literalToAGStringTerm(label, None, type)
                             else:
                                 tid = lt.typeId
                                 if tid is None:
                                     return self.literalToAGStringTerm(label, None, None)
-                                if UPI.canReference(tid):
+                                if UPI.can_reference(tid):
                                     return self.refLitToString(label, tid)
                                 self.notValRef(node)
                     else:
@@ -619,7 +621,7 @@ class AllegroGraph(object):
             return str(self.uriToAGStringTerm(node))
         if isinstance(node, BNode):
             return self.refAnonToString(node.getID())
-        if isinstance(node, Literal):
+        if isinstance(node, LiteralImpl):
             lt = node
             label = lt.getLabel()
             lang = lt.getLanguage()
@@ -633,7 +635,7 @@ class AllegroGraph(object):
         return ""
 
     def refEncToString(self, v):
-        u = v.queryAGId()
+        u = v.upi
         if (None != u) and u.canReference():
             try:
                 return self.refUPIToString(u)
@@ -763,11 +765,11 @@ class AllegroGraph(object):
 
     def createBNodes(self, n):
         v = self.verifyEnabled().newBlankNodes(self, n)
-        r = [BlankNode() for i in range(n)]
+        r = [None] * n
         ## for-while
         i = 0
         while i < n:
-            r[i] = BlankNode(self, v[i], None)
+            r[i] = BNodeImpl(self, upi=v[i])
             i += 1
         return r
 
@@ -776,9 +778,9 @@ class AllegroGraph(object):
 
     def createTypedLiteral(self, text, type):
         if isinstance(type, UPI):
-            return Literal(self, None, text, type, None, Literal.LANG_NOT_KNOWN, None)
+            return LiteralImpl(self, text, upi=None, typeid=type, datatype=None, langslot=LiteralImpl.LANG_NOT_KNOWN, language=None)            
         else:
-            return Literal(self, None, text, None, type, Literal.LANG_NOT_KNOWN, None)
+            return LiteralImpl(self, text, upi=None, typeid=None, datatype=type, langslot=LiteralImpl.LANG_NOT_KNOWN, language=None)        
 
     def addTypedLiteral(self, text, type):
         if isinstance(type, URI): return self.addTypedLiteral_for_URI(text, type)
@@ -787,9 +789,9 @@ class AllegroGraph(object):
         try:
             id = self.verifyEnabled().newLiteral(self, text, type, None)
             if isinstance(type, UPI):
-                b = Literal(self, id, text, None, type, Literal.LANG_NOT_KNOWN, None)
+                b = LiteralImpl(self, text, upi=id, typeid=None, datatype=type, langslot=LiteralImpl.LANG_NOT_KNOWN, language=None)  
             else:
-                b = Literal(self, id, text, type, None, Literal.LANG_NOT_KNOWN, None)
+                b = LiteralImpl(self, text, upi=id, typeid=type, datatype=None, langslot=LiteralImpl.LANG_NOT_KNOWN, language=None)                  
         except (AllegroGraphException, ), e:
             ee = e
         if b is None:
@@ -797,28 +799,28 @@ class AllegroGraph(object):
         return b
 
     def addTypedLiteral_for_URI(self, text, type):
-        if isinstance(type, (Node)):
-            id = type.queryAGId()
+        if isinstance(type, URI):
+            id = type.upi
             if id is not None:
                 return self.addTypedLiteral(text, id)
         return self.addTypedLiteral(text, str(type))
 
     def createURI(self, uri):
-        return Node(self, None, uri)
+        return URIImpl(uri=uri, store=self)
 
     def addURI(self, uri):
-        return Node(self, self.verifyEnabled().newResource(self, uri), uri)
+        return URIImpl(upi=self.verifyEnabled().newResource(self, uri), uri=uri, store=self)
 
     def addURIIds(self, uri):
         return self.verifyEnabled().newResources(self, uri)
 
     def addURIs(self, uri):
-        v = [URI() for i in range(len(uri))]
+        v = [None] * len(uri)
         ids = self.verifyEnabled().newResources(self, uri)
         ## for-while
         i = 0
         while i < len(uri):
-            v[i] = Node(self, ids[i], uri[i])
+            v[i] = URIImpl(upi=ids[i], uri=uri[i], store=self)
             i += 1
         return v
 
@@ -855,12 +857,12 @@ class AllegroGraph(object):
         return self.verifyEnabled().getInfTriples(self, self.validRangeRef(subject), self.validRangeRef(predicate), self.validRangeRef(object), self.anyContextRef(context, 5), subend=self.validRangeRef(subEnd), predend=self.validRangeRef(predEnd), obend=self.validRangeRef(obEnd), cxend=self.anyContextRef(contextEnd, 6), lh=self.defaultLookAhead, infer=includeInferred)
 
     def hasStatement_without_boolean(self, subject, predicate, object, context=None):
-        cxt = self.anyContextRef(context, 3) if context else Node.nullContext
+        cxt = self.anyContextRef(context, 3) if context else URIImpl.nullContext
         return self.verifyEnabled().hasTriple(self, self.validRefOrWild(subject), self.validRefOrWild(predicate), self.validRefOrWild(object), cxt)
 
     def hasStatement(self, includeInferred, subject, predicate, object, context=None):
         if isinstance(includeInferred, bool):
-            cxt = self.anyContextRef(context, 3) if context else Node.nullContext        
+            cxt = self.anyContextRef(context, 3) if context else URIImpl.nullContext        
             return self.verifyEnabled().hasInfTriple(self, self.validRefOrWild(subject), self.validRefOrWild(predicate), self.validRefOrWild(object), self.anyContextRef(context, 3), includeInferred)
         else:
             return self.hasStatement_without_boolean(subject, predicate, object, context=context)
@@ -897,16 +899,17 @@ class AllegroGraph(object):
          * <p>
          * The literal instance will have a null UPI.
         """
-        if isinstance(datatype, Node):
+        if isinstance(datatype, URI):
             nd = datatype
-            nid = nd.queryAGId()
-            if UPI.canReference(nid):
-                datatype = nd.queryURI()
+            nid = nd.upi
+            if UPI.can_reference(nid):
+                datatype = nd.uri
             else:
                 datatype = str(datatype)
         if not datatype:
             uri = AllegroGraph.python_type_to_uri[type(value)]
-        return Literal(self, None, str(value), None, uri, Literal.LANG_IS_KNOWN if language else Literal.LANG_NOT_KNOWN, language)
+        langSlot = LiteralImpl.LANG_IS_KNOWN if language else LiteralImpl.LANG_NOT_KNOWN
+        return LiteralImpl(self, str(value), upi=None, typeid=None, datatype=uri, langslot=langSlot, language=language)   
 
     def addLiteral(self, value, language=None, datatype=None):
         """
@@ -915,12 +918,12 @@ class AllegroGraph(object):
          * 
          * @return a Literal instance that can be safely cast to com.franz.ag.Literal        
         """
-        if isinstance(datatype, Node):
+        if isinstance(datatype, URI):
             nd = datatype
-            nid = nd.queryAGId()
-            if UPI.canReference(nid):
+            nid = nd.upi
+            if UPI.can_reference(nid):
                 v = self.addTypedLiteral(value, nid)
-                v.type = str(datatype)
+                v.datatype = str(datatype)
                 return v
             else:
                 datatype = str(datatype)
@@ -930,7 +933,8 @@ class AllegroGraph(object):
             return self.addTypedLiteral(value, datatype)
         try:
             id = self.verifyEnabled().newLiteral(self, str(value), None, language)
-            b = Literal(self, None, str(value), None, uri, Literal.LANG_IS_KNOWN if language else Literal.LANG_NOT_KNOWN, language)
+            langSlot =  LiteralImpl.LANG_IS_KNOWN if language else LiteralImpl.LANG_NOT_KNOWN
+            b = LiteralImpl(self, str(value), upi=None, typeid=None, datatype=uri, langslot=langSlot, language=language)    
         except (AllegroGraphException, ), e:
             ee = e
         if b is None:
@@ -941,29 +945,29 @@ class AllegroGraph(object):
    
     def addLiterals(self, values, datatypes, languages):        
         ids = self.verifyEnabled().newLiteral(self, values, datatypes, languages)
-        v = [Literal() for i in range(len(values))]
+        v = [None] * len(values)
         ## for-while
         i = 0
         while i < len(values):
             ts = self.stringElt(datatypes, i)
             ls = self.stringElt(languages, i)
-            v[i] = Literal(self, ids[i], values[i], None, ts, Literal.LANG_IS_KNOWN, ls)
+            v[i] = LiteralImpl(self, values[i], upi=ids[i], typeid=None, datatype=ts, langslot=LiteralImpl.LANG_IS_KNOWN, language=ls)   
             i += 1
         return v
 
     def createStatement(self, subject, predicate, object, context=None):
         b = Triple()
         s = None
-        if isinstance(subject, (ResourceNode)):
+        if isinstance(subject, Resource):
             s = self.queryAGId(subject)
         p = None
-        if isinstance(predicate, (Node)):
+        if isinstance(predicate, (URI)):
             p = self.queryAGId(predicate)
         o = None
-        if isinstance(object, ValueNode):
+        if isinstance(object, Value):
             o = self.queryAGId(object)
         c = UPI.getNullContextUPI()
-        if isinstance(context, (Node)):
+        if isinstance(context, URI):
             c = self.queryAGId(context)
         b = Triple(self, s, p, o, c)
         b.subjInstance = subject
@@ -1013,7 +1017,7 @@ class AllegroGraph(object):
         rs = r[1]
         rp = r[2]
         ro = r[3]
-        rt = [Triple() for i in range(len(ri))]
+        rt = [None] * len(ri)
         ## for-while
         i = 0
         while i < len(ri):
@@ -1060,8 +1064,8 @@ class AllegroGraph(object):
         raise IllegalArgumentException("Not a valid part reference: " + str(x))
 
     def validRefEnc(self, x):
-        u = x.queryAGId()
-        if (None != u) and UPI.canReference(u):
+        u = x.upi
+        if (None != u) and UPI.can_reference(u):
             return self.validID(u)
         return self.refEncToString(x)
 
@@ -1152,7 +1156,7 @@ class AllegroGraph(object):
     def queryAGId(self, x):
         if x is None:
             raise IllegalArgumentException("Null node reference not allowed")
-        return x.queryAGId()
+        return x.upi
 
     def addLiteralIds(self, values, datatypes, languages):
         return self.verifyEnabled().newLiteral(self, values, datatypes, languages)
@@ -1663,7 +1667,7 @@ class AllegroGraph(object):
         b = None
         ee = None
         try:
-            b = BlankNode(self, self.verifyEnabled().newBlankNode(self), None)
+            b = BNodeImpl(self, upi=self.verifyEnabled().newBlankNode(self))
         except (AllegroGraphException, ), e:
             ee = e
         if b is None:
@@ -1674,11 +1678,11 @@ class AllegroGraph(object):
         b = None
         ee = None
         try:
-            b = BlankNode(self, self.verifyEnabled().newBlankNode(self, nodeId), nodeId)
+            b = BNodeImpl(self, upi=self.verifyEnabled().newBlankNode(self, nodeId), id=nodeId)
         except (AllegroGraphException, ), e:
             ee = e
         if b is None:
-            self.failCreate("BlankNode", ee)
+            self.failCreate("BNode", ee)
         return b
 
     def get_indexAllTriples(self):

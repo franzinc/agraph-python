@@ -39,7 +39,7 @@ class Quad:
     """
     COMPLAIN_BITTERLY = True
     def __init__(self, internal_store):
-        self.internal_store = internal_store
+        self.internal_ag_store = internal_store
         self.id = NO_TRIPLE
         self.s = None
         self.p = None
@@ -245,7 +245,7 @@ class Quad:
         """
         if Quad.COMPLAIN_BITTERLY:
             print "ENTIRE ACCESS FOR SINGLE SPOC COMPONENT"
-        v = self.internal_store.agConnection.getServer().getParts(self.internal_store, part)
+        v = self.internal_ag_store.agConnection.getServer().getParts(self.internal_ag_store, part)
         type = int(v[0])
         if partIndex == 1:
             self.sType = type
@@ -274,10 +274,10 @@ class Quad:
 
     def newValue_with_upi(self, upi):
         v = None
-        if not UPI.canReference(upi):
+        if not UPI.can_reference(upi):
             raise IllegalStateException("AllegroGraph Id cannot be registered:" + upi)
         try:
-            r = self.internal_store.agConnection.getParts(self, upi)
+            r = self.internal_ag_store.agConnection.getParts(self, upi)
             v = self.newValue(upi, r[0], r[1], r[2])
         except (AllegroGraphException, ), e:
             self.failCreate("ValueObject", e)
@@ -288,20 +288,20 @@ class Quad:
     def newValue(self, upi, component_type, label, mod):
         if component_type is None: return self.newValue_with_upi(upi)
         if component_type == AGU_ANON:
-            return BNodeImpl(upi, id=label, store=self.internal_store)
+            return BNodeImpl(upi, id=label, store=self.internal_ag_store)
         elif component_type == AGU_NODE:
-            return URIImpl(upi=upi, uri=label, store=self.internal_store)
+            return URIImpl(upi=upi, uri=label, store=self.internal_ag_store)
         elif component_type == AGU_LITERAL:
             lit = LiteralImpl(None)
-            lit.assign_literal_pieces(self.internal_store, upi, label, None, None, None)
+            lit.assign_literal_pieces(self.internal_ag_store, upi, label, None, None, None)
             return lit
         elif component_type == AGU_LITERAL_LANG:
             lit = LiteralImpl(None)
-            lit.assign_literal_pieces(self.internal_store, upi, label, None, None, mod)
+            lit.assign_literal_pieces(self.internal_ag_store, upi, label, None, None, mod)
             return lit
         elif component_type == AGU_TYPED_LITERAL:
             lit = LiteralImpl(None)
-            lit.assign_literal_pieces(self.internal_store, upi, label, None, mod, None)
+            lit.assign_literal_pieces(self.internal_ag_store, upi, label, None, mod, None)
             return lit
         elif component_type == AGU_DEFAULT_GRAPH:
             return URIImpl.NULL_CONTEXT_URI
@@ -330,7 +330,9 @@ class Quad:
         componentType = self.getPartType_FromIndex(spocIndex)
         label = self.getPartLabel_FromIndex(spocIndex)
         mod = self.getPartMod_FromIndex(spocIndex)
-        return self.newValue(upi, componentType, label, mod)
+        component = self.newValue(upi, componentType, label, mod)
+        component.internal_ag_store = self.internal_ag_store
+        return component
 
     ##################################################################################
     ##  Assembly

@@ -5,7 +5,7 @@
 ##Version: MPL 1.1
 ##
 ##The contents of this file are subject to the Mozilla Public License Version
-##1.1 (the "License"); you may not use this file except in compliance with
+##1.1 (the "License") you may not use this file except in compliance with
 ##the License. You may obtain a copy of the License at
 ##http:##www.mozilla.org/MPL/
 ##
@@ -41,10 +41,26 @@ class RDFS:
         RDFS.RESOURCE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Resource")
         RDFS.LITERAL = factory.createURI(namespace=RDFS.NAMESPACE, localname="Literal")
         RDFS.CLASS = factory.createURI(namespace=RDFS.NAMESPACE, localname="Class")
-        
+        RDFS.SUBCLASSOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subClassOf")
+        RDFS.SUBPROPERTYOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subPropertyOf")
+        RDFS.DOMAIN = factory.createURI(namespace=RDFS.NAMESPACE, localname="domain")
+        RDFS.RANGE = factory.createURI(namespace=RDFS.NAMESPACE, localname="range")
+        RDFS.COMMENT = factory.createURI(namespace=RDFS.NAMESPACE, localname="comment")
+        RDFS.LABEL = factory.createURI(namespace=RDFS.NAMESPACE, localname="label")
+        RDFS.DATATYPE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Datatype")
+        RDFS.CONTAINER = factory.createURI(namespace=RDFS.NAMESPACE, localname="Container")
+        RDFS.MEMBER = factory.createURI(namespace=RDFS.NAMESPACE, localname="member")
+        RDFS.ISDEFINEDBY = factory.createURI(namespace=RDFS.NAMESPACE, localname="isDefinedBy")
+        RDFS.SEEALSO = factory.createURI(namespace=RDFS.NAMESPACE, localname="seeAlso")
+        RDFS.CONTAINERMEMBERSHIPPROPERTY = factory.createURI(namespace=RDFS.NAMESPACE, localname="ContainerMembershipProperty")
+       
         ## (re)build 'name2URI' dictionary
         RDFS.name2URIMap = {}
-        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS,]:
+        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS, 
+                    RDFS.SUBCLASSOF, RDFS.SUBPROPERTYOF, RDFS.DOMAIN, 
+                    RDFS.RANGE, RDFS.COMMENT, RDFS.LABEL, RDFS.DATATYPE, 
+                    RDFS.CONTAINER, RDFS.MEMBER, RDFS.ISDEFINEDBY, 
+                    RDFS.SEEALSO, RDFS.CONTAINERMEMBERSHIPPROPERTY, ]:
             RDFS.name2URIMap[str(uri)] = uri
 
             
@@ -59,9 +75,26 @@ class RDFS:
         RDFS.RESOURCE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Resource")
         RDFS.LITERAL = factory.createURI(namespace=RDFS.NAMESPACE, localname="Literal")
         RDFS.CLASS = factory.createURI(namespace=RDFS.NAMESPACE, localname="Class")
+        RDFS.SUBCLASSOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subClassOf")
+        RDFS.SUBPROPERTYOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subPropertyOf")
+        RDFS.DOMAIN = factory.createURI(namespace=RDFS.NAMESPACE, localname="domain")
+        RDFS.RANGE = factory.createURI(namespace=RDFS.NAMESPACE, localname="range")
+        RDFS.COMMENT = factory.createURI(namespace=RDFS.NAMESPACE, localname="comment")
+        RDFS.LABEL = factory.createURI(namespace=RDFS.NAMESPACE, localname="label")
+        RDFS.DATATYPE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Datatype")
+        RDFS.CONTAINER = factory.createURI(namespace=RDFS.NAMESPACE, localname="Container")
+        RDFS.MEMBER = factory.createURI(namespace=RDFS.NAMESPACE, localname="member")
+        RDFS.ISDEFINEDBY = factory.createURI(namespace=RDFS.NAMESPACE, localname="isDefinedBy")
+        RDFS.SEEALSO = factory.createURI(namespace=RDFS.NAMESPACE, localname="seeAlso")
+        RDFS.CONTAINERMEMBERSHIPPROPERTY = factory.createURI(namespace=RDFS.NAMESPACE, localname="ContainerMembershipProperty")
+
         ## (re)build 'name2URI' dictionary
         RDFS.name2URIMap = {}
-        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS,]:
+        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS, 
+                    RDFS.SUBCLASSOF, RDFS.SUBPROPERTYOF, RDFS.DOMAIN, 
+                    RDFS.RANGE, RDFS.COMMENT, RDFS.LABEL, RDFS.DATATYPE, 
+                    RDFS.CONTAINER, RDFS.MEMBER, RDFS.ISDEFINEDBY, 
+                    RDFS.SEEALSO, RDFS.CONTAINERMEMBERSHIPPROPERTY, ]:
             RDFS.name2URIMap[str(uri)] = uri
         
     
@@ -76,6 +109,11 @@ class RDFS:
             raise IllegalArgumentException("Passed a non-RDFS URI to 'XMLSchema.name2URI.")
         else: return None
     
+    
+
+
+
+
 
 
 

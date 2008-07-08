@@ -28,31 +28,43 @@ class StatementImpl(Statement):
     """
     AllegroGraph implementation of 'Statement'
     """
-    def __init__(self, subject, predicate, object, context=None):
+    def __init__(self, subject, predicate, object, context=None, store=None):
+        ## I HAVE NO IDEA WHY ITS COMPLAINING HERE:
+        #super(StatementImpl, self).__init__(subject, predicate, object, context=context)
         self.subject = subject
         self.predicate = predicate
         self.object = object
         self.context = context
         self.quad = None
+        if store:
+            internalStore = store.internal_ag_store
+            self.internal_ag_store = internalStore
+            if subject: subject.internal_ag_store = internalStore
+            if predicate: predicate.internal_ag_store = internalStore
+            if object: object.internal_ag_store = internalStore
+            if context: context.internal_ag_store = internalStore                                    
     
     def setQuad(self, quad):
         self.quad = quad
 
     def getSubject(self):         
         if not self.subject:
-            if self.quad: self.subject = self.quad.getSubject()
+            if self.quad: 
+                self.subject = self.quad.getSubject()
         return self.subject
     
     #def setSubject(self, subject): self.subject = subject
     def getPredicate(self):
         if not self.predicate:
-            if self.quad: self.predicate = self.quad.getPredicate()
+            if self.quad: 
+                self.predicate = self.quad.getPredicate()
         return self.predicate
      
     #def setPredicate(self, predicate):self.predicate = predicate
     def getObject(self):
         if not self.object:
-            if self.quad: self.object = self.quad.getObject()
+            if self.quad: 
+                self.object = self.quad.getObject()
         return self.object
     
     #def setObject(self, object): self.object = object

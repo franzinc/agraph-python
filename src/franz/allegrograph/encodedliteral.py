@@ -2,16 +2,17 @@
 # -*- coding: utf-8 -*-
 
 from franz.exceptions import IllegalStateException
-from franz.literal import Literal
+from franz.openrdf.modelimpl.literalimpl import LiteralImpl
 
-class EncodedLiteral(Literal):
+class EncodedLiteral(LiteralImpl):
     """ generated source for EncodedLiteral
 
     """
-    def __init__(self, ts, value, newEncoding):
-        super(EncodedLiteral, self, ts)
-        self.encoding = newEncoding
-        if isinstance(value, int, long):
+    #def __init__(self, ts, value, newEncoding):
+    def __init__(self, value=None, encoding=None, store=None):
+        super(EncodedLiteral, self).__init__(store=store)
+        self.encoding = encoding
+        if isinstance(value, (int, long)):
             self.longValue = value
             self.rawType = 0  # 0-long  1-double  2-string
         elif isinstance(value, float):
@@ -47,10 +48,10 @@ class EncodedLiteral(Literal):
         if self.canReference():
             return
         v = self.owner.verifyEnabled().addPart(self.owner, self.owner.refEncToString(self))
-        self.nodeUPI = v[0]
+        self.upi = v[0]
 
     def __str__(self):
-        return "<Literal " + self.nodeUPI + " " + self.label + " :" + self.encoding + ">"
+        return "<Literal " + self.upi + " " + self.label + " :" + self.encoding + ">"
 
     def getLanguage(self):
         return

@@ -11,7 +11,7 @@ class Node(ResourceNode):
     """ generated source for Node
 
     """
-    nullContext = None
+    AGnullContext = None
     
     def __init__(self, ts, i, u):        
         self.owner = ts
@@ -21,7 +21,7 @@ class Node(ResourceNode):
 
     def getAGId(self):
         n = self.queryAGId()
-        if UPI.canReference(n):
+        if UPI.can_reference(n):
             return n
         if self.uri is None:
             raise IllegalStateException("Cannot realize a node without a URI")
@@ -72,6 +72,6 @@ class Node(ResourceNode):
     def add(self):
         self.getAGId()
 
-Node.nullContext = Node(None, UPI.getNullContextUPI(), None)
+Node.AGnullContext = Node(None, UPI.getNullContextUPI(), None)
     
 

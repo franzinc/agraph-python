@@ -58,13 +58,15 @@ class Repository:
         """
         self.sail.initialize()
         
-    def indexTriples(self):
+    def indexTriples(self, all=False, asynchronous=False):
         """
-        (Re)index the triples in the store.  This should be done after every 
+        Index the newly-added triples in the store.  This should be done after every 
         significant-sized load of triples into the store.
+        If 'all', re-index all triples in the store.  If 'asynchronous', spawn
+        the indexing task as a separate thread, and don't wait for it to complete.
         Note. Upon version 4.0, calling this will no longer be necessary.        
         """
-        self.sail.indexTriples()
+        self.sail.indexTriples(all=all, asynchronous=asynchronous)
 
     def shutDown(self):
         """

@@ -213,7 +213,7 @@ class Triple(ValueObject):
 
     def getParts(self):
         try:
-            if not UPI.canReference(self.s) or not UPI.canReference(self.p) or not UPI.canReference(self.o):
+            if not UPI.can_reference(self.s) or not UPI.can_reference(self.p) or not UPI.can_reference(self.o):
                 if ValueObject.canReference(self.AGId):
                     v = self.owner.getTripleParts(self.AGId)
                     if v is None:

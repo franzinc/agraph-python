@@ -42,10 +42,14 @@ class URI(Resource):
     Lightweight implementation of the class 'URI'.
     """
     def __init__(self, uri=None, namespace=None, localname=None):
+        if uri and not isinstance(uri, str):
+            print "BREAK"
         if uri:
             self.uri = uri
+        elif namespace and localname:
+            self.uri = namespace + localname
         else:
-            self.uri = namespace + localname        
+            self.uri = None        
         self.localNameIdx = -1
     
     def __str__(self): return self.getURI()

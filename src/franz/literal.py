@@ -6,7 +6,7 @@ from franz.valuenode import ValueNode
 from franz.allegrograph.upi import UPI
 
 
-class Literal(ValueNode):
+class AGLiteral(ValueNode):
     """ 
      * This class represents an instance of a literal node in AllegroGraph.
      * <p>
@@ -19,8 +19,6 @@ class Literal(ValueNode):
      * There is no public constructor.  Literal instances are created by calls
      * to TripleStore methods.
     """
-    LANG_IS_KNOWN = 'known'
-    LANG_NOT_KNOWN = 'unknown'
     def __init__(self, ts, i, newLabel, newTypeId, newType, newLangSlot, newLanguage):
         super(Literal, self)
         self.typeId = None
@@ -56,7 +54,7 @@ class Literal(ValueNode):
             return self.type
         if self.typeId is None:
             return
-        if UPI.canReference(self.typeId):
+        if UPI.can_reference(self.typeId):
             self.type = self.owner.getText(self.typeId, None)
         else:
             try:
@@ -103,7 +101,7 @@ class Literal(ValueNode):
             if self.type is not None:
                 tail = "^^" + self.type
             else:
-                if UPI.canReference(self.typeId):
+                if UPI.can_reference(self.typeId):
                     tail = "^^<" + self.typeId + ">"
                 else:
                     tail = "^^?"
@@ -132,7 +130,7 @@ class Literal(ValueNode):
         if self.type is not None:
             nodeUPI = self.owner.verifyEnabled().newLiteral(self.owner, self.label, self.type, None)
             return
-        if UPI.canReference(self.typeId):
+        if UPI.can_reference(self.typeId):
             nodeUPI = self.owner.verifyEnabled().newLiteral(self.owner, self.label, self.typeId, None)
             return
         if self.typeId is not None:

@@ -39,9 +39,10 @@ class ValueImpl(Value):
         if y is None:
             return 0
         if type(x) == type(y):
-            yid = y.nodeUPI
-            if UPI.canReference(x.nodeUPI) and UPI.canReference(yid):
-                if x.nodeUPI == yid:
+            xid = x.upi
+            yid = y.upi
+            if UPI.can_reference(xid) and UPI.can_reference(yid):
+                if xid == yid:
                     return 1
                 return 0 ## zero apparently means "I don't know"
         return -1
@@ -51,6 +52,7 @@ class URIImpl(URI):
     """
     AllegroGraph-specific implementation of URI.
     """
+    nullContext = None
     NULL_CONTEXT_URI = None
     def __init__(self, uri=None, upi=None, store=None, namespace=None, localname=None):
         super(URIImpl, self).__init__(uri=uri, namespace=namespace, localname=localname)
@@ -80,6 +82,7 @@ class URIImpl(URI):
         return str(self).__hash__()
 
 URIImpl.NULL_CONTEXT_URI = URIImpl(upi=UPI.NULL_CONTEXT, uri="http://openrdf.org#NuLlCoNtExT")
+URIImpl.nullContext = URIImpl(upi=UPI.getNullContextUPI())
        
 class BNodeImpl(BNode):
     """

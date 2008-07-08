@@ -48,14 +48,14 @@ class ValueNode(ValueObject, Value):
             return 0
         if type(self) == type(x):
             xid = x.nodeUPI
-            if UPI.canReference(self.nodeUPI) and UPI.canReference(xid):
+            if UPI.can_reference(self.nodeUPI) and UPI.can_reference(xid):
                 if self.nodeUPI == xid:
                     return 1
                 return 0 ## zero apparently means "I don't know"
         return -1
 
     def canReference(self):
-        return UPI.canReference(self.nodeUPI)
+        return UPI.can_reference(self.nodeUPI)
 
     def getObjectStatements(self):
         return self.owner.getStatements(None, None, self)

@@ -421,7 +421,7 @@ class Cursor:
         if self.current_quad:
             self.erase_currenet_quad()
         else:
-            self.current_quad = Quad(self.internal_store)
+            self.current_quad = Quad(self.internal_ag_store)
         self.id = self.getCache().getCode()
         self.cacheIndex += 1
         quad = self.current_quad

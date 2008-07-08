@@ -26,7 +26,7 @@ from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.converter import statement2ntriples
 
 class RDFWriter(object):
-    def __init__(self, rdfFormat, filePath):
+    def __init__(self, rdfFormat, filePath=None):
         self.rdf_format = rdfFormat
         self.file_path = filePath
         
@@ -36,30 +36,24 @@ class RDFWriter(object):
     def getFilePath(self):
         return self.file_path 
 
-class RDFXMLWriter(RDFWriter):
-    """
-    This is not an RDF writer, because AllegroGraph does the
-    formatting on the server-side.  This records the format as
-    RDF/XML, and records the 'filePath' where the serialized RDF will
-    be output to.  If 'filePath' is None, output is to standard output.
-    For compatibility with Sesame, it mimics the RDFWriter.
-    """
-    def __init__(self, filePath):
-        super(RDFXMLWriter, self).__init__(RDFFormat.RDFXML, filePath)  
-    
-    def export(self, statements):
-        raise UnimplementedMethodException("RDFXMLWriter.export")      
-        
+            
 class NTriplesWriter(RDFWriter):
     """
-    This is not an RDF writer, because AllegroGraph does the
-    formatting on the server-side.  This records the format as
+    Records the format as
     NTriples, and records the 'filePath' where the serialized RDF will
     be output to.  If 'filePath' is None, output is to standard output.
-    For compatibility with Sesame, it mimics the RDFWriter.
+    
+    TODO: THERE IS A WRITER PROTOCOL IMPLEMENTED IN RDFXMLWriter THAT ISN'T
+    IMPLEMENTED HERE.  CONSIDER ADDING IT (OR NOT).
     """
-    def __init__(self, filePath):
+    def __init__(self, filePath=None):
         super(NTriplesWriter, self).__init__(RDFFormat.NTRIPLES, filePath)
+        
+    def handleNamespace(self, prefix, name):
+        """
+        NTriples doesn't use prefixes.
+        """
+        pass
         
     def export(self, statements):
         """

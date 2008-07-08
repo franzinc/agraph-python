@@ -6,7 +6,8 @@ from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 from franz.openrdf.query.dataset import Dataset
 from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.rio.rdfwriter import RDFXMLWriter, NTriplesWriter
+from franz.openrdf.rio.rdfwriter import  NTriplesWriter
+from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
 
 
 import os, urllib, datetime
@@ -192,6 +193,7 @@ def test8():
     context = None
     ## END TEMPORARY  
     conn = myRepository.getConnection();
+    conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read the contents of a file into the context:
     conn.add(url, baseURI, format=RDFFormat.RDFXML, contexts=context);
     print "RDF store contains %s triples" % conn.size()
@@ -208,7 +210,13 @@ def test8():
     if outputFile == None:
         print "Writing to Standard Out instead of to a file"
     ntriplesWriter = NTriplesWriter(outputFile)
-    conn.export(ntriplesWriter, context);    
+    conn.export(ntriplesWriter, context);
+    outputFile2 = "/users/bmacgregor/Desktop/temp.rdf"
+    outputFile2 = None
+    if outputFile2 == None:
+        print "Writing to Standard Out instead of to a file"
+    rdfxmlfWriter = RDFXMLWriter(outputFile2)    
+    conn.export(rdfxmlfWriter, context)
     ## Remove all statements in the context from the repository
     conn.clear(context)
     ## Verify that the statements have been removed:
@@ -393,6 +401,8 @@ def test13():
             p = bindingSet.getValue("p")
             o = bindingSet.getValue("o")              
             print "%s %s %s" % (s, p, o)
+    conn.export(RDFXMLWriter(), None)
+
 
 def test14():
     """
@@ -426,7 +436,7 @@ def test14():
     ## first, retrieve all four quads
     queryString = """
     SELECT ?s ?p ?o ?c
-    `+ WHERE { { GRAPH ?c {?s ?p ?o . } } UNION  {?s ?p ?o } }
+    WHERE { { GRAPH ?c {?s ?p ?o . } } UNION  {?s ?p ?o } }
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();    
@@ -434,7 +444,7 @@ def test14():
         s = bindingSet['s']
         p = bindingSet['p']
         o = bindingSet['o']
-        c = bindingSet['c']            
+        c = bindingSet['c']         
         print "%s %s %s %s" % (s, p, o, c)
     ## first, retrieve all four quads        
     ds = Dataset()
@@ -462,7 +472,7 @@ def test15():
     alice = f.createURI(namespace=exns, localname="alice")
     person = f.createURI(namespace=exns, localname="Person")
     conn.add(alice, RDF.TYPE, person)
-    myRepository.indexTriples()
+    myRepository.indexTriples(all=True, asynchronous=True)
     conn.setNamespace('ex', exns)
     queryString = """
     SELECT ?s ?p ?o 
@@ -470,11 +480,11 @@ def test15():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();  
-    print  
+    print    
     for bindingSet in result:
         s = bindingSet.getValue("s")
         s = bindingSet.get("s")
-        p = bindingSet['z']
+        p = bindingSet['p']
         o = bindingSet[2]
         print "%s %s %s " % (s, p, o)
 
@@ -482,8 +492,8 @@ def test15():
 
 
 if __name__ == '__main__':
-    choices = [i for i in range(9)]
-    choices = [15]
+    choices = [i for i in range(1,16)]
+    #choices = [8]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

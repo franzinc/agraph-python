@@ -82,8 +82,8 @@ class AllegroGraphRepositoryConnection(SailConnection):
     def __init__(self, store):
         self.sail_store = store 
         self.term2internal = store.getTerm2InternalManager()
-        self.internal_store = store.getInternalAllegroGraph()
-        self.directCaller = DirectCaller(self.internal_store.verifyEnabled(), self.term2internal)
+        self.internal_ag_store = store.getInternalAllegroGraph()
+        self.directCaller = DirectCaller(self.internal_ag_store.verifyEnabled(), self.term2internal)
         self.is_closed = False
     
     def rollback(self):
@@ -282,9 +282,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
         if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
             ## PASSING "NTRIPLE" AS 'ext' ARG FAILS HERE.  THE DOCUMENTATION DOESN'T
             ## SAY WHAT THE ACCEPTABLE VALUE(S) ARE:
-            self.internal_store.verifyEnabled().loadNTriples(self.internal_store, filePath, contextString, None, None, None, None)
+            self.internal_ag_store.verifyEnabled().loadNTriples(self.internal_ag_store, filePath, contextString, None, None, None, None)
         elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):
-            self.internal_store.verifyEnabled().loadRDF(self.internal_store, filePath, contextString, base, None)
+            self.internal_ag_store.verifyEnabled().loadRDF(self.internal_ag_store, filePath, contextString, base, None)
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)
     
@@ -428,6 +428,8 @@ class AllegroGraphRepositoryConnection(SailConnection):
         from the repository, optionally from the specified contexts.        
         """
         statements = self.getStatements(subj, pred, obj, includeInferred, contexts)
+        for prefix, name in self._get_namespaces_map().iteritems():
+            handler.handleNamespace(prefix, name)
         handler.export(statements)
       
     
@@ -437,7 +439,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
     
     NAMESPACES_MAP = {}
     
-    def _get_map(self):
+    def _get_namespaces_map(self):
         map = AllegroGraphRepositoryConnection.NAMESPACES_MAP
         if not map:
             map.update({"rdf": RDF.NAMESPACE, 
@@ -449,25 +451,25 @@ class AllegroGraphRepositoryConnection(SailConnection):
     
     ## Gets all declared namespaces as a RepositoryResult of {@link Namespace}
     def getNamespaces(self):
-        return [Namespace(prefix, name) for prefix, name in self._get_map().iteritems()]
+        return [Namespace(prefix, name) for prefix, name in self._get_namespaces_map().iteritems()]
 
     ## Gets the namespace that is associated with the specified prefix, if any.
     def getNamespace(self, prefix):
-        name = self._get_map().get(prefix.lower())
+        name = self._get_namespaces_map().get(prefix.lower())
         if name: return Namespace(prefix.lower(), name)
 
     ## Sets the prefix for a namespace.
     def setNamespace(self, prefix, name):
-        self._get_map()[prefix.lower()] = name
+        self._get_namespaces_map()[prefix.lower()] = name
 
     ## Removes a namespace declaration by removing the association between a
     ## prefix and a namespace name.
     def removeNamespace(self, prefix):
-        self._get_map()[prefix] = None
+        self._get_namespaces_map()[prefix] = None
 
     ## Removes all namespace declarations from the repository.
     def clearNamespaces(self):
-        self._get_map().clear()
+        self._get_namespaces_map().clear()
 
 
 

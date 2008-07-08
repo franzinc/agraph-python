@@ -5,7 +5,7 @@
 ##Version: MPL 1.1
 ##
 ##The contents of this file are subject to the Mozilla Public License Version
-##1.1 (the "License"); you may not use this file except in compliance with
+##1.1 (the "License") you may not use this file except in compliance with
 ##the License. You may obtain a copy of the License at
 ##http:##www.mozilla.org/MPL/
 ##
@@ -47,23 +47,23 @@ from franz.openrdf.model.value import Value
 # * 
 # * <pre>
 # * // Ex 1: this method retrieves all statements that appear in either context1 or context2, or both.
-# * RepositoryConnection.getStatements(null, null, null, true, context1, context2);
+# * RepositoryConnection.getStatements(null, null, null, true, context1, context2)
 # * 
 # * // Ex 2: this method retrieves all statements that appear in the repository (regardless of context).
-# * RepositoryConnection.getStatements(null, null, null, true);
+# * RepositoryConnection.getStatements(null, null, null, true)
 # * 
 # * // Ex 3: this method retrieves all statements that have no associated context in the repository.
 # * // Observe that this is not equivalent to the previous method call.
-# * RepositoryConnection.getStatements(null, null, null, true, (Resource)null);
+# * RepositoryConnection.getStatements(null, null, null, true, (Resource)null)
 # * 
 # * // Ex 4: this method adds a statement to the store. If the statement object itself has 
 # * // a context (i.e. statement.getContext() != null) the statement is added to that context. Otherwise,
 # * // it is added without any associated context.
-# * RepositoryConnection.add(statement);
+# * RepositoryConnection.add(statement)
 # * 
 # * // Ex 5: this method adds a statement to context1 in the store. It completely ignores any
 # * // context the statement itself has.
-# * RepositoryConnection.add(statement, context1);
+# * RepositoryConnection.add(statement, context1)
  
 
 class RepositoryConnection(object):
@@ -111,12 +111,12 @@ class RepositoryConnection(object):
 #    ##        vararg and as such is optional. If no contexts are supplied the
 #    ##        method operates on the entire repository.
 #    ## @param includeInferred
-#    ##        if false, no inferred statements are returned; if true, inferred
+#    ##        if false, no inferred statements are returned if true, inferred
 #    ##        statements are returned if available. The default is true.
 #    ## @return The statements matching the specified pattern. The result object
-#    ##         is a {@link RepositoryResult} object, a lazy Iterator-like object
-#    ##         containing {@link Statement}s and optionally throwing a
-#    ##         {@link RepositoryException} when an error when a problem occurs
+#    ##         is a @link RepositoryResult object, a lazy Iterator-like object
+#    ##         containing @link Statements and optionally throwing a
+#    ##         @link RepositoryException when an error when a problem occurs
 #    ##         during retrieval.
     #RepositoryResult<Statement> 
     def getStatements(self, subj, pred,  obj, includeInferred, contexts):
@@ -260,7 +260,7 @@ class RepositoryConnection(object):
     ## @param handler
     ##        The handler that will handle the RDF data.
     ## @param includeInferred
-    ##        if false, no inferred statements are returned; if true, inferred
+    ##        if false, no inferred statements are returned if true, inferred
     ##        statements are returned if available
     def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=None):
         """
@@ -268,8 +268,6 @@ class RepositoryConnection(object):
         from the repository, optionally from the specified contexts.        
         """
         raise UnimplementedMethodException("exportStatements")
-
-
 
     ## Exports all explicit statements in the specified contexts to the supplied
     ## RDFHandler.
@@ -284,7 +282,7 @@ class RepositoryConnection(object):
         self.exportStatements(None, None, None, False, contexts=contexts)
 
 
-    ## Gets all declared namespaces as a RepositoryResult of {@link Namespace}
+    ## Gets all declared namespaces as a RepositoryResult of @link Namespace
     def getNamespaces(self):
         raise UnimplementedMethodException("getNamespaces")
 

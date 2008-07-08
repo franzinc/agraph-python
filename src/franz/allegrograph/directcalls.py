@@ -22,7 +22,7 @@
 ##***** END LICENSE BLOCK *****
 
 from franz.openrdf.exceptions import *
-from franz.openrdf.query.queryimpl import TupleQueryResultImpl, GraphQueryResultImpl
+from franz.openrdf.query.queryresultimpl import TupleQueryResultImpl, GraphQueryResultImpl
 from franz.allegrograph.upi import UPI
 from franz.openrdf.model.value import Value
 

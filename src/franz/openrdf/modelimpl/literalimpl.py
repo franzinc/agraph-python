@@ -22,37 +22,81 @@
 ##***** END LICENSE BLOCK *****
 
 
+from franz.allegrograph.upi import UPI
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.literal import Literal
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 
-LANG_IS_KNOWN = 'known'
-LANG_NOT_KNOWN = 'unknown'
-
 class LiteralImpl(Literal):
     """
     Implementation of 'Literal' customized for AllegroGraph
     """
-    def __init__(self, label, datatype=None, language=None, store=None, upi=None):
+    LANG_IS_KNOWN = 'known'
+    LANG_NOT_KNOWN = 'unknown'
+    def __init__(self, label, datatype=None, upi=None, stringtype=None, language=None, store=None, langslot=None):
         super(LiteralImpl, self).__init__(label, datatype=datatype, language=language)
-        self.internal_store = None
+        self.internal_ag_store = store
+        self.setStringType(stringtype)
         self.upi = upi
-        self.upi = None
-        self.typeLabel = None
         self.typeId = None
-        self.langSlot = LANG_NOT_KNOWN
+        self.langSlot = langslot or LiteralImpl.LANG_NOT_KNOWN
+        
+    def setStringType(self, stringtype):
+        self.stringtype = stringtype
+        if stringtype and not self.datatype:
+            self.datatype = XMLSchema.name2URI(stringtype)
 
-    def assign_literal_pieces(self, store, upi, newLabel, newTypeId, newType, newLanguage):
+    def assign_literal_pieces(self, store, upi, newLabel, newTypeId, newStringType, newLanguage):
         """
         """
-        self.internal_store = store
+        self.internal_ag_store = store
         self.upi = upi
         self.label = newLabel        
-        if newType:
-            self.datatype = XMLSchema.name2URI(newType)
+        self.setStringType(newStringType)
         self.language = newLanguage
         if newLanguage:
-            self.langSlot = LANG_IS_KNOWN
+            self.langSlot = LiteralImpl.LANG_IS_KNOWN
         self.typeId = newTypeId
+
+    def getLabel(self):
+        if not self.label:
+            self.label = self.internal_ag_store.getText(self.upi, self.label)
+        return self.label
+    
+    def getDatatype(self):
+        if self.datatype: return self.datatype
+        sType = self._get_string_type()
+        if self.datatype: return self.datatype
+        elif sType: return self.internal_ag_store.createURI(sType)
+        else: return None
+
+    def _get_string_type(self):
+        if self.stringtype: return self.stringtype
+        if self.typeId is None:
+            return None
+        if UPI.can_reference(self.typeId):
+            stringtype = self.internal_ag_store.getText(self.typeId, None)
+        else:
+            try:
+                stringtype = self.internal_ag_store.getTypePart(self.upi)
+                self.typeId = None
+            except (AllegroGraphException, ), e:
+                pass
+        self.setStringType(stringtype)
+        return self.stringtype
+
+    def getLanguage(self):
+        if self.language is not None:
+            return self.language
+        if (LiteralImpl.LANG_IS_KNOWN == self.langSlot):
+            return self.language
+        if (LiteralImpl.LANG_NOT_KNOWN == self.langSlot):
+            return None
+        try:
+            self.language = self.owner.getLangPart(self.nodeUPI)
+            self.langSlot = self.LANG_IS_KNOWN
+        except AllegroGraphException, e:
+            pass
+        return self.language
 
