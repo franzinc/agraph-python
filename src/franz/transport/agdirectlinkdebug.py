@@ -95,7 +95,7 @@ class AGDirectLinkDebug(AGDirectLink):
         if not tag: return super(AGDirectLinkDebug, self).portInString(tag)     
         self.dp(2, "portInString: tag 0x" + integer_to_hex(tag))
         v = super(AGDirectLinkDebug, self).portInString(tag)        
-        self.dp(2, "portInString= " + v)
+        self.dp(2, "portInString= " + str(v))
         return v
 
     def portInDouble(self, tag):

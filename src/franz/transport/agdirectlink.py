@@ -82,11 +82,12 @@ class AGDirectLink(object):
     ERR_THROW = -109
     ERR_BUSY = -111
 
-    ## SET THIS TO False TO TEST 'pack' VERSION (WHICH SHOULD BE FASTER):
+    ## SET THIS TO False TO TEST 'pack' VERSION (WHICH SHOULD BE FASTER)
+    ## EXCEPT THAT RIGHT NOW ITS STILL BUGGY (FATALLY SO):
     ONE_BYTE_AT_A_TIME = True
         
     def __init__(self, host, port, pollCount, pollInterval, timeout=5000):
-        self.byte_at_a_time_buffer = [0 for i in range(DEFAULT_BUFFER_SIZE)]
+        self.byte_at_a_time_buffer = [0] * DEFAULT_BUFFER_SIZE
         self.endpos = 0
         self.strings_buffer = []
         self.timeout = timeout;
@@ -94,19 +95,22 @@ class AGDirectLink(object):
         ee = None
         i = 0
         while client is None and i < pollCount:
+            if i > 0:
+                print "poll count ", pollCount, " poll interval ", pollInterval, "  timeout ", self.timeout
             try:
                 if i > 0:
                     sleep(pollInterval)
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(self.timeout)
-                ## TEMPORARY:
-                #host = socket.gethostbyname(socket.gethostname())
-                print "HOST ", host, " PORT ", port
+                if i > 0: print "HOST ", host, " PORT ", port
                 ## END HOST
                 addr = (host, port)
+                if i > 0: print "Calling 'socket.connect' ..."
                 sock.connect(addr)
+                if i > 0: print "Connection is up!"
                 client = sock
             except Exception, e:
+                print "Socket connection attempt failed because ", e
                 lastE = e
             i += 1
         if client is None:

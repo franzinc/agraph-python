@@ -983,14 +983,14 @@ class AllegroGraph(object):
             return s
         if (0 == len(s)):
             return s
-        if s.startsWith("<"):
-            if s.endsWith(">"):
+        if s.startswith("<"):
+            if s.endswith(">"):
                 return s
         else:
-            if s.startsWith("\""):
+            if s.startswith("\""):
                 return s
             else:
-                if s.startsWith("!"):
+                if s.startswith("!"):
                     return s
         raise IllegalArgumentException("String does not seem to be in ntriples format: " + s)
 
@@ -1585,7 +1585,7 @@ class AllegroGraph(object):
         self.verifyEnabled().namespaces(self, self.nsregs.stringArray())
 
     def addPart(self, part):
-        if part.startsWith("_:"):
+        if part.startswith("_:"):
             return self.createBNode(part)
         r = self.verifyEnabled().addPart(self, self.refNtripleString(part))
         upi = r[0] if isinstance(r[0], (UPI)) else None

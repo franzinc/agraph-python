@@ -155,7 +155,7 @@ class AGDirectConnector(AGConnector):
             raise AllegroGraphException("Too many arguments in call.")
         self.tsApply0(ag, AG_DISCARD_CURSOR, refs)
 
-    def enable(self):
+    def enable_socket_connection(self):
         if self.trs is not None:
             return
         AGDirectLink.debug(self.debug)

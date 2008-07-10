@@ -445,7 +445,8 @@ class AllegroGraphRepositoryConnection(SailConnection):
             map.update({"rdf": RDF.NAMESPACE, 
                         "rdfs": RDFS.NAMESPACE,
                         "xsd": XMLSchema.NAMESPACE,
-                        "owl": OWL.NAMESPACE,                                                
+                        "owl": OWL.NAMESPACE, 
+                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/",                                             
                         })
         return map
     

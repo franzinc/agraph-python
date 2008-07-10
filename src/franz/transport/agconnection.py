@@ -34,16 +34,19 @@ from franz.allegrograph.cursor import Cursor
 from franz.namespaceregistry import NamespaceRegistry
 
 class AllegroGraphConnection(object):
-    """ generated source for AllegroGraphConnection
-
+    """ 
+    Implement access to AllegroGraph triple stores through a server interface.
+ 
+    One instance of this class can support access to several open
+    triple stores, each with its own AllegroGraph instance.  A Java
+    application may connect to multiple servers by creating multiple
+    instances of this class.
     """
     def __init__(self):
         self.pollCount = AllegroGraphConnection.defaultPollCount
         self.pollInterval = AllegroGraphConnection.defaultPollInterval
         self.timeout = AllegroGraphConnection.defaultTimeout
         self.serverId = -1
-#        self.agPrefPath = "franz.com/allegrograph/java"
-#        self.agLispKey = "lispcommand"
 #        self.c = System.getProperty("com.franz.ag.exec", "")
 #        self.p = Preferences()
 #        self.ag = Preferences()
@@ -71,12 +74,12 @@ class AllegroGraphConnection(object):
     defaultDebug = 0
     defaultLispCommand = ""
     defaultServerKeep = False
-    defaultPollCount = 1
-    defaultPollInterval = 500
-    defaultTimeout = 5000
+    defaultPollCount = 4
+    defaultPollInterval = 3
+    defaultTimeout = 10
     initialns = NamespaceRegistry(NamespaceRegistry.RDFandOwl)
     nsregs = NamespaceRegistry(initialns)
-    geoSubs = [None for i in range(256)]
+    geoSubs = [None] * 256
 
     agPrefPath = "franz.com/allegrograph/java";
     agLispKey = "lispcommand";
@@ -313,13 +316,13 @@ class AllegroGraphConnection(object):
 #     * 
 #     * @return true if the connection was not enabled and now is.
 #     *     Return false if the connection was already enabled.
-    def enable(self):
+    def enable_socket_connection(self):
         if self.agc is None:            
             self.agc = AGDirectConnector.createConnector(self.mode)
         elif -1 < self.agc.query():
                 return False
         self.agc.initialize(self.port, self.port2, self.host, self.pollCount, self.pollInterval, self.debug, self.timeout)
-        self.agc.enable()
+        self.agc.enable_socket_connection()
         if self.debug > 0:
             self.traceServer(True)
         v = None
@@ -378,7 +381,7 @@ class AllegroGraphConnection(object):
             temp = AllegroGraphConnection()
             temp.setHost(self.getHost())
             temp.setPort(self.getPort())
-            temp.enable()
+            temp.enable_socket_connection()
             r = temp.agc.interruptServer(id)
             temp.disable(False)
         return r
@@ -516,46 +519,6 @@ class AllegroGraphConnection(object):
     def __str__(self):
         return str(type(self)) + "<" + str(self.serverId) + " " + str(self.mode) + ">"
 
-    ## NOT SURE IF WE NEED THIS, BUT DON'T KNOW THE SYSTEM CALL EQUIVALENTS IN PYTHON:  - RMM
-    @staticmethod
-#    def main(args):
-#        sys = ""
-#        usr = ""
-#        ## for-while
-#        i = 0
-#        while i < args.length:
-#            string = args[i]
-#            if string.lower() == "-system".lower():
-#                sys = args[i]
-#                i += 1
-#            else:
-#                if string.lower() == "-user".lower():
-#                    usr = args[i]
-#                    i += 1
-#            i += 1
-#        ps = Preferences.systemRoot()
-#        ags = ps.node(AllegroGraphConnection.agPrefPath)
-#        agcs = ags[AllegroGraphConnection.agLispKey, ""]
-#        pms = "System value of " + AllegroGraphConnection.agPrefPath + "/" + AllegroGraphConnection.agLispKey
-#        if agcs == "":
-#            print "Current " + pms + " is unset."
-#        else:
-#            print "Current " + pms + " is " + agcs
-#        pu = Preferences.userRoot()
-#        agu = pu.node(AllegroGraphConnection.agPrefPath)
-#        agcu = agu[AllegroGraphConnection.agLispKey, ""]
-#        pmu = "User value of " + AllegroGraphConnection.agPrefPath + "/" + AllegroGraphConnection.agLispKey
-#        if agcu == "":
-#            print "Current " + pmu + " is unset."
-#        else:
-#            print "Current " + pmu + " is " + agcu
-#        if not sys == "":
-#            ags.put(AllegroGraphConnection.agLispKey, sys)
-#            print "Modified " + pms + " to " + sys
-#        if not usr == "":
-#            agu.put(AllegroGraphConnection.agLispKey, usr)
-#            print "Modified " + pmu + " to " + usr
-
     def enableHasValueReasoning(self):
         self.evalInServer("(db.agraph.servers::ag-add-has-value)")
 
@@ -627,7 +590,7 @@ class AllegroGraphConnection(object):
         """
      
         if self.ag_process is not None:
-            raise IllegalStateException("Already started")
+            raise IllegalStateException("AllegroGraph has already started.")
         if self.lispCommand == "":
             raise IllegalStateException("ACL command must be set")
         options1 = ""
@@ -660,7 +623,7 @@ class AllegroGraphConnection(object):
             try:
                 if self.debug > 0:
                     print "stopServer calling enable"
-                en = self.enable()
+                en = self.enable_socket_connection()
                 if self.debug > 0:
                     print "stopServer enable returned " + en
             except (Exception, ), e:
@@ -672,7 +635,7 @@ class AllegroGraphConnection(object):
             if 0 > self.agc.query():
                 if self.debug > 0:
                     print "stopServer calling re-enable"
-                self.agc.enable()
+                self.agc.enable_socket_connection()
             if -1 < self.agc.query():
                 if self.debug > 0:
                     print "stopServer calling stop-agj-application"
@@ -726,6 +689,49 @@ class AllegroGraphConnection(object):
         with self.registeredTripleStoresLock:
             self.allTS.remove(ts)
 
+#####################################################################################
+## 
+#####################################################################################
+
+    ## NOT SURE IF WE NEED THIS, BUT DON'T KNOW THE SYSTEM CALL EQUIVALENTS IN PYTHON:  - RMM
+    @staticmethod
+    def main(args):
+        sys = ""
+        usr = ""
+        ## for-while
+        i = 0
+        while i < args.length:
+            string = args[i]
+            if string.lower() == "-system".lower():
+                sys = args[i]
+                i += 1
+            else:
+                if string.lower() == "-user".lower():
+                    usr = args[i]
+                    i += 1
+            i += 1
+        ps = Preferences.systemRoot()
+        ags = ps.node(AllegroGraphConnection.agPrefPath)
+        agcs = ags[AllegroGraphConnection.agLispKey, ""]
+        pms = "System value of " + AllegroGraphConnection.agPrefPath + "/" + AllegroGraphConnection.agLispKey
+        if agcs == "":
+            print "Current " + pms + " is unset."
+        else:
+            print "Current " + pms + " is " + agcs
+        pu = Preferences.userRoot()
+        agu = pu.node(AllegroGraphConnection.agPrefPath)
+        agcu = agu[AllegroGraphConnection.agLispKey, ""]
+        pmu = "User value of " + AllegroGraphConnection.agPrefPath + "/" + AllegroGraphConnection.agLispKey
+        if agcu == "":
+            print "Current " + pmu + " is unset."
+        else:
+            print "Current " + pmu + " is " + agcu
+        if not sys == "":
+            ags.put(AllegroGraphConnection.agLispKey, sys)
+            print "Modified " + pms + " to " + sys
+        if not usr == "":
+            agu.put(AllegroGraphConnection.agLispKey, usr)
+            print "Modified " + pmu + " to " + usr
 
 
 if __name__ == '__main__':

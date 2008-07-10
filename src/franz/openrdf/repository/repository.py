@@ -68,6 +68,15 @@ class Repository:
         """
         self.sail.indexTriples(all=all, asynchronous=asynchronous)
 
+    def registerFreeTextPredicate(self,uri=None, namespace=None, localname=None):
+        """
+        Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index
+        text keywords belonging to strings in object position in the corresponding
+        triples/statements.  This is needed to make the  fti:match  operator
+        work properly.
+        """
+        self.sail.registerFreeTextPredicate(uri=uri, namespace=namespace, localname=localname)
+
     def shutDown(self):
         """
         Shuts the repository down, releasing any resources that it keeps hold of.

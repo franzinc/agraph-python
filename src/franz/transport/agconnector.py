@@ -34,8 +34,8 @@ class AGConnector(object):
         self.port = 4567  # 3456
         self.jport = -4567 # -3457
         self.host = ""
-        self.pollCount = 3
-        self.pollInterval = 1000
+        self.pollCount = 4
+        self.pollInterval = 3
         self.timeout = 5000
         self.debug = 0
         self.currentServerLevel = -1

@@ -39,7 +39,7 @@ def test1():
     Tests getting the repository up.  Is called by most of the other tests to do the startup.
     """
     sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
-    store = AllegroGraphStore(AllegroGraphStore.RENEW, "192.168.1.102", "testP",
+    store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testP",
                               sesameDir, port=4567)
     myRepository = SailRepository(store)
     myRepository.initialize()
@@ -488,12 +488,42 @@ def test15():
         o = bindingSet[2]
         print "%s %s %s " % (s, p, o)
 
+def test16():
+    """
+    Text search
+    """
+    myRepository = test1();
+    conn = myRepository.getConnection()
+    f = myRepository.getValueFactory()
+    exns = "http://example.org/people/"
+    conn.setNamespace('ex', exns)
+    #myRepository.registerFreeTextPredicate("http://example.org/people/name")    
+    myRepository.registerFreeTextPredicate(namespace=exns, localname='name')
+    alice = f.createURI(namespace=exns, localname="alice")
+    person = f.createURI(namespace=exns, localname="Person")
+    name = f.createURI(namespace=exns, localname="name")    
+    alicename = f.createLiteral('Alice in Wonderland')
+    conn.add(alice, RDF.TYPE, person)
+    conn.add(alice, name, alicename)    
+    ##myRepository.indexTriples(all=True, asynchronous=True)
+    conn.setNamespace('ex', exns)
+    #conn.setNamespace('fti', "http://franz.com/ns/allegrograph/2.2/textindex/")    
+    queryString = """
+    SELECT ?s ?p ?o
+    WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }
+    """
+    #queryString = """SELECT ?s ?p ?o WHERE { ?s ?p ?o . }"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate(); 
+    print "Query results"
+    for bindingSet in result:
+        print bindingSet
 
 
 
 if __name__ == '__main__':
-    choices = [i for i in range(1,16)]
-    #choices = [8]
+    choices = [i for i in range(1,17)]
+    #choices = [16]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

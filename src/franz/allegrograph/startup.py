@@ -37,7 +37,8 @@ class StartUp(object):
     """
     debug = 0
     quiet = False
-    DEFAULT_AGSERVER_LOCATION_MAP = {"Darwin": "/Applications/AllegroGraph/AllegroGraphJavaServer", }
+    DEFAULT_AGSERVER_LOCATION_MAP = {"Darwin": "/Applications/AllegroGraph/AllegroGraphServer", }
+    DEFAULT_AGSERVER_LOCATION_MAP = {"Darwin": "/Applications/AllegroGraph3.0/AllegroGraphServer", }
     Quad.COMPLAIN_BITTERLY = True
 
     @staticmethod
@@ -46,13 +47,15 @@ class StartUp(object):
             print "Starting server ..."
         try:
             agConn.startServer()
-        except ConnectException, ex:
+        except (Exception, ConnectException), ex:
+            print "'startServer failed because " + str(ex) + ".  Retrying using default server location ..."
             ## This isn't a good method, but we don't know the right one.
             ## For Mac OS, it returns 'Darwin':
             thisOS = os.uname()[0]
             defaultPath = StartUp.DEFAULT_AGSERVER_LOCATION_MAP.get(thisOS)
             if defaultPath is not None:
                 if not os.path.exists(defaultPath):
+                    print "Default path points to non-existent file: '%s'" % defaultPath
                     defaultPath = None
             if defaultPath is not None and not defaultPath == agJavaServerPath:
                 print "Failed to start AllegroGraph server, possibly because "
@@ -78,10 +81,7 @@ class StartUp(object):
         tripleFile = ""
         agJavaServerPath = None
         exitWait = 0
-        startServer = agJavaServerPath is not None
-        host = '192.168.1.102'
-        print "HOST: ", host
-        
+        startServer = agJavaServerPath is not None        
         for flag, value in access_options.iteritems():
             if flag == "-p":
                 port = int(value)
@@ -113,7 +113,7 @@ class StartUp(object):
         if util.is_null_string(dbDirectory):
             print("Database folder argument (-d) is required.")
             raise NiceException("Can't start up AllegroGraph because no database directory argument has been supplied.")
-        print "port=", port, "  dbDirectory=", dbDirectory, "  dbName=", dbName
+        print "host=", host, "  port=", port, "  dbDirectory=", dbDirectory, "  dbName=", dbName
         agConn = AllegroGraphConnection()
         if agJavaServerPath is not None:
             AllegroGraphConnection.setDefaultCommand(agJavaServerPath)
@@ -122,20 +122,21 @@ class StartUp(object):
         agConn.setHost(host)
         agConn.setDebug(StartUp.debug)
         ## WE MESS WITH DEBUG SETTING HERE:
-        print "ENABLING DEBUGGING AT LEVEL 0"
-        agConn.setDebug(0)
+        #print "ENABLING DEBUGGING AT LEVEL 0"
+        #agConn.setDebug(0)
         ## END MESSING
-        if startServer:
+        if False or startServer:
             StartUp.startServer(agConn, agJavaServerPath)
         if not StartUp.quiet:
             print "Enabling connection ..."
         try:
-            agConn.enable()
-        except FakeException, ex:
-            traceback.print_stack()
-            if False and not startServer:
+            agConn.enable_socket_connection()
+        except Exception, ex:
+            print "Failed to enable connection, because " + str(ex) + "." 
+            ##traceback.print_stack()
+            if True and not startServer:
                 StartUp.startServer(agConn, None)
-                agConn.enable()
+                agConn.enable_socket_connection()
             else:
                 raise ex
         if not StartUp.quiet:

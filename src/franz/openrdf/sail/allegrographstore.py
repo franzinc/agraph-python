@@ -129,6 +129,16 @@ class AllegroGraphStore(Sail):
             self.internal_ag_store.indexAllTriples(wait=(not asynchronous))
         else:
             self.internal_ag_store.indexNewTriples(wait=(not asynchronous))
+
+    def registerFreeTextPredicate(self,uri=None, namespace=None, localname=None):
+        """
+        Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index
+        text keywords belonging to strings in object position in the corresponding
+        triples/statements.  This is needed to make the  fti:match  operator
+        work properly.
+        """
+        uri = uri or (namespace + localname)
+        self.internal_ag_store.registerFreetextPredicate("<%s>" % uri)
         
     def getInternalAllegroGraph(self):
         """
