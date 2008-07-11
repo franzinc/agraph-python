@@ -307,6 +307,35 @@ class AllegroGraphRepositoryConnection(SailConnection):
         else:  ## assume 'contexts' is a single context:
             internalDirectConnector.addTriple(internalStore, s, p, o, mgr.openTermToInternalStringTerm(contexts))
 
+    def addTriples(self, triples_or_quads, context=None):
+        """
+        Add the supplied triples or quads to this repository.  Each triple can
+        be a list or a tuple of Values.   If 'context' is set, then 
+        the first argument must contain only triples, and each is inserted into
+        the designated context.
+        """
+        mgr = self.term2internal
+        internalStore = mgr.internal_ag_store
+        subjects = [None] * len(triples_or_quads)
+        predicates = [None] * len(triples_or_quads)
+        objects = [None] * len(triples_or_quads)
+        contexts = [None] * len(triples_or_quads)
+        contextString = mgr.openTermToInternalStringTerm(context) if context else None
+        counter = 0
+        for stmt in triples_or_quads:           
+            subjects[counter] = mgr.openTermToInternalStringTerm(stmt[0])
+            predicates[counter] = mgr.openTermToInternalStringTerm(stmt[1])
+            objects[counter] = mgr.openTermToInternalStringTerm(stmt[2])
+            if contextString:
+                contexts[counter] = contextString
+            elif len(stmt) == 4:
+                contexts[counter] = mgr.openTermToInternalStringTerm(stmt[3])
+            else:
+                contexts[counter] = mgr.nullContextObject()
+            counter += 1
+        internalDirectConnector = internalStore.verifyEnabled()
+        internalDirectConnector.addTriples(internalStore, subjects, predicates, objects, contexts)
+                
 #     * Adds the supplied statement to this repository, optionally to one or more
 #     * named contexts.
 #     * 

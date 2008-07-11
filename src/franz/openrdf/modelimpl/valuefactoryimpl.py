@@ -32,6 +32,8 @@ from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 from franz.openrdf.vocabulary.owl import OWL
+
+import datetime
     
 class ValueFactoryImpl(ValueFactory):
     """
@@ -50,11 +52,37 @@ class ValueFactoryImpl(ValueFactory):
         """
         return BNodeImpl(None, id=nodeID, store=self.store)
     
+    def _interpret_value(self, value, datatype):
+        """
+        If 'self' is not a string, convert it into one, and infer its
+        datatype, unless 'datatype' is set (i.e., overrides it).
+        """
+        if isinstance(value, str):
+            return value, datatype
+        elif isinstance(value, int):
+            return str(value), datatype or XMLSchema.INT
+        elif isinstance(value, float):
+            return str(value), datatype or XMLSchema.FLOAT
+        elif isinstance(value, bool):
+            return str(value), datatype or XMLSchema.BOOLEAN
+        elif isinstance(value, datetime.datetime):
+            return str(value), datatype or XMLSchema.DATETIME
+        elif isinstance(value, datetime.time):
+            return str(value), datatype or XMLSchema.TIME
+        elif isinstance(value, datetime.date):
+            return str(value), datatype or XMLSchema.DATE
+        else:
+            return str(value), datatype
+    
     def createLiteral(self, value, datatype=None, language=None, upi=None, store=None):
         """
         Create a new literal with value 'value'.  'datatype' if supplied,
         should be a URI, in which case 'value' should be a string.
+        
+        TODO: CONVERTING AN INTEGER INTO A STRING IS NOT EFFICIENT.  FIND
+        OUT IF THERE IS A WAY TO AVOID THAT IN THE PROTOCOL.
         """
+        value, datatype = self._interpret_value(value, datatype)
         return LiteralImpl(value, datatype=datatype, language=language, upi=upi, store=store)
 
     def createStatement(self, subject, predicate, object, context=None):

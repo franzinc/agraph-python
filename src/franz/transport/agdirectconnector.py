@@ -114,7 +114,7 @@ class AGDirectConnector(AGConnector):
 
     def addTriple(self, ag, s, p, o, c):
         r = self.tsApplyA(ag, AG_ADD_TRIPLE, [s, p, o, c, "with-parts", 1, "sync", ('' if ag.sync else None)])
-        v = [None for i in range(5)]
+        v = [None] * 5
         v[0] = longValue(r[2])
         ## for-while
         i = 1
@@ -547,18 +547,21 @@ class AGDirectConnector(AGConnector):
         return False
 
     def twinqlSelect(self, ag, query, vars, limit, offset, slimit, infer, more=None):
-        ml = 0 if (None == more) else len(more)
-        args = [None for i in range(8 + ml)]
-        args[0] = query
-        args[1] = vars
-        args[2] = limit
-        args[3] = offset
-        args[4] = "slimit"
-        args[5] = slimit
-        args[6] = "use-reasoner"
-        args[7] = infer
-        for i in range(0, ml):
-            args[8 + i] = more[i]
+        args = [query, vars, limit, offset, "slimit", slimit, "use-reasoner", infer]
+        if more:
+            args.extend(more)
+#        ml = len(more) if more else 0
+#        args = [None] * (8 + ml)
+#        args[0] = query
+#        args[1] = vars
+#        args[2] = limit
+#        args[3] = offset
+#        args[4] = "slimit"
+#        args[5] = slimit
+#        args[6] = "use-reasoner"
+#        args[7] = infer
+#        for i in range(0, ml):
+#            args[8 + i] = more[i]
         #print "Begin twinql select"
         #beginTime = datetime.datetime.now()  
         r = self.tsApplyA(ag, AG_TWINQL_SELECT, args)

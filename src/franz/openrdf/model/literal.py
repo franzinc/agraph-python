@@ -24,6 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 class Literal(Value):
     """
@@ -104,3 +105,77 @@ class Literal(Value):
             sb.append("^^")
             sb.append(str(self.datatype))
         return ''.join(sb)
+
+###############################################################################
+## Automatic conversion from Literal to Python object
+###############################################################################
+
+    def toPython(self):
+        """
+        Return a Python object representation of this literal.        
+        """
+        dt = self.getDatatype()
+        if dt is None: return self.getLabel()
+        else:
+            conversion = XSDToPython[dt]
+            if conversion:
+                if conversion == int:
+                    return self.intValue()
+                elif conversion == long:
+                    return self.longValue()
+                elif conversion == float:
+                    return self.floatValue()
+                elif conversion == bool:
+                    return self.booleanValue()
+                else:
+                    return conversion(self.label)
+            else:
+                return self.label
+
+XSDToPython = {
+    XMLSchema.DURATION : None, 
+#    XMLSchema.DATETIME : parseDateTime, 
+#    XMLSchema.TIME : parseTime, 
+#    XMLSchema.DATE : parseDate, 
+    XMLSchema.GYEARMONTH : None, 
+    XMLSchema.GYEAR : None, 
+    XMLSchema.GMONTHDAY : None, 
+    XMLSchema.GDAY : None, 
+    XMLSchema.GMONTH : None, 
+    XMLSchema.STRING : None, 
+    XMLSchema.BOOLEAN : bool, 
+#    XMLSchema.BASE64BINARY : base64.decodeString, 
+    XMLSchema.HEXBINARY : None, 
+    XMLSchema.FLOAT : float, 
+    XMLSchema.DECIMAL : float, 
+    XMLSchema.DOUBLE : float, 
+    XMLSchema.ANYURI : None, 
+    XMLSchema.QNAME : None, 
+    XMLSchema.NOTATION : None, 
+    XMLSchema.NORMALIZEDSTRING : None, 
+    XMLSchema.TOKEN : None, 
+    XMLSchema.LANGUAGE : None, 
+    XMLSchema.NMTOKEN : None, 
+    XMLSchema.NMTOKENS : None, 
+    XMLSchema.NAME : None, 
+    XMLSchema.NCNAME : None, 
+    XMLSchema.ID : None, 
+    XMLSchema.IDREF : None, 
+    XMLSchema.IDREFS : None, 
+    XMLSchema.ENTITY : None, 
+    XMLSchema.ENTITIES : None, 
+    XMLSchema.INTEGER : long, 
+    XMLSchema.LONG : long, 
+    XMLSchema.INT : long, 
+    XMLSchema.SHORT : int, 
+    XMLSchema.BYTE : int, 
+    XMLSchema.NON_POSITIVE_INTEGER : int, 
+    XMLSchema.NEGATIVE_INTEGER : int, 
+    XMLSchema.NON_NEGATIVE_INTEGER : int, 
+    XMLSchema.POSITIVE_INTEGER : int, 
+    XMLSchema.UNSIGNED_LONG : long, 
+    XMLSchema.UNSIGNED_INT : long, 
+    XMLSchema.UNSIGNED_SHORT : int, 
+    XMLSchema.UNSIGNED_BYTE : int, 
+    }
+

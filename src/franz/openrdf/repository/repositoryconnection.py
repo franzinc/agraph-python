@@ -175,6 +175,15 @@ class RepositoryConnection(object):
         """
         raise UnimplementedMethodException("addTriple")
 
+    def addTriples(self, triples_or_quads, context=None):
+        """
+        Add the supplied triples or quads to this repository.  Each triple can
+        be a list or a tuple of Values.   If 'context' is set, then 
+        the first argument must contain only triples, and each is inserted into
+        the designated context.
+        """
+        raise UnimplementedMethodException("addTriples")
+
     def addStatement(self, statement, contexts=None):
         """
         Add the supplied statement to the specified contexts in the repository.
