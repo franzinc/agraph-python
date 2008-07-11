@@ -25,17 +25,17 @@ from  __future__ import with_statement
 import threading
 import traceback
 
-from franz.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
-from franz.rdfconstants import XSD
+from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
 from franz.transport.agc import *
-from franz.namespaceregistry import NamespaceRegistry
+#from franz.namespaceregistry import NamespaceRegistry
 from franz.transport import agconnector
-from franz.namedattributelist import NamedAttributeList
+from franz.allegrograph.namedattributelist import NamedAttributeList
 from franz.allegrograph.upi import UPI
 from franz.allegrograph.encodedliteral import EncodedLiteral
 from franz.openrdf.model.value import Value, Resource, BNode, URI
 from franz.openrdf.modelimpl.valueimpl import URIImpl, BNodeImpl
 from franz.openrdf.modelimpl.literalimpl import LiteralImpl
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 #from franz.node import Node
 #from franz.valuenode import ValueNode
@@ -203,7 +203,7 @@ class AllegroGraph(object):
                 raise IllegalStateException("Closed triple newStore")
             self.tsx = self.verifyEnabled().access(key, self.storeName, self.storeDirectory, self.accessOptions.getList())
             self.registerLocalTripleStore()
-            self.initNamespaces()
+            #self.initNamespaces()
 
     def setAttribute(self, name, value):
         """
@@ -286,11 +286,6 @@ class AllegroGraph(object):
 
     def getLookAhead(self):
         return self.defaultLookAhead
-
-    def nsregsInit(self):
-        if self.nsregs is None:
-            self.nsregs = NamespaceRegistry()
-        return self.nsregs
 
     def isDefaultGraph(self, x):
         with self.isDefaultGraphLock:
@@ -884,11 +879,11 @@ class AllegroGraph(object):
 #        return self.xsiCache[uri]
     
     python_type_to_uri = {
-        int: XSD.INT,
-        long: XSD.LONG,
-        float: XSD.FLOAT, ## should we return XSD.DOUBLE here???
-        bool: XSD.BOOLEAN,
-        str: XSD.STRING,
+        int: XMLSchema.INT,
+        long: XMLSchema.LONG,
+        float: XMLSchema.FLOAT, ## should we return XSD.DOUBLE here???
+        bool: XMLSchema.BOOLEAN,
+        str: XMLSchema.STRING,
         }
     
     def createLiteral(self, value, language=None, datatype=None):
@@ -907,7 +902,7 @@ class AllegroGraph(object):
             else:
                 datatype = str(datatype)
         if not datatype:
-            uri = AllegroGraph.python_type_to_uri[type(value)]
+            uri = str(AllegroGraph.python_type_to_uri[type(value)])
         langSlot = LiteralImpl.LANG_IS_KNOWN if language else LiteralImpl.LANG_NOT_KNOWN
         return LiteralImpl(self, str(value), upi=None, typeid=None, datatype=uri, langslot=langSlot, language=language)   
 
@@ -929,7 +924,7 @@ class AllegroGraph(object):
                 datatype = str(datatype)
         if not datatype:
             uri = AllegroGraph.python_type_to_uri[type(value)]
-        if not datatype == XSD.STRING:
+        if not datatype == str(XMLSchema.STRING):
             return self.addTypedLiteral(value, datatype)
         try:
             id = self.verifyEnabled().newLiteral(self, str(value), None, language)
@@ -955,25 +950,25 @@ class AllegroGraph(object):
             i += 1
         return v
 
-    def createStatement(self, subject, predicate, object, context=None):
-        b = Triple()
-        s = None
-        if isinstance(subject, Resource):
-            s = self.queryAGId(subject)
-        p = None
-        if isinstance(predicate, (URI)):
-            p = self.queryAGId(predicate)
-        o = None
-        if isinstance(object, Value):
-            o = self.queryAGId(object)
-        c = UPI.getNullContextUPI()
-        if isinstance(context, URI):
-            c = self.queryAGId(context)
-        b = Triple(self, s, p, o, c)
-        b.subjInstance = subject
-        b.predInstance = predicate
-        b.objInstance = object
-        return b
+#    def createStatement(self, subject, predicate, object, context=None):
+#        b = Triple()
+#        s = None
+#        if isinstance(subject, Resource):
+#            s = self.queryAGId(subject)
+#        p = None
+#        if isinstance(predicate, (URI)):
+#            p = self.queryAGId(predicate)
+#        o = None
+#        if isinstance(object, Value):
+#            o = self.queryAGId(object)
+#        c = UPI.getNullContextUPI()
+#        if isinstance(context, URI):
+#            c = self.queryAGId(context)
+#        b = Triple(self, s, p, o, c)
+#        b.subjInstance = subject
+#        b.predInstance = predicate
+#        b.objInstance = object
+#        return b
 
     def select(self, query, arg, svar=None):
         return self.selectStatements(query, arg, svar)
@@ -1002,33 +997,33 @@ class AllegroGraph(object):
             i += 1
         return s
 
-    def newTriple(self, s, p, o, c=None):
-        tra = self.verifyEnabled().addTriple(self, self.validRef(s), self.validRef(p), self.validRef(o), self.anyContextRef(c, 1))
-        tr = Triple(self, tra[0].longValue(), tra[1], tra[2], tra[3], tra[4])
-        return tr
-
-    def newTripleId(self, s, p, o, c=None):
-        tra = self.verifyEnabled().addTriple(self, self.validRef(s), self.validRef(p), self.validRef(o), self.anyContextRef(c, 1))
-        return tra[0].longValue()
-
-    def newTriples(self, s, p, o, c=None):
-        r = self.verifyEnabled().addTriples(self, self.validRefs(s), self.validRefs(p), self.validRefs(o), self.anyContextRefs(c, 1))
-        ri = r[0]
-        rs = r[1]
-        rp = r[2]
-        ro = r[3]
-        rt = [None] * len(ri)
-        ## for-while
-        i = 0
-        while i < len(ri):
-            tr = Triple(self, ri[i], rs[i], rp[i], ro[i])
-            rt[i] = tr
-            i += 1
-        return rt
-
-    def newTripleIds(self, s, p, o, c=None):
-        r = self.verifyEnabled().addTriples(self, self.validRefs(s), self.validRefs(p), self.validRefs(o), self.anyContextRefs(c, 1))
-        return r[0]
+#    def newTriple(self, s, p, o, c=None):
+#        tra = self.verifyEnabled().addTriple(self, self.validRef(s), self.validRef(p), self.validRef(o), self.anyContextRef(c, 1))
+#        tr = Triple(self, tra[0].longValue(), tra[1], tra[2], tra[3], tra[4])
+#        return tr
+#
+#    def newTripleId(self, s, p, o, c=None):
+#        tra = self.verifyEnabled().addTriple(self, self.validRef(s), self.validRef(p), self.validRef(o), self.anyContextRef(c, 1))
+#        return tra[0].longValue()
+#
+#    def newTriples(self, s, p, o, c=None):
+#        r = self.verifyEnabled().addTriples(self, self.validRefs(s), self.validRefs(p), self.validRefs(o), self.anyContextRefs(c, 1))
+#        ri = r[0]
+#        rs = r[1]
+#        rp = r[2]
+#        ro = r[3]
+#        rt = [None] * len(ri)
+#        ## for-while
+#        i = 0
+#        while i < len(ri):
+#            tr = Triple(self, ri[i], rs[i], rp[i], ro[i])
+#            rt[i] = tr
+#            i += 1
+#        return rt
+#
+#    def newTripleIds(self, s, p, o, c=None):
+#        r = self.verifyEnabled().addTriples(self, self.validRefs(s), self.validRefs(p), self.validRefs(o), self.anyContextRefs(c, 1))
+#        return r[0]
 
     def removeStatements(self, s, p, o, c=None):
         self.verifyEnabled().delete(self, self.validRefOrWild(s), self.validRefOrWild(p), self.validRefOrWild(o), self.anyContextRef(c, 3), True)
@@ -1552,38 +1547,6 @@ class AllegroGraph(object):
         except (AllegroGraphException, ), e:
             return -1
 
-    def getNamespaces(self):
-        if self.nsregs is None:
-            return []
-        return self.nsregs.stringArray()
-
-    def getNamespaceRegistry(self):
-        if (None == self.nsregs):
-            return
-        return NamespaceRegistry(self.nsregs)
-
-    def registerNamespace(self, prefix, full):
-        self.nsregsInit().register(prefix, full)
-        self.verifyEnabled().namespaces(self, self.nsregs.stringArray())
-
-    def registerNamespaces(self, defs):
-        if isinstance(defs, NamespaceRegistry): return self.registerNamespaces_with_registry(defs)
-        if defs is None:
-            return
-        if (0 == len(defs)):
-            return
-        self.nsregsInit()
-        ## for-while
-        i = 0
-        while i < len(defs):
-            self.nsregs.register(defs[i], defs[i + 1])
-            i = i + 2
-        self.verifyEnabled().namespaces(self, self.nsregs.stringArray())
-
-    def registerNamespaces_with_registry(self, ns):
-        self.nsregsInit().register(ns)
-        self.verifyEnabled().namespaces(self, self.nsregs.stringArray())
-
     def addPart(self, part):
         if part.startswith("_:"):
             return self.createBNode(part)
@@ -1699,6 +1662,61 @@ class AllegroGraph(object):
             self.throwIndexError(e)
             raise e
 
+    def closeTripleStore(self, doClose=True):
+        with self.closeTripleStoreLock:
+            if self.tsx < 1:
+                return False
+            r = self.verifyEnabled().closeTripleStore(self, doClose)
+            self.tsx = -2
+            self.agConnection.removeTS(self)
+            return r
+
+    ###############################################################################################
+    ## Sesame has its own namespace regiment.
+    ## The AG one should either be tossed, or harmonized with the Sesame one 
+    ## (which may or may not be non-trivial)  - RMM
+    ###############################################################################################
+
+    def getNamespaces(self):
+        if self.nsregs is None:
+            return []
+        return self.nsregs.stringArray()
+
+    def getNamespaceRegistry(self):
+        if (None == self.nsregs):
+            return
+        return NamespaceRegistry(self.nsregs)
+
+    def registerNamespace(self, prefix, full):
+        self.nsregsInit().register(prefix, full)
+        self.verifyEnabled().namespaces(self, self.nsregs.stringArray())
+
+    def nsregsInit(self):
+        """
+        Anything with a name this awful deserves to die.  - RMM
+        """
+        if self.nsregs is None:
+            self.nsregs = NamespaceRegistry()
+        return self.nsregs
+
+    def registerNamespaces(self, defs):
+        if isinstance(defs, NamespaceRegistry): return self.registerNamespaces_with_registry(defs)
+        if defs is None:
+            return
+        if (0 == len(defs)):
+            return
+        self.nsregsInit()
+        ## for-while
+        i = 0
+        while i < len(defs):
+            self.nsregs.register(defs[i], defs[i + 1])
+            i = i + 2
+        self.verifyEnabled().namespaces(self, self.nsregs.stringArray())
+
+    def registerNamespaces_with_registry(self, ns):
+        self.nsregsInit().register(ns)
+        self.verifyEnabled().namespaces(self, self.nsregs.stringArray())
+
     def get_setNamespaceRegistry(self):
         if self.agConnection is None:
             self.nsregs = None
@@ -1713,14 +1731,7 @@ class AllegroGraph(object):
         self.nsregs = NamespaceRegistry(ns)
         self.verifyEnabled().namespaces(self, None if self.nsregs is None else self.nsregs.stringArray())
 
-    def closeTripleStore(self, doClose=True):
-        with self.closeTripleStoreLock:
-            if self.tsx < 1:
-                return False
-            r = self.verifyEnabled().closeTripleStore(self, doClose)
-            self.tsx = -2
-            self.agConnection.removeTS(self)
-            return r
+
 
     @staticmethod
     def main(args):

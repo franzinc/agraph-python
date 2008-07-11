@@ -23,10 +23,13 @@
 
 from  __future__ import with_statement
 import threading
-from franz.exceptions import IllegalArgumentException
+from franz.allegrograph.exceptions import IllegalArgumentException
 
 class NamedAttributeList:
-    
+    """
+    This appears to be a baroque datastructure fronting for a standard one.
+    It would be nice to be able to toss it, but I don't know exactly what its for.  - RMM
+    """    
     def __init__(self, defs):
         self.attributeDefs = {}        
         for att, type in defs.iteritems():

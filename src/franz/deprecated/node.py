@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from franz.exceptions import IllegalStateException
+from franz.allegrograph.exceptions import IllegalStateException
 from franz.resourcenode import ResourceNode
 from franz.allegrograph.upi import UPI
 from franz.openrdf.model.value import URI

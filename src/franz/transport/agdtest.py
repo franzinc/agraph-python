@@ -3,7 +3,7 @@
 
 import datetime
 
-from franz.exceptions import IOException, IllegalArgumentException
+from franz.allegrograph.exceptions import IOException, IllegalArgumentException
 from franz.transport.agdirectlink import AGDirectLink
 from franz.transport.agdirectlinkdebug import AGDirectLinkDebug
 from franz.allegrograph.upi import UPI

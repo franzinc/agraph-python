@@ -23,15 +23,14 @@
 
 import datetime
 
-from franz.exceptions import IllegalArgumentException, IllegalStateException, IOException, AllegroGraphException
+from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException, IOException, AllegroGraphException
 from franz.transport.agc import *
 from franz.transport.agconnector import *
 from franz.transport.agdirectlinkdebug import AGDirectLinkDebug
 from franz.transport.agdirectlink import AGDirectLink
-from franz.valuenode import ValueNode
-from franz.triple import Triple
 from franz.allegrograph.cursor import Cursor
 from franz.allegrograph.allegrograph import AllegroGraph
+from franz.openrdf.model.value import Value
 
 
 class AGDirectConnector(AGConnector):
@@ -421,7 +420,7 @@ class AGDirectConnector(AGConnector):
                             i += 1
                         a[1] = iv
                     else:
-                        if isinstance(presets[0], ValueNode):
+                        if isinstance(presets[0], Value):
                             iv = [UPI() for __idx0 in range(len(presets))]
                             ## for-while
                             i = 0
@@ -518,20 +517,13 @@ class AGDirectConnector(AGConnector):
     
     def evalInServer(self, ag, expression=None):
         if not isinstance(ag, AllegroGraph):
-            return self.evalInServer_2(ag, expression) ## shift variables one left
+            return self.evalInServer_2(expression) ## shift variables one left
         else:
-            r = self.tsApplyA(ag, AGJ_EVAL_A, [expression, (environment if environment else -1)])
+            r = self.tsApplyA(ag, AGJ_EVAL_A, [expression, -1])
             return self.valuesOnly(r)
 
     def evalInServer_2(self, expression):
-        try:
-            ## NOT CONSISTENT: SOME OF THE JAVA CONVERTS NULL 'environment' TO -1; OTHER OMITS IT ENTIRELY:
-            if environment:
-                v = self.verifyLink().sendOp1n(OP_CALL, 1, -1, AGJ_EVAL, [expression, environment])
-            else:
-                v = self.verifyLink().sendOp1n(OP_CALL, 1, -1, AGJ_EVAL, [expression])
-        except (IOException, ), e:
-            raise AllegroGraphException(e)
+        v = self.verifyLink().sendOp1n(OP_CALL, 1, -1, AGJ_EVAL, [expression])
         return self.valuesOnly(v)
 
     def getTripleParts(self, ag, id):

@@ -1,17 +1,23 @@
-#Mon Jul 07 16:29:03 PDT 2008
+#Thu Jul 10 17:30:45 PDT 2008
 eclipse.preferences.version=1
 encoding//src/franz/allegrograph/allegrograph.py=UTF-8
 encoding//src/franz/allegrograph/cursor.py=UTF-8
 encoding//src/franz/allegrograph/directcalls.py=UTF-8
 encoding//src/franz/allegrograph/encodedliteral.py=UTF-8
+encoding//src/franz/allegrograph/namedattributelist.py=UTF-8
 encoding//src/franz/allegrograph/open2ag.py=UTF-8
 encoding//src/franz/allegrograph/quad.py=UTF-8
 encoding//src/franz/allegrograph/startup.py=UTF-8
 encoding//src/franz/allegrograph/upi.py=UTF-8
-encoding//src/franz/blanknode.py=UTF-8
+encoding//src/franz/allegrograph/util.py=UTF-8
 encoding//src/franz/defaultgraph.py=UTF-8
-encoding//src/franz/literal.py=UTF-8
-encoding//src/franz/node.py=UTF-8
+encoding//src/franz/deprecated/blanknode.py=UTF-8
+encoding//src/franz/deprecated/literal.py=UTF-8
+encoding//src/franz/deprecated/namespaceregistry.py=UTF-8
+encoding//src/franz/deprecated/node.py=UTF-8
+encoding//src/franz/deprecated/triple.py=UTF-8
+encoding//src/franz/deprecated/valuenode.py=UTF-8
+encoding//src/franz/deprecated/valueobject.py=UTF-8
 encoding//src/franz/openrdf/exceptions.py=UTF-8
 encoding//src/franz/openrdf/model/literal.py=UTF-8
 encoding//src/franz/openrdf/model/statement.py=UTF-8
@@ -52,6 +58,3 @@ encoding//src/franz/transport/agdirectconnector.py=UTF-8
 encoding//src/franz/transport/agdirectlink.py=UTF-8
 encoding//src/franz/transport/agdirectlinkdebug.py=UTF-8
 encoding//src/franz/transport/agdtest.py=UTF-8
-encoding//src/franz/triple.py=UTF-8
-encoding//src/franz/util.py=UTF-8
-encoding//src/franz/valuenode.py=UTF-8

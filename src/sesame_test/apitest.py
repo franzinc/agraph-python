@@ -184,13 +184,12 @@ def test8():
     """
     location = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/test/vc_db_1_rdf"      
     url = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf"      
-    url = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/sample-bad.rdf"
     baseURI = location
     myRepository = test1() 
     context = myRepository.getValueFactory().createURI(location)
     ## TEMPORARY:  
-    print "NULLIFYING CONTEXT TEMPORARILY"
-    context = None
+    #print "NULLIFYING CONTEXT TEMPORARILY"
+    #context = None
     ## END TEMPORARY  
     conn = myRepository.getConnection();
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");

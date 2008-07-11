@@ -24,8 +24,8 @@
 import os
 import traceback
 
-from franz import util
-from franz.exceptions import NiceException, RuntimeException, AllegroGraphException, IOException, ConnectException, FakeException
+from franz.allegrograph import util
+from franz.allegrograph.exceptions import NiceException, RuntimeException, AllegroGraphException, IOException, ConnectException, FakeException
 #from franz.agconnector import AGConnector
 from franz.transport.agconnection import AllegroGraphConnection
 from franz.transport.agdirectlink import AGDirectLink

@@ -22,7 +22,7 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.exceptions import NiceException
+from franz.allegrograph.exceptions import NiceException
 
 class NamespaceRegistry(object):
     """ generated source for NamespaceRegistry

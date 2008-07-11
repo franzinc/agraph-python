@@ -22,11 +22,10 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.exceptions import IllegalArgumentException, IllegalStateException
-from franz.util import *
+from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException
+from franz.allegrograph.util import *
 from franz.transport.agdirectlink import AGDirectLink
 from franz.allegrograph.upi import UPI
-from franz.util import *
 
 class AGDirectLinkDebug(AGDirectLink):
     """ 

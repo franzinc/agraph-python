@@ -24,11 +24,11 @@
 from  __future__ import with_statement
 import threading, socket
 from time import sleep
-from franz.exceptions import IllegalArgumentException, IOException, InterruptedException, UnimplementedMethodException
+from franz.allegrograph.exceptions import IllegalArgumentException, IOException, InterruptedException, UnimplementedMethodException
 from franz.transport.agc import *
 from franz.allegrograph.upi import UPI
-from franz import util
-from franz.util import Byte, Short, Character, Float
+from franz.allegrograph import util
+from franz.allegrograph.util import Byte, Short, Character, Float
 
 
 # * This class implements a custom socket transport layer for the Lisp/Java

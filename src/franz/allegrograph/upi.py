@@ -23,8 +23,8 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.exceptions import IllegalArgumentException, IllegalStateException
-from franz import util
+from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException
+from franz.allegrograph import util
 from franz.transport.agc import *
  
 class UPI:

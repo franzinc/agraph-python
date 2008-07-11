@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from franz.exceptions import IllegalStateException
+from franz.allegrograph.exceptions import IllegalStateException
 from franz.openrdf.modelimpl.literalimpl import LiteralImpl
 
 class EncodedLiteral(LiteralImpl):

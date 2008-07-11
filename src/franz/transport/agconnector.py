@@ -22,7 +22,7 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.exceptions import IllegalArgumentException, IllegalStateException
+from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException
 from franz.allegrograph.upi import UPI
 
 class AGConnector(object):

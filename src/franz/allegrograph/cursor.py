@@ -24,7 +24,7 @@
 from  __future__ import with_statement
 import threading
 
-from franz.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
+from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
 from franz.transport.agc import *
 from franz.allegrograph.upi import UPI
 from franz.allegrograph.quad import Quad
@@ -296,33 +296,33 @@ class Cursor:
 
 
     ## CURRENTLY NOT USED:
-    def getTriple(self):
-        if not self.atTriple():
-            return
-        tr = Triple(self.agStore, self.id, self.s, self.p, self.o, self.c)
-        tr.subject = self.sVal
-        tr.sType = self.sType
-        tr.subjMod = self.sMod
-        tr.object = self.oVal
-        tr.oType = self.oType
-        tr.objMod = self.oMod
-        tr.predicate = self.pVal
-        tr.pType = self.pType
-        tr.predMod = self.pMod
-        tr.context = self.cVal
-        tr.cType = self.cType
-        tr.cxMod = self.cMod
-        return tr
-    
-    def __iter__(self): return self
-
-    def next(self):
-        if self.nextp:
-            try:
-                self.step()
-            except (AllegroGraphException, ), e:
-                raise IllegalStateException("Cursor.next " + e)
-        return self.getTriple()
+#    def getTriple(self):
+#        if not self.atTriple():
+#            return
+#        tr = Triple(self.agStore, self.id, self.s, self.p, self.o, self.c)
+#        tr.subject = self.sVal
+#        tr.sType = self.sType
+#        tr.subjMod = self.sMod
+#        tr.object = self.oVal
+#        tr.oType = self.oType
+#        tr.objMod = self.oMod
+#        tr.predicate = self.pVal
+#        tr.pType = self.pType
+#        tr.predMod = self.pMod
+#        tr.context = self.cVal
+#        tr.cType = self.cType
+#        tr.cxMod = self.cMod
+#        return tr
+#    
+#    def __iter__(self): return self
+#
+#    def next(self):
+#        if self.nextp:
+#            try:
+#                self.step()
+#            except (AllegroGraphException, ), e:
+#                raise IllegalStateException("Cursor.next " + e)
+#        return self.getTriple()
 
     def atTriple(self):
         return (self.id != NO_TRIPLE)

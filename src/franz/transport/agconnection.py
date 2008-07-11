@@ -24,14 +24,14 @@
 
 from  __future__ import with_statement
 import threading, time, subprocess, weakref
-from franz.exceptions import *
+from franz.allegrograph.exceptions import *
 from franz.transport.agc import *
 from franz.transport.agconnector import AGConnector
 from franz.transport.agdirectconnector import AGDirectConnector
 from franz.transport import agconnector
 from franz.allegrograph.allegrograph import AllegroGraph
 from franz.allegrograph.cursor import Cursor
-from franz.namespaceregistry import NamespaceRegistry
+#from franz.namespaceregistry import NamespaceRegistry
 
 class AllegroGraphConnection(object):
     """ 
@@ -77,8 +77,9 @@ class AllegroGraphConnection(object):
     defaultPollCount = 4
     defaultPollInterval = 3
     defaultTimeout = 10
-    initialns = NamespaceRegistry(NamespaceRegistry.RDFandOwl)
-    nsregs = NamespaceRegistry(initialns)
+## COMMENT BACK IN IF NECESSARY:
+#    initialns = NamespaceRegistry(NamespaceRegistry.RDFandOwl)
+#    nsregs = NamespaceRegistry(initialns)
     geoSubs = [None] * 256
 
     agPrefPath = "franz.com/allegrograph/java";
@@ -478,44 +479,6 @@ class AllegroGraphConnection(object):
         except (AllegroGraphException, ), e:
             return -1
 
-    def getNamespaces(self):
-        if self.nsregs is None:
-            return
-        return self.nsregs.stringArray()
-
-    def getNamespaceRegistry(self):
-        if (None == self.nsregs):
-            return
-        return NamespaceRegistry(self.nsregs)
-
-    def nsregsInit(self):
-        if self.nsregs is not None:
-            return self.nsregs
-        if self.initialns is None:
-            raise IllegalStateException("The default NamespaceRegistry is suppressed in" + " this instance of AllegroGraphConnection")
-        self.nsregs = NamespaceRegistry(self.initialns)
-        return self.nsregs
-
-    def registerNamespace(self, prefix, full):
-        self.nsregsInit().register(prefix, full)
-
-    def registerNamespaces(self, ns_or_defs):
-        if isinstance(ns_or_defs, list):
-            self.nsregsInit()
-            ## for-while
-            i = 0
-            while i < len(ns_or_defs):
-                self.nsregs.register(ns_or_defs[i], ns_or_defs[i + 1])
-                i = i + 2
-        else:
-            self.nsregsInit().register(ns_or_defs)
-
-    def setNamespaceRegistry(self, ns):
-        if ns is None:
-            self.nsregs = None
-        else:
-            self.nsregs = NamespaceRegistry(ns)
-
     def __str__(self):
         return str(type(self)) + "<" + str(self.serverId) + " " + str(self.mode) + ">"
 
@@ -688,6 +651,51 @@ class AllegroGraphConnection(object):
     def removeTS(self, ts):
         with self.registeredTripleStoresLock:
             self.allTS.remove(ts)
+
+#####################################################################################
+## eigher eliminate namespace registry logic or harmonize it with Sesame namespaces
+#####################################################################################
+
+    def getNamespaces(self):
+        if self.nsregs is None:
+            return
+        return self.nsregs.stringArray()
+
+    def getNamespaceRegistry(self):
+        if (None == self.nsregs):
+            return
+        return NamespaceRegistry(self.nsregs)
+
+    def nsregsInit(self):
+        """
+        Anything this ugly deserves to die.  - RMM
+        """        
+        if self.nsregs is not None:
+            return self.nsregs
+        if self.initialns is None:
+            raise IllegalStateException("The default NamespaceRegistry is suppressed in" + " this instance of AllegroGraphConnection")
+        self.nsregs = NamespaceRegistry(self.initialns)
+        return self.nsregs
+
+    def registerNamespace(self, prefix, full):
+        self.nsregsInit().register(prefix, full)
+
+    def registerNamespaces(self, ns_or_defs):
+        if isinstance(ns_or_defs, list):
+            self.nsregsInit()
+            ## for-while
+            i = 0
+            while i < len(ns_or_defs):
+                self.nsregs.register(ns_or_defs[i], ns_or_defs[i + 1])
+                i = i + 2
+        else:
+            self.nsregsInit().register(ns_or_defs)
+
+    def setNamespaceRegistry(self, ns):
+        if ns is None:
+            self.nsregs = None
+        else:
+            self.nsregs = NamespaceRegistry(ns)
 
 #####################################################################################
 ## 

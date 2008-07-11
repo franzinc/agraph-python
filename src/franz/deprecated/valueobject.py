@@ -22,7 +22,7 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.exceptions import AllegroGraphException, IllegalArgumentException, IllegalStateException
+from franz.allegrograph.exceptions import AllegroGraphException, IllegalArgumentException, IllegalStateException
 
 class ValueObject(object):
     """

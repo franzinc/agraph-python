@@ -24,7 +24,7 @@
 from  __future__ import with_statement
 import threading
 
-from franz.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
+from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
 from franz.transport.agc import *
 from franz.allegrograph.upi import UPI
 from franz.openrdf.modelimpl.valueimpl import BNodeImpl, URIImpl
@@ -308,6 +308,7 @@ class Quad:
         elif component_type == AGU_TRIPLE:
             idn = upi.getCode()
             if idn > -1:
+                ## THIS IS PROBABLY THE AG StatementImpl, WHICH WE HAVE PHASED OUT - RMM
                 return StatementImpl(self, idn, None, None, None)
         elif component_type == AGU_ENCODED_STRING:
             newInstance = EncodedLiteral(self, label, mod)

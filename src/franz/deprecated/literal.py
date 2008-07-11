@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from franz.exceptions import IllegalStateException, AllegroGraphException
+from franz.allegrograph.exceptions import IllegalStateException, AllegroGraphException
 from franz.valuenode import ValueNode
 from franz.allegrograph.upi import UPI
 
