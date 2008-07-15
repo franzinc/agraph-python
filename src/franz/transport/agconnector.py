@@ -36,7 +36,7 @@ class AGConnector(object):
         self.host = ""
         self.pollCount = 4
         self.pollInterval = 3
-        self.timeout = 5000
+        self.timeout = 50
         self.debug = 0
         self.currentServerLevel = -1
 

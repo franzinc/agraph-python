@@ -99,4 +99,3 @@ class LiteralImpl(Literal):
         except AllegroGraphException, e:
             pass
         return self.language
-

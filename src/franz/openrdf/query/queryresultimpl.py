@@ -118,6 +118,9 @@ class DictBindingSet(dict):
         raise IllegalArgumentException(("Illegal key '%s' passed to binding set." +
                             "\n   Legal keys are %s") % (key, str(self.variable_names)))
  
+    def __len__(self):
+        return len(self.values)
+    
     def get(self, key):
         try:
             return self.__getitem__(key)

@@ -401,6 +401,8 @@ def test13():
             o = bindingSet.getValue("o")              
             print "%s %s %s" % (s, p, o)
     conn.export(RDFXMLWriter(), None)
+    fortyTwoInt = f.createLiteral(42)
+    print fortyTwoInt.toPython()
 
 
 def test14():
@@ -519,10 +521,51 @@ def test16():
         print bindingSet
 
 
+#select distinct ?s 
+#where {graph ?c {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.wildsemantics.com/systemworld#World> . ?s <http://www.wildsemantics.com/systemworld#name> "BooksWorld" .   } }
+#    name = f.createURI("http://example.org/ontology/name")
+#    person = f.createURI("http://example.org/ontology/Person")
+#    bobsName = f.createLiteral("Bob")
 
+def test17():
+    sesameDir = "/Users/bmacgregor/Desktop/DatastoreCrash"
+    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
+                              sesameDir, port=4567)
+    myRepository = SailRepository(store)
+    myRepository.initialize()
+    myRepository.indexTriples()
+    conn = myRepository.getConnection()
+    queryString = """
+    select distinct ?s 
+    where {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.wildsemantics.com/systemworld#World> . 
+           ?s <http://www.wildsemantics.com/systemworld#name> "BooksWorld" .  }
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate(); 
+    for bindingSet in result:
+        print bindingSet
+    print "Done"
+    
+def test18():
+    sesameDir = "/Users/bmacgregor/Desktop/DatastoreCrash"
+    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
+                              sesameDir, port=4567)
+    myRepository = SailRepository(store)
+    myRepository.initialize()
+    conn = myRepository.getConnection()
+    outputFile = "/users/bmacgregor/Desktop/crash.nt"
+    ntriplesWriter = NTriplesWriter(outputFile)
+    conn.export(ntriplesWriter, None) ## SHOULD BE 'context'
+
+def test19():
+    bat.bar()
+    
+
+
+   
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    #choices = [16]
+    choices = [13]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -544,6 +587,8 @@ if __name__ == '__main__':
         elif choice == 15: test15()        
         elif choice == 16: test16()        
         elif choice == 17: test17()                               
+        elif choice == 18: test18()                                       
+        elif choice == 19: test19()                                               
         else:
             print "No such test exists."
     

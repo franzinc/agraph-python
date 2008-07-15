@@ -33,6 +33,7 @@ class Literal(Value):
     Implementer note: If this is still too heavyweight, subclass but don't
     call super.__init__.  That's why Python is so cool!
     """
+    XSDToPython = {}
     def __init__(self, label, datatype=None, language=None):
         self.datatype = datatype
         self.language = language.lower() if language else None
@@ -112,12 +113,14 @@ class Literal(Value):
 
     def toPython(self):
         """
-        Return a Python object representation of this literal.        
+        Return a Python object representation of this literal.   
+        Slightly silly implementation because we implement a conversion table
+        and then don't use the conversion functions.     
         """
         dt = self.getDatatype()
         if dt is None: return self.getLabel()
         else:
-            conversion = XSDToPython[dt]
+            conversion = Literal.XSDToPython.get(dt.getURI())
             if conversion:
                 if conversion == int:
                     return self.intValue()
@@ -131,51 +134,53 @@ class Literal(Value):
                     return conversion(self.label)
             else:
                 return self.label
-
-XSDToPython = {
-    XMLSchema.DURATION : None, 
-#    XMLSchema.DATETIME : parseDateTime, 
-#    XMLSchema.TIME : parseTime, 
-#    XMLSchema.DATE : parseDate, 
-    XMLSchema.GYEARMONTH : None, 
-    XMLSchema.GYEAR : None, 
-    XMLSchema.GMONTHDAY : None, 
-    XMLSchema.GDAY : None, 
-    XMLSchema.GMONTH : None, 
-    XMLSchema.STRING : None, 
-    XMLSchema.BOOLEAN : bool, 
-#    XMLSchema.BASE64BINARY : base64.decodeString, 
-    XMLSchema.HEXBINARY : None, 
-    XMLSchema.FLOAT : float, 
-    XMLSchema.DECIMAL : float, 
-    XMLSchema.DOUBLE : float, 
-    XMLSchema.ANYURI : None, 
-    XMLSchema.QNAME : None, 
-    XMLSchema.NOTATION : None, 
-    XMLSchema.NORMALIZEDSTRING : None, 
-    XMLSchema.TOKEN : None, 
-    XMLSchema.LANGUAGE : None, 
-    XMLSchema.NMTOKEN : None, 
-    XMLSchema.NMTOKENS : None, 
-    XMLSchema.NAME : None, 
-    XMLSchema.NCNAME : None, 
-    XMLSchema.ID : None, 
-    XMLSchema.IDREF : None, 
-    XMLSchema.IDREFS : None, 
-    XMLSchema.ENTITY : None, 
-    XMLSchema.ENTITIES : None, 
-    XMLSchema.INTEGER : long, 
-    XMLSchema.LONG : long, 
-    XMLSchema.INT : long, 
-    XMLSchema.SHORT : int, 
-    XMLSchema.BYTE : int, 
-    XMLSchema.NON_POSITIVE_INTEGER : int, 
-    XMLSchema.NEGATIVE_INTEGER : int, 
-    XMLSchema.NON_NEGATIVE_INTEGER : int, 
-    XMLSchema.POSITIVE_INTEGER : int, 
-    XMLSchema.UNSIGNED_LONG : long, 
-    XMLSchema.UNSIGNED_INT : long, 
-    XMLSchema.UNSIGNED_SHORT : int, 
-    XMLSchema.UNSIGNED_BYTE : int, 
-    }
-
+    
+    @staticmethod
+    def reinitialize():        
+        Literal.XSDToPython = {
+            str(XMLSchema.DURATION) : None, 
+        #    str(XMLSchema.DATETIME) : parseDateTime, 
+        #    str(XMLSchema.TIME) : parseTime, 
+        #    str(XMLSchema.DATE) : parseDate, 
+            str(XMLSchema.GYEARMONTH) : None, 
+            str(XMLSchema.GYEAR) : None, 
+            str(XMLSchema.GMONTHDAY) : None, 
+            str(XMLSchema.GDAY) : None, 
+            str(XMLSchema.GMONTH) : None, 
+            str(XMLSchema.STRING) : None, 
+            str(XMLSchema.BOOLEAN) : bool, 
+        #    str(XMLSchema.BASE64BINARY) : base64.decodeString, 
+            str(XMLSchema.HEXBINARY) : None, 
+            str(XMLSchema.FLOAT) : float, 
+            str(XMLSchema.DECIMAL) : float, 
+            str(XMLSchema.DOUBLE) : float, 
+            str(XMLSchema.ANYURI) : None, 
+            str(XMLSchema.QNAME) : None, 
+            str(XMLSchema.NOTATION) : None, 
+            str(XMLSchema.NORMALIZEDSTRING) : None, 
+            str(XMLSchema.TOKEN) : None, 
+            str(XMLSchema.LANGUAGE) : None, 
+            str(XMLSchema.NMTOKEN) : None, 
+            str(XMLSchema.NMTOKENS) : None, 
+            str(XMLSchema.NAME) : None, 
+            str(XMLSchema.NCNAME) : None, 
+            str(XMLSchema.ID) : None, 
+            str(XMLSchema.IDREF) : None, 
+            str(XMLSchema.IDREFS) : None, 
+            str(XMLSchema.ENTITY) : None, 
+            str(XMLSchema.ENTITIES) : None, 
+            str(XMLSchema.INTEGER) : long, 
+            str(XMLSchema.LONG) : long, 
+            str(XMLSchema.INT) : long, 
+            str(XMLSchema.SHORT) : int, 
+            str(XMLSchema.BYTE) : int, 
+            str(XMLSchema.NON_POSITIVE_INTEGER) : int, 
+            str(XMLSchema.NEGATIVE_INTEGER) : int, 
+            str(XMLSchema.NON_NEGATIVE_INTEGER) : int, 
+            str(XMLSchema.POSITIVE_INTEGER) : int, 
+            str(XMLSchema.UNSIGNED_LONG) : long, 
+            str(XMLSchema.UNSIGNED_INT) : long, 
+            str(XMLSchema.UNSIGNED_SHORT) : int, 
+            str(XMLSchema.UNSIGNED_BYTE) : int, 
+            }
+        

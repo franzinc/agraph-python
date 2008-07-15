@@ -86,7 +86,7 @@ class AGDirectLink(object):
     ## EXCEPT THAT RIGHT NOW ITS STILL BUGGY (FATALLY SO):
     ONE_BYTE_AT_A_TIME = True
         
-    def __init__(self, host, port, pollCount, pollInterval, timeout=5000):
+    def __init__(self, host, port, pollCount, pollInterval, timeout=50):
         self.byte_at_a_time_buffer = [0] * DEFAULT_BUFFER_SIZE
         self.endpos = 0
         self.strings_buffer = []
@@ -94,6 +94,8 @@ class AGDirectLink(object):
         client = None
         ee = None
         i = 0
+        ## TEMPORARY: 
+        print "TIMEOUT SETTING: ", self.timeout
         while client is None and i < pollCount:
             if i > 0:
                 print "poll count ", pollCount, " poll interval ", pollInterval, "  timeout ", self.timeout
@@ -102,7 +104,7 @@ class AGDirectLink(object):
                     sleep(pollInterval)
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(self.timeout)
-                if i > 0: print "HOST ", host, " PORT ", port
+                if i > 0: print "HOST ", host, " PORT ", port, " TIMEOUT ", self.timeout
                 ## END HOST
                 addr = (host, port)
                 if i > 0: print "Calling 'socket.connect' ..."
@@ -138,7 +140,7 @@ class AGDirectLink(object):
         ## AS FAR AS I CAN TELL, PYTHON HAS NO 'available' METHOD:
 #        while flag > 0:
 #            try:
-#                sleep(100)
+#                sleep(100)≈g
 #                flag -= 1
 #                if 0 < self.inStream.available():
 #                    flag = -1
@@ -404,25 +406,25 @@ class AGDirectLink(object):
         #print "OPRESIN ",
         res = self.portInOp()
         if 2 > len(res):
-            raise IOException("opResIn " + op + "[" + opix + "]" + " received " + len(res))
+            raise IOException("opResIn " + str(op) + "[" + str(opix) + "]" + " received " + str(len(res)))
         if not op == res[0]:
-            raise IOException("opResIn " + op + "[" + opix + "]" + " received " + res[0])
+            raise IOException("opResIn " + str(op) + "[" + str(opix) + "]" + " received " + str(res[0]))
         rrx = res[1]
         if rrx < 0 and (-rrx == opix) and 3 < len(res):
-            raise IOException("opResIn " + op + "[" + opix + "]" + " error in AllegroGraph server " + res[2] + " " + res[3])
+            raise IOException("opResIn " + str(op) + "[" + str(opix) + "]" + " error in AllegroGraph server " + str(res[2]) + " " + str(res[3]))
         if rrx < 0:
-            raise IOException("opResIn " + op + "[" + opix + "]" + " error in AllegroGraph server " + rrx + " " + len(res))
+            raise IOException("opResIn " + str(op) + "[" + str(opix) + "]" + " error in AllegroGraph server " + str(rrx) + " " + str(len(res)))
         if not (rrx == opix):
-            raise IOException("opResIn " + op + "[" + opix + "]" + " expected " + opix + " received " + rrx)
+            raise IOException("opResIn " + str(op) + "[" + str(opix) + "]" + " expected " + str(opix) + " received " + str(rrx))
         if (rx == -1):
             return res
         if (rx == -2):
             if (2 == len(res)):
                 return None
-            raise IOException("opResIn " + op + "[" + opix + "]" + " expected zero values, received " + len(res))
+            raise IOException("opResIn " + str(op) + "[" + str(opix) + "]" + " expected zero values, received " + str(len(res)))
         if 0 <= rx and rx < len(res) - 2:
             return res[rx + 2]
-        raise IOException("opResIn mismatch:" + op + "[" + opix + "]" + " expected " + rx + 1 + " results, received " + len(res) - 2)
+        raise IOException("opResIn mismatch:" + str(op) + "[" + str(opix) + "]" + " expected " + str(rx + 1) + " results, received " + str(len(res) - 2))
 
     def streamOutFlush(self):
         return self.portFlush()

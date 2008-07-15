@@ -25,6 +25,8 @@
 from franz.openrdf.exceptions import *
 from franz.openrdf.util import uris
 
+import traceback
+
 class Value(object):
     """
     Top class in the org.openrdf.model interfaces.
@@ -43,7 +45,10 @@ class URI(Resource):
     """
     def __init__(self, uri=None, namespace=None, localname=None):
         if uri and not isinstance(uri, str):
-            print "BREAK"
+            print "NON-STRING PASSED TO URI CONSTRUCTOR ", uri , "  ", type(uri) ## WE ARE NOT SURE WHAT THIS MEANS.  NEED TO FIGURE IT OUT - RMM
+            traceback.print_stack()
+            raise IllegalArgumentException("Object of type %s passed to URI constructor where string expected: %s"
+                                           % (type(uri), uri))
         if uri:
             self.uri = uri
         elif namespace and localname:

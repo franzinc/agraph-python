@@ -44,7 +44,8 @@ class ValueFactoryImpl(ValueFactory):
         RDF.reinitialize(self, store)
         RDFS.reinitialize(self, store)        
         XMLSchema.reinitialize(self, store)
-        OWL.reinitialize(self, store)                
+        OWL.reinitialize(self, store)
+        Literal.reinitialize()
 
     def createBNode(self, nodeID=None):
         """

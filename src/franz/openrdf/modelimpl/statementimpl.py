@@ -42,7 +42,21 @@ class StatementImpl(Statement):
             if subject: subject.internal_ag_store = internalStore
             if predicate: predicate.internal_ag_store = internalStore
             if object: object.internal_ag_store = internalStore
-            if context: context.internal_ag_store = internalStore                                    
+            if context: context.internal_ag_store = internalStore
+            
+    def __len__(self):
+        return 4 if self.getContext() else 3
+    
+    def __getitem__(self, index):
+        if index == 0: return self.getSubject()
+        elif index == 1: return self.getPredicate()
+        elif index == 2: return self.getObject()
+        elif index == 3: return self.getContext()
+        else:
+            ## I don't know what the official Python exception is here :(  - RMM
+            raise IllegalArgumentException("Illegal index %s passed to StatementImpl.\n" +
+                    "  Legal arguments are integers 0-3")
+                                          
     
     def setQuad(self, quad):
         self.quad = quad
