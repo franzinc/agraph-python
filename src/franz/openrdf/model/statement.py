@@ -65,6 +65,10 @@ class Statement:
         sb.append(str(self.getPredicate()))
         sb.append(", ")
         sb.append(str(self.getObject()))
+        cxt = self.getContext()
+        if cxt:
+            sb.append(", ")        
+            sb.append(str(cxt))        
         sb.append(")")
         return ''.join(sb)
 

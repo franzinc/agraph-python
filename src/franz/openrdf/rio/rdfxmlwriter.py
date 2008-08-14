@@ -45,10 +45,26 @@ class RDFXMLWriter(RDFWriter):
         self.namespaceTable = {}
         self.buffer = []
     
+        self.prev = None
+    def _catch_dup(self, stmt):
+        print "DUPER: ", stmt
+        if (self.prev and
+            stmt.subject == self.prev.subject and
+            stmt.predicate == self.prev.predicate and
+            stmt.object == self.prev.object):
+            raise Exception("Found dup")
+        if (self.prev and
+            str(stmt.subject) == str(self.prev.subject) and
+            str(stmt.predicate) == str(self.prev.predicate) and
+            str(stmt.object) == str(self.prev.object)):
+            raise Exception("Found dup")
+        self.prev = stmt
+        
     def export(self, statements):
         try:
             self.startRDF()
             for st in statements:
+                self._catch_dup(st)
                 self.handleStatement(st)
             self.endRDF()        
         finally: 

@@ -23,6 +23,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.statement import Statement
+from franz.openrdf.modelimpl.valueimpl import URIImpl
 
 class StatementImpl(Statement):
     """
@@ -85,7 +86,7 @@ class StatementImpl(Statement):
     def getContext(self): 
         if not self.context:
             if self.quad: self.context = self.quad.getContext()
-        return self.context  
+        return self.context if (not self.context == URIImpl.nullContext) else None   
     
     #def setContext(self, context): self.context = context
     

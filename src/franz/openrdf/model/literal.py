@@ -61,7 +61,7 @@ class Literal(Value):
 
     def __eq__(self, other):
         if not isinstance(other, Literal): return False
-        if not self.value == other.value: return False
+        if not self.label == other.label: return False
         if not self.datatype:
             if other.datatype: return False
         elif not self.datatype == other.datatype: return False

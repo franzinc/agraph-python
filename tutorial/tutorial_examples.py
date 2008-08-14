@@ -1,5 +1,6 @@
 
 from franz.openrdf.sail.sail import SailRepository
+from franz.openrdf.repository.repository import Repository
 from franz.openrdf.sail.allegrographstore import AllegroGraphStore
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary.rdf import RDF
@@ -13,25 +14,6 @@ from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
 import os, urllib, datetime
 
 CURRENT_DIRECTORY = os.getcwd() 
-
-def test0():
-    """
-    Test to see if you have the module settings correctly set.
-    """
-    print "Welcome to the PythonAPI"
-    file1 = open("./vc-db-1.rdf")
-    print file1.name, os.path.abspath(file1.name)
-    file2 = open(CURRENT_DIRECTORY + "/vc-db-1.rdf")
-    print file2.name 
-    
-    try:
-        fname, headers = urllib.urlretrieve("http://www.co-ode.org/ontologies/amino-acid/2005/10/11/amino-acid.owl", "/tmp/myfile")
-        file3 = open(fname) 
-    except Exception, e:
-        print "Failed ", e
-    for line in file3:
-        print line
-    print "MADE IT"
     
 
 def test1():
@@ -41,11 +23,8 @@ def test1():
     sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
     store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testP",
                               sesameDir, port=4567)
-    myRepository = SailRepository(store)
+    myRepository = Repository(store)
     myRepository.initialize()
-    ## TEMPORARY:
-    #store.internal_ag_store.serverTrace(True)
-    ## END TEMPORARY
     print "Repository is up!"
     return myRepository
     
@@ -69,12 +48,16 @@ def test2():
     conn.add(bob, RDF.TYPE, person)
     ## bob's name is "Bob":
     conn.add(bob, name, bobsName)
+    print "Triple count: ", conn.size()
+    conn.remove(bob, name, bobsName)
+    print "Triple count: ", conn.size()
+    conn.add(bob, name, bobsName)    
     return myRepository
 
 def test3():    
     conn = test2().getConnection()
     try:
-        queryString = "SELECT ?s ?p ?o WHERE {?s ?p ?o .}"
+        queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
         result = tupleQuery.evaluate();
         try:
@@ -92,74 +75,110 @@ def test4():
     myRepository = test2()
     conn = myRepository.getConnection()
     alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
-    statements = conn.getStatements(alice, None, None, True, [])
+    statements = conn.getStatements(alice, None, None, False)
     for s in statements:
         print s
     print "Same thing using JDBC:"
-    resultSet = conn.getJDBCStatements(alice, None, None, True, [])
+    resultSet = conn.getJDBCStatements(alice, None, None, False)
     while resultSet.next():
         #print resultSet.getRow()
         print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
                
-import dircache, os
-
 def test5():
-    print "ABSPATH ", os.path.abspath(".")
-    for f in dircache.listdir("."):
-        print f
-        
+    """
+    Typed Literals
+    """
+    myRepository = test1()
+    conn = myRepository.getConnection()
+    f = myRepository.getValueFactory()
+    conn.clear()
+    exns = "http://example.org/people/"
+    alice = f.createURI("http://example.org/people/alice")
+    age = f.createURI(namespace=exns, localname="age")
+    weight = f.createURI(namespace=exns, localname="weight")    
+    favoriteColor = f.createURI(namespace=exns, localname="favoriteColor")
+    birthdate = f.createURI(namespace=exns, localname="birthdate")
+    ted = f.createURI(namespace=exns, localname="Ted")
+    red = f.createLiteral('Red')
+    rouge = f.createLiteral('Rouge', language="fr")
+    fortyTwo = f.createLiteral('42', datatype=XMLSchema.INT)
+    fortyTwoInteger = f.createLiteral('42', datatype=XMLSchema.LONG)    
+    fortyTwoUntyped = f.createLiteral('42')
+    date = f.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
+    time = f.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME)         
+    stmt1 = f.createStatement(alice, age, fortyTwo)
+    stmt2 = f.createStatement(ted, age, fortyTwoUntyped)    
+    conn.add(stmt1)
+    conn.addStatement(stmt2)
+    conn.addTriple(alice, weight, f.createLiteral('20.5'))
+    conn.addTriple(ted, weight, f.createLiteral('20.5', datatype=XMLSchema.FLOAT))
+    conn.add(alice, favoriteColor, red)
+    conn.add(ted, favoriteColor, rouge)
+    conn.add(alice, birthdate, date)
+    conn.add(ted, birthdate, time)    
+    for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
+                red, rouge]:
+        print "Retrieve triples matching '%s'." % obj
+        statements = conn.getStatements(None, None, obj, False)
+        for s in statements:
+            print s
+    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
+        print "Query triples matching '%s'." % obj
+        queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
+        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
+        """ % obj
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        result = tupleQuery.evaluate();    
+        for bindingSet in result:
+            s = bindingSet[0]
+            p = bindingSet[1]
+            o = bindingSet[2]
+            print "%s %s %s" % (s, p, o)
+    fortyTwoInt = f.createLiteral(42)
+    print fortyTwoInt.toPython()
+
+def test61():
     myRepository = test1()       
-    print "CURDIR ", os.getcwd() 
-    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
     file = open("./vc-db-1.rdf")            
-    #file = open("./agraph-python/src/sesame_test/vc-db-1.rdf")                
     baseURI = "http://example.org/example/local"
-    baseURI = None
     try:
         conn = myRepository.getConnection();
-        conn.add("./vc-db-1.rdf", base=baseURI, format=RDFFormat.RDFXML); 
+        conn.clear() ## retract any existing triples
+        conn.add(file, base=baseURI, format=RDFFormat.RDFXML)
         print "After loading, repository contains %s triples." % conn.size(None)
         try:
-            for s in conn.getStatements(None, None, None, True, []):
-                print s
-             
-#            print "\n\nAnd here it is JDBC-style"
-#            resultSet = conn.getJDBCStatements(None, None, None, False, [])
-#            while resultSet.next():
-#                print resultSet.getRow()
-                
-            print "\n\nAnd here it is without the objects"
-            resultSet = conn.getJDBCStatements(None, None, None, True, [])
+            resultSet = conn.getJDBCStatements(None, None, None, False)
             while resultSet.next():
                 print resultSet.getString(1), resultSet.getString(2), resultSet.getString(3)
-
         finally:
-            pass
+            resultSet.close()
     finally:
         conn.close()
 
 def test6():
-    myRepository = test1() 
-    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
+    myRepository = test1()
+    conn = myRepository.getConnection()
+    conn.clear()   
+    path1 = "./vc-db-1.rdf"    
+    path2 = "./football.nt"            
     baseURI = "http://example.org/example/local"
+    location = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/test/vc_db_1_rdf" 
+    context = myRepository.getValueFactory().createURI(location)
+    conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
+    ## read the contents vcards file into the context:
+    conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
+    conn.addFile(path2, base=baseURI, format=RDFFormat.NTRIPLES) 
+    myRepository.indexTriples(all=True)
+    print "After loading, repository contains %s vcard triples and %s football triples." % (conn.size(context), conn.size(None))
+    return    
     try:
-        conn = myRepository.getConnection();
-        conn.add(file, base=baseURI, format=RDFFormat.RDFXML);
-        print "After loading, repository contains %s triples." % conn.size(None)         
-        queryString = "SELECT ?s ?p ?o WHERE {?s ?p ?o .}"
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        result = tupleQuery.evaluate();
-        try:
-            for bindingSet in result:
-                s = bindingSet.getValue("s")
-                p = bindingSet.getValue("p")
-                o = bindingSet.getValue("o")              
-                print "%s %s %s" % (s, p, o)
-        finally:
-            result.close();
+
+        ## SEEMS TO BE FOOTBALL IN BOTH CONTEXTS.  FIGURE OUT WHY:
+        for s in conn.getStatements(None, None, None, False, context):
+                print s
     finally:
-        conn.close();
-        
+        conn.close()
+       
 def test7():
     myRepository = test1() 
     file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
@@ -175,6 +194,24 @@ def test7():
             print s
     finally:
         conn.close();
+        
+def test3_5():    
+    conn = test2().getConnection()
+    try:
+        queryString = "SELECT ?s ?p ?o ?c WHERE {graph ?c {?s ?p ?o .} }"
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        result = tupleQuery.evaluate();
+        try:
+            for bindingSet in result:
+                s = bindingSet.getValue("s")
+                p = bindingSet.getValue("p")
+                o = bindingSet.getValue("o")              
+                print "%s %s %s" % (s, p, o)
+        finally:
+            result.close();
+    finally:
+        conn.close();
+
 
 import urlparse
 
@@ -352,59 +389,6 @@ def test12():
     print "Counted %i statements" % count
     
    
-def test13():
-    """
-    Typed Literals
-    """
-    myRepository = test1()
-    conn = myRepository.getConnection()
-    f = myRepository.getValueFactory()
-    exns = "http://example.org/people/"
-    alice = f.createURI("http://example.org/people/alice")
-    age = f.createURI(namespace=exns, localname="age")
-    weight = f.createURI(namespace=exns, localname="weight")    
-    favoriteColor = f.createURI(namespace=exns, localname="favoriteColor")
-    birthdate = f.createURI(namespace=exns, localname="birthdate")
-    ted = f.createURI(namespace=exns, localname="Ted")
-    red = f.createLiteral('Red')
-    rouge = f.createLiteral('Rouge', language="fr")
-    fortyTwo = f.createLiteral('42', datatype=XMLSchema.INT)
-    fortyTwoInteger = f.createLiteral('42', datatype=XMLSchema.LONG)    
-    fortyTwoUntyped = f.createLiteral('42')
-    date = f.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
-    time = f.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME)         
-    stmt1 = f.createStatement(alice, age, fortyTwo)
-    stmt2 = f.createStatement(ted, age, fortyTwoUntyped)    
-    conn.add(stmt1)
-    conn.add(stmt2)
-    conn.add(alice, weight, f.createLiteral('20.5'))
-    conn.add(ted, weight, f.createLiteral('20.5', datatype=XMLSchema.FLOAT))
-    conn.add(alice, favoriteColor, red)
-    conn.add(ted, favoriteColor, rouge)
-    conn.add(alice, birthdate, date)
-    conn.add(ted, birthdate, time)    
-    for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
-                red, rouge]:
-        print "Retrieve triples matching '%s'." % obj
-        statements = conn.getStatements(None, None, obj, False, None)
-        for s in statements:
-            print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
-        print "Query triples matching '%s'." % obj
-        queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
-        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
-        """ % obj
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        result = tupleQuery.evaluate();    
-        for bindingSet in result:
-            s = bindingSet.getValue("s")
-            p = bindingSet.getValue("p")
-            o = bindingSet.getValue("o")              
-            print "%s %s %s" % (s, p, o)
-    conn.export(RDFXMLWriter(), None)
-    fortyTwoInt = f.createLiteral(42)
-    print fortyTwoInt.toPython()
-
 
 def test14():
     """
@@ -727,7 +711,7 @@ def test22():
    
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [8]
+    choices = [6]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

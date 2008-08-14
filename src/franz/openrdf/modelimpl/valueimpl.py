@@ -82,7 +82,7 @@ class URIImpl(URI):
         return str(self).__hash__()
 
 URIImpl.NULL_CONTEXT_URI = URIImpl(upi=UPI.NULL_CONTEXT, uri="http://openrdf.org#NuLlCoNtExT")
-URIImpl.nullContext = URIImpl(upi=UPI.getNullContextUPI())
+URIImpl.nullContext = URIImpl(upi=UPI.getNullContextUPI(), uri=URIImpl.NULL_CONTEXT_URI.getURI())
        
 class BNodeImpl(BNode):
     """

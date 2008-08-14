@@ -119,7 +119,7 @@ class RepositoryConnection(object):
 #    ##         @link RepositoryException when an error when a problem occurs
 #    ##         during retrieval.
     #RepositoryResult<Statement> 
-    def getStatements(self, subj, pred,  obj, includeInferred, contexts):
+    def getStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -128,7 +128,7 @@ class RepositoryConnection(object):
         """
         raise UnimplementedMethodException("getStatements")
 
-    def getJDBCStatements(self, subj, pred,  obj, includeInferred, contexts):
+    def getJDBCStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -246,7 +246,7 @@ class RepositoryConnection(object):
 #    ## @throws RepositoryException
 #    ##         If the statements could not be removed from the repository, for
 #    ##         example because the repository is not writable.
-    def clear(self, contexts=None):
+    def clear(self, contexts=[]):
         """
         Removes all statements from a specific contexts in the repository.
         """
@@ -287,7 +287,7 @@ class RepositoryConnection(object):
     ##        method operates on the entire repository.
     ## @param handler
     ##        The handler that will handle the RDF data.
-    def export(self, handler, contexts):
+    def export(self, handler, contexts=None):
         self.exportStatements(None, None, None, False, contexts=contexts)
 
 

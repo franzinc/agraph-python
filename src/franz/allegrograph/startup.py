@@ -39,7 +39,7 @@ class StartUp(object):
     quiet = False
     DEFAULT_AGSERVER_LOCATION_MAP = {"Darwin": "/Applications/AllegroGraph/AllegroGraphServer", }
     DEFAULT_AGSERVER_LOCATION_MAP = {"Darwin": "/Applications/AllegroGraph3.0/AllegroGraphServer", }
-    Quad.COMPLAIN_BITTERLY = True
+    Quad.COMPLAIN_BITTERLY = False
 
     @staticmethod
     def startServer(agConn, agJavaServerPath):

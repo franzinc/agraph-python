@@ -59,19 +59,21 @@ class DirectCaller(object):
     """
     Handles calls from Sesame code direct to AGDirectConnector, by-passing
     AllegroGraph, which inserts baggage that we don't want, e.g., ValueObject objects
-    """    
+    """
+    ALL_CONTEXTS = []
     def __init__(self, agDirectConnector, term2InternalMgr):
         self.agDirectConnector = agDirectConnector
         self.term2InternalMgr = term2InternalMgr
         self.internal_ag_store = term2InternalMgr.internal_ag_store
     
-    def canonicalize_context_argument(self, context, noneIsWild=False):
+    def canonicalize_context_argument(self, context):
         if isinstance(context, Value): return self.internal_ag_store.agjRefValue(context)
+        elif context == []:
+            return UPI.WILD
         elif context is None:
-            if noneIsWild: return UPI.WILD
-            else: return UPI.NULL_CONTEXT
+            return UPI.NULL_CONTEXT
         else:
-            raise IllegalArgumentException("Expected context argument %s to be a Resource or None" % context)
+            raise IllegalArgumentException("Expected context argument %s to be a Resource or empty list or None" % context)
 
     def verifyEnabled(self):
         return self.agDirectConnector
@@ -85,11 +87,15 @@ class DirectCaller(object):
     def getTriples(self, subject, predicate, object, contexts, includeInferred=False):
         """
         """
-        if not contexts:
+        if contexts is None:
             theContext = None
+        elif contexts == []:
+            theContext = self.ALL_CONTEXTS
         elif len(contexts) == 1:
             theContext = contexts[0]
         else:
+            ## THE CALLERS SHOULD BE DOING EXPLICIT (BUT SLOW) ITERATION TO COMPENSATE.  IF
+            ## NOT, ITS A BUG IN THE CODE:
             raise Exception("'getStatements' over multiple contexts is not yet implemented")
         mgr = self.term2InternalMgr
         if includeInferred:
@@ -97,7 +103,7 @@ class DirectCaller(object):
                                mgr.openTermToInternalStringTermOrWild(subject),
                                mgr.openTermToInternalStringTermOrWild(predicate),
                                mgr.openTermToInternalStringTermOrWild(object),
-                               self.canonicalize_context_argument(theContext, noneIsWild=True),
+                               self.canonicalize_context_argument(theContext),
                                lh = 0,
                                infer=True
                                )
@@ -106,7 +112,7 @@ class DirectCaller(object):
                                mgr.openTermToAGTermOrWild(subject),
                                mgr.openTermToAGTermOrWild(predicate),
                                mgr.openTermToAGTermOrWild(object),
-                               self.canonicalize_context_argument(theContext, noneIsWild=True),
+                               self.canonicalize_context_argument(theContext),
                                lh = 0,
                                )
         

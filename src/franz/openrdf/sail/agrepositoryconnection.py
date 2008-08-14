@@ -147,12 +147,12 @@ class AllegroGraphRepositoryConnection(SailConnection):
 #     *        method operates on the entire repository.
 #     * @return The number of explicit statements from the specified contexts in
 #     *         this repository.
-    def size(self, contexts=None):
+    def size(self, contexts=[]):
         """
         Returns the number of (explicit) statements that are in the specified
         contexts in this repository.
         """
-        if not contexts:
+        if contexts == []:
             return self.directCaller.numberOfTriples()
         else:
             resultSet = self.getJDBCStatements(None, None, None, False, contexts)
@@ -198,7 +198,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
 #     *         {@link RepositoryException} when an error when a problem occurs
 #     *         during retrieval.
     #RepositoryResult<Statement> 
-    def getStatements(self, subj, pred,  obj, includeInferred, contexts):
+    def getStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -218,7 +218,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
                 cursors.append(cursor)
             return CompoundRepositoryResultImpl(cursors)
 
-    def getJDBCStatements(self, subj, pred,  obj, includeInferred, contexts):
+    def getJDBCStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -242,7 +242,8 @@ class AllegroGraphRepositoryConnection(SailConnection):
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
         """
-        Calls addTriple, addStatement, or addFile
+        Calls addTriple, addStatement, or addFile.  If 'contexts' is not
+        specified, adds to the null context.
         """
         if contexts and not isinstance(contexts, list):
             contexts = [contexts]
@@ -456,9 +457,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
         Exports all statements with a specific subject, predicate and/or object
         from the repository, optionally from the specified contexts.        
         """
-        statements = self.getStatements(subj, pred, obj, includeInferred, contexts)
         for prefix, name in self._get_namespaces_map().iteritems():
             handler.handleNamespace(prefix, name)
+        statements = self.getStatements(subj, pred, obj, includeInferred, contexts)
         handler.export(statements)
       
     

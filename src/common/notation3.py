@@ -1,6 +1,6 @@
 #!/usr/local/bin/python
 """
-$Id: notation3.py,v 1.1 2008/06/20 18:36:16 bmacgregor Exp $
+$Id: notation3.py,v 1.2 2008/08/14 01:33:13 bmacgregor Exp $
 
 
 This module implements a Nptation3 parser, and the final
@@ -362,8 +362,6 @@ class SinkParser:
         return self._formula
 
     def makeStatement(self, quadruple):
-        #$$$$$$$$$$$$$$$$$$$$$
-#        print "# Parser output: ", `quadruple`
         self._store.makeStatement(quadruple, why=self._reason2)
 
 
@@ -1335,7 +1333,7 @@ B   Turn any blank node into a existentially qualified explicitly named node.
  
         if not self._quiet:  # Suppress stuff which will confuse test diffs
             self._write(u"\n#  Notation3 generation by\n")
-            idstr = u"$Id: notation3.py,v 1.1 2008/06/20 18:36:16 bmacgregor Exp $"
+            idstr = u"$Id: notation3.py,v 1.2 2008/08/14 01:33:13 bmacgregor Exp $"
             # CVS CHANGES THE ABOVE LINE
             self._write(u"#       " + idstr[5:-2] + u"\n\n") 
             # Strip "$" in case the N3 file is checked in to CVS
