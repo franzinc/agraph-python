@@ -13,9 +13,12 @@ def test1():
     request.add_header('accept', 'application/x-sparql-compact')
     data = [('query',"SELECT ?s ?o { ?s a ?o . } LIMIT 5")]
     data = urllib.urlencode(data, 1)
-    response = urllib2.urlopen(request, data)
-    #response = urllib2.urlopen(request)
-    print response.read(), "\n"
-    
+    try:
+        response = urllib2.urlopen(request, data)
+        #response = urllib2.urlopen(request)
+        print response.read(), "\n"
+    except Exception, e:
+        print "HTTP Request failed.", e        
+   
 if __name__ == '__main__':
     test1()

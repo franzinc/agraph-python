@@ -177,6 +177,12 @@ class DictBindingSet(dict):
         Throws exception if 'bindingName' is not legal.
         """
         return self.__getitem__(bindingName)
+    
+    def getRow(self):
+        """
+        Return a list of strings representing the values of the current row.
+        """
+        return [str(self[i]) if self[i] else None for i in range(0, self.size())]
 
     def size(self):
         """

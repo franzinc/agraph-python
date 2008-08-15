@@ -122,6 +122,12 @@ class BindingSet:
         """
         raise UnimplementedMethodException("getValue")
 
+    def getRow(self):
+        """
+        Return a list of strings representing the values of the current row.
+        """
+        raise UnimplementedMethodException("getRow")
+
     def size(self):
         """
         Returns the number of bindings in this BindingSet.

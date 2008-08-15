@@ -190,46 +190,63 @@ def test9():
     conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
 
 def test10():
-    myRepository = test1()
+    """
+    Datasets and multiple contexts
+    """
+    myRepository = test1();
     conn = myRepository.getConnection()
-    aminoFile = "amino.owl"
-    #aminoFile = "/Users/bmacgregor/Desktop/rdf/ciafactbook.nt"
-    print "Begin loading triples from ", aminoFile, " into AG ..."
-    conn.add(aminoFile)
-    print "Loaded ", conn.size(None), " triples."
-#    f = myRepository.getValueFactory()
-#    rdfsLabel = f.createURI("http://www.w3.org/2000/01/rdf-schema#label")
-#    glutamine = f.createLiteral("Glutamine")
-    ##
-    count = 0         
-    ##statements = conn.getStatements(None, None, glutamine, True, None)
-    print "Begin retrieval ", datetime.datetime.now()
-    beginTime = datetime.datetime.now()    
-    statements = conn.getStatements(None, None, None, False, None)
-    elapsed = datetime.datetime.now() - beginTime
-    print "Retrieval took %s milliseconds" % elapsed
-    print "Begin counting statements ... ", datetime.datetime.now()
+    f = myRepository.getValueFactory()
+    exns = "http://example.org/people/"
+    alice = f.createURI(namespace=exns, localname="alice")
+    bob = f.createURI(namespace=exns, localname="bob")
+    ted = f.createURI(namespace=exns, localname="ted")
+    person = f.createURI(namespace=exns, localname="Person")
+    name = f.createURI(namespace=exns, localname="name")    
+    alicesName = f.createLiteral("Alice")    
+    bobsName = f.createLiteral("Bob")
+    tedsName = f.createLiteral("Ted")    
+    context1 = f.createURI(namespace=exns, localname="cxt1")      
+    context2 = f.createURI(namespace=exns, localname="cxt2")          
+    conn.add(alice, RDF.TYPE, person, context1)
+    conn.add(alice, name, alicesName, context1)
+    conn.add(bob, RDF.TYPE, person, context2)
+    conn.add(bob, name, bobsName, context2)
+    conn.add(ted, RDF.TYPE, person)
+    conn.add(ted, name, bobsName)
+    statements = conn.getStatements(None, None, None, False)
+    print "All triples in all contexts:"
     for s in statements:
-        #print s
-        count += 1
-        if (count % 50) == 0:  print '.',
-        if (count % 1000) == 0: print
-    elapsed = datetime.datetime.now() - beginTime
-    print "Counted %i statements in time %s" % (count, elapsed)
-    print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
-    
-    print "Begin JDBC retrieval ", datetime.datetime.now()
-    beginTime = datetime.datetime.now()    
-    resultSet = conn.getJDBCStatements(None, None, None, False, [])
-    count = 0
-    while resultSet.next():
-        #print s
-        count += 1
-        if (count % 50) == 0:  print '.',
-        if (count % 1000) == 0: print
-    elapsed = datetime.datetime.now() - beginTime
-    print "Counted %i JDBC statements in time %s " % (count, elapsed)
-    print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
+        print s
+    statements = conn.getStatements(None, None, None, False, [context1, context2])
+    print "Triples in contexts 1 and 2:"
+    for s in statements:
+        print s
+    queryString = """
+    SELECT ?s ?p ?o ?c
+    WHERE { GRAPH ?c {?s ?p ?o . } } 
+    """
+    ds = Dataset()
+    ds.addNamedGraph(context1)
+    ds.addNamedGraph(context2)
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setDataset(ds)
+    result = tupleQuery.evaluate();    
+    print "Query over contexts 1 and 2."
+    for bindingSet in result:
+        print bindingSet.getRow()
+    queryString = """
+    SELECT ?s ?p ?o    
+    WHERE {?s ?p ?o . } 
+    """
+    ds = Dataset()
+    ds.addDefaultGraph(None)
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setDataset(ds)
+    result = tupleQuery.evaluate();    
+    print "Query over the null context."
+    for bindingSet in result:
+        print bindingSet.getRow()
+
 
 def test11():
     ## Test query performance
@@ -295,62 +312,6 @@ def test12():
     
    
 
-def test14():
-    """
-    Datasets and multiple contexts
-    """
-    myRepository = test1();
-    conn = myRepository.getConnection()
-    f = myRepository.getValueFactory()
-    exns = "http://example.org/people/"
-    alice = f.createURI(namespace=exns, localname="alice")
-    bob = f.createURI(namespace=exns, localname="bob")
-    person = f.createURI(namespace=exns, localname="Person")
-    name = f.createURI(namespace=exns, localname="name")    
-    alicesName = f.createLiteral("Alice")    
-    bobsName = f.createLiteral("Bob")
-    context1 = f.createURI(namespace=exns, localname="cxt1")      
-    context2 = f.createURI(namespace=exns, localname="cxt2")          
-    conn.add(alice, RDF.TYPE, person, context1)
-    conn.add(alice, name, alicesName, context1)
-    conn.add(bob, RDF.TYPE, person, context2)
-    conn.add(bob, name, bobsName, context2)
-    ##
-    statements = conn.getStatements(None, None, None, False, [context1, context2])
-    print "getStatements:"
-    for s in statements:
-        print s
-    resultSet = conn.getJDBCStatements(None, None, None, False, [context1, context2])
-    print "getJDBCStatements:"
-    while resultSet.next():
-        print resultSet.getString(1), resultSet.getString(2), resultSet.getString(3), resultSet.getString(4)
-    ## first, retrieve all four quads
-    queryString = """
-    SELECT ?s ?p ?o ?c
-    WHERE { { GRAPH ?c {?s ?p ?o . } } UNION  {?s ?p ?o } }
-    """
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    result = tupleQuery.evaluate();    
-    for bindingSet in result:
-        s = bindingSet['s']
-        p = bindingSet['p']
-        o = bindingSet['o']
-        c = bindingSet['c']         
-        print "%s %s %s %s" % (s, p, o, c)
-    ## first, retrieve all four quads        
-    ds = Dataset()
-    ds.addDefaultGraph(context1)
-    ds.addNamedGraph(context2)
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    tupleQuery.setDataset(ds)
-    result = tupleQuery.evaluate();    
-    print "Query with dataset:"
-    for bindingSet in result:
-        s = bindingSet['s']
-        p = bindingSet['p']
-        o = bindingSet['o']
-        c = bindingSet['c']            
-        print "%s %s %s %s" % (s, p, o, c)
     
 def test15():
     """
@@ -616,7 +577,7 @@ def test22():
    
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [9]
+    choices = [10]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

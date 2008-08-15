@@ -49,19 +49,25 @@ class Dataset:
         self.defaultGraphs = set([])
         self.namedGraphs = set([])
 
-    def __str__(self):
+    def asQuery(self, excludeNullContext):
         if not self.defaultGraphs and not self.namedGraphs:
-            return "## empty dataset ##"
+            if excludeNullContext: return ''
+            else: return "## empty dataset ##"
         sb = []
         for uri in self.defaultGraphs:
+            if uri is None and excludeNullContext: continue
             sb.append("FROM ")
             self._append_uri(sb, uri)
             sb.append(" ")
         for uri in self.namedGraphs:
+            if uri is None and excludeNullContext: continue  ## null context should not appear here
             sb.append("FROM NAMED ")
             self._append_uri(sb, uri)
             sb.append(" ")            
         return ''.join(sb)
+    
+    def __str__(self):
+        self.asQuery(False)
 
     def _append_uri(self, sb, uri):
         uriString = str(uri)

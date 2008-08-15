@@ -165,21 +165,30 @@ class TupleQueryImpl(TupleQuery, AbstractQuery):
         (resources and literals) corresponding to the variables
         or expressions in a 'select' clause (or its equivalent).
         """
+        BEHAVIOR = "default-dataset-behavior";
         ## before executing, see if there is a dataset that needs to be incorporated into the
         ## query
         query = self.queryString
         if self.getDataset():
             query = self.spliceDatasetIntoQuery(query, self.getDataset())
+            onlyNullContext = False
+            for defaultGraph in self.getDataset().getDefaultGraphs():
+                if defaultGraph is None:
+                    ## when the null context is combined with other contexts
+                    ## I have no idea what might happen; probably the null context
+                    ## is dropped on the floor   RMM
+                    onlyNullContext = True
         if self.connection:
             query = self.splicePrefixesIntoQuery(query, self.connection)
-        bindingsIt = self.direct_caller.twinqlSelect(query, None, 0, 0, self.includeInferred, [])
+        options = [BEHAVIOR, 'default'] if onlyNullContext else []
+        bindingsIt = self.direct_caller.twinqlSelect(query, None, 0, 0, self.includeInferred, options)
         return bindingsIt
     
     def spliceDatasetIntoQuery(self, query, dataset):
         """
         If 'query' has a dataset, splice its declarations into the query.
         """
-        substituteFroms = str(dataset)
+        substituteFroms = dataset.asQuery(True)
         if not substituteFroms: return query
         if not self.queryLanguage == QueryLanguage.SPARQL: return query
         lcQuery = query.lower()
