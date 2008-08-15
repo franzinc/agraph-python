@@ -5,7 +5,8 @@
 
 <style type="text/css">
 
-pre.code { margin-left:2em; }
+pre.code { margin-left:4em; }
+code.code { background-color:#ADDFFF; }
 
 </style>
 </head>
@@ -34,16 +35,16 @@ clears any previous quads in the store) (2) the host machine on which the server
 to process commands.
 
 </p>
-<pre class="code" >
-    from franz.openrdf.repository.repository import Repository
-    from franz.openrdf.sail.allegrographstore import AllegroGraphStore
+<pre class="code" ><code class="code">
+from franz.openrdf.repository.repository import Repository
+from franz.openrdf.sail.allegrographstore import AllegroGraphStore
 
-    sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
-    store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testP",
-                              sesameDir, port=4567)
-    myRepository = Repository(store)
-    myRepository.initialize()
-</pre>
+sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
+store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testP",
+                          sesameDir, port=4567)
+myRepository = Repository(store)
+myRepository.initialize()
+</code></pre>
 
 <h2>Asserting and Retracting Triples</h2>
 <p>
@@ -64,30 +65,30 @@ and retractions.  When the context is omitted, triples are asserted/retracted
 to/from the null context.  In the example below, facts about Alice and Bob
 reside in the null context.
 
-</p><pre class="code" >
-    f = myRepository.getValueFactory()
-    ## create some resources and literals to make statements out of
-    alice = f.createURI("http://example.org/people/alice")
-    bob = f.createURI("http://example.org/people/bob")
-    name = f.createURI("http://example.org/ontology/name")
-    person = f.createURI("http://example.org/ontology/Person")
-    bobsName = f.createLiteral("Bob")
-    alicesName = f.createLiteral("Alice")
+</p><pre class="code" ><code class="code">
+f = myRepository.getValueFactory()
+## create some resources and literals to make statements out of
+alice = f.createURI("http://example.org/people/alice")
+bob = f.createURI("http://example.org/people/bob")
+name = f.createURI("http://example.org/ontology/name")
+person = f.createURI("http://example.org/ontology/Person")
+bobsName = f.createLiteral("Bob")
+alicesName = f.createLiteral("Alice")
 
-    conn = myRepository.getConnection()
-    ## alice is a person
-    conn.add(alice, RDF.TYPE, person)
-    ## alice's name is "Alice"
-    conn.add(alice, name, alicesName)
-    ## bob is a person
-    conn.add(bob, RDF.TYPE, person)
-    ## bob's name is "Bob":
-    conn.add(bob, name, bobsName)
-    print "Triple count: ", conn.size()
-    conn.remove(bob, name, bobsName)
-    print "Triple count: ", conn.size()
-    conn.add(bob, name, bobsName)
-</pre>
+conn = myRepository.getConnection()
+## alice is a person
+conn.add(alice, RDF.TYPE, person)
+## alice's name is "Alice"
+conn.add(alice, name, alicesName)
+## bob is a person
+conn.add(bob, RDF.TYPE, person)
+## bob's name is "Bob":
+conn.add(bob, name, bobsName)
+print "Triple count: ", conn.size()
+conn.remove(bob, name, bobsName)
+print "Triple count: ", conn.size()
+conn.add(bob, name, bobsName)
+</code></pre>
 
 <h2>A SPARQL Query</h2>
 <p>
@@ -108,22 +109,22 @@ keep a connection open indefinitely.  However, best practice dictates that
 the connection is closed, as illustrated below.  The same hygiene applies to
 the iterators that generate binding sets.
 
-</p><pre class="code" >
+</p><pre class="code" ><code class="code">
+try:
+    queryString = "SELECT ?s ?p ?o WHERE {?s ?p ?o .}"
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();
     try:
-        queryString = "SELECT ?s ?p ?o WHERE {?s ?p ?o .}"
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        result = tupleQuery.evaluate();
-        try:
-            for bindingSet in result:
-                s = bindingSet.getValue("s")
-                p = bindingSet.getValue("p")
-                o = bindingSet.getValue("o")              
-                print "%s %s %s" % (s, p, o)
-        finally:
-            result.close();
+        for bindingSet in result:
+            s = bindingSet.getValue("s")
+            p = bindingSet.getValue("p")
+            o = bindingSet.getValue("o")          
+            print "%s %s %s" % (s, p, o)
     finally:
-        conn.close();
-</pre>
+        result.close();
+finally:
+    conn.close();
+</code></pre>
 
 <h2>Statement Matching</h2>
 <p>
@@ -148,17 +149,17 @@ the 'getString' call returns a string without creating an object.  Developers
 who care about minimizing garbage will prefer to use the 'getJDBCStatements' call,
 and they will usually call 'getString' in preference to 'getValue'.
 </p>
-<pre class="code">
-    conn = myRepository.getConnection()
-    alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
-    statements = conn.getStatements(alice, None, None, False, [])
-    for s in statements:
-        print s
+<pre class="code"><code class="code">
+conn = myRepository.getConnection()
+alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
+statements = conn.getStatements(alice, None, None, False, [])
+for s in statements:
+    print s
     print "Same thing using JDBC:"
     resultSet = conn.getJDBCStatements(alice, None, None, False, [])
-    while resultSet.next():
-        print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
-</pre>
+while resultSet.next():
+    print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
+</code></pre>
 <p>
 The last argument to 'getStatements' takes a context or a list of contexts.  If that list
 is instantiated, then only triples belonging to the enumerated contexts are
@@ -189,107 +190,107 @@ illustrate how some of these combinations perform.  Note that we illustrate an
 alternate syntax for pulling values out of a BindingSet object which takes
 advantage of the fact that our BindingSet can emulate a Python 'dict'.
 </p>
-<pre class="code">
-    conn.clear()
-    exns = "http://example.org/people/"
-    alice = f.createURI("http://example.org/people/alice")
-    age = f.createURI(namespace=exns, localname="age")
-    weight = f.createURI(namespace=exns, localname="weight")    
-    favoriteColor = f.createURI(namespace=exns, localname="favoriteColor")
-    birthdate = f.createURI(namespace=exns, localname="birthdate")
-    ted = f.createURI(namespace=exns, localname="Ted")
-    red = f.createLiteral('Red')
-    rouge = f.createLiteral('Rouge', language="fr")
-    fortyTwo = f.createLiteral('42', datatype=XMLSchema.INT)
-    fortyTwoInteger = f.createLiteral('42', datatype=XMLSchema.LONG)    
-    fortyTwoUntyped = f.createLiteral('42')
-    date = f.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
-    time = f.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME)         
-    stmt1 = f.createStatement(alice, age, fortyTwo)
-    stmt2 = f.createStatement(ted, age, fortyTwoUntyped)    
-    conn.add(stmt1)
-    conn.addStatement(stmt2)
-    conn.addTriple(alice, weight, f.createLiteral('20.5'))
-    conn.addTriple(ted, weight, f.createLiteral('20.5', datatype=XMLSchema.FLOAT))
-    conn.add(alice, favoriteColor, red)
-    conn.add(ted, favoriteColor, rouge)
-    conn.add(alice, birthdate, date)
-    conn.add(ted, birthdate, time)    
-    for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
-                red, rouge]:
-        print "Retrieve triples matching '%s'." % obj
-        statements = conn.getStatements(None, None, obj, False, None)
-        for s in statements:
-            print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
-        print "Query triples matching '%s'." % obj
-        queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
-        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
-        """ % obj
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        result = tupleQuery.evaluate();    
+<pre class="code"><code class="code">
+conn.clear()
+exns = "http://example.org/people/"
+alice = f.createURI("http://example.org/people/alice")
+age = f.createURI(namespace=exns, localname="age")
+weight = f.createURI(namespace=exns, localname="weight")
+favoriteColor = f.createURI(namespace=exns, localname="favoriteColor")
+birthdate = f.createURI(namespace=exns, localname="birthdate")
+ted = f.createURI(namespace=exns, localname="Ted")
+red = f.createLiteral('Red')
+rouge = f.createLiteral('Rouge', language="fr")
+fortyTwo = f.createLiteral('42', datatype=XMLSchema.INT)
+fortyTwoInteger = f.createLiteral('42', datatype=XMLSchema.LONG)
+fortyTwoUntyped = f.createLiteral('42')
+date = f.createLiteral('1984-12-06', datatype=XMLSchema.DATE) 
+time = f.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME) 
+stmt1 = f.createStatement(alice, age, fortyTwo)
+stmt2 = f.createStatement(ted, age, fortyTwoUntyped)
+conn.add(stmt1)
+conn.addStatement(stmt2)
+conn.addTriple(alice, weight, f.createLiteral('20.5'))
+conn.addTriple(ted, weight, f.createLiteral('20.5', datatype=XMLSchema.FLOAT))
+conn.add(alice, favoriteColor, red)
+conn.add(ted, favoriteColor, rouge)
+conn.add(alice, birthdate, date)
+conn.add(ted, birthdate, time)
+for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
+            red, rouge]:
+    print "Retrieve triples matching '%s'." % obj
+    statements = conn.getStatements(None, None, obj, False, None)
+    for s in statements:
+        print s
+for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
+    print "Query triples matching '%s'." % obj
+    queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
+    SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
+    """ % obj
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();
         for bindingSet in result:
-            s = bindingSet[0]
-            p = bindingSet[1]
-            o = bindingSet[2]
-            print "%s %s %s" % (s, p, o)
-    fortyTwoInt = f.createLiteral(42)
-    print fortyTwoInt.toPython()
-</pre>
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+fortyTwoInt = f.createLiteral(42)
+print fortyTwoInt.toPython()
+</code></pre>
 <p>
 
 <h2>Importing and Exporting Triples</h2>
 <p>
 The Python API client can load either RDF/XML files or NTriples files into
-a quad store.  The first example below calls 'Connection.add' to load from
-an RDF/XML file.  RDF/XML files can only store triples, so a context
-argument must be appended to indicate what context the triples should be added
-to.  In this example, the context has been omitted, indicating that they should
-be added to the null context.
+a quad store.  The example below calls 'Connection.add' to load from
+an NTriples file and 'Connection.addFile' to load from an RDF/XML file
+(both methods work; the latter is recommended).   NTriples and RDF/XML files can
+only store triples.  In the case of the 'add' call, we have omitted the context
+argument, so by default, the triples are loaded into the null context.  The
+'addFile' call includes an explicit context setting, so the fourth argument of
+each vcard triple will be the context named "/tutorial/vc_db_1_rdf".
+The 'Connection.size' method takes an optional context argument.  With no
+argument, it returns the total number of quads.  Below, it returns the number
+'16' for the 'context' context argument, and the number '28' for the null context
+(None) argument.
 </p>
-<pre class="code">
-    file = open("./vc-db-1.rdf")            
-    baseURI = "http://example.org/example/local"
-    try:
-        conn = myRepository.getConnection();
-        conn.clear() ## retract any existing triples
-        conn.add(file, base=baseURI, format=RDFFormat.RDFXML)
-        print "After loading, repository contains %s triples." % conn.size(None)
-        try:
-            resultSet = conn.getJDBCStatements(None, None, None, False, [])
-            while resultSet.next():
-                print resultSet.getString(1), resultSet.getString(2), resultSet.getString(3)
-        finally:
-            resultSet.close()
-    finally:
-        conn.close()
-</pre>
+<pre class="code"><code class="code">
+conn.clear()   
+path1 = "./vc-db-1.rdf"    
+path2 = "./football.nt"            
+baseURI = "http://example.org/example/local"
+location = "/tutorial/vc_db_1_rdf" 
+context = myRepository.getValueFactory().createURI(location)
+conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
+## read football triples into the null context:
+conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES)
+## read vcards triples into the context 'context':
+conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
+myRepository.indexTriples(all=True)
+print "After loading, repository contains %s vcard triples and %s football triples." % (conn.size(context), conn.size(None))
+</code></pre>
 <p>
-In this next example, we call 'Connection.addFile' to load from an NTriples file into
-a context other than the null context.
+The SPARQL query below binds a context variable '?c' to the context associated with
+each triple.  It prints out the each URI that appears in subject position, together with
+the name of the corresponding context.  The null context returns 'None'.
 </p>
-<pre class="code">
-    path = "./football.nt"            
-    baseURI = "http://example.org/example/local"
-    try:
-        conn = myRepository.getConnection();
-        conn.clear() ## retract any existing triples
-        conn.addFile(path, base=baseURI, format=RDFFormat.NTRIPLES) 
-        print "After loading, repository contains %s triples." % conn.size(None)
-        for s in conn.getStatements(None, None, None, False, []):
-            print s
-    finally:
-        conn.close()
-</pre>
+<pre class="code"><code class="code">
+conn = test6().getConnection()
+queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
+tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+result = tupleQuery.evaluate();
+for bindingSet in result:
+    print bindingSet[0], bindingSet[1]
+</code></pre>
 <p>
 
 </p>
 <h2>XXX</h2>
 <p>
 </p>
-<pre class="code">
+<pre class="code"><code class="code">
 
-</pre>
+</code></pre>
 <p>
 
 </p>
@@ -299,9 +300,9 @@ a context other than the null context.
 <h2>XXX</h2>
 <p>
 </p>
-<pre class="code">
+<pre class="code"><code class="code">
 
-</pre>
+</code></pre>
 <p>
 
 </p>

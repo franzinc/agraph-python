@@ -137,24 +137,6 @@ def test5():
     fortyTwoInt = f.createLiteral(42)
     print fortyTwoInt.toPython()
 
-def test61():
-    myRepository = test1()       
-    file = open("./vc-db-1.rdf")            
-    baseURI = "http://example.org/example/local"
-    try:
-        conn = myRepository.getConnection();
-        conn.clear() ## retract any existing triples
-        conn.add(file, base=baseURI, format=RDFFormat.RDFXML)
-        print "After loading, repository contains %s triples." % conn.size(None)
-        try:
-            resultSet = conn.getJDBCStatements(None, None, None, False)
-            while resultSet.next():
-                print resultSet.getString(1), resultSet.getString(2), resultSet.getString(3)
-        finally:
-            resultSet.close()
-    finally:
-        conn.close()
-
 def test6():
     myRepository = test1()
     conn = myRepository.getConnection()
@@ -162,56 +144,24 @@ def test6():
     path1 = "./vc-db-1.rdf"    
     path2 = "./football.nt"            
     baseURI = "http://example.org/example/local"
-    location = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/test/vc_db_1_rdf" 
+    location = "/tutorial/vc_db_1_rdf" 
     context = myRepository.getValueFactory().createURI(location)
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
-    ## read the contents vcards file into the context:
+    ## read football triples into the null context:
+    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES)
+    ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
-    conn.addFile(path2, base=baseURI, format=RDFFormat.NTRIPLES) 
     myRepository.indexTriples(all=True)
     print "After loading, repository contains %s vcard triples and %s football triples." % (conn.size(context), conn.size(None))
-    return    
-    try:
-
-        ## SEEMS TO BE FOOTBALL IN BOTH CONTEXTS.  FIGURE OUT WHY:
-        for s in conn.getStatements(None, None, None, False, context):
-                print s
-    finally:
-        conn.close()
-       
-def test7():
-    myRepository = test1() 
-    file = open("/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf")        
-    baseURI = "http://example.org/example/local"
-    try:
-        conn = myRepository.getConnection();
-        conn.add(file, base=baseURI, format=RDFFormat.RDFXML);
-        print "After loading, repository contains %s triples." % conn.size(None)         
-        queryString = "CONSTRUCT { ?s ?p ?o } WHERE {?s ?p ?o .}"
-        graphQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
-        result = graphQuery.evaluate();
-        for s in result:          
-            print s
-    finally:
-        conn.close();
+    return myRepository
         
-def test3_5():    
-    conn = test2().getConnection()
-    try:
-        queryString = "SELECT ?s ?p ?o ?c WHERE {graph ?c {?s ?p ?o .} }"
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        result = tupleQuery.evaluate();
-        try:
-            for bindingSet in result:
-                s = bindingSet.getValue("s")
-                p = bindingSet.getValue("p")
-                o = bindingSet.getValue("o")              
-                print "%s %s %s" % (s, p, o)
-        finally:
-            result.close();
-    finally:
-        conn.close();
-
+def test7():    
+    conn = test6().getConnection()
+    queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        print bindingSet[0], bindingSet[1]
 
 import urlparse
 
@@ -711,7 +661,7 @@ def test22():
    
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [6]
+    choices = [7]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
