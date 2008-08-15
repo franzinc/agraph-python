@@ -145,6 +145,8 @@ class Term2InternalManager(object):
                 ## NOT SURE IF THERE ARE MATCHES HERE OR NOT.  IF SO, WHAT ABOUT RDFS MATCHES??? - RMM
                 datatype = RDF.name2URI(mod)
             return self.value_factory.createLiteral(val, datatype=datatype)
+        elif type == 7:  ## null context
+            return None
         elif type == -1: return None  ## THIS IS AN EXPERIMENT; GAVE MUCH NICER RESULTS IN A SPARQL QUERY - RMM
         else:
             ## This produced a result that I found completely unintelligible.  It made me think there was a bug

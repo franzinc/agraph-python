@@ -287,7 +287,7 @@ class RepositoryConnection(object):
     ##        method operates on the entire repository.
     ## @param handler
     ##        The handler that will handle the RDF data.
-    def export(self, handler, contexts=None):
+    def export(self, handler, contexts=[]):
         self.exportStatements(None, None, None, False, contexts=contexts)
 
 

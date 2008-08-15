@@ -449,7 +449,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
     ##        method operates on the entire repository.
     ## @param handler
     ##        The handler that will handle the RDF data.
-    def export(self, handler, contexts):
+    def export(self, handler, contexts=[]):
         self.exportStatements(None, None, None, False, handler, contexts=contexts)
 
     def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=None):

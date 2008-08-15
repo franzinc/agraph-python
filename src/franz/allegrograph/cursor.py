@@ -230,7 +230,7 @@ class Cursor:
         elif (Cursor.regionMatchesOne(defn, 1, "X", "x") and
               Cursor.regionMatchesOne(defn, 2, "D", "d")):
                 types[i] = AGU_DEFAULT_GRAPH
-                vals[i] = "default graph"
+                vals[i] = "Null Context"
                 mods[i] = None
         elif Cursor.regionMatchesOne(defn, 1, "E", "e"):
                 br = defn.indexOf(";", 2)

@@ -47,7 +47,6 @@ class RDFXMLWriter(RDFWriter):
     
         self.prev = None
     def _catch_dup(self, stmt):
-        print "DUPER: ", stmt
         if (self.prev and
             stmt.subject == self.prev.subject and
             stmt.predicate == self.prev.predicate and

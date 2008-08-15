@@ -151,7 +151,7 @@ def test6():
     conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES)
     ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
-    myRepository.indexTriples(all=True)
+    myRepository.indexTriples(all=True, asynchronous=False)
     print "After loading, repository contains %s vcard triples and %s football triples." % (conn.size(context), conn.size(None))
     return myRepository
         
@@ -162,77 +162,32 @@ def test7():
     result = tupleQuery.evaluate();
     for bindingSet in result:
         print bindingSet[0], bindingSet[1]
+    conn.close()
 
 import urlparse
 
 def test8():
-    """
-    Asserting into a context and matching against it.
-    """
-    location = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/test/vc_db_1_rdf"      
-    url = "/Users/bmacgregor/Documents/eclipse-franz-python/agraph-python/src/sesame_test/vc-db-1.rdf"      
-    baseURI = location
-    myRepository = test1() 
+    myRepository = test6()
+    conn = myRepository.getConnection()
+    location = "/tutorial/vc_db_1_rdf" 
     context = myRepository.getValueFactory().createURI(location)
-    ## TEMPORARY:  
-    #print "NULLIFYING CONTEXT TEMPORARILY"
-    #context = None
-    ## END TEMPORARY  
-    conn = myRepository.getConnection();
-    conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
-    ## read the contents of a file into the context:
-    conn.add(url, baseURI, format=RDFFormat.RDFXML, contexts=context);
-    myRepository.indexTriples(all=True)
-    print "RDF store contains %s triples" % conn.size()
-    ## Get all statements in the context
-    statements = conn.getStatements(None, None, None, False, context)    
-    try:
-        for s in statements:
-            print s
-    finally:
-        statements.close()
-    ## Export all statements in the context to System.out, in NTriples format
-    outputFile = "/users/bmacgregor/Desktop/temp.nt"
-    outputFile = None
+    outputFile = "/tmp/temp.nt"
+    #outputFile = None
     if outputFile == None:
         print "Writing to Standard Out instead of to a file"
     ntriplesWriter = NTriplesWriter(outputFile)
     conn.export(ntriplesWriter, context);
-    outputFile2 = "/users/bmacgregor/Desktop/temp.rdf"
-    outputFile2 = None
+    outputFile2 = "/tmp/temp.rdf"
+    #outputFile2 = None
     if outputFile2 == None:
         print "Writing to Standard Out instead of to a file"
     rdfxmlfWriter = RDFXMLWriter(outputFile2)    
     conn.export(rdfxmlfWriter, context)
-    ## Remove all statements in the context from the repository
-    conn.clear(context)
-    ## Verify that the statements have been removed:
-    statements = conn.getStatements(None, None, None, False, context)    
-    try:
-        for s in statements:
-            print s
-    finally:
-        statements.close()
-   
+
 def test9():
-    test2()
-    sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
-    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
-                              sesameDir, port=4567)
-    myRepository = SailRepository(store)
-    myRepository.initialize()
-    ## TEMPORARY:
-    #store.internal_ag_store.serverTrace(True)
-    ## END TEMPORARY
-    print "Repository is up!"
+    myRepository = test6()
     conn = myRepository.getConnection()
-    statements = conn.getStatements(None, None, None, False, None)    
-    try:
-        for s in statements:
-            print s
-    finally:
-        statements.close()
-    return myRepository
+    conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
 
 def test10():
     myRepository = test1()
@@ -661,7 +616,7 @@ def test22():
    
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [7]
+    choices = [9]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

@@ -165,8 +165,6 @@ The last argument to 'getStatements' takes a context or a list of contexts.  If 
 is instantiated, then only triples belonging to the enumerated contexts are
 retrieved.  A value of 'None' denotes matching against the null context.  Above,
 we are retrieving from all contexts.
-
-<!-- TODO: TEST OUT  ", None)" VS. ", [None])" MATCHING. -->
 </p>
 The next example illustrates some variations on what we have seen so far.  First,
 observe that 'ValueFactory.createURI' can be called with one or two arguments; when
@@ -266,11 +264,20 @@ conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
 conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES)
 ## read vcards triples into the context 'context':
 conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
-myRepository.indexTriples(all=True)
+myRepository.indexTriples(all=True, asynchronous=False)
 print "After loading, repository contains %s vcard triples and %s football triples." % (conn.size(context), conn.size(None))
 </code></pre>
 <p>
-The SPARQL query below binds a context variable '?c' to the context associated with
+Whenever a significant number of updates is made to the RDF store, the method 'Connection.indexTriples'
+should be called.  In the above example, it is called after both files have been loaded.  The
+argument "all=True" tells it to (re)index all triples in the store.  The default behavior is to
+only index triples updates since the last call to 'indexTriples'.  In that case, indexing
+is quicker, but the data structures are not quite as well-organizezd.  Setting 'asynchronous=True'
+tells the server to fork a thread to index the triples.  The return from the call will be immediate,
+and indexing will conclude at some future time.
+</p>
+<p>
+The SPARQL query below binds the variable '?c' to the context associated with
 each triple.  It prints out the each URI that appears in subject position, together with
 the name of the corresponding context.  The null context returns 'None'.
 </p>
@@ -283,9 +290,40 @@ for bindingSet in result:
     print bindingSet[0], bindingSet[1]
 </code></pre>
 <p>
-
+The next examples show how to write triples out to a file.  To write triples in
+NTriples format, call 'NTriplesWriter'.  To write triples in RDF/XML format, call
+'RDFXMLWriter'.  If the output file argument is 'None', the writers write to standard
+output (try uncommenting to see that work).  The method 'Connection.export' writes
+out all triples in one or more contexts.  This provides a convenient means for making
+local backups of sections of your RDF store.  If two or more contexts are specified,
+then triples from all of those contexts will be written to the same file.  Since the
+triple are "mixed together" in the file, the context information is not recoverable.
+If the 'context' argument is omitted, all triples in the store are written out.
 </p>
-<h2>XXX</h2>
+<pre class="code"><code class="code">
+outputFile = "/tmp/temp.nt"
+#outputFile = None
+if outputFile == None:
+    print "Writing to Standard Out instead of to a file"
+ntriplesWriter = NTriplesWriter(outputFile)
+conn.export(ntriplesWriter, context);
+outputFile2 = "/tmp/temp.rdf"
+#outputFile2 = None
+if outputFile2 == None:
+    print "Writing to Standard Out instead of to a file"
+rdfxmlfWriter = RDFXMLWriter(outputFile2)    
+conn.export(rdfxmlfWriter, context)
+</code></pre>
+<p>
+Finally, if the objective is to write out a filtered set of triples,
+'Connection.exportStatements' can be called.  The example below writes
+out all type declaration triples to standard output.
+</p>
+<pre class="code"><code class="code">
+conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
+</code></pre>
+
+<h2>Contexts</h2>
 <p>
 </p>
 <pre class="code"><code class="code">
