@@ -11,10 +11,14 @@ from franz.openrdf.rio.rdfwriter import  NTriplesWriter
 from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
 
 
-import os, urllib, datetime
+import os, urllib, datetime, time
 
 CURRENT_DIRECTORY = os.getcwd() 
-    
+
+def test0():
+    for i in range(0, 5):
+        print "Hello World"
+        time.sleep(5)
 
 def test1():
     """
@@ -312,7 +316,7 @@ def test12():
 
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [12]
+    choices = [0]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
