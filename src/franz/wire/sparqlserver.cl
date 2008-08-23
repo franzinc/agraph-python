@@ -10,8 +10,8 @@
 (create-triple-store "/tmp/protocol-example") 
 (load-ntriples "sys:agraph;tutorial-files;wilburwine.ntriples")  
 (index-all-triples)  
-(make-sparql-protocol-server :start '(:port 8080))
+(make-sparql-protocol-server :start '(:port 7654))
 
 ;; example
-;; (net.aserve.client:do-http-request "http://localhost:8080/sparql"  
+;; (net.aserve.client:do-http-request "http://localhost:7654/sparql"  
 ;;        :query '((query . "SELECT ?s ?o { ?s a ?o . } LIMIT 5")))  

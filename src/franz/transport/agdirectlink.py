@@ -94,8 +94,6 @@ class AGDirectLink(object):
         client = None
         ee = None
         i = 0
-        ## TEMPORARY: 
-        print "TIMEOUT SETTING: ", self.timeout
         while client is None and i < pollCount:
             if i > 0:
                 print "poll count ", pollCount, " poll interval ", pollInterval, "  timeout ", self.timeout
@@ -103,6 +101,8 @@ class AGDirectLink(object):
                 if i > 0:
                     sleep(pollInterval)
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                #print "SOCKOPT ", sock.getsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY)
                 sock.settimeout(self.timeout)
                 if i > 0: print "HOST ", host, " PORT ", port, " TIMEOUT ", self.timeout
                 ## END HOST

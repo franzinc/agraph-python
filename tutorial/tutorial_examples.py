@@ -246,74 +246,8 @@ def test10():
     print "Query over the null context."
     for bindingSet in result:
         print bindingSet.getRow()
-
-
+    
 def test11():
-    ## Test query performance
-    myRepository = test1()
-    conn = myRepository.getConnection()
-    aminoFile = "amino.owl"
-    #aminoFile = "/Users/bmacgregor/Desktop/rdf/ciafactbook.nt"
-    print "Begin loading triples from ", aminoFile, " into AG ..."
-    conn.add(aminoFile)
-    print "Loaded ", conn.size(None), " triples."
-    count = 0         
-    print "Begin retrieval ", datetime.datetime.now()
-    beginTime = datetime.datetime.now()    
-    queryString = "SELECT ?s ?p ?o WHERE {?s ?p ?o .}"
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    #tupleQuery.setIncludeInferred(True)    ## Works, but is very slow, infers additional 44 statements
-    result = tupleQuery.evaluate();
-    elapsed = datetime.datetime.now() - beginTime
-    print "\nQuery evaluated, begin generating bindings; elapsed time ", elapsed
-    for bindingSet in result:
-#        s = bindingSet.getValue("s")
-#        p = bindingSet.getValue("p")
-#        o = bindingSet.getValue("o")              
-#        print "%s %s %s" % (s, p, o)
-        count += 1
-    elapsed = datetime.datetime.now() - beginTime
-    print "Counted %i statements; elapsed time %s" % (count, elapsed)
-    print "End retrieval ", datetime.datetime.now(), " elapsed ", elapsed
-
-
-def test12():
-    """
-    Reading from a URL
-    """
-    myRepository = test1()
-    conn = myRepository.getConnection()
-    tempAminoFile = "/tmp/myfile.rdf"
-    try:
-        websource = "http://www.co-ode.org/ontologies/amino-acid/2005/10/11/amino-acid.owl"
-        websource = "http://www.ontoknowledge.org/oil/case-studies/CIA-facts.rdf"        
-        print "Begin downloading ", websource, " triples ..."
-        fname, headers = urllib.urlretrieve(websource, tempAminoFile)
-        print "Triples in temp file"
-        tempAminoFile = open(fname) 
-    except Exception, e:
-        print "Failed ", e
-    print "Begin loading triples into AG ..."
-    conn.add(tempAminoFile)
-    print "Loaded ", conn.size(None), " triples."
-    if True:
-        outputFile = "/users/bmacgregor/Desktop/ciafactbook.nt"
-        print "Saving to ", outputFile 
-        ntriplesWriter = NTriplesWriter(outputFile)
-        conn.export(ntriplesWriter, None);   
-    count = 0
-    print "Retrieving statements ..."
-    statements = conn.getStatements(None, None, None, False, None)
-    print "Counting statements ..."
-    for s in statements:
-        count += 1
-        if (count % 50) == 0:  print '.',
-    print "Counted %i statements" % count
-    
-   
-
-    
-def test15():
     """
     Namespaces
     """
@@ -334,13 +268,9 @@ def test15():
     result = tupleQuery.evaluate();  
     print    
     for bindingSet in result:
-        s = bindingSet.getValue("s")
-        s = bindingSet.get("s")
-        p = bindingSet['p']
-        o = bindingSet[2]
-        print "%s %s %s " % (s, p, o)
+        print bindingSet[0], bindingSet[1], bindingSet[2]
 
-def test16():
+def test12():
     """
     Text search
     """
@@ -350,13 +280,19 @@ def test16():
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
     #myRepository.registerFreeTextPredicate("http://example.org/people/name")    
-    myRepository.registerFreeTextPredicate(namespace=exns, localname='name')
-    alice = f.createURI(namespace=exns, localname="alice")
-    person = f.createURI(namespace=exns, localname="Person")
-    name = f.createURI(namespace=exns, localname="name")    
-    alicename = f.createLiteral('Alice in Wonderland')
-    conn.add(alice, RDF.TYPE, person)
-    conn.add(alice, name, alicename)    
+    myRepository.registerFreeTextPredicate(namespace=exns, localname='fullname')
+    alice = f.createURI(namespace=exns, localname="alice1")
+    persontype = f.createURI(namespace=exns, localname="Person")
+    fullname = f.createURI(namespace=exns, localname="fullname")    
+    alicename = f.createLiteral('Alice B. Toklas')
+    book =  f.createURI(namespace=exns, localname="book1")
+    booktype = f.createURI(namespace=exns, localname="Book")
+    booktitle = f.createURI(namespace=exns, localname="title")    
+    wonderland = f.createLiteral('Alice in Wonderland')
+    conn.add(alice, RDF.TYPE, persontype)
+    conn.add(alice, fullname, alicename)
+    conn.add(book, RDF.TYPE, booktype)    
+    conn.add(book, booktitle, wonderland) 
     ##myRepository.indexTriples(all=True, asynchronous=True)
     conn.setNamespace('ex', exns)
     #conn.setNamespace('fti', "http://franz.com/ns/allegrograph/2.2/textindex/")    
@@ -364,220 +300,19 @@ def test16():
     SELECT ?s ?p ?o
     WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }
     """
-    #queryString = """SELECT ?s ?p ?o WHERE { ?s ?p ?o . }"""
+#    queryxxString=""" 
+#    SELECT ?s ?p ?o
+#    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
+#    """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
     print "Query results"
     for bindingSet in result:
         print bindingSet
 
-
-#select distinct ?s 
-#where {graph ?c {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.wildsemantics.com/systemworld#World> . ?s <http://www.wildsemantics.com/systemworld#name> "BooksWorld" .   } }
-#    name = f.createURI("http://example.org/ontology/name")
-#    person = f.createURI("http://example.org/ontology/Person")
-#    bobsName = f.createLiteral("Bob")
-
-def test17():
-    sesameDir = "/Users/bmacgregor/Desktop/DatastoreCrash"
-    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
-                              sesameDir, port=4567)
-    myRepository = SailRepository(store)
-    myRepository.initialize()
-    myRepository.indexTriples()
-    conn = myRepository.getConnection()
-    queryString = """
-    select distinct ?s 
-    where {?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.wildsemantics.com/systemworld#World> . 
-           ?s <http://www.wildsemantics.com/systemworld#name> "BooksWorld" .  }
-    """
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    result = tupleQuery.evaluate(); 
-    for bindingSet in result:
-        print bindingSet
-    print "Done"
-    
-def test18():
-    sesameDir = "/Users/bmacgregor/Desktop/DatastoreCrash"
-    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
-                              sesameDir, port=4567)
-    myRepository = SailRepository(store)
-    myRepository.initialize()
-    conn = myRepository.getConnection()
-    outputFile = "/users/bmacgregor/Desktop/crash.nt"
-    ntriplesWriter = NTriplesWriter(outputFile)
-    conn.export(ntriplesWriter, None) ## SHOULD BE 'context'
-
-def test19():
-    sesameDir = "/Users/bmacgregor/Desktop/DatastoreCrash"
-    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
-                              sesameDir, port=4567)
-    myRepository = SailRepository(store)
-    myRepository.initialize()
-    print "Begin indexing ..."
-    myRepository.indexTriples(all=True)
-    print " ... finished indexing"
-    conn = myRepository.getConnection()
-    queryString = """
-        select ?s ?p ?o ?c ?lac 
-        where {?s ?p ?o .  filter (?s = <http://www.wildsemantics.com/myworld#MyWall>) . 
-           optional {?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac} .
-           optional {?o <http://garbage#out> ?c} 
-         }
-    """
-    queryString = """
- 
-       select ?p ?o ?c ?lac 
-       where {<http://www.wildsemantics.com/myworld#picture_1> ?p ?o .   
-       optional {?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac} .
-       optional {?o <http://garbage#out> ?c} 
-       }  
-    """
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    print "Begin execute query ..."
-    begin = datetime.datetime.now()
-    result = tupleQuery.evaluate()
-    print " ... retrieving binding sets ..."
-    for bindingSet in result:
-        print bindingSet
-    print "Elapsed time ", datetime.datetime.now() - begin
-
-def test20():
-    sesameDir = "/Users/bmacgregor/Desktop/DatastoreCrash"
-    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
-                              sesameDir, port=4567)
-    myRepository = SailRepository(store)
-    myRepository.initialize()
-    f = myRepository.getValueFactory()
-    print "Begin indexing ..."
-    myRepository.indexTriples(all=True)
-    print " ... finished indexing"
-    conn = myRepository.getConnection()
-    s = f.createURI("http://www.wildsemantics.com/systemworld#BooksWorld_World")
-    p = f.createURI("http://www.wildsemantics.com/systemworld#inWorld")
-    o = f.createLiteral("SystemWorld")
-    c = f.createURI("http://www.wildsemantics.com/SystemWorld_context")   
-    #c = None         
-    result = conn.getStatements(s, None, o, False, c)
-    for bs in result:
-        print bs 
-
-def test21():
-    sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
-    store = AllegroGraphStore(AllegroGraphStore.ACCESS, "localhost", "testP",
-                              sesameDir, port=4567)
-    myRepository = SailRepository(store)
-    myRepository.initialize()
-    f = myRepository.getValueFactory()
-    conn = myRepository.getConnection()
-    s = f.createURI("http://www.foo#foo")
-    p = f.createURI("http://www.foo#bar")
-    o = f.createLiteral("baz")
-    c = f.createURI("http://www.foo#context")  
-#    conn.add(s, p, o, c)
-#    conn.add(s, p, o, c)
-#    conn.add(s, p, o)     
-#    conn.add(s, p, o)         
-    myRepository.indexTriples(all=True)
-    #c = None         
-    result = conn.getStatements(s, p, o, False, None)
-    for bs in result:
-        print bs 
-
-import httplib
-import urllib, urllib2
-
-def test22():
-        
-
-#    print "--------------------"
-#    print "HTTP Connect"
-#    conn = httplib.HTTP("http://localhost:4567")
-#    print "GET"
-#    conn.request("GET", "/sesame/protocol")
-#    print "GOT IT"
-#    resp = conn.getresponse()
-#    print resp.status, resp.reason
-#    data = resp.read()
-#    print data
-
-    print "URL OPEN SESAME"
-    f = urllib2.urlopen('http://localhost:4569/sesame/repositories')
-    print "read response"
-    print f.read()
-    
-    return
-
-#    print "HTTP Amazon Connect"
-#    h = httplib.HTTP('www.amazon.com/')
-#    print "GET"
-#    h.putrequest("GET", "/index.html")
-#    h.putheader('Accept', 'text/html')
-#    h.putheader('Accept', 'text/plain')
-#    h.endheaders()
-#    print "GOT IT"
-#    if True:
-#        errcode, errmsg, headers = h.getreply()
-#        print errcode, "  ", errmsg, "  ", headers
-#        if errcode in [200, 302]:
-#            f = h.getfile()
-#            print f.read() # Print the raw HTML
-            
-    print "-----------------------------"
-            
-    print "HTTP Python Connect"
-    h = httplib.HTTP('localhost:4569')
-    print "GET"
-    h.putrequest("GET", "/sesame/repositories/testP")
-    h.putheader('Accept', 'text/xml')
-    h.putheader('Accept', 'text/plain')
-    h.endheaders()
-    print "GOT IT"
-    if True:
-        errcode, errmsg, headers = h.getreply()
-        print errcode, "  ", errmsg, "  ", headers
-        if errcode == 200:
-            f = h.getfile()
-            print f.read() # Print the raw HTML
-            
-    query = """select ?s ?p ?o where {?s ?p ?o } limit 3"""
-    equery = urllib.quote(query)
-    request = """/sesame/repositories/testP?query=%s&queryLn=sparql""" % equery
-    print "REQUEST ", request
-    h.putrequest("GET", request)
-    h.putheader('Accept', 'text/xml')
-    h.putheader('Accept', 'text/plain')
-    h.endheaders()
-    print "GOT SPARQL"
-    if True:
-        errcode, errmsg, headers = h.getreply()
-        print errcode, "  ", errmsg, "  ", headers
-        if errcode == 200:
-            f = h.getfile()
-            print f.read() # Print the raw HTML
-
- 
-    print "------------- THIS FAILS  -------"
-    print "HTTP Connect"
-    conn = httplib.HTTPConnection('localhost', port='4569')
-    print "GET"
-    conn.putrequest("GET", "/sesame/repositories")
-    print "GOT IT"
-    resp = None
-    try:
-        resp = conn.getresponse()
-    except Exception, e:
-        print "Failure: ", e
-    if resp:
-        print resp.status, resp.reason
-        data = resp.read()
-        print data
-    conn.close()
-
-   
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [10]
+    choices = [12]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -593,20 +328,7 @@ if __name__ == '__main__':
         elif choice == 9: test9()                        
         elif choice == 10: test10()                            
         elif choice == 11: test11()
-        elif choice == 12: test12()        
-        elif choice == 13: test13() 
-        elif choice == 14: test14()        
-        elif choice == 15: test15()        
-        elif choice == 16: test16()        
-        elif choice == 17: test17()                               
-        elif choice == 18: test18()                                       
-        elif choice == 19: test19()                                               
-        elif choice == 20: test20()                                                       
-        elif choice == 21: test21()                                                       
-        elif choice == 22: test22()
-        elif choice == 23: test23()
-        elif choice == 24: test24()
-        elif choice == 25: test25()                                                                               
+        elif choice == 12: test12()                                                                                   
         else:
             print "No such test exists."
     

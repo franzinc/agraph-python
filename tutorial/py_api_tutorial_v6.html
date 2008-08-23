@@ -390,20 +390,112 @@ print "Query over the null context."
 for bindingSet in result:
     print bindingSet.getRow()
 </code></pre>
+
+<h2>Namespaces</h2>
 <p>
-
+A <i>namespace</i> is that portion of a URI that preceeds the last '#',
+'/', or ':' character, inclusive.  The remainder of a URI is called the
+<i>localname</i>.  For example, with respect to the URI "http://example.org/people/alice",
+the namespace is "http://example.org/people/" and the localname is "alice".
+When writing SPARQL queries, it is convenient to define prefixes or nicknames
+for the namespaces, so that abbreviated URIs can be specified.  For example,
+if we define "ex" to be a nickname for "http://example.org/people/", then the
+string "ex:alice" is a recognized abbreviation for "http://example.org/people/alice".
+This abbreviation is called a <i>qname</i>.
 </p>
-
-
-</p>
-<h2>XXX</h2>
 <p>
+In the SPARQL query in the example below, we see two qnames, "rdf:type" and
+"ex:alice".  Ordinarily, we would expect to see "PREFIX" declarations in
+SPARQL that define namespaces for the "rdf" and "ex" nicknames.  However,
+the Connection and Query machinery can do that job for you.  The
+mapping of prefixes to namespaces includes the built-in prefixes RDF, RDFS, XSD, and OWL.
+Hence, we can write "rdf:type" in a SPARQL query, and the system already knows
+its meaning.  In the case of the 'ex' prefix, we need to instruct it.  The
+method 'Connection.setNamespace' registers a new namespace.  In the example
+below, we first register the 'ex' prefix, and then submit the SPARQL query.
+It is legal, although not recommended, to redefine the built-in prefixes RDF, etc..
 </p>
 <pre class="code"><code class="code">
-
+conn.clear()
+exns = "http://example.org/people/"
+alice = f.createURI(namespace=exns, localname="alice")
+person = f.createURI(namespace=exns, localname="Person")
+conn.add(alice, RDF.TYPE, person)
+myRepository.indexTriples(all=True, asynchronous=True)
+conn.setNamespace('ex', exns)
+queryString = """
+SELECT ?s ?p ?o 
+WHERE { ?s ?p ?o . FILTER ((?p = rdf:type) && (?o = ex:Person) ) }
+"""
+tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+result = tupleQuery.evaluate();    
+for bindingSet in result:
+    print bindingSet[0], bindingSet[1], bindingSet[2]
 </code></pre>
 <p>
-
+It is worthwhile to briefly discuss performance here.  In the current
+AllegroGraph system, queries run more efficiently if constants appear inside
+of the "where" portion of a query, rather than in the "filter" portion.  For
+example, the SPARQL query below will evaluate more efficiently than the one
+in the above example.  However, in this case, you have lost the ability to
+output the constants "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and
+"http://example.org/people/alice".  Occasionally you may find it useful to
+output constants in the output of a 'select' clause; in general though,
+the above code snippet illustrates a query syntax that is discouraged.
 </p>
+<pre class="code"><code class="code">
+SELECT ?s  
+WHERE { ?s rdf:type ex:person } 
+</code></pre>
+
+<h2>Free Text Search</h2>
+<p>
+It is common for users to wish to build RDF applications that combine
+some form of "keyword search" with their queries. For example, a user
+might want to retrieve all triples for which the word "Alice" appears
+as a word within the third (object) argument to the triple.  AllegroGraph
+provides a capability for including free text matching within a SPARQL
+query.  It requires, however, that you register the predicates of triples
+that should participate in the match.  In the example below, we have
+called the method 'Repository.registerFreeTextPredicate' to the register
+the predicate "http://example.org/people/fullname".  When we execute
+our SPARQL query, it matches the "Alice" within the literal "Alice B. Toklas"
+because that literal occurs in a triple having the 'fullname' predicate,
+but it does not match the "Alice" in the literal "Alice in Wonderland"
+because the predicate for that triple is the 'booktitle' predicate.  Furthermore,
+observe that the 'fti:match' predicate takes as its first argument the
+<i>subject</i> of the matching triple, not the object.  Finally, notice
+that we did not include a prefix declaration for the 'fti' nickname.  That is
+because 'fti' included among the built-in namespace/nickname mappings.
+</p>
+<pre class="code"><code class="code">
+conn.clear()
+exns = "http://example.org/people/"
+conn.setNamespace('ex', exns)
+myRepository.registerFreeTextPredicate(namespace=exns, localname='fullname')
+alice = f.createURI(namespace=exns, localname="alice1")
+persontype = f.createURI(namespace=exns, localname="Person")
+fullname = f.createURI(namespace=exns, localname="fullname")    
+alicename = f.createLiteral('Alice B. Toklas')
+book =  f.createURI(namespace=exns, localname="book1")
+booktype = f.createURI(namespace=exns, localname="Book")
+booktitle = f.createURI(namespace=exns, localname="title")    
+wonderland = f.createLiteral('Alice in Wonderland')
+conn.add(alice, RDF.TYPE, persontype)
+conn.add(alice, fullname, alicename)
+conn.add(book, RDF.TYPE, booktype)    
+conn.add(book, booktitle, wonderland) 
+conn.setNamespace('ex', exns)
+#conn.setNamespace('fti', "http://franz.com/ns/allegrograph/2.2/textindex/")    
+queryString = """
+SELECT ?s ?p ?o
+WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }
+"""
+tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+result = tupleQuery.evaluate(); 
+print "Query results"
+for bindingSet in result:
+    print bindingSet
+</code></pre>
 
 </body>

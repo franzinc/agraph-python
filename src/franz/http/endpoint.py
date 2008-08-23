@@ -28,8 +28,7 @@ class DoHTTP:
             request.add_header('accept', 'application/rdf+ntriples')
             request.add_header('accept', 'text/rdf+n3')
             request.add_header('accept', 'application/x-turtle')
-            #request.add_header('accept', 'application/sparql-results+xml')                        
-            request.add_header('method', 'post')
+            #request.add_header('accept', 'application/sparql-results+xml')                                   
             if data:
                 response = urllib2.urlopen(request, data)
             else:

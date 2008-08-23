@@ -25,6 +25,7 @@
 from franz.openrdf.exceptions import *
 from franz.openrdf.query.query import *
 from franz.openrdf.sail.repositoryresultimpl import RepositoryResultImpl
+from franz.wire.jdbctuples import JDBCTuples
 
 #############################################################################
 ##
@@ -136,6 +137,12 @@ class GraphQueryImpl(GraphQuery, AbstractQuery):
         statementIt = self.direct_caller.twinqlFind(self.queryString, 0, 0, includeInferred=self.includeInferred, more=more)
         return statementIt
 
+## CURRENTLY, THE urllib2 CODE IS RUNNING VERY SLOWLY, SO THE 'GO_FAST'
+## SETTING IS IN FACT SLOWER.  ALSO, IT NEEDS A HYBRID SERVER TO FUNCTION,
+## WHICH HAS NOT YET BEEN FORMALLY BLESSED:
+GO_FAST = False
+from franz.wire.doquery import do_compact_query
+from franz.openrdf.query.queryresultimpl import CompactTupleQueryResultImpl
 
 class TupleQueryImpl(TupleQuery, AbstractQuery):
     def __init__(self, queryLanguage, queryString, baseURI=None):
@@ -158,20 +165,22 @@ class TupleQueryImpl(TupleQuery, AbstractQuery):
         """
         self.connection = connection
     
-    def evaluate(self):
+    def evaluate(self, jdbc=False):
         """
         Execute the embedded query against the RDF store.  Return
-        an iterator that produces for each step at uple of values
+        an iterator that produces for each step a tuple of values
         (resources and literals) corresponding to the variables
         or expressions in a 'select' clause (or its equivalent).
+        If 'jdbc', returns a JDBC-style iterator that miminizes the
+        overhead of creating response objects.        
         """
         BEHAVIOR = "default-dataset-behavior";
         ## before executing, see if there is a dataset that needs to be incorporated into the
         ## query
         query = self.queryString
+        onlyNullContext = False
         if self.getDataset():
-            query = self.spliceDatasetIntoQuery(query, self.getDataset())
-            onlyNullContext = False
+            query = self.spliceDatasetIntoQuery(query, self.getDataset())            
             for defaultGraph in self.getDataset().getDefaultGraphs():
                 if defaultGraph is None:
                     ## when the null context is combined with other contexts
@@ -180,9 +189,16 @@ class TupleQueryImpl(TupleQuery, AbstractQuery):
                     onlyNullContext = True
         if self.connection:
             query = self.splicePrefixesIntoQuery(query, self.connection)
-        options = [BEHAVIOR, 'default'] if onlyNullContext else []
-        bindingsIt = self.direct_caller.twinqlSelect(query, None, 0, 0, self.includeInferred, options)
-        return bindingsIt
+        if GO_FAST:
+            resultReader = do_compact_query(query)
+            if jdbc:
+                return JDBCTuples(resultReader, query)
+            else:
+                return CompactTupleQueryResultImpl(resultReader, query)
+        else:
+            options = [BEHAVIOR, 'default'] if onlyNullContext else []
+            bindingsIt = self.direct_caller.twinqlSelect(query, None, 0, 0, self.includeInferred, options)
+            return bindingsIt
     
     def spliceDatasetIntoQuery(self, query, dataset):
         """
@@ -214,3 +230,6 @@ class TupleQueryImpl(TupleQuery, AbstractQuery):
             query = "PREFIX %s: <%s> %s" % (ref.getPrefix(), ref.getName(), query)
         return query
 
+         
+
+        

@@ -22,7 +22,6 @@
 ##***** END LICENSE BLOCK *****
 
 from franz.openrdf.exceptions import *
-from franz.wire.jdbctuples import JDBCTuples
 
 import codecs
 
@@ -127,6 +126,7 @@ class StringsTerm:
         self.datatype = None
         self.encoded_language = None
         self.language = None
+        self.anon_id = None
         self.dictionary = dictionary
         
 #    def getNamespace(self):
@@ -139,8 +139,8 @@ class StringsTerm:
     def getLocalname(self):
         ln = self.localname
         if ln: return ln
-        ln = self.dictionary.decode_localname(self.encoded_localname)        
-        
+        ln = self.dictionary.decode_localname(self.encoded_localname) 
+
     def getString(self):
         type = self.term_type
         if type == URI_TYPE:
@@ -165,10 +165,24 @@ class StringsTerm:
             lit = '"%s"^^<%s>' % (self.literal_value, self.datatype)
             return lit
         elif type == LANGUAGE_LITERAL_TYPE:
-            return '"%s"@%s' % (self.literal_value, self.language)
+            return '"%s"@%s' % (self.literal_value, self.language)       
+        
+    def getLabel(self):
+        type = self.term_type
+        if type == URI_TYPE:
+            return self.getString()     
+        elif type == LITERAL_TYPE:
+            return self.getString()
+        elif type == TYPED_LITERAL_TYPE:
+            return self.literal_value
+        elif type == LANGUAGE_LITERAL_TYPE:
+            return self.literal_value
+        elif type == BLANK_NODE_TYPE:
+            return self.anon_id          
 
     def __str__(self):
         if self.term_type == URI_TYPE: return '|URI|' + self.getString()
+        elif self.term_type == BLANK_NODE_TYPE: return '|BLANK|' + self.getString()        
         else: return '|LIT|' + self.getString()
         
     def __repr__(self):
@@ -358,93 +372,3 @@ class ResultReader:
     
     
     
-################################################################################################
-## Debugging
-################################################################################################
-
-import datetime
-
-def test_read_file(path):
-    print "FIELD_DELIM", ord(FIELD_DELIMITER) #, FIELD_DELIMITER    
-    print "RECORD_DELIM", ord(RECORD_DELIMITER) #, RECORD_DELIMITER
-    #file = codecs.open(path, 'r', 'utf-8')
-    file = open(path) 
-    rr = ResultReader(file)
-    tuples = JDBCTuples(rr)
-    tupleCount = 0
-    beginTime = datetime.datetime.now()
-    while True:
-        more = tuples.next()
-        if not more: break
-        tupleCount += 1
-        i = 0
-        while i < tuples.getColumnCount():
-            v = tuples.getString(i)
-            i += 1
-        #print tuples.getRow()
-    elapsedTime = datetime.datetime.now() - beginTime
-    print "Retrieved %s tuples in time %s" % (tupleCount, elapsedTime)
-
-def test1():
-    paths = ["/Users/bmacgregor/Desktop/gary/swp-2e2.out",
-             "/Users/bmacgregor/Desktop/gary/swp-2e3.out",
-             "/Users/bmacgregor/Desktop/gary/swp-2e4.out",
-#             "/Users/bmacgregor/Desktop/gary/swp-1e5.out",
-#             "/Users/bmacgregor/Desktop/gary/swp-2e6.out",
-             ]
-    for p in paths:
-        test_read_file(p)
-
-def test2():
-    ## CHANGE ENCODING TO BELL, BACKUP DELIMITERS
-    for i in [2,6]:
-        input = "/Users/bmacgregor/Desktop/gary/swp-1e%i.out" % i
-        output = "/Users/bmacgregor/Desktop/gary/swp-2e%i.out" % i
-        infile = open(input)
-        outfile = open(output, 'w')
-        contents = infile.read()
-        bytes = []
-        for c in contents:
-            b = c
-            if ord(b) == ord(C1_RECORD_DELIMITER):
-                b = RECORD_DELIMITER
-            elif ord(b) == ord(C0_FIELD_DELIMITER):
-                b = FIELD_DELIMITER
-            #bytes.append(b)
-            outfile.write(b)
-#        newContents = ''.join(bytes)
-#        outfile.write(newContents)
-        outfile.flush()
-        outfile.close()
-        print "Done translating to ", output
-
-def test3():
-    ## CREATE CUT_DOWN FILES
-    input = "/Users/bmacgregor/Desktop/gary/swp-2e6.out"
-    infile = open(input)
-    contents = infile.read(810900)
-    for pair in [(3,1000),  (5, 100000)]:
-        output = "/Users/bmacgregor/Desktop/gary/swp-2e%i.out" % pair[0]
-        outfile = open(output, 'w')
-        pos = 0
-        print "Begin", len(contents)
-        for i in range(0, pair[1]):
-            nextPos = contents.find(RECORD_DELIMITER, pos)
-            #print "I", i, nextPos
-            pos = nextPos + 1
-        print "Copy to position", pos
-        outfile.write(contents[0:pos])
-        outfile.flush()
-        outfile.close()
-        print "Done creating", output
-
-    
-if __name__ == '__main__':
-    choices = [i for i in range(1,17)]
-    choices = [1]
-    for choice in choices:
-        print "\n==========================================================================="
-        print "Test Run Number ", choice, "\n"
-        if choice == 1: test1()
-        elif choice == 2: test2()
-        elif choice == 3: test3()

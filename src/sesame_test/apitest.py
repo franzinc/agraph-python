@@ -724,10 +724,31 @@ def test22():
         print data
     conn.close()
 
-   
+def test23 ():
+    sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
+    store = AllegroGraphStore(AllegroGraphStore.OPEN, "localhost", "testP",
+                              sesameDir, port=4567)
+    myRepository = SailRepository(store)
+    myRepository.initialize()
+    print "Begin indexing ..."
+    myRepository.indexTriples(all=True)
+    print " ... finished indexing"
+    conn = myRepository.getConnection()
+    queryString = """
+        select ?s ?o
+        where {?s ?p ?o . } limit 5
+    """
+    print "Begin execute queries ..."
+    begin = datetime.datetime.now()
+    for i in range (0, 1000):
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        result = tupleQuery.evaluate()
+    print "Elapsed time ", datetime.datetime.now() - begin
+
+
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [8]
+    choices = [23]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
