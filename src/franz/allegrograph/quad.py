@@ -27,8 +27,10 @@ import threading
 from franz.allegrograph.exceptions import IllegalArgumentException, IllegalStateException, AllegroGraphException
 from franz.transport.agc import *
 from franz.allegrograph.upi import UPI
+from franz.allegrograph.encodedliteral import EncodedLiteral
 from franz.openrdf.modelimpl.valueimpl import BNodeImpl, URIImpl
 from franz.openrdf.modelimpl.literalimpl import LiteralImpl
+from franz.openrdf.modelimpl.statementimpl import StatementImpl
 
 ## Value to return when an SPO value is missing:
 NO_TRIPLE = -1

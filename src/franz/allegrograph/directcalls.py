@@ -23,6 +23,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.query.queryresultimpl import TupleQueryResultImpl, GraphQueryResultImpl
+from franz.openrdf.modelimpl.literalimpl import CompoundLiteral
 from franz.allegrograph.upi import UPI
 from franz.openrdf.model.value import Value
 
@@ -98,13 +99,21 @@ class DirectCaller(object):
             ## NOT, ITS A BUG IN THE CODE:
             raise Exception("'getStatements' over multiple contexts is not yet implemented")
         mgr = self.term2InternalMgr
+        lh = 0  ## I DON"T KNOW WHAT THIS DOES - RMM
+        objectEnd = None
+        if isinstance(object, CompoundLiteral):
+            if object.isRangeLiteral():
+                objectEnd = object.getUpperBound()
+                objectEnd = mgr.openTermToInternalStringTermOrWild(objectEnd)
+                object = object.getLowerBound()
+                lh = -1  ## THIS IS STUPID, BUT I DON'T KNOW YET WHY THE LOGIC IS THIS WAY - RMM
         if includeInferred:
             return self.agDirectConnector.getInfTriples(self.internal_ag_store,
                                mgr.openTermToInternalStringTermOrWild(subject),
                                mgr.openTermToInternalStringTermOrWild(predicate),
                                mgr.openTermToInternalStringTermOrWild(object),
                                self.canonicalize_context_argument(theContext),
-                               lh = 0,
+                               lh = lh, obend = objectEnd,
                                infer=True
                                )
         else:
@@ -113,10 +122,8 @@ class DirectCaller(object):
                                mgr.openTermToAGTermOrWild(predicate),
                                mgr.openTermToAGTermOrWild(object),
                                self.canonicalize_context_argument(theContext),
-                               lh = 0,
+                               lh = lh, obend = objectEnd,
                                )
-        
-
         
 #     * Send a SPARQL SELECT query to AllegroGraph.
 #     * 

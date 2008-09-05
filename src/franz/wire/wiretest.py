@@ -83,10 +83,10 @@ def test3():
     myRepository = Repository(store)
     myRepository.initialize()
     conn = Repository(myRepository).getConnection()
-    CYCLES = 100
+    CYCLES = 1
     queryString = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        SELECT ?s  ?o  WHERE {?s rdf:first ?o .} LIMIT 5
+        SELECT ?s  ?o  WHERE {?s ?p ?o .} LIMIT 5
         """ 
     beginTime = datetime.datetime.now()
     for i in range(0, CYCLES):
@@ -120,7 +120,7 @@ def test4():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [4]
+    choices = [3]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

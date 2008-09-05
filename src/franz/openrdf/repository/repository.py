@@ -77,6 +77,16 @@ class Repository:
         """
         self.sail.registerFreeTextPredicate(uri=uri, namespace=namespace, localname=localname)
 
+    def registerInlinedDatatype(self, predicate=None, datatype=None, inlinedType=None):
+        """
+        Register an inlined datatype.  If 'predicate', then object arguments to triples
+        with that predicate will use an inlined encoding of type 'inlinedType' in their 
+        internal representation.
+        If 'datatype', then typed literal objects with a datatype matching 'datatype' will
+        use an inlined encoding of type 'inlinedType'.
+        """
+        self.sail.registerInlinedDatatype(predicate=predicate, datatype=datatype, inlinedType=inlinedType)
+
     def shutDown(self):
         """
         Shuts the repository down, releasing any resources that it keeps hold of.

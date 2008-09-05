@@ -21,11 +21,12 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.model.value import BNode, URI
+from franz.allegrograph.encodedliteral import EncodedLiteral
+from franz.openrdf.model.value import BNode, URI, Value
 from franz.openrdf.model.literal import Literal
 from franz.openrdf.model.valuefactory import ValueFactory
 from franz.openrdf.modelimpl.valueimpl import URIImpl, BNodeImpl
-from franz.openrdf.modelimpl.literalimpl import LiteralImpl
+from franz.openrdf.modelimpl.literalimpl import LiteralImpl, CompoundLiteral
 from franz.openrdf.modelimpl.statementimpl import StatementImpl
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
@@ -53,6 +54,23 @@ class ValueFactoryImpl(ValueFactory):
         """
         return BNodeImpl(None, id=nodeID, store=self.store)
     
+    def object_position_term_to_openrdf_term(self, term, predicate=None):
+        """
+        If 'term' is a string, integer, float, etc, convert it to
+        a Literal term.  Otherwise, if its a Value, just pass it through.
+        """
+        if term is None: return term
+        if isinstance(term, CompoundLiteral): return term
+        if not isinstance(term, Value):
+            term = self.createLiteral(term)
+        inlinedType = self.store.inlined_predicates.get(predicate.getURI()) if predicate else None            
+        if not inlinedType and isinstance(term, Literal) and term.datatype:
+            inlinedType = self.store.inlined_datatypes.get(term.datatype)
+        if inlinedType:
+            return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
+        else:
+            return term
+    
     def _interpret_value(self, value, datatype):
         """
         If 'self' is not a string, convert it into one, and infer its
@@ -79,9 +97,6 @@ class ValueFactoryImpl(ValueFactory):
         """
         Create a new literal with value 'value'.  'datatype' if supplied,
         should be a URI, in which case 'value' should be a string.
-        
-        TODO: CONVERTING AN INTEGER INTO A STRING IS NOT EFFICIENT.  FIND
-        OUT IF THERE IS A WAY TO AVOID THAT IN THE PROTOCOL.
         """
         value, datatype = self._interpret_value(value, datatype)
         return LiteralImpl(value, datatype=datatype, language=language, upi=upi, store=store)
@@ -98,4 +113,13 @@ class ValueFactoryImpl(ValueFactory):
         Creates a new URI from the supplied string-representation(s)
         """
         return URIImpl(uri=uri, namespace=namespace, localname=localname, store=self.store, upi=upi)
+    
+    def createRange(self, lowerBound, upperBound):
+        """
+        Create a compound literal representing a range from 'lowerBound' to 'upperBound'
+        """
+        lowerBound = self.object_position_term_to_openrdf_term(lowerBound)
+        upperBound = self.object_position_term_to_openrdf_term(upperBound)
+        return CompoundLiteral(choice=CompoundLiteral.RANGE_LITERAL, lowerBound=lowerBound, upperBound=upperBound)
+        
 

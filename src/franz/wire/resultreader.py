@@ -45,6 +45,7 @@ NEW_NAMESPACE_ENTRY = u'!"'
 NEW_LANGUAGE_ENTRY = u'!#'
 NEW_DATATYPE_ENTRY = u'!$'
 BARE_LITERAL_ENTRY = u'"!'
+NULL_VALUE_ENTRY = u'!n'
 
 NAMESPACE_ENTRY_TYPE = 11
 DATATYPE_ENTRY_TYPE = 12
@@ -60,7 +61,16 @@ class CompressionDictionary(dict):
         self[NEW_NAMESPACE_ENTRY] = (NAMESPACE_ENTRY_TYPE, None)
         self[NEW_LANGUAGE_ENTRY] = (DATATYPE_ENTRY_TYPE, None)
         self[NEW_DATATYPE_ENTRY] = (LANGUAGE_ENTRY_TYPE, None)    
-        self[BARE_LITERAL_ENTRY] = (LITERAL_TYPE, None)            
+        self[BARE_LITERAL_ENTRY] = (LITERAL_TYPE, None)
+        self[NULL_VALUE_ENTRY] = (NULL_VALUE_TYPE, None)
+
+#    def decode_localname(self, lcl):
+#        """
+#        Return the local name corresponding to the encoding 'lcl'
+#        """
+#        name = self.localname_dict.get(lcl)
+#        return name
+#    
          
 #    def decode_namespace(self, ns):
 #        """
@@ -70,13 +80,6 @@ class CompressionDictionary(dict):
 #        namespace = self.namespace_dict.get(ns)
 #        return namespace or "www.nasa.gov/miasma#"
 #
-#    def decode_localname(self, lcl):
-#        """
-#        Return the local name corresponding to the encoding 'lcl'
-#        """
-#        name = self.localname_dict.get(lcl)
-#        return name
-#    
 #    def decode_literal(self, lit):
 #        """
 #        Return the literal value corresponding to the encoding 'lit'.
@@ -106,6 +109,7 @@ BLANK_NODE_TYPE = 2
 LITERAL_TYPE = 3
 TYPED_LITERAL_TYPE = 4
 LANGUAGE_LITERAL_TYPE = 5
+NULL_VALUE_TYPE = 6
 
 class StringsTerm:
     """
@@ -136,9 +140,9 @@ class StringsTerm:
 #        self.namespace = ns
 #        return ns
     
-    def getLocalname(self):
+    def getLocalName(self):
         ln = self.localname
-        if ln: return ln
+        if not ln is None: return ln
         ln = self.dictionary.decode_localname(self.encoded_localname) 
 
     def getString(self):
@@ -147,9 +151,9 @@ class StringsTerm:
             uri = self.uri
             if uri: return uri
             ns = self.namespace
-            ln = self.getLocalname()
+            ln = self.getLocalName()
             ## TEMPORARY TO HELP DIAGNOSE BUG:
-            if not ln:
+            if ln is None:
                 return None
             ## END TEMPORARY
             uri = ns + ln
@@ -165,7 +169,7 @@ class StringsTerm:
             lit = '"%s"^^<%s>' % (self.literal_value, self.datatype)
             return lit
         elif type == LANGUAGE_LITERAL_TYPE:
-            return '"%s"@%s' % (self.literal_value, self.language)       
+            return '"%s"@%s' % (self.literal_value, self.language)
         
     def getLabel(self):
         type = self.term_type
@@ -178,11 +182,14 @@ class StringsTerm:
         elif type == LANGUAGE_LITERAL_TYPE:
             return self.literal_value
         elif type == BLANK_NODE_TYPE:
-            return self.anon_id          
+            return self.anon_id  
+#        elif type == NULL_TYPE:
+#            return ''
 
     def __str__(self):
         if self.term_type == URI_TYPE: return '|URI|' + self.getString()
-        elif self.term_type == BLANK_NODE_TYPE: return '|BLANK|' + self.getString()        
+        elif self.term_type == BLANK_NODE_TYPE: return '|BLANK|' + self.getString()
+        elif self.term_type == NULL_VALUE_TYPE: return ''     
         else: return '|LIT|' + self.getString()
         
     def __repr__(self):
@@ -200,17 +207,20 @@ RECORD_DELIMITER_LENGTH = len(RECORD_DELIMITER)
 class ResultReader:
     """
     """
-    def __init__(self, socket):
+    def __init__(self, socket, data=None):
         self.socket = socket
         self.strings_data = None
         self.cursor = 0
         self.row_terms = []
         self.term_count = -1
-        self.is_exhausted = False
         self.dictionary = CompressionDictionary()
         self.socket_is_exhausted = False
-        ## read in the first chunk of data
-        self.read_chunk()
+        if data:
+            self.strings_data = data
+            self.socket_is_exhausted = True   ## tell next call to 'read_chunk' to fail
+        else:
+            ## read in the first chunk of data
+            self.read_chunk()
         
     def get_ith_term(self, column):
         """
@@ -232,6 +242,10 @@ class ResultReader:
         pass
     
     def read_chunk(self):
+        if self.socket_is_exhausted:
+            ## handle the 'date' parameter case 
+            self.strings_data = None
+            return
         chunkSize = 8192
 #        chunkSize = 4096
 #        chunkSize = 2048        
@@ -310,7 +324,7 @@ class ResultReader:
         if strings:
             return strings
         else:
-            self.is_exhausted = True
+            self.socket_is_exhausted = True
             return None
     
     def next_row(self):
@@ -346,7 +360,7 @@ class ResultReader:
                 term.namespace = uncompressedString
                 term.localname = valueField
                 ## TEMPORARY
-                if not term.localname:
+                if term.localname is None:
                     print "BREAK ON BUG"
                 ## END TEMPORARY 
                 term.uri = None
@@ -358,6 +372,8 @@ class ResultReader:
             elif termType == LANGUAGE_LITERAL_TYPE:
                 term.language = uncompressedString
                 term.literal_value = valueField
+            elif termType == NULL_VALUE_TYPE:
+                term.literal_value = ''
             else:  ## must be a dictionary entry:
                 termCounter -= 1
                 self.dictionary.process_dictionary_field(termType, valueField)

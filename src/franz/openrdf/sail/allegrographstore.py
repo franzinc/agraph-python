@@ -24,6 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.sail.sail import Sail
+from franz.openrdf.modelimpl.valueimpl import URIImpl
 from franz.openrdf.modelimpl.valuefactoryimpl import ValueFactoryImpl
 from franz.openrdf.sail.agrepositoryconnection import AllegroGraphRepositoryConnection
 from franz.openrdf.exceptions import *
@@ -82,6 +83,8 @@ class AllegroGraphStore(Sail):
         self.is_closed = False
         self.value_factory = None
         self.term2internal = None
+        self.inlined_predicates = {}
+        self.inlined_datatypes = {}
         
 #   def __init__(self, sailStore):
 #        self.access_verb = sailStore.getAccessVerb()
@@ -139,6 +142,36 @@ class AllegroGraphStore(Sail):
         """
         uri = uri or (namespace + localname)
         self.internal_ag_store.registerFreetextPredicate("<%s>" % uri)
+        
+    def _translate_inlined_type(self, type):
+        if type == "int": return "int"
+        elif type == "datetime": return "date-time"
+        elif type == "float": return "float"
+        else:
+            raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
+                    "'int', 'float', and 'datetime'")
+        
+    def registerInlinedDatatype(self, predicate=None, datatype=None, inlinedType=None):
+        """
+        Register an inlined datatype.  If 'predicate', then object arguments to triples
+        with that predicate will use an inlined encoding of type 'inlinedType' in their 
+        internal representation.
+        If 'datatype', then typed literal objects with a datatype matching 'datatype' will
+        use an inlined encoding of type 'inlinedType'.
+        """
+        predicate = predicate.getURI() if isinstance(predicate, URIImpl) else predicate
+        datatype = datatype.getURI() if isinstance(datatype, URIImpl) else datatype
+        if predicate:
+            if not inlinedType:
+                raise IllegalArgumentException("Missing 'inlinedType' parameter in call to 'registerInlinedDatatype'")
+            lispType = self._translate_inlined_type(inlinedType)
+            mapping = [predicate, lispType, "predicate"]
+            self.inlined_predicates[predicate] = lispType
+        elif datatype:
+            lispType = self._translate_inlined_type(inlinedType or datatype)
+            mapping = [datatype, lispType, "datatype"]
+            self.inlined_datatypes[datatype] = lispType
+        self.internal_ag_store.addDataMapping(mapping)
         
     def getInternalAllegroGraph(self):
         """

@@ -205,6 +205,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         of named contexts.  Returns a RepositoryResult that produces a 'Statement'
         each time that 'next' is called.
         """
+        obj = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(obj, predicate=pred)
         if not isinstance(contexts, list):
             contexts = [contexts]
         if len(contexts) <= 1:
@@ -288,6 +289,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
             self.internal_ag_store.verifyEnabled().loadRDF(self.internal_ag_store, filePath, contextString, base, None)
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)
+        
     
     def addTriple(self, subject, predicate, object, contexts=None):
         """
@@ -298,6 +300,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         internalStore = mgr.internal_ag_store
         s = mgr.openTermToInternalStringTerm(subject)
         p = mgr.openTermToInternalStringTerm(predicate)
+        object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         o = mgr.openTermToInternalStringTerm(object)
         internalDirectConnector = internalStore.verifyEnabled()
         if contexts is None:
@@ -393,6 +396,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         internalStore = mgr.internal_ag_store
         s = mgr.openTermToInternalStringTermOrWild(subject)
         p = mgr.openTermToInternalStringTermOrWild(predicate)
+        object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         o = mgr.openTermToInternalStringTermOrWild(object)
         internalDirectConnector = internalStore.verifyEnabled()
         if contexts in [mgr.nullContextObject(), mgr.wildValue()]:

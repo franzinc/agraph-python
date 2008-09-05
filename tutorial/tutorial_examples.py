@@ -314,9 +314,34 @@ def test12():
     for bindingSet in result:
         print bindingSet
 
+def test13():
+    """
+    Range predicates
+    """
+    myRepository = test1();
+    conn = myRepository.getConnection()
+    conn.clear()
+    f = myRepository.getValueFactory()
+    exns = "http://example.org/people/"
+    conn.setNamespace('ex', exns)
+    alice = f.createURI(namespace=exns, localname="alice")
+    bob = f.createURI(namespace=exns, localname="bob")
+    carol = f.createURI(namespace=exns, localname="carol")    
+    age = f.createURI(namespace=exns, localname="age")
+    range = f.createRange(30, 50)
+    myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
+    ## THIS IS A TODO:
+    #myRepository.inlineStandardDatatypes()
+    conn.add(alice, age, 42)
+    conn.add(bob, age, 24)    
+    conn.add(carol, age, "39")        
+    rows = conn.getStatements(None, age, range, False)
+    for r in rows:
+        print r 
+
 if __name__ == '__main__':
     choices = [i for i in range(1,17)]
-    choices = [0]
+    choices = [13]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -333,6 +358,7 @@ if __name__ == '__main__':
         elif choice == 10: test10()                            
         elif choice == 11: test11()
         elif choice == 12: test12()                                                                                   
+        elif choice == 13: test13()                                                                                           
         else:
             print "No such test exists."
     

@@ -206,10 +206,6 @@ class AGDirectConnector(AGConnector):
     def getTriples(self, ag, s, p, o, c, subend=None, predend=None, obend=None, cxend=None, lh=None):
         if lh:
             return self.getTriplesInRange(ag, s, p, o, c, subend, predend, obend, cxend, lh);
-        ## else do regular 'getTriples':
-        ## fix argument overloading:
-            lh = subend
-            subend = None
         if lh < 1:
             lh = Cursor.defaultLookAhead
         v = self.tsApplyA(ag, AG_GET_TRIPLES, [s, p, o, c, lh, 1])

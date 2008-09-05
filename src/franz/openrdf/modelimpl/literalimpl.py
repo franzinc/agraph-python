@@ -99,3 +99,30 @@ class LiteralImpl(Literal):
         except AllegroGraphException, e:
             pass
         return self.language
+
+class CompoundLiteral(LiteralImpl):
+    """
+    A compound literal represents a range, a geospatial coordinate,
+    or other useful compound structure.
+    TODO: FIGURE OUT SYNTAX FOR OTHER TYPES. INSURE THAT
+    THE SYNTAX FOR A RANGE DOESN'T CONFLICT/OVERLAP
+    """
+    RANGE_LITERAL = 'rangeLiteral'
+    def __init__(self, choice, lowerBound=None, upperBound=None):
+        self.choice = choice
+        if choice == CompoundLiteral.RANGE_LITERAL:
+            self.lowerBound = lowerBound # should be a LiteralImpl
+            self.upperBound = upperBound # should be a LiteralImpl
+        ## other compound types go here.
+        else:
+            raise IllegalArgumentException("Can't interpret the choice '%s' of a compound literal." % choice)
+    
+    def isRangeLiteral(self):
+        return self.choice == CompoundLiteral.RANGE_LITERAL
+    
+    def getLowerBound(self):
+        return self.lowerBound
+    
+    def getUpperBound(self):
+        return self.upperBound
+    

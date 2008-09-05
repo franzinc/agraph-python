@@ -5,12 +5,12 @@ from franz.allegrograph.exceptions import IllegalStateException
 from franz.openrdf.modelimpl.literalimpl import LiteralImpl
 
 class EncodedLiteral(LiteralImpl):
-    """ generated source for EncodedLiteral
-
+    """ 
+    Create an inlined Literal.
     """
     #def __init__(self, ts, value, newEncoding):
     def __init__(self, value=None, encoding=None, store=None):
-        super(EncodedLiteral, self).__init__(store=store)
+        super(EncodedLiteral, self).__init__(value, store=store)
         self.encoding = encoding
         if isinstance(value, (int, long)):
             self.longValue = value
