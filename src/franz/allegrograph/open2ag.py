@@ -22,6 +22,7 @@
 ##***** END LICENSE BLOCK *****
 
 
+from franz.allegrograph.encodedliteral import EncodedLiteral
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import BNode, URI
 from franz.openrdf.model.literal import Literal
@@ -89,6 +90,8 @@ class Term2InternalManager(object):
         elif isinstance(term, URI):
             ## return string prefixed with URI marker
             return self.internal_ag_store.uriToAGStringTerm(str(term))
+        elif isinstance(term, EncodedLiteral):
+            return self.internal_ag_store.validRefEnc(term)
         elif isinstance(term, Literal):
             lang = term.getLanguage() or None ## convert empty string to None
             type = str(term.getDatatype()) if term.getDatatype() else None

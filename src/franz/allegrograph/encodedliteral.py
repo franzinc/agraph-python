@@ -12,6 +12,7 @@ class EncodedLiteral(LiteralImpl):
     def __init__(self, value=None, encoding=None, store=None):
         super(EncodedLiteral, self).__init__(value, store=store)
         self.encoding = encoding
+        print "BUG HERE -- ENCODED LITERAL DOESN'T UNDERSTAND XSD DATATYPES!!!"
         if isinstance(value, (int, long)):
             self.longValue = value
             self.rawType = 0  # 0-long  1-double  2-string
@@ -19,7 +20,7 @@ class EncodedLiteral(LiteralImpl):
             self.doubleValue = value
             self.rawType = 1  # 0-long  1-double  2-string
         else:
-            self.stringValue = value
+            self.storedStringValue = value
             self.rawType = 2
 
     def getEncoding(self):
@@ -33,7 +34,7 @@ class EncodedLiteral(LiteralImpl):
         elif self.rawType == 1:
             return float(self.doubleValue)  ## guessing that 'float' is OK; was 'Double' in Java
         else:
-            return self.stringValue
+            return self.storedStringValue
 
     def stringValue(self):
         if self.rawType == 0:
@@ -41,7 +42,7 @@ class EncodedLiteral(LiteralImpl):
         elif self.rawType == 1:
             return "D" + self.doubleValue
         elif self.rawType == 2:
-            return "S" + self.stringValue
+            return "S" + self.storedStringValue
         raise IllegalStateException("bad rawType " + self.rawType)
 
     def add(self):
