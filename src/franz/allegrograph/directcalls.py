@@ -25,6 +25,7 @@ from franz.openrdf.exceptions import *
 from franz.openrdf.query.queryresultimpl import TupleQueryResultImpl, GraphQueryResultImpl
 from franz.openrdf.modelimpl.literalimpl import CompoundLiteral
 from franz.allegrograph.upi import UPI
+from franz.allegrograph.encodedliteral import EncodedLiteral
 from franz.openrdf.model.value import Value
 
 #class SelectTupleResultsIterator(object):
@@ -104,8 +105,13 @@ class DirectCaller(object):
         if isinstance(object, CompoundLiteral):
             if object.isRangeLiteral():
                 objectEnd = object.getUpperBound()
-                objectEnd = mgr.openTermToInternalStringTermOrWild(objectEnd)
                 object = object.getLowerBound()
+                predicateURI = predicate.getURI()
+                inlinedType = self.term2InternalMgr.value_factory.store.inlined_predicates.get(predicateURI)
+                if inlinedType:
+                    object = EncodedLiteral.literal_to_inlined_literal(object, inlinedType)
+                    objectEnd = EncodedLiteral.literal_to_inlined_literal(objectEnd, inlinedType)
+                objectEnd = mgr.openTermToInternalStringTermOrWild(objectEnd)
                 lh = -1  ## THIS IS STUPID, BUT I DON'T KNOW YET WHY THE LOGIC IS THIS WAY - RMM
         if includeInferred:
             return self.agDirectConnector.getInfTriples(self.internal_ag_store,

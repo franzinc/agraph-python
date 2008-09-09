@@ -12,16 +12,26 @@ class EncodedLiteral(LiteralImpl):
     def __init__(self, value=None, encoding=None, store=None):
         super(EncodedLiteral, self).__init__(value, store=store)
         self.encoding = encoding
-        print "BUG HERE -- ENCODED LITERAL DOESN'T UNDERSTAND XSD DATATYPES!!!"
-        if isinstance(value, (int, long)):
-            self.longValue = value
-            self.rawType = 0  # 0-long  1-double  2-string
-        elif isinstance(value, float):
-            self.doubleValue = value
-            self.rawType = 1  # 0-long  1-double  2-string
+        if encoding:
+            if encoding == 'int' or encoding == 'long':
+                self.longValue = int(value)
+                self.rawType = 0  # 0-long  1-double  2-string
+            elif encoding == 'float':
+                self.doubleValue = float(value)
+                self.rawType = 1  # 0-long  1-double  2-string
+            if encoding == 'string':
+                self.storedStringValue = str(value)
+                self.rawType = 2  # 0-long  1-double  2-string
         else:
-            self.storedStringValue = value
-            self.rawType = 2
+            if isinstance(value, (int, long)):
+                self.longValue = value
+                self.rawType = 0  # 0-long  1-double  2-string
+            elif isinstance(value, float):
+                self.doubleValue = value
+                self.rawType = 1  # 0-long  1-double  2-string
+            else:
+                self.storedStringValue = value
+                self.rawType = 2
 
     def getEncoding(self):
         "Get the encoding used for this literal value."
@@ -38,9 +48,9 @@ class EncodedLiteral(LiteralImpl):
 
     def stringValue(self):
         if self.rawType == 0:
-            return "N" + self.longValue
+            return "N" + str(self.longValue)
         elif self.rawType == 1:
-            return "D" + self.doubleValue
+            return "D" + str(self.doubleValue)
         elif self.rawType == 2:
             return "S" + self.storedStringValue
         raise IllegalStateException("bad rawType " + self.rawType)
@@ -52,9 +62,15 @@ class EncodedLiteral(LiteralImpl):
         self.upi = v[0]
 
     def __str__(self):
-        return "<Literal " + self.upi + " " + self.label + " :" + self.encoding + ">"
+        ##return "<Literal " + " " + self.label + " :" + str(self.encoding) + ">"
+        return '"%s"' % self.label if self.encoding == 'string' else self.label
 
     def getLanguage(self):
         return
+    
+    @staticmethod
+    def literal_to_inlined_literal(literal, inlinedType):
+        inLit = EncodedLiteral(literal.getLabel(), encoding=inlinedType)
+        return inLit
 
 

@@ -95,6 +95,11 @@ class Term2InternalManager(object):
         elif isinstance(term, Literal):
             lang = term.getLanguage() or None ## convert empty string to None
             type = str(term.getDatatype()) if term.getDatatype() else None
+            if type:
+                inlinedType = self.value_factory.store.inlined_datatypes.get(type)
+                if inlinedType:  ## oops, this should be an EncodedLiteral, converted to String
+                    inLit = EncodedLiteral.literal_to_inlined_literal(term, inlinedType)
+                    return self.internal_ag_store.validRefEnc(inLit)
             return self.internal_ag_store.literalToAGStringTerm(term.getLabel(), lang, type)
         elif term is None and noneOK: return None
         else: raise IllegalArgumentException("Null term passed to 'openTermToAGTerm")

@@ -233,7 +233,7 @@ class Cursor:
                 vals[i] = "Null Context"
                 mods[i] = None
         elif Cursor.regionMatchesOne(defn, 1, "E", "e"):
-                br = defn.indexOf(";", 2)
+                br = defn.find(";", 2)
                 if br < 4:
                     raise IllegalArgumentException("Ill-formed node ref(c) " + defn)
                 mods[i] = defn[2:br]

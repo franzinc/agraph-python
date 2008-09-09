@@ -35,7 +35,7 @@ from franz.openrdf.modelimpl.statementimpl import StatementImpl
 ## Value to return when an SPO value is missing:
 NO_TRIPLE = -1
 
-class Quad:
+class Quad(object):
     """
     Historical note: Carves out logic that was previously replicated in Cursor and Triple
     """
@@ -313,15 +313,15 @@ class Quad:
                 ## THIS IS PROBABLY THE AG StatementImpl, WHICH WE HAVE PHASED OUT - RMM
                 return StatementImpl(self, idn, None, None, None)
         elif component_type == AGU_ENCODED_STRING:
-            newInstance = EncodedLiteral(self, label, mod)
+            newInstance = EncodedLiteral(label, mod, self.internal_ag_store)
             newInstance.nodeUPI = upi
             return newInstance
         elif component_type == AGU_ENCODED_INTEGER:
-            newInstance = EncodedLiteral(self, long(label), mod)
+            newInstance = EncodedLiteral(long(label), mod, self.internal_ag_store)
             newInstance.nodeUPI = upi
             return newInstance
         elif component_type == AGU_ENCODED_FLOAT:
-            newInstance = EncodedLiteral(self, float(label), mod)
+            newInstance = EncodedLiteral(float(label), mod, self.internal_ag_store)
             newInstance.nodeUPI = upi
             return newInstance
         else:
@@ -359,6 +359,9 @@ class Quad:
     ##################################################################################
     ##  Debugging
     ##################################################################################
+    
+    def atTriple(self):
+        return not self.id == NO_TRIPLE
 
     ##@synchronized(mlock)
     def __str__(self):
@@ -373,6 +376,7 @@ class Quad:
         return "<Cursor " + triple + " " + ns + " next>"
 
     def showPart(self, val, type, mod, upi):
+        print "SHOW PART", val, "TYPE", type, mod
         if type == 1:
             return "_:blank" + val
         elif type == 2:
