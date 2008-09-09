@@ -44,7 +44,7 @@ class ValueImpl(Value):
             if UPI.can_reference(xid) and UPI.can_reference(yid):
                 if xid == yid:
                     return 1
-                return 0 ## zero apparently means "I don't know"
+            return 0 ## zero apparently means "I don't know"
         return -1
 
 

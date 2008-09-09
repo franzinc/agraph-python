@@ -119,7 +119,7 @@ class RepositoryConnection(object):
 #    ##         @link RepositoryException when an error when a problem occurs
 #    ##         during retrieval.
     #RepositoryResult<Statement> 
-    def getStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
+    def getStatements(self, subj, pred,  obj, contexts=[], includeInferred):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -128,7 +128,7 @@ class RepositoryConnection(object):
         """
         raise UnimplementedMethodException("getStatements")
 
-    def getJDBCStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
+    def getJDBCStatements(self, subj, pred,  obj, contexts=[], includeInferred=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set

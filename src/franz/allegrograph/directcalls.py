@@ -26,6 +26,7 @@ from franz.openrdf.query.queryresultimpl import TupleQueryResultImpl, GraphQuery
 from franz.openrdf.modelimpl.literalimpl import CompoundLiteral
 from franz.allegrograph.upi import UPI
 from franz.allegrograph.encodedliteral import EncodedLiteral
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 from franz.openrdf.model.value import Value
 
 #class SelectTupleResultsIterator(object):
@@ -86,6 +87,27 @@ class DirectCaller(object):
         """
         return self.agDirectConnector.numberOfTriples(self.internal_ag_store)
     
+    def _insure_encoded_literal(self, lit, predicate):
+        """
+        Things will break if we don't return an encoded literal.
+        """
+        if isinstance(lit, EncodedLiteral): return lit
+        predicateURI = predicate.getURI()
+        inlinedType = self.term2InternalMgr.value_factory.store.inlined_predicates.get(predicateURI)
+        if inlinedType:
+            return EncodedLiteral.literal_to_inlined_literal(lit, inlinedType)
+        ## otherwise, see if there is a datatype conversion
+        datatype = lit.getDatatype()
+        if datatype:
+            if datatype == XMLSchema.INT or datatype == XMLSchema.LONG:
+                return EncodedLiteral.literal_to_inlined_literal(lit, 'int')
+            elif datatype == XMLSchema.FLOAT or datatype == XMLSchema.DOUBLE:
+                return EncodedLiteral.literal_to_inlined_literal(lit, 'float')
+        ## we're doomed:
+        ## NEED TO FIGURE OUT WHAT THE RIGHT RESPONSE IS HERE:
+        print "DOOOOOOOOOOOOOM", lit
+        return lit            
+    
     def getTriples(self, subject, predicate, object, contexts, includeInferred=False):
         """
         """
@@ -104,13 +126,9 @@ class DirectCaller(object):
         objectEnd = None
         if isinstance(object, CompoundLiteral):
             if object.isRangeLiteral():
-                objectEnd = object.getUpperBound()
-                object = object.getLowerBound()
-                predicateURI = predicate.getURI()
-                inlinedType = self.term2InternalMgr.value_factory.store.inlined_predicates.get(predicateURI)
-                if inlinedType:
-                    object = EncodedLiteral.literal_to_inlined_literal(object, inlinedType)
-                    objectEnd = EncodedLiteral.literal_to_inlined_literal(objectEnd, inlinedType)
+                ## insure that 'object' and 'objectEnd' are inlined literals:
+                objectEnd = self._insure_encoded_literal(object.getUpperBound(), predicate)
+                object = self._insure_encoded_literal(object.getLowerBound(), predicate)
                 objectEnd = mgr.openTermToInternalStringTermOrWild(objectEnd)
                 lh = -1  ## THIS IS STUPID, BUT I DON'T KNOW YET WHY THE LOGIC IS THIS WAY - RMM
         if includeInferred:

@@ -92,11 +92,11 @@ def test4():
     myRepository = test2()
     conn = myRepository.getConnection()
     alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
-    statements = conn.getStatements(alice, None, None, True, [])
+    statements = conn.getStatements(alice, None, None, [], includeInferred=True)
     for s in statements:
         print s
     print "Same thing using JDBC:"
-    resultSet = conn.getJDBCStatements(alice, None, None, True, [])
+    resultSet = conn.getJDBCStatements(alice, None, None, [], includeInferred=True)
     while resultSet.next():
         #print resultSet.getRow()
         print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
@@ -120,16 +120,16 @@ def test5():
         conn.add("./vc-db-1.rdf", base=baseURI, format=RDFFormat.RDFXML); 
         print "After loading, repository contains %s triples." % conn.size(None)
         try:
-            for s in conn.getStatements(None, None, None, True, []):
+            for s in conn.getStatements(None, None, None, [], includeInferred=True):
                 print s
              
 #            print "\n\nAnd here it is JDBC-style"
-#            resultSet = conn.getJDBCStatements(None, None, None, False, [])
+#            resultSet = conn.getJDBCStatements(None, None, None, [])
 #            while resultSet.next():
 #                print resultSet.getRow()
                 
             print "\n\nAnd here it is without the objects"
-            resultSet = conn.getJDBCStatements(None, None, None, True, [])
+            resultSet = conn.getJDBCStatements(None, None, None, [], includeInferred=True)
             while resultSet.next():
                 print resultSet.getString(1), resultSet.getString(2), resultSet.getString(3)
 
@@ -198,7 +198,7 @@ def test8():
     myRepository.indexTriples(all=True)
     print "RDF store contains %s triples" % conn.size()
     ## Get all statements in the context
-    statements = conn.getStatements(None, None, None, False, context)    
+    statements = conn.getStatements(None, None, None, context)    
     try:
         for s in statements:
             print s
@@ -220,7 +220,7 @@ def test8():
     ## Remove all statements in the context from the repository
     conn.clear(context)
     ## Verify that the statements have been removed:
-    statements = conn.getStatements(None, None, None, False, context)    
+    statements = conn.getStatements(None, None, None, context)    
     try:
         for s in statements:
             print s
@@ -239,7 +239,7 @@ def test9():
     ## END TEMPORARY
     print "Repository is up!"
     conn = myRepository.getConnection()
-    statements = conn.getStatements(None, None, None, False, None)    
+    statements = conn.getStatements(None, None, None, None)    
     try:
         for s in statements:
             print s
@@ -263,7 +263,7 @@ def test10():
     ##statements = conn.getStatements(None, None, glutamine, True, None)
     print "Begin retrieval ", datetime.datetime.now()
     beginTime = datetime.datetime.now()    
-    statements = conn.getStatements(None, None, None, False, None)
+    statements = conn.getStatements(None, None, None, None)
     elapsed = datetime.datetime.now() - beginTime
     print "Retrieval took %s milliseconds" % elapsed
     print "Begin counting statements ... ", datetime.datetime.now()
@@ -278,7 +278,7 @@ def test10():
     
     print "Begin JDBC retrieval ", datetime.datetime.now()
     beginTime = datetime.datetime.now()    
-    resultSet = conn.getJDBCStatements(None, None, None, False, [])
+    resultSet = conn.getJDBCStatements(None, None, None, [])
     count = 0
     while resultSet.next():
         #print s
@@ -344,7 +344,7 @@ def test12():
         conn.export(ntriplesWriter, None);   
     count = 0
     print "Retrieving statements ..."
-    statements = conn.getStatements(None, None, None, False, None)
+    statements = conn.getStatements(None, None, None, None)
     print "Counting statements ..."
     for s in statements:
         count += 1
@@ -386,7 +386,7 @@ def test13():
     for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
                 red, rouge]:
         print "Retrieve triples matching '%s'." % obj
-        statements = conn.getStatements(None, None, obj, False, None)
+        statements = conn.getStatements(None, None, obj, None)
         for s in statements:
             print s
     for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
@@ -427,11 +427,11 @@ def test14():
     conn.add(bob, RDF.TYPE, person, context2)
     conn.add(bob, name, bobsName, context2)
     ##
-    statements = conn.getStatements(None, None, None, False, [context1, context2])
+    statements = conn.getStatements(None, None, None, [context1, context2])
     print "getStatements:"
     for s in statements:
         print s
-    resultSet = conn.getJDBCStatements(None, None, None, False, [context1, context2])
+    resultSet = conn.getJDBCStatements(None, None, None, [context1, context2])
     print "getJDBCStatements:"
     while resultSet.next():
         print resultSet.getString(1), resultSet.getString(2), resultSet.getString(3), resultSet.getString(4)
@@ -608,7 +608,7 @@ def test20():
     o = f.createLiteral("SystemWorld")
     c = f.createURI("http://www.wildsemantics.com/SystemWorld_context")   
     #c = None         
-    result = conn.getStatements(s, None, o, False, c)
+    result = conn.getStatements(s, None, o, c)
     for bs in result:
         print bs 
 
@@ -630,7 +630,7 @@ def test21():
 #    conn.add(s, p, o)         
     myRepository.indexTriples(all=True)
     #c = None         
-    result = conn.getStatements(s, p, o, False, None)
+    result = conn.getStatements(s, p, o, None)
     for bs in result:
         print bs 
 

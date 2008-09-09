@@ -155,7 +155,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         if contexts == []:
             return self.directCaller.numberOfTriples()
         else:
-            resultSet = self.getJDBCStatements(None, None, None, False, contexts)
+            resultSet = self.getJDBCStatements(None, None, None, contexts)
             count = 0
             while resultSet.next():
                 count += 1
@@ -198,7 +198,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
 #     *         {@link RepositoryException} when an error when a problem occurs
 #     *         during retrieval.
     #RepositoryResult<Statement> 
-    def getStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
+    def getStatements(self, subj, pred,  obj, contexts=[], includeInferred=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -219,7 +219,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
                 cursors.append(cursor)
             return CompoundRepositoryResultImpl(cursors)
 
-    def getJDBCStatements(self, subj, pred,  obj, includeInferred, contexts=[]):
+    def getJDBCStatements(self, subj, pred,  obj, contexts=[], includeInferred=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -463,7 +463,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         for prefix, name in self._get_namespaces_map().iteritems():
             handler.handleNamespace(prefix, name)
-        statements = self.getStatements(subj, pred, obj, includeInferred, contexts)
+        statements = self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
         handler.export(statements)
       
     

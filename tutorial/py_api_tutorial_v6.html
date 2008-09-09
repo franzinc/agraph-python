@@ -152,11 +152,11 @@ and they will usually call 'getString' in preference to 'getValue'.
 <pre class="code"><code class="code">
 conn = myRepository.getConnection()
 alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
-statements = conn.getStatements(alice, None, None, False, [])
+statements = conn.getStatements(alice, None, None, [])
 for s in statements:
     print s
     print "Same thing using JDBC:"
-    resultSet = conn.getJDBCStatements(alice, None, None, False, [])
+    resultSet = conn.getJDBCStatements(alice, None, None, [])
 while resultSet.next():
     print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
 </code></pre>
@@ -217,7 +217,7 @@ conn.add(ted, birthdate, time)
 for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
             red, rouge]:
     print "Retrieve triples matching '%s'." % obj
-    statements = conn.getStatements(None, None, obj, False, None)
+    statements = conn.getStatements(None, None, obj, None)
     for s in statements:
         print s
 for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
@@ -356,11 +356,11 @@ conn.add(bob, RDF.TYPE, person, context2)
 conn.add(bob, name, bobsName, context2)
 conn.add(ted, RDF.TYPE, person)
 conn.add(ted, name, bobsName)
-statements = conn.getStatements(None, None, None, False)
+statements = conn.getStatements(None, None, None, None)
 print "All triples in all contexts:"
 for s in statements:
     print s
-statements = conn.getStatements(None, None, None, False, [context1, context2])
+statements = conn.getStatements(None, None, None, [context1, context2])
 print "Triples in contexts 1 and 2:"
 for s in statements:
     print s

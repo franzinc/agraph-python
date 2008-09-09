@@ -79,11 +79,11 @@ def test4():
     myRepository = test2()
     conn = myRepository.getConnection()
     alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
-    statements = conn.getStatements(alice, None, None, False)
+    statements = conn.getStatements(alice, None, None)
     for s in statements:
         print s
     print "Same thing using JDBC:"
-    resultSet = conn.getJDBCStatements(alice, None, None, False)
+    resultSet = conn.getJDBCStatements(alice, None, None)
     while resultSet.next():
         #print resultSet.getRow()
         print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
@@ -123,7 +123,7 @@ def test5():
     for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
                 red, rouge]:
         print "Retrieve triples matching '%s'." % obj
-        statements = conn.getStatements(None, None, obj, False)
+        statements = conn.getStatements(None, None, obj)
         for s in statements:
             print s
     for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
@@ -217,11 +217,11 @@ def test10():
     conn.add(bob, name, bobsName, context2)
     conn.add(ted, RDF.TYPE, person)
     conn.add(ted, name, bobsName)
-    statements = conn.getStatements(None, None, None, False)
+    statements = conn.getStatements(None, None, None)
     print "All triples in all contexts:"
     for s in statements:
         print s
-    statements = conn.getStatements(None, None, None, False, [context1, context2])
+    statements = conn.getStatements(None, None, None, [context1, context2])
     print "Triples in contexts 1 and 2:"
     for s in statements:
         print s
@@ -335,12 +335,12 @@ def test13():
     conn.add(alice, age, 42)
     conn.add(bob, age, 24)    
     conn.add(carol, age, "39")        
-    rows = conn.getStatements(None, age, range, False)
+    rows = conn.getStatements(None, age, range)
     for r in rows:
         print r 
 
 if __name__ == '__main__':
-    choices = [i for i in range(1,17)]
+    choices = [i for i in range(1,14)]
     choices = [13]
     for choice in choices:
         print "\n==========================================================================="
