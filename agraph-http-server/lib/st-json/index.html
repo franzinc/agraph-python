@@ -1,0 +1,177 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <style type="text/css">
+    body { max-width: 50em; font-family: georgia, times, serif; margin: 3em; }
+    h1, h2 { font-weight: normal; }
+    p.def { margin-top: 1.5em; font-family: courier; }
+    p.def span { color: #555555; font-weight: bold; font-family: tahoma, sans-serif; font-size: 80%; }
+    p.desc { margin-left: 1em; }
+    pre { margin-left: 1em; }
+
+    h1 { color: #2B7; }
+    h2 { color: #B72; font-size: 130% }
+    a:link { color: #72B; }
+    a:visited { color: #548; }
+  </style>
+  <title>ST-JSON</title>
+</head>
+<body>
+  <h1>ST-JSON</h1>
+
+  <p>ST-JSON ('ST' because it originated at <a
+  href="http://streamtech.nl">Streamtech</a>) is a Common Lisp library
+  for encoding and decoding JSON values (as specified on <a
+  href="http://json.org">json.org</a>).</p>
+
+  <p>This library does mostly the same thing as <a
+  href="http://common-lisp.net/project/cl-json/">CL-JSON</a>, but is
+  simpler and more precise about types (distinguishing boolean false,
+  the empty array, and the empty object).</p>
+
+  <h2>Download and installation</h2>
+
+  <p>The library is available under a <a href="LICENSE">BSD-ish</a>
+  license. It can be installed with <a
+  href="http://www.cliki.net/ASDF-Install">asdf-install</a>, or you
+  can download the current <a
+  href="http://marijn.haverbeke.nl/st-json/st-json.tgz">release</a>
+  manually. The <a href="http://darcs.net">darcs</a> <a
+  href="http://marijn.haverbeke.nl/darcsweb.cgi?r=st-json">repository</a>
+  can be checked out with:</p>
+
+  <pre>darcs get http://marijn.haverbeke.nl/st-json</pre>
+
+  <h2>Support</h2>
+
+  <p>Mail <a href="mailto:marijnh@gmail.com">Marijn Haverbeke</a> with
+  any questions, bug reports, patches, etcetera. I'll set up some
+  mailing list when there is a need.</p>
+
+  <h2>Documentation</h2>
+
+  <p>ST-JSON maps JavaScript numbers to Lisp numbers, strings to
+  strings, null to the keyword <code>:null</code>, booleans to the
+  keywords <code>:true</code> and <code>:false</code>, arrays to
+  lists, and objects to a custom type <code>jso</code> (JavaScript
+  object). Since in CL boolean false, the empty list, and nullish
+  stuff is all usually represented by <code>nil</code>, you will
+  sometimes have to selectively transform your values before writing
+  or after reading them. (The empty array is a truthy value in
+  JavaScript, so writing out <code>nil</code> for a boolean is bound
+  to get you into trouble.)</p>
+
+  <p class="def" id="json-bool">
+    <span>type</span> json-bool
+  </p>
+
+  <p class="desc">A type including only the values <code>:true</code>
+  and <code>:false</code>. Useful in <a
+  href="#read-json-as-type"><code>read-json-as-type</code></a> and
+  similar.</p>
+
+  <p class="def" id="as-json-bool">
+    <span>function</span> as-json-bool (value)
+    <br/>&#8594; json-bool
+  </p>
+
+  <p class="desc">Convert a generalised boolean to a <a
+  href="#json-bool"><code>json-bool</code></a>.</p>
+
+  <p class="def" id="from-json-bool">
+    <span>function</span> from-json-bool (value)
+    <br/>&#8594; bool
+  </p>
+
+  <p class="desc">Convert a <a
+  href="#json-bool"><code>json-bool</code></a> to a Lisp boolean.</p>
+
+  <p class="def" id="json-null">
+    <span>type</span> json-null
+  </p>
+
+  <p class="desc">A type containing only <code>:null</code>.</p>
+
+  <p class="def" id="jso">
+    <span>function</span> jso (&amp;rest fields)
+    <br/>&#8594; jso
+  </p>
+
+  <p class="desc"><code>jso</code> names both a function and a type.
+  This type is used to represent JavaScript objects. It simply wraps
+  an alist. The function is called with an even number or arguments,
+  which give the properties of the object and their values.</p>
+
+  <p class="def" id="getjso">
+    <span>function</span> getjso (key jso)
+    <br/>&#8594; value
+  </p>
+
+  <p class="desc">Looks up a value in a JavaScript object, returns a
+  second value indicating whether the value was found (like
+  <code>gethash</code>). Can be used with <code>setf</code>.</p>
+
+  <p class="def" id="mapjso">
+    <span>function</span> mapjso (function jso)
+  </p>
+
+  <p class="desc"><code>maphash</code> equivalent for JavaScript
+  objects.</p>
+
+  <p class="def" id="read-json">
+    <span>method</span> read-json (source &amp;optional junk-allowed-p)
+    <br/>&#8594; value
+  </p>
+
+  <p class="desc">Reads a JSON value from an input stream or string.
+  When <code>junk-allowed-p</code> is <code>nil</code>, an error will
+  be raised if any non-whitespace characters are found after the
+  value. This error, and any other parsing errors, will have the type
+  <code>json-parse-error</code>.</p>
+
+  <p class="def" id="read-json-as-type">
+    <span>function</span> read-json-as-type (source type)
+    <br/>&#8594; value
+  </p>
+
+  <p class="desc">Like <a
+  href="#read-json"><code>read-json</code></a>, but also asserts that
+  the resulting value is of a given type, and raises an error of type
+  <code>json-type-error</code> if not.</p>
+
+  <p class="def" id="write-json">
+    <span>function</span> write-json (element stream)
+  </p>
+
+  <p class="desc">Writes a value to a stream. Raises an error of type
+  <code>json-write-error</code> if a value for which no <a
+  href="#write-json-element"><code>write-json-element</code></a>
+  method is defined is encountered.</p>
+
+  <p class="def" id="write-json-to-string">
+    <span>function</span> write-json-to-string (element)
+    <br/>&#8594; string
+  </p>
+
+  <p class="desc">Like <a
+  href="#write-json"><code>write-json</code></a>, but produces a
+  string.</p>
+
+  <p class="def" id="write-json-element">
+    <span>method</span> write-json-element (element stream)
+  </p>
+
+  <p class="desc">Generic function used to serialise values as JSON.
+  You can override it for your own types, if needed.</p>
+
+  <p class="def" id="script-tag-hack">
+    <span>variable</span> *script-tag-hack*
+  </p>
+
+  <p class="desc">Bind this to <code>t</code> when writing JSON that
+  will end up in an HTML document. It prevents
+  <code>'&lt;/script>'</code> from occurring in strings by escaping
+  any slash following a '<code>&lt;</code>' character. Default value
+  is <code>nil</code>.</p>
+</body>
+</html>
