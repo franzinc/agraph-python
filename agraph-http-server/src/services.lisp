@@ -69,14 +69,16 @@
   (add-triple (assert-part subj) (assert-part pred) (assert-part obj) :g (and context (assert-part context)))
   :null)
 
-(defservice :delete "statements" ((subj :string) (pred :string) (obj :string) (context :string nil))
-  (let ((triple (get-triple :s (assert-part subj) :p (assert-part pred)
-                            :o (assert-part obj) :g (and context (assert-part context)))))
-    (when triple (delete-triple (triple-id triple))))
+(defservice :delete "statements" ((subj :string nil) (pred :string nil) (obj :string nil) (context :string nil))
+  (flet ((part (val) (and val (assert-part val))))
+    (delete-triples :s (part subj) :p (part pred) :o (part obj) :g (part context)))
   :null)
 
 (defservice :get "size" ()
   (values :integer (triple-count)))
+
+(defservice :get "writeable" ()
+  (values :boolean (not (db.agraph::read-only-p *db*))))
 
 (defservice :get "indices" ()
   (values :list (mapcar (lambda (s) (string-downcase (symbol-name s))) (triple-store-indices))))

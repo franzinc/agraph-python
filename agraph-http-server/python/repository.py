@@ -1,139 +1,146 @@
-# TODO creating stores, streaming cursors for queries, mass-delete/insert, contexts
+# TODO creating stores, streaming cursors for queries
 
-import StringIO, pycurl, time, urllib, cjson
+import time, cjson
+from request import *
 
-class ProtocolError(Exception):
-    def __init__(self, status, message):
-        self.status = status
-        self.message = message
-    def __str__(self):
-        return "Server returned %d: %s" % (self.status, self.message)
-
-def urlenc(**args):
-    buf = []
-    def enc(name, val):
-        buf.append(urllib.quote(name) + "=" + urllib.quote(val))
-    def encval(name, val):
-        if val is None: pass
-        elif val == True: enc(name, "true")
-        elif val == False: enc(name, "false")
-        elif hasattr(val, "append"):
-            for elt in val: encval(name, elt)
-        else: enc(name, val.encode("utf-8"))
-    for name, val in args.iteritems():
-        encval(name, val)
-    return "&".join(buf)
-
-def makeRequest(curl, method, url, body=None, accept="*/*", contentType=None):
-    postbody = method == "POST" or method == "PUT"
-    curl.setopt(pycurl.POSTFIELDS, "")
-    if body:
-        if postbody:
-            curl.setopt(pycurl.POSTFIELDS, body)
-        else:
-            url = url + "?" + body
-
-    curl.setopt(pycurl.POST, (postbody and 1) or 0)
-    curl.setopt(pycurl.CUSTOMREQUEST, method)
-    curl.setopt(pycurl.URL, url)
-
-    headers = ["Connection: Keep-Alive", "Accept: " + accept]
-    if contentType and postbody: headers.append("Content-Type: " + contentType)
-    curl.setopt(pycurl.HTTPHEADER, headers)
-    curl.setopt(pycurl.ENCODING, "") # which means 'any encoding that curl supports'
-    buf = StringIO.StringIO()
-    curl.setopt(pycurl.WRITEFUNCTION, buf.write)
-    curl.perform()
-    body = buf.getvalue().decode("utf-8")
-    buf.close()
-    return (curl.getinfo(pycurl.RESPONSE_CODE), body)
-
-def jsonRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded"):
-    status, body = makeRequest(curl, method, url, body, "application/json", contentType)
-    if (status == 200): return cjson.decode(body)
-    else: raise ProtocolError(status, body)
-
-def nullRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded"):
-    status, body = makeRequest(curl, method, url, body, "application/json", contentType)
-    if (status != 200): raise ProtocolError(status, body)
-
-class RepositoryServer:
+class AllegroGraphServer:
     def __init__(self, url):
         self.url = url
         self.curl = pycurl.Curl()
 
-    def repositories(self):
+    def listTripleStores(self):
+        """Returns the names of open stores on the server."""
         return jsonRequest(self.curl, "GET", self.url + "/repositories")
 
+    def openTripleStore(self, name, fileName, readOnly=False):
+        """Ask the server to open a given triple store."""
+        pass # TODO
+
+    def createTripleStore(self, name, fileName):
+        """Ask the server to create a new triple store."""
+        pass # TODO
+
+    def closeTripleStore(self, name):
+        """Close a server-side triple store."""
+        pass # TODO
+
     def getRepository(self, name):
+        """Create an access object for a triple store."""
         return Repository(self.curl, self.url + "/repositories/" + name)
+
 
 class Repository:
     def __init__(self, curl, url):
+        # TODO verify existence of repository?
         self.url = url
         self.curl = curl
 
-    def size(self):
+    def getSize(self):
+        """Returns the amount of triples in the repository."""
         return jsonRequest(self.curl, "GET", self.url + "/size")
 
-    def contexts(self):
+    def listContexts(self):
+        """Lists the contexts (named graphs) that are present in this repository."""
         return jsonRequest(self.curl, "GET", self.url + "/contexts")
 
-    def sparqlQuery(self, query, infer=False, context=None):
+    def isWriteable(self):
+        return jsonRequest(self.curl, "GET", self.url + "/writeable")
+
+    def evalSparqlQuery(self, query, infer=False, context=None):
+        """Execute a SPARQL query. Context can be None or a list of
+        contexts -- strings in "http://foo.com" form or "null" for
+        the default context. Return type depends on the query type.
+        ASK gives a boolean, SELECT a {names, values} object
+        containing arrays of arrays of terms. CONSTRUCT and DESCRIBE
+        return an array of arrays representing statements."""
         return jsonRequest(self.curl, "POST", self.url, urlenc(query=query, infer=infer, context=context))
 
-    def prologQuery(self, query, infer=False):
+    def evalPrologQuery(self, query, infer=False):
+        """Execute a Prolog query. Returns a {names, values} object."""
         return jsonRequest(self.curl, "POST", self.url, urlenc(query=query, infer=infer, queryLn="prolog"))
 
-    def textQuery(self, pattern, infer=False):
-        return jsonRequest(self.curl, "GET", self.url + "/freetext", urlenc(pattern=pattern, infer=infer))
-
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False):
+        """Retrieve all statements matching the given contstaints.
+        Context can be None or a list of contexts, as in
+        evalSparqlQuery."""
         return jsonRequest(self.curl, "GET", self.url + "/statements",
                            urlenc(subj=subj, pred=pred, obj=obj, context=context, infer=infer))
 
     def addStatement(self, subj, pred, obj, context=None):
+        """Add a single statement to the repository."""
         nullRequest(self.curl, "POST", self.url + "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
-    def delStatement(self, subj, pred, obj, context=None):
+    def delStatements(self, subj=None, pred=None, obj=None, context=None):
+        """Delete all statements matching the constaints from the
+        repository. Context can be None or a single graph name."""
         nullRequest(self.curl, "DELETE", self.url + "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
-    # expects [["subj", "pred", "obj", "graph"]] data, where graph may be None
     def addStatements(self, quads):
+        """Add a collection of statements to the repository. Quads
+        should be an array of four-element arrays, where the fourth
+        element, the graph name, may be None."""
         nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads));
 
     def delStatements(self, quads):
+        """Delete a collection of statments from the repository."""
         nullRequest(self.curl, "POST", self.url + "/statements/json/delete", cjson.encode(quads));
 
     def listIndices(self):
+        """List the SPOGI-indices that are active in the repository."""
         return jsonRequest(self.curl, "GET", self.url + "/indices")
 
     def addIndex(self, type):
+        """Register a SPOGI index."""
         nullRequest(self.curl, "POST", self.url + "/indices", urlenc(type=type))
 
     def delIndex(self, type):
+        """Drop a SPOGI index."""
         nullRequest(self.curl, "DELETE", self.url + "/indices", urlenc(type=type))
 
-    def listFreetextIndices(self):
+    def getIndexCoverage(self):
+        """Returns the proportion (0-1) of the repository that is indexed."""
+        return jsonRequest(self.curl, "GET", self.url + "/index");
+
+    def indexStatements(self, all=False):
+        """Index any unindexed statements in the repository. If all is
+        True, the whole repository is re-indexed."""
+        nullRequest(self.curl, "POST", self.url + "/index", urlenc(all=all))
+
+    def evalFreeTextSearch(self, pattern, infer=False):
+        """Use free-text indices to search for the given pattern.
+        Returns an array of statements."""
+        return jsonRequest(self.curl, "GET", self.url + "/freetext", urlenc(pattern=pattern, infer=infer))
+
+    def listFreeTextPrecicates(self):
+        """List the precicates that are used for free-text indexing."""
         return jsonRequest(self.curl, "GET", self.url + "/freetextindices")
 
-    def addFreetextIndex(self, predicate):
+    def registerFreeTextPredicate(self, predicate):
+        """Add a predicate for free-text indexing."""
         nullRequest(self.curl, "POST", self.url + "/freetextindices", urlenc(predicate=predicate))
 
-def timeQuery(rep):
-    n = 100
-    size = 500
+# Testing stuff
+
+def timeQuery(rep, n, size):
     t = time.time()
     for i in range(n):
-        rep.sparqlQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
+        rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
     print "Did %d %d-row queries in %f seconds." % (n, size, time.time() - t)
+    
+def test():
+    server = AllegroGraphServer("http://localhost:8080")
+    storeNames = server.listTripleStores()
+    if len(storeNames) > 0:
+        print "Found repositories " + repr(storeNames) + ", opening " + storeNames[0]
+        rep = server.getRepository(storeNames[0])
+        print "Repository size = %d" % rep.getSize()
+        print "Repository writable = %d" % rep.isWriteable()
+        timeQuery(rep, 500, 2)
+        timeQuery(rep, 50, 500)
+    else:
+        print "No repositories found."
 
-server = RepositoryServer("http://localhost:8080")
-reps = server.repositories()
-if len(reps) > 0:
-    print "Found repositories " + repr(reps) + ", opening " + reps[0]
-    rep = server.getRepository(reps[0])
-    print "Repository size = %d" % rep.size()
-    timeQuery(rep)
+if __name__ == '__main__':
+    test()
