@@ -3,16 +3,7 @@
 (defparameter *response-not-acceptable*
   (net.aserve::make-resp 406 "Not acceptable"))
 
-(define-condition request-failed (simple-error)
-  ((response-code :initarg :response :initform *response-bad-request* :reader @response)))
-(defun request-failed (format &rest args)
-  (error 'request-failed :format-control format :format-arguments args))
-(defun request-failed* (response format &rest args)
-  (error 'request-failed :format-control format :format-arguments args :response response))
-(defun request-assert (condition format &rest args)
-  (unless condition (apply 'request-failed format args)))
-
-(defun publish-simple-server (wserver simple-server &key (prefix "/"))
+(defun publish-http-server (wserver simple-server &key (prefix "/"))
   (flet ((serve (req ent)
            (simple-serve simple-server (subseq (net.uri:uri-path (request-raw-uri req)) (length prefix)) req ent)))
     (publish-prefix :prefix prefix :server wserver :function #'serve)))
@@ -33,7 +24,7 @@
         (unless (or (and store (service-store-p service)) (not store))
           (request-failed* *response-not-found* "Not found."))
         (when store
-          (setf *db* (or (find-store server store) 
+          (setf *db* (or (get-store server store)
                          (request-failed* *response-not-found* "No store '~a' known." store))))
         (multiple-value-bind (type value) (call-service service (interpret-parameters service (read-parameter req)))
           (write-response value (negotiate-format type req) req ent)))

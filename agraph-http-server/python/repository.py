@@ -14,24 +14,26 @@ class AllegroGraphServer:
 
     def openTripleStore(self, name, fileName, readOnly=False):
         """Ask the server to open a given triple store."""
-        pass # TODO
+        nullRequest(self.curl, "POST", self.url + "/repository/open",
+                    urlenc(name=name, file=fileName, readOnly=readOnly))
 
     def createTripleStore(self, name, fileName):
         """Ask the server to create a new triple store."""
-        pass # TODO
+        nullRequest(self.curl, "POST", self.url + "/repository/create",
+                    urlenc(name=name, file=fileName))
 
     def closeTripleStore(self, name):
         """Close a server-side triple store."""
-        pass # TODO
+        nullRequest(self.curl, "POST", self.url + "/repository/close", urlenc(name=name))
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
-        return Repository(self.curl, self.url + "/repositories/" + name)
+        return Repository(self.curl, self.url + "/repositories/" + urllib.quote(name))
 
 
 class Repository:
     def __init__(self, curl, url):
-        # TODO verify existence of repository?
+        # TODO verify existence of repository at this point?
         self.url = url
         self.curl = curl
 
@@ -81,11 +83,11 @@ class Repository:
         """Add a collection of statements to the repository. Quads
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
-        nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads));
+        nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads))
 
     def delStatements(self, quads):
         """Delete a collection of statments from the repository."""
-        nullRequest(self.curl, "POST", self.url + "/statements/json/delete", cjson.encode(quads));
+        nullRequest(self.curl, "POST", self.url + "/statements/json/delete", cjson.encode(quads))
 
     def listIndices(self):
         """List the SPOGI-indices that are active in the repository."""
@@ -101,7 +103,7 @@ class Repository:
 
     def getIndexCoverage(self):
         """Returns the proportion (0-1) of the repository that is indexed."""
-        return jsonRequest(self.curl, "GET", self.url + "/index");
+        return jsonRequest(self.curl, "GET", self.url + "/index")
 
     def indexStatements(self, all=False):
         """Index any unindexed statements in the repository. If all is

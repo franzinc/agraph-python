@@ -3,12 +3,18 @@
 
 (in-package :agraph-http-server)
 
-(setf *server* (make-instance 'simple-server))
+(defvar *data* (namestring (merge-pathnames "data" (asdf:component-pathname (asdf:find-component nil :agraph-http-server)))))
+
+(setf *server* (make-instance 'agraph-http-server :cache-file *data*))
+
 (start :port 8080)
 (setf net.aserve::*enable-logging* nil)
-(publish-simple-server *wserver* *server*)
+(publish-http-server *wserver* *server*)
 
-(format *query-io* "~%~%Enter the path of a triple-store to publish: ")
-(let ((file (read-line *query-io*)))
-  (server-add-store *server* "foo" :file file)
-  (format *query-io* "~% !! ~a published under id 'foo'.~%~%" file))
+(cond ((find-store-spec "foo")
+       (format *query-io* "~%~%Enter the path of a triple-store to publish: ")
+       (let ((file (read-line *query-io*)))
+         (open-store *server* "foo" file nil)
+         (format *query-io* "~% !! ~a published under id 'foo'.~%~%" file)))
+      (t (format *query-io* "~%~% !! Store 'foo' already set.~%~%")))
+

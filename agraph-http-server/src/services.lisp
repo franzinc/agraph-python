@@ -3,7 +3,24 @@
 (in-package :agraph-http-server)
 
 (defservice (:get :nostore) "repositories" ()
-  (values :list (mapcar #'car (@stores *server*))))
+  (let ((names ()))
+    (with-server-cache (*server*)
+      (doclass (spec 'store-spec)
+        (push (@name spec) names)))
+    (values :list names)))
+
+(defservice (:post :nostore) "repository/open" ((name :string) (file :string) ((read-only "readOnly") :boolean nil))
+  (open-store *server* name file read-only)
+  :null)
+
+(defservice (:post :nostore) "repository/create" ((name :string) (file :string))
+  (create-store *server* name file)
+  :null)
+
+(defservice (:post :nostore) "repository/close" ((name :string))
+  (close-store *server* name)
+  :null)
+
 
 (defun reasoning (on)
   (when on (setf *db* (db-apply-reasoner *db* 'rdfs++-reasoner (db-name *db*)))))
@@ -65,11 +82,19 @@
                 (triples nil)
                 (append-cursors (mapcar (lambda (cx) (triples (assert-context cx))) context))))))
 
+(defun store-writeable ()
+  (not (db.agraph::read-only-p *db*)))
+
+(defun assert-writeable ()
+  (request-assert (store-writeable) "Attempting write operation on a read-only repository."))
+
 (defservice :post "statements" ((subj :string) (pred :string) (obj :string) (context :string nil))
+  (assert-writeable)
   (add-triple (assert-part subj) (assert-part pred) (assert-part obj) :g (and context (assert-part context)))
   :null)
 
 (defservice :delete "statements" ((subj :string nil) (pred :string nil) (obj :string nil) (context :string nil))
+  (assert-writeable)
   (flet ((part (val) (and val (assert-part val))))
     (delete-triples :s (part subj) :p (part pred) :o (part obj) :g (part context)))
   :null)
@@ -78,7 +103,7 @@
   (values :integer (triple-count)))
 
 (defservice :get "writeable" ()
-  (values :boolean (not (db.agraph::read-only-p *db*))))
+  (values :boolean (store-writeable)))
 
 (defservice :get "indices" ()
   (values :list (mapcar (lambda (s) (string-downcase (symbol-name s))) (triple-store-indices))))
@@ -88,11 +113,13 @@
                   "'~a' is not a valid index type." type))
 
 (defservice :post "indices" ((type :string))
+  (assert-writeable)
   (assert-valid-index type)
   (add-index (intern-with-default-case type :keyword))
   :null)
 
 (defservice :delete "indices" ((type :string))
+  (assert-writeable)
   (assert-valid-index type)
   (drop-index (intern-with-default-case type :keyword))
   :null)
@@ -101,6 +128,7 @@
   (values :float (index-coverage-percent)))
 
 (defservice :post "index" ((all :boolean nil))
+  (assert-writeable)
   (if all (index-all-triples) (index-new-triples))
   :null)
 
@@ -109,17 +137,20 @@
                         (freetext-registered-predicates))))
 
 (defservice :post "freetextindices" ((predicate :string))
+  (assert-writeable)
   (let ((part (assert-part predicate)))
     (request-assert (char= (char predicate 0) #\<) "Text indexing predicates must be URIs.")
     (register-freetext-predicate part))
   :null)
 
 (defservice :post "statements/ntriples" ((body :postbody))
+  (assert-writeable)
   (handler-case (load-ntriples-from-string body)
     (error (e) (request-failed (princ-to-string e))))
   :null)
 
 (defservice :post "statements/rdfxml" ((body :postbody))
+  (assert-writeable)
   (handler-case (load-rdf/xml-from-string body)
     (error (e) (request-failed (princ-to-string e))))
   :null)
@@ -136,11 +167,13 @@
     rows))
 
 (defservice :post "statements/json" ((body :postbody))
+  (assert-writeable)
   (loop :for (subj pred obj graph) :in (canonise-json-statements body)
         :do (add-triple subj pred obj :g (or graph (default-graph-upi *db*))))
   :null)
 
 (defservice :post "statements/json/delete" ((body :postbody))
+  (assert-writeable)
   (loop :for (subj pred obj graph) :in (canonise-json-statements body)
         :do (let ((triple (get-triple :s subj :p pred :o obj :g (or graph (default-graph-upi *db*)))))
               (when triple (delete-triple (triple-id triple)))))
