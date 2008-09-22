@@ -26,6 +26,7 @@
   (gethash (cons path method) *services*))
 
 (defvar *server*)
+(defvar *store*)
 
 (defun call-service (service parameters)
   (apply (service-func service) parameters))

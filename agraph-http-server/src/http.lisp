@@ -15,21 +15,33 @@
         (dispatch-service server store (or store-path "") req ent)
         (dispatch-service server nil path req ent))))
 
+(defun check-auth (user pass)
+  (unless (and (equal user (@username *server*))
+               (equal pass (@password *server*)))
+    (error 'request-failed :format-control "Not authorised."
+           :response *response-unauthorized*
+           :headers '((:www-authenticate "Basic realm=\"AllegroGraph Server\"")))))
+
 (defun dispatch-service (server store path req ent)
   (handler-case
       (let ((service (or (find-service path (request-method req))
                          (request-failed* *response-not-found* "Not found.")))
             (*db* nil)
+            (*store* nil)
             (*server* server))
+        (when (@username server)
+          (multiple-value-bind (name pass) (get-basic-authorization req)
+            (check-auth name pass)))
         (unless (or (and store (service-store-p service)) (not store))
           (request-failed* *response-not-found* "Not found."))
         (when store
-          (setf *db* (or (get-store server store)
-                         (request-failed* *response-not-found* "No store '~a' known." store))))
+          (setf *store* (or (get-store server store)
+                            (request-failed* *response-not-found* "No store '~a' known." store))
+                *db* (@db *store*)))
         (multiple-value-bind (type value) (call-service service (interpret-parameters service (read-parameter req)))
           (write-response value (negotiate-format type req) req ent)))
     (request-failed (err)
-      (error-response req ent (@response err) err))
+      (error-response req ent (@response err) err (@headers err)))
     #+(or)(error (err)
       (error-response req ent *response-internal-server-error* err))))
 

@@ -23,7 +23,7 @@
 
 
 (defun reasoning (on)
-  (when on (setf *db* (db-apply-reasoner *db* 'rdfs++-reasoner (db-name *db*)))))
+  (when on (setf *db* (@reasoning-db *store*))))
 
 (defun assert-part (string)
   (or (rep-part string) (request-failed "~a is not a valid part." string)))

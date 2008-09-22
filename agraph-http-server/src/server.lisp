@@ -5,7 +5,9 @@
 (defclass agraph-http-server ()
   ((cache :reader @cache)
    (lock :initform (mp:make-process-lock) :reader @lock)
-   (open-stores :initform (make-hash-table :test 'equal) :reader @open-stores)))
+   (open-stores :initform (make-hash-table :test 'equal) :reader @open-stores)
+   (username :initform nil :initarg :username :reader @username)
+   (password :initform nil :initarg :password :reader @password)))
 
 (defmacro with-server-cache ((server &optional write-p) &body body)
   `(flet ((body () ,@body))
@@ -23,20 +25,31 @@
 (defclass store-spec ()
   ((name :initarg :name :reader @name :index :any-unique)
    (file :initarg :file :reader @file)
-   (read-only :initarg :read-only :reader @read-only))
+   (read-only :initarg :read-only :reader @read-only)
+   (anon-access :initarg :anon-access :accessor @anon-access))
   (:metaclass persistent-class))
 
 (defun find-store-spec (name)
   (retrieve-from-index 'store-spec 'name name))
 
+(defclass open-store ()
+  ((db :initarg :db :reader @db)
+   (spec :initarg :spec :reader @spec)
+   (reasoning-db :initarg :reasoning-db :reader @reasoning-db)))
+
+(defun make-store (db spec)
+  (make-instance 'open-store :db db :spec spec
+                 :reasoning-db (db-apply-reasoner *db* 'rdfs++-reasoner (db-name *db*))))
+
 (defun store-from-spec (spec)
-  (open-triple-store (@file spec) :read-only (@read-only spec)))
+  (handler-case (make-store (open-triple-store (@file spec) :read-only (@read-only spec)) spec)
+    (error (e) (request-failed* *response-internal-server-error* (princ-to-string e)))))
 
 (defun get-store (server name)
   (or (gethash name (@open-stores server))
       (with-server-cache (server)
         (let ((spec (find-store-spec name)))
-          (and spec (set-store server name (store-from-spec spec)))))))
+          (and spec (set-open-store server name (store-from-spec spec)))))))
 
 (defun set-open-store (server name db)
   (setf (gethash name (@open-stores server)) db))
@@ -53,7 +66,7 @@
 (defun create-store (server name file)
   (let (*db*)
     (handler-case (create-triple-store file)
-      (error (e) (request-failed *response-internal-server-error* (princ-to-string e))))
+      (error (e) (request-failed* *response-internal-server-error* (princ-to-string e))))
     (close-triple-store))
   (open-store server name file nil))
 

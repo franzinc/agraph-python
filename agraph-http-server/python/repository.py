@@ -1,4 +1,4 @@
-# TODO creating stores, streaming cursors for queries
+# TODO streaming cursors for queries
 
 import time, cjson
 from request import *

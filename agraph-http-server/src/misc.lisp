@@ -2,11 +2,26 @@
 
 (defparameter *utf8* (excl:crlf-base-ef :utf-8))
 
-(defun error-response (req ent response message)
+;; Error type for cleanly failing a request.
+
+(define-condition request-failed (simple-error)
+  ((response-code :initarg :response :initform *response-bad-request* :reader @response)
+   (headers :initform nil :initarg :headers :reader @headers)))
+(defun request-failed (format &rest args)
+  (error 'request-failed :format-control format :format-arguments args))
+(defun request-failed* (response format &rest args)
+  (error 'request-failed :format-control format :format-arguments args :response response))
+(defun request-assert (condition format &rest args)
+  (unless condition (apply 'request-failed format args)))
+
+(defun error-response (req ent response message &optional headers)
   "Write out a simple error response."
   (with-http-response (req ent :response response :content-type "text/plain; charset=UTF-8")
+    (loop :for (name val) :in headers
+          :do (setf (reply-header-slot-value req name) val))
     (with-http-body (req ent :external-format *utf8*)
       (princ message (request-reply-stream req)))))
+
 
 (defmacro deftype* (name args &body body)
   "Hack to make it possible to define complicated CL types."
@@ -102,13 +117,9 @@ work for federated triple stores."
 (setf (fdefinition 'accepts-gzip) (accepts-encoding-pred "gzip")
       (fdefinition 'accepts-deflate) (accepts-encoding-pred "deflate"))
 
-;; Error type for cleanly failing a request.
-
-(define-condition request-failed (simple-error)
-  ((response-code :initarg :response :initform *response-bad-request* :reader @response)))
-(defun request-failed (format &rest args)
-  (error 'request-failed :format-control format :format-arguments args))
-(defun request-failed* (response format &rest args)
-  (error 'request-failed :format-control format :format-arguments args :response response))
-(defun request-assert (condition format &rest args)
-  (unless condition (apply 'request-failed format args)))
+(let ((abc (with-output-to-string (out)
+             (loop :for ch :from (char-code #\!) :below (char-code #\~)
+                   :do (princ (code-char ch) out)))))
+  (defun random-string (len)
+    (with-output-to-string (out)
+      (dotimes (i len) (princ (elt abc (random (length abc))) out)))))
