@@ -80,7 +80,8 @@
     ("dc" "http://purl.org/dc/elements/1.1/")
     ("dcterms" "http://purl.org/dc/terms/")
     ("foaf" "http://xmlns.com/foaf/0.1/")
-    ("fti" "http://franz.com/ns/allegrograph/2.2/textindex/")))
+    ("fti" "http://franz.com/ns/allegrograph/2.2/textindex/")
+    ("skos" "http://www.w3.org/2004/02/skos/core#")))
 
 (defclass environment ()
   ((id :initarg :id :reader @id :index :any-unique)
