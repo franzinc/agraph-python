@@ -47,7 +47,7 @@
            (sparql-query query context (@namespaces env)))
           ((string-equal lang "prolog")
            (request-assert (not context) "Contexts not supported for Prolog queries.")
-           (prolog-query query (@namespaces env)))
+           (prolog-query query env))
           (t (request-failed "Unsupported query language: '~a'" lang)))))
 
 (defun sparql-query (query context namespaces)
@@ -69,10 +69,18 @@
         (:construct (values :triple-cursor (wrap-algebra-triple-cursor result)))
         (:describe (values :triple-cursor result))))))
 
-(defun prolog-query (query namespaces)
-  (handler-case (multiple-value-bind (values names) (run-prolog query namespaces)
+(defun prolog-query (query env)
+  (handler-case (multiple-value-bind (values names) (run-prolog query (@namespaces env) (@prolog-package env))
                   (values :row-cursor (wrap-list-cursor values names)))
     (error (e) (request-failed (princ-to-string e)))))
+
+(defservice :post "functor" ((definition :string) (environment :string nil))
+  (let ((env (assert-environment environment)))
+    (handler-case (eval-prolog definition (@namespaces env) (@prolog-package env))
+      (error (e) (request-failed (princ-to-string e))))
+    (with-server-cache (*server* t)
+      (push definition (@functors env))))
+  :null)
 
 (defservice (:get :post) "freetext" ((pattern :string) (infer :boolean nil))
   (reasoning infer)

@@ -84,8 +84,15 @@
 
 (defclass environment ()
   ((id :initarg :id :reader @id :index :any-unique)
-   (namespaces :initform *default-namespaces* :accessor @namespaces))
+   (namespaces :initform *default-namespaces* :accessor @namespaces)
+   (functors :initform nil :accessor @functors)
+   (prolog-package :reader @prolog-package :allocation :instance))
   (:metaclass persistent-class))
+
+(defmethod @prolog-package :before ((environment environment))
+  (unless (slot-boundp environment 'prolog-package)
+    (setf (slot-value environment 'prolog-package)
+          (make-prolog-package (@functors environment) (@namespaces environment)))))
 
 (defun get-environment (server store name)
   (or (with-server-cache (server)

@@ -64,6 +64,9 @@ class Repository:
         return jsonRequest(self.curl, "POST", self.url,
                            urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment))
 
+    def definePrologFunctor(self, definition):
+        nullRequest(self.curl, "POST", self.url + "/functor", urlenc(definition=definition, environment=self.environment))
+
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False):
         """Retrieve all statements matching the given contstaints.
         Context can be None or a list of contexts, as in
