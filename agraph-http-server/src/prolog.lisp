@@ -35,11 +35,14 @@ list of results is selected, and check for forbidden symbols."
             forms
             (error "Illegal elements in query.")))))
 
-(defun run-prolog (query)
+(defun run-prolog (query namespaces)
   "Read, validate, and run a Prolog query."
   (let* ((*read-eval* nil)
          (*package* *prolog-query-package*)
          (*readtable* *!-read-table*)
-         (expr (validate-prolog-query (read-from-string query))))
-    (values (funcall (compile nil (list 'lambda nil expr)))
-            (mapcar #'symbol-name (second expr)))))
+         (db.agraph::*namespaces* (make-hash-table :test 'equal)))
+    (loop :for (prefix uri) :in namespaces
+          :do (register-namespace prefix uri))
+    (let ((expr (validate-prolog-query (read-from-string query))))
+      (values (funcall (compile nil (list 'lambda nil expr)))
+              (mapcar #'symbol-name (second expr))))))

@@ -31,17 +31,27 @@
 (defun assert-context (string)
   (if (string= string "null") (default-graph-upi *db*) (assert-part string)))
 
-(defservice (:get :post) "" ((query :string) (infer :boolean nil) (context :list) ((lang "queryLn") :string "sparql"))
-  (reasoning infer)
-  (cond ((string-equal lang "sparql")
-         (sparql-query query context))
-        ((string-equal lang "prolog")
-         (request-assert (not context) "Contexts not supported for Prolog queries.")
-         (prolog-query query))
-        (t (request-failed "Unsupported query language: '~a'" lang))))
+(defun store-name ()
+  (@name (@spec *store*)))
 
-(defun sparql-query (query context)
-  (multiple-value-bind (parsed error) (ignore-errors (parse-sparql query))
+(defun assert-environment (name)
+  (or (get-environment *server* (store-name) name)
+      (request-failed "Environment '~a' not found." name)))
+
+(defservice (:get :post) "" ((query :string) (infer :boolean nil) (context :list)
+                             ((lang "queryLn") :string "sparql")
+                             (environment :string nil))
+  (reasoning infer)
+  (let ((env (assert-environment environment)))
+    (cond ((string-equal lang "sparql")
+           (sparql-query query context (@namespaces env)))
+          ((string-equal lang "prolog")
+           (request-assert (not context) "Contexts not supported for Prolog queries.")
+           (prolog-query query (@namespaces env)))
+          (t (request-failed "Unsupported query language: '~a'" lang)))))
+
+(defun sparql-query (query context namespaces)
+  (multiple-value-bind (parsed error) (ignore-errors (parse-sparql query namespaces))
     (when error (request-failed (princ-to-string error)))
     (when (member "null" context :test #'string=)
       (if (= (length context) 1)
@@ -59,8 +69,8 @@
         (:construct (values :triple-cursor (wrap-algebra-triple-cursor result)))
         (:describe (values :triple-cursor result))))))
 
-(defun prolog-query (query)
-  (handler-case (multiple-value-bind (values names) (run-prolog query)
+(defun prolog-query (query namespaces)
+  (handler-case (multiple-value-bind (values names) (run-prolog query namespaces)
                   (values :row-cursor (wrap-list-cursor values names)))
     (error (e) (request-failed (princ-to-string e)))))
 
@@ -177,4 +187,38 @@
   (loop :for (subj pred obj graph) :in (canonise-json-statements body)
         :do (let ((triple (get-triple :s subj :p pred :o obj :g (or graph (default-graph-upi *db*)))))
               (when triple (delete-triple (triple-id triple)))))
+  :null)
+
+;; Managing environments.
+
+(defservice :get "namespaces" ((environment :string nil))
+  (values :namespaces (@namespaces (assert-environment environment))))
+
+(defservice :post "namespaces" ((prefix :string) (uri :string) (environment :string nil))
+  (let ((env (assert-environment environment)))
+    (with-server-cache (*server* t)
+      (setf (@namespaces env)
+            (cons (list prefix uri) (remove prefix (@namespaces env) :key #'car :test #'string=)))))
+  :null)
+
+(defservice :delete "namespaces" ((prefix :string) (environment :string nil))
+  (let ((env (assert-environment environment)))
+    (with-server-cache (*server* t)
+      (setf (@namespaces env) (remove prefix (@namespaces env) :key #'car :test #'string=))))
+  :null)
+
+(defservice :get "environments" ()
+  (values :list (list-environments *server* (store-name))))
+
+(defservice :post "environments" ((name :string))
+  (request-assert (not (get-environment *server* (store-name) name))
+                  "An environment named '~a' already exists.")
+  (with-server-cache (*server* t)
+    (make-instance 'environment :id (list (store-name) name)))
+  :null)
+
+(defservice :delete "environments" ((name :string))
+  (let ((env (assert-environment name)))
+    (with-server-cache (*server* t)
+      (delete-instance env)))
   :null)

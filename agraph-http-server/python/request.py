@@ -49,9 +49,9 @@ def makeRequest(curl, method, url, body=None, accept="*/*", contentType=None):
 def jsonRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded"):
     status, body = makeRequest(curl, method, url, body, "application/json", contentType)
     if (status == 200): return cjson.decode(body)
-    else: raise ProtocolError(status, body)
+    else: raise RequestError(status, body)
 
 def nullRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded"):
     status, body = makeRequest(curl, method, url, body, "application/json", contentType)
-    if (status != 200): raise ProtocolError(status, body)
+    if (status != 200): raise RequestError(status, body)
 

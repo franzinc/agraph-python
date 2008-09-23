@@ -32,7 +32,7 @@
 (defwriter ((:string :integer :float) "text/plain") (val stream)
   (princ val stream))
 
-(defwriter ((:list :integer :string :float) "application/json") (val stream)
+(defwriter ((:list :integer :string :float :namespaces) "application/json") (val stream)
   (write-json val stream))
 
 (defwriter (:boolean "application/json") (bool stream)

@@ -36,6 +36,7 @@ class Repository:
         # TODO verify existence of repository at this point?
         self.url = url
         self.curl = curl
+        self.environment = None
 
     def getSize(self):
         """Returns the amount of triples in the repository."""
@@ -55,11 +56,13 @@ class Repository:
         ASK gives a boolean, SELECT a {names, values} object
         containing arrays of arrays of terms. CONSTRUCT and DESCRIBE
         return an array of arrays representing statements."""
-        return jsonRequest(self.curl, "POST", self.url, urlenc(query=query, infer=infer, context=context))
+        return jsonRequest(self.curl, "POST", self.url,
+                           urlenc(query=query, infer=infer, context=context, environment=self.environment))
 
     def evalPrologQuery(self, query, infer=False):
         """Execute a Prolog query. Returns a {names, values} object."""
-        return jsonRequest(self.curl, "POST", self.url, urlenc(query=query, infer=infer, queryLn="prolog"))
+        return jsonRequest(self.curl, "POST", self.url,
+                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment))
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False):
         """Retrieve all statements matching the given contstaints.
@@ -73,7 +76,7 @@ class Repository:
         nullRequest(self.curl, "POST", self.url + "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
-    def delStatements(self, subj=None, pred=None, obj=None, context=None):
+    def deleteStatements(self, subj=None, pred=None, obj=None, context=None):
         """Delete all statements matching the constaints from the
         repository. Context can be None or a single graph name."""
         nullRequest(self.curl, "DELETE", self.url + "/statements",
@@ -85,7 +88,7 @@ class Repository:
         element, the graph name, may be None."""
         nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads))
 
-    def delStatements(self, quads):
+    def deleteStatements(self, quads):
         """Delete a collection of statments from the repository."""
         nullRequest(self.curl, "POST", self.url + "/statements/json/delete", cjson.encode(quads))
 
@@ -97,7 +100,7 @@ class Repository:
         """Register a SPOGI index."""
         nullRequest(self.curl, "POST", self.url + "/indices", urlenc(type=type))
 
-    def delIndex(self, type):
+    def deleteIndex(self, type):
         """Drop a SPOGI index."""
         nullRequest(self.curl, "DELETE", self.url + "/indices", urlenc(type=type))
 
@@ -122,6 +125,34 @@ class Repository:
     def registerFreeTextPredicate(self, predicate):
         """Add a predicate for free-text indexing."""
         nullRequest(self.curl, "POST", self.url + "/freetextindices", urlenc(predicate=predicate))
+
+    def setEnvironment(self, name):
+        """Repositories use a current environment, which are
+        containers for namespaces and Prolog predicates. Every
+        server-side repository has a default environment that is used
+        when no environment is specified."""
+        self.environment = name
+
+    def listEnvironments(self):
+        return jsonRequest(self.curl, "GET", self.url + "/environments")
+
+    def createEnvironment(self, name):
+        nullRequest(self.curl, "POST", self.url + "/environments", urlenc(name=name))
+
+    def deleteEnvironment(self, name):
+        nullRequest(self.curl, "DELETE", self.url + "/environments", urlenc(name=name))
+        
+    def listNamespaces(self):
+        return jsonRequest(self.curl, "GET", self.url + "/namespaces", urlenc(environment=self.environment))
+
+    def addNamespace(self, prefix, uri):
+        nullRequest(self.curl, "POST", self.url + "/namespaces",
+                    urlenc(prefix=prefix, uri=uri, environment=self.environment))
+
+    def deleteNamespace(self, prefix):
+        nullRequest(self.curl, "DELETE", self.url + "/namespaces",
+                    urlenc(prefix=prefix, environment=self.environment))
+
 
 # Testing stuff
 

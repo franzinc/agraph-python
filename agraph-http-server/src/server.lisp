@@ -6,6 +6,7 @@
   ((cache :reader @cache)
    (lock :initform (mp:make-process-lock) :reader @lock)
    (open-stores :initform (make-hash-table :test 'equal) :reader @open-stores)
+   (open-environments :initform (make-hash-table :test 'equal) :reader @open-environments)
    (username :initform nil :initarg :username :reader @username)
    (password :initform nil :initarg :password :reader @password)))
 
@@ -49,19 +50,14 @@
   (or (gethash name (@open-stores server))
       (with-server-cache (server)
         (let ((spec (find-store-spec name)))
-          (and spec (set-open-store server name (store-from-spec spec)))))))
-
-(defun set-open-store (server name db)
-  (setf (gethash name (@open-stores server)) db))
-
-(defun del-open-store (server name)
-  (remhash name (@open-stores server)))
+          (and spec (setf (gethash name (@open-stores server))
+                          (store-from-spec spec)))))))
 
 (defun open-store (server name file read-only)
   (with-server-cache (server t)
     (request-assert (not (find-store-spec name)) "A repository named '~a' already exists." name)
     (let ((spec (make-instance 'store-spec :name name :file file :read-only read-only)))
-      (set-open-store *server* name (store-from-spec spec)))))
+      (setf (gethash name (@open-stores server)) (store-from-spec spec)))))
 
 (defun create-store (server name file)
   (let (*db*)
@@ -74,5 +70,34 @@
   (with-server-cache (server t)
     (let ((spec (find-store-spec name)))
       (request-assert spec "No repository named '~a' known." name)
-      (del-open-store server name)
+      (remhash name (@open-stores server))
       (delete-instance spec))))
+
+(defparameter *default-namespaces*
+  '(("rdf" "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+    ("rdfs" "http://www.w3.org/2000/01/rdf-schema#")
+    ("owl" "http://www.w3.org/2002/07/owl#")
+    ("dc" "http://purl.org/dc/elements/1.1/")
+    ("dcterms" "http://purl.org/dc/terms/")
+    ("foaf" "http://xmlns.com/foaf/0.1/")
+    ("fti" "http://franz.com/ns/allegrograph/2.2/textindex/")))
+
+(defclass environment ()
+  ((id :initarg :id :reader @id :index :any-unique)
+   (namespaces :initform *default-namespaces* :accessor @namespaces))
+  (:metaclass persistent-class))
+
+(defun get-environment (server store name)
+  (or (with-server-cache (server)
+        (retrieve-from-index 'environment 'id (if name (list store name) store)))
+      (and (not name)
+           (with-server-cache (server t)
+             (make-instance 'environment :id store)))))
+
+(defun list-environments (server store)
+  (let ((names ()))
+    (with-server-cache (server)
+      (doclass (env 'environment)
+        (when (and (consp (@id env)) (string= (first (@id env)) store))
+          (push (second (@id env)) names))))
+    (nreverse names)))
