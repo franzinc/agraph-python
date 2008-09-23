@@ -30,6 +30,11 @@ class AllegroGraphServer:
         """Create an access object for a triple store."""
         return Repository(self.curl, self.url + "/repositories/" + urllib.quote(name))
 
+    def setAuth(self, user, password):
+        """Set a username and password to use when talking to this server."""
+        self.curl.setopt(pycurl.USERPWD, "%s:%s" % (user, password))
+        self.curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
+
 
 class Repository:
     def __init__(self, curl, url):
