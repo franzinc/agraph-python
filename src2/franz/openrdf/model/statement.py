@@ -23,7 +23,7 @@
 
 
 from franz.openrdf.exceptions import *
-
+from franz.openrdf.model.valuefactory import ValueFactory
 
 class Statement:
     """
@@ -34,11 +34,7 @@ class Statement:
         self.predicate = predicate
         self.object = object
         self.context = context
-
-    def getSubject(self): return self.subject
-    def getPredicate(self): return self.predicate
-    def getObject(self): return self.object
-    def getContext(self): return self.context    
+        self.string_tuple = None
 
     def __eq__(self, other):
         if not isinstance(other, Statement): return False
@@ -60,15 +56,59 @@ class Statement:
     def __str__(self):
         sb= []
         sb.append("(")
-        sb.append(str(self.getSubject()))
+        sb.append(self.string_tuple[0])
         sb.append(", ")
-        sb.append(str(self.getPredicate()))
+        sb.append(self.string_tuple[1])
         sb.append(", ")
-        sb.append(str(self.getObject()))
-        cxt = self.getContext()
+        sb.append(self.string_tuple[2])
+        cxt = self.self.string_tuple[3]
         if cxt:
             sb.append(", ")        
-            sb.append(str(cxt))        
+            sb.append(self.string_tuple[3])        
         sb.append(")")
         return ''.join(sb)
 
+    def __len__(self):
+        return len(self.string_tuple)
+    
+    def __getitem__(self, index):
+        if index == 0: return self.getSubject()
+        elif index == 1: return self.getPredicate()
+        elif index == 2: return self.getObject()
+        elif index == 3: return self.getContext()
+        else:
+            ## I don't know what the official Python exception is here :(  - RMM
+            raise IllegalArgumentException("Illegal index %s passed to StatementImpl.\n" +
+                    "  Legal arguments are integers 0-3")
+                                              
+    def setQuad(self, string_tuple):
+        self.string_tuple = string_tuple
+
+    def getSubject(self):         
+        if not self.subject:
+            self.subject = ValueFactory.stringTermToTerm(self.string_tuple[0])
+        return self.subject
+    
+    def setSubject(self, subject): self.subject = subject
+    
+    def getPredicate(self):
+        if not self.predicate:
+            self.predicate = ValueFactory.stringTermToTerm(self.string_tuple[1])
+        return self.predicate
+     
+    def setPredicate(self, predicate):self.predicate = predicate
+    
+    def getObject(self):
+        if not self.object:
+            self.object = ValueFactory.stringTermToTerm(self.string_tuple[2])
+        return self.object
+    
+    def setObject(self, object): self.object = object
+    
+    def getContext(self): 
+        if not self.context:
+            if len(self.string_tuple == 3): return None
+            self.subject = ValueFactory.stringTermToTerm(self.string_tuple[4])
+        return self.context
+    
+    def setContext(self, context): self.context = context

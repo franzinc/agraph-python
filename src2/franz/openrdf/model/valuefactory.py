@@ -26,8 +26,9 @@ from franz.openrdf.model.value import BNode, URI
 from franz.openrdf.model.literal import Literal
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
-import traceback
+import datetime, traceback
 
 class ValueFactory(object):
     """
@@ -42,12 +43,36 @@ class ValueFactory(object):
         """
         return BNode(nodeID)
     
-    def createLiteral(self, label, datatype=None, language=None):
+    @staticmethod
+    def _interpret_value(value, datatype):
         """
-        Create a new literal with label 'label'.  'datatype' if supplied,
-        should be a URI, in which case 'label' should be a string.
+        If 'self' is not a string, convert it into one, and infer its
+        datatype, unless 'datatype' is set (i.e., overrides it).
         """
-        return Literal(label, datatype=datatype, language=language)
+        if isinstance(value, str):
+            return value, datatype
+        elif isinstance(value, int):
+            return str(value), datatype or XMLSchema.INT
+        elif isinstance(value, float):
+            return str(value), datatype or XMLSchema.FLOAT
+        elif isinstance(value, bool):
+            return str(value), datatype or XMLSchema.BOOLEAN
+        elif isinstance(value, datetime.datetime):
+            return str(value), datatype or XMLSchema.DATETIME
+        elif isinstance(value, datetime.time):
+            return str(value), datatype or XMLSchema.TIME
+        elif isinstance(value, datetime.date):
+            return str(value), datatype or XMLSchema.DATE
+        else:
+            return str(value), datatype
+    
+    def createLiteral(self, value, datatype=None, language=None):
+        """
+        Create a new literal with value 'value'.  'datatype' if supplied,
+        should be a URI, in which case 'value' should be a string.
+        """
+        value, datatype = ValueFactory._interpret_value(value, datatype)
+        return Literal(value, datatype=datatype, language=language)
         
 
     def createStatement(self, subject, predicate, object, context=None):
@@ -62,6 +87,31 @@ class ValueFactory(object):
         Creates a new URI from the supplied string-representation(s)
         """
         return URI(uri=uri, namespace=namespace, localname=localname)
-        
+    
+    @staticmethod
+    def stringTermToTerm(string_term):
+        """
+        Given a string representing a term in ntriples format, return
+        a URI, Literal, or BNode.
+        TODO: BNODES NOT YET IMPLEMENTED
+        """
+        if not string_term: return string_term
+        if string_term[0] == '<':
+            uri = string_term[1:-1]
+            return URI(uri)
+        elif string_term[0] == '"':
+            ## we have a double-quoted literal with either a data type or a language indicator
+            caratPos = string_term.find('^^')
+            if caratPos >= 0:
+                label = string_term[1:caratPos - 1]
+                datatype = string_term[caratPos + 2:]
+                return Literal(label, datatype=datatype)
+            else:
+                atPos = string_term.find('@')
+                label = string_term[1:atPos - 1]
+                language = string_term[atPos + 1:]
+                return Literal(label, language=language)
+        else:
+            raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
         
 

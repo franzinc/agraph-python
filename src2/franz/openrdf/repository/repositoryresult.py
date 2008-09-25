@@ -24,7 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
-
+from franz.openrdf.modelimpl.statementimpl import StatementImpl
 
 # * A RepositoryResult is a result collection of objects (for example
 # * {@link org.openrdf.model.Statement}, {@link org.openrdf.model.Namespace},
@@ -49,14 +49,38 @@ from franz.openrdf.model.value import Value
 # * @see RepositoryConnection#getContextIDs()
 
 class RepositoryResult(object):  ## inherits IterationWrapper
-    def __init__(self):
-        pass
+    def __init__(self, string_tuples):
+        self.string_tuples = string_tuples
+        self.cursor = 0
+        
+    def _createStatement(self, string_tuple):
+        """
+        Allocate a Statement and fill it in from 'string_tuple'.
+        """
+        stmt = StatementImpl(None, None, None, None)
+        stmt.setQuad(string_tuple)
+        return stmt
+    
+    def __iter__(self): return self
     
     def close(self):
         """
         Shut down the iterator, to insure that resources are free'd up.
         """
-        raise UnimplementedMethodException()
+        pass
+        
+    def next(self):
+        """
+        Return the next Statement in the answer, if there is one.  Otherwise,
+        raise StopIteration exception.
+        TODO: WHOOOA.  WHAT IF WE HAVE TUPLES INSTEAD OF STATEMENTS; HOW DOES THAT WORK???
+        """
+        if self.cursor < len(self.string_tuples):
+            stringTuple = self.string_tuples[self.cursor]
+            self.cursor += 1
+            return self._createStatement(stringTuple);
+        else:
+            raise StopIteration
 
 #     * Switches on duplicate filtering while iterating over objects. The
 #     * RepositoryResult will keep track of the previously returned objects in a
@@ -82,6 +106,8 @@ class RepositoryResult(object):  ## inherits IterationWrapper
         RepositoryResult is fully consumed and automatically closed by this
         operation.
         """
-        pass
-        
+        isList = isinstance(collection, list)
+        for stmt in self:
+            if isList: collection.append(stmt)
+            else: collection.add(stmt)        
 

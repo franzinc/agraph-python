@@ -73,7 +73,7 @@ class Repository:
         nullRequest(self.curl, "POST", self.url + "/functor", urlenc(definition=definition, environment=self.environment))
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False):
-        """Retrieve all statements matching the given contstaints.
+        """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
         return jsonRequest(self.curl, "GET", self.url + "/statements",
@@ -84,7 +84,7 @@ class Repository:
         nullRequest(self.curl, "POST", self.url + "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
-    def deleteStatements(self, subj=None, pred=None, obj=None, context=None):
+    def deleteStatement(self, subj=None, pred=None, obj=None, context=None):
         """Delete all statements matching the constraints from the
         repository. Context can be None or a single graph name."""
         nullRequest(self.curl, "DELETE", self.url + "/statements",
@@ -162,26 +162,50 @@ class Repository:
                     urlenc(prefix=prefix, environment=self.environment))
 
 
-# Testing stuff
+######################################################
+## TESTING CODE
+######################################################
 
-def timeQuery(rep, n, size):
+def timeQuery(rep):
+    n = 100
+    size = 5
     t = time.time()
     for i in range(n):
-        rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
+        rep.evaluateQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
     print "Did %d %d-row queries in %f seconds." % (n, size, time.time() - t)
+
     
-def test():
-    server = AllegroGraphServer("http://localhost:8080")
-    storeNames = server.listTripleStores()
+def test1():
+    conn = AllegroGraphServer("http://localhost:8080")
+    storeNames = conn.getTripleStores()
+    print "Stores", storeNames
     if len(storeNames) > 0:
         print "Found repositories " + repr(storeNames) + ", opening " + storeNames[0]
-        rep = server.getRepository(storeNames[0])
-        print "Repository size = %d" % rep.getSize()
-        print "Repository writable = %d" % rep.isWriteable()
-        timeQuery(rep, 500, 2)
-        timeQuery(rep, 50, 500)
-    else:
-        print "No repositories found."
+        rep = conn.getRepository(storeNames[0])
+        print "Repository size = %d" % rep.size()
+        timeQuery(rep)
+
+def test2():
+    conn = AllegroGraphServer("http://localhost:8080")
+    dbName = 'testP'
+    if not dbName in conn.listTripleStores():
+        try:
+            conn.openTripleStore(dbName, "/Users/bmacgregor/Desktop/AGFolder/")
+        except:
+            conn.createTripleStore(dbName, "/Users/bmacgregor/Desktop/AGFolder/")            
+    rep = conn.getRepository(dbName)        
+    rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', None)
+    query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
+    answer = rep.evalSparqlQuery(query)
+    print answer['names']
+    for v in answer['values']:
+        print v
 
 if __name__ == '__main__':
-    test()
+    choice = 2
+    print "Run test%i" % choice
+    if choice == 1: test1()   
+    elif choice == 2: test2()       
+    elif choice == 3: test3()       
+    elif choice == 4: test4()               
+   

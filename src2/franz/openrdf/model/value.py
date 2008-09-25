@@ -58,6 +58,12 @@ class URI(Resource):
         self.localNameIdx = -1
     
     def __str__(self): return self.getURI()
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def __hash__(self):
+        return str(self).__hash__()
     
     def getURI(self):
         """
@@ -85,6 +91,19 @@ class BNode(Resource):
         
     def getId(self):
         return self.id
+
+    def getID(self):
+        return self.id
+    
+    def __str__(self):
+        return "_:" + self.id
+          
+    def __eq__(self, other):
+        return isinstance(other, BNode) and self.getId() == other.getId()
+    
+    def __hash__(self):
+        return self.idString.__hash__()
+
 
 class Namespace(object):
     """

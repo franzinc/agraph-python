@@ -138,70 +138,70 @@ class XMLSchema:
             XMLSchema.name2URIMap[str(uri)] = uri
 
             
-    @staticmethod
-    def reinitialize(factory, store=None):
-        """
-        Initialize the values in the factory, or
-        reinitialize the values in factory with more efficient
-        resources and literals (one's that know what store they
-        belong to).
-        """
-        XMLSchema.DURATION = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="duration")
-        XMLSchema.DATETIME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="dateTime")
-        XMLSchema.TIME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="time")
-        XMLSchema.DATE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="date")
-        XMLSchema.GYEARMONTH = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gYearMonth")
-        XMLSchema.GYEAR = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gYear")
-        XMLSchema.GMONTHDAY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gMonthDay")
-        XMLSchema.GDAY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gDay")
-        XMLSchema.GMONTH = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gMonth")
-        XMLSchema.STRING = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="string")
-        XMLSchema.BOOLEAN = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="boolean")
-        XMLSchema.BASE64BINARY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="base64Binary")
-        XMLSchema.HEXBINARY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="hexBinary")
-        XMLSchema.FLOAT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="float")
-        XMLSchema.DECIMAL = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="decimal")
-        XMLSchema.DOUBLE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="double")
-        XMLSchema.ANYURI = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="anyURI")
-        XMLSchema.QNAME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="QName")
-        XMLSchema.NOTATION = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NOTATION")
-        XMLSchema.NORMALIZEDSTRING = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="normalizedString")
-        XMLSchema.TOKEN = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="token")
-        XMLSchema.LANGUAGE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="language")
-        XMLSchema.NMTOKEN = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NMTOKEN")
-        XMLSchema.NMTOKENS = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NMTOKENS")
-        XMLSchema.NAME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="Name")
-        XMLSchema.NCNAME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NCName")
-        XMLSchema.ID = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="ID")
-        XMLSchema.IDREF = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="IDREF")
-        XMLSchema.IDREFS = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="IDREFS")
-        XMLSchema.ENTITY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="ENTITY")
-        XMLSchema.ENTITIES = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="ENTITIES")
-        XMLSchema.INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="integer")
-        XMLSchema.LONG = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="long")
-        XMLSchema.INT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="int")
-        XMLSchema.SHORT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="short")
-        XMLSchema.BYTE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="byte")
-        XMLSchema.NON_POSITIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="nonPositiveInteger")
-        XMLSchema.NEGATIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="negativeInteger")
-        XMLSchema.NON_NEGATIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="nonNegativeInteger")
-        XMLSchema.POSITIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="positiveInteger")
-        XMLSchema.UNSIGNED_LONG = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedLong")
-        XMLSchema.UNSIGNED_INT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedInt")
-        XMLSchema.UNSIGNED_SHORT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedShort")
-        XMLSchema.UNSIGNED_BYTE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedByte")
-        ## (re)build 'name2URI' dictionary
-        XMLSchema.name2URIMap = {}
-        for uri in [XMLSchema.DURATION, XMLSchema.DATETIME, XMLSchema.TIME, XMLSchema.DATE,  XMLSchema.GYEARMONTH, 
-                XMLSchema.GYEAR, XMLSchema.GMONTHDAY, XMLSchema.GDAY, XMLSchema.GMONTH, XMLSchema.STRING, 
-                XMLSchema.BOOLEAN, XMLSchema.BASE64BINARY, XMLSchema.HEXBINARY, XMLSchema.FLOAT, XMLSchema.DECIMAL, 
-                XMLSchema.DOUBLE, XMLSchema.ANYURI, XMLSchema.QNAME, XMLSchema.NOTATION, XMLSchema.NORMALIZEDSTRING, 
-                XMLSchema.TOKEN, XMLSchema.LANGUAGE, XMLSchema.NMTOKEN, XMLSchema.NMTOKENS, XMLSchema.NAME, 
-                XMLSchema.NCNAME, XMLSchema.ID, XMLSchema.IDREF, XMLSchema.IDREFS, XMLSchema.ENTITY, XMLSchema.ENTITIES, 
-                XMLSchema.INTEGER, XMLSchema.LONG, XMLSchema.INT, XMLSchema.SHORT, XMLSchema.BYTE, XMLSchema.NON_POSITIVE_INTEGER, 
-                XMLSchema.NEGATIVE_INTEGER, XMLSchema.NON_NEGATIVE_INTEGER, XMLSchema.POSITIVE_INTEGER, XMLSchema.UNSIGNED_LONG, 
-                XMLSchema.UNSIGNED_INT, XMLSchema.UNSIGNED_SHORT, XMLSchema.UNSIGNED_BYTE,]:
-            XMLSchema.name2URIMap[str(uri)] = uri
+#    @staticmethod
+#    def reinitialize(factory, store=None):
+#        """
+#        Initialize the values in the factory, or
+#        reinitialize the values in factory with more efficient
+#        resources and literals (one's that know what store they
+#        belong to).
+#        """
+#        XMLSchema.DURATION = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="duration")
+#        XMLSchema.DATETIME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="dateTime")
+#        XMLSchema.TIME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="time")
+#        XMLSchema.DATE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="date")
+#        XMLSchema.GYEARMONTH = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gYearMonth")
+#        XMLSchema.GYEAR = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gYear")
+#        XMLSchema.GMONTHDAY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gMonthDay")
+#        XMLSchema.GDAY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gDay")
+#        XMLSchema.GMONTH = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="gMonth")
+#        XMLSchema.STRING = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="string")
+#        XMLSchema.BOOLEAN = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="boolean")
+#        XMLSchema.BASE64BINARY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="base64Binary")
+#        XMLSchema.HEXBINARY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="hexBinary")
+#        XMLSchema.FLOAT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="float")
+#        XMLSchema.DECIMAL = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="decimal")
+#        XMLSchema.DOUBLE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="double")
+#        XMLSchema.ANYURI = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="anyURI")
+#        XMLSchema.QNAME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="QName")
+#        XMLSchema.NOTATION = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NOTATION")
+#        XMLSchema.NORMALIZEDSTRING = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="normalizedString")
+#        XMLSchema.TOKEN = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="token")
+#        XMLSchema.LANGUAGE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="language")
+#        XMLSchema.NMTOKEN = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NMTOKEN")
+#        XMLSchema.NMTOKENS = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NMTOKENS")
+#        XMLSchema.NAME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="Name")
+#        XMLSchema.NCNAME = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="NCName")
+#        XMLSchema.ID = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="ID")
+#        XMLSchema.IDREF = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="IDREF")
+#        XMLSchema.IDREFS = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="IDREFS")
+#        XMLSchema.ENTITY = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="ENTITY")
+#        XMLSchema.ENTITIES = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="ENTITIES")
+#        XMLSchema.INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="integer")
+#        XMLSchema.LONG = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="long")
+#        XMLSchema.INT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="int")
+#        XMLSchema.SHORT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="short")
+#        XMLSchema.BYTE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="byte")
+#        XMLSchema.NON_POSITIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="nonPositiveInteger")
+#        XMLSchema.NEGATIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="negativeInteger")
+#        XMLSchema.NON_NEGATIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="nonNegativeInteger")
+#        XMLSchema.POSITIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="positiveInteger")
+#        XMLSchema.UNSIGNED_LONG = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedLong")
+#        XMLSchema.UNSIGNED_INT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedInt")
+#        XMLSchema.UNSIGNED_SHORT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedShort")
+#        XMLSchema.UNSIGNED_BYTE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedByte")
+#        ## (re)build 'name2URI' dictionary
+#        XMLSchema.name2URIMap = {}
+#        for uri in [XMLSchema.DURATION, XMLSchema.DATETIME, XMLSchema.TIME, XMLSchema.DATE,  XMLSchema.GYEARMONTH, 
+#                XMLSchema.GYEAR, XMLSchema.GMONTHDAY, XMLSchema.GDAY, XMLSchema.GMONTH, XMLSchema.STRING, 
+#                XMLSchema.BOOLEAN, XMLSchema.BASE64BINARY, XMLSchema.HEXBINARY, XMLSchema.FLOAT, XMLSchema.DECIMAL, 
+#                XMLSchema.DOUBLE, XMLSchema.ANYURI, XMLSchema.QNAME, XMLSchema.NOTATION, XMLSchema.NORMALIZEDSTRING, 
+#                XMLSchema.TOKEN, XMLSchema.LANGUAGE, XMLSchema.NMTOKEN, XMLSchema.NMTOKENS, XMLSchema.NAME, 
+#                XMLSchema.NCNAME, XMLSchema.ID, XMLSchema.IDREF, XMLSchema.IDREFS, XMLSchema.ENTITY, XMLSchema.ENTITIES, 
+#                XMLSchema.INTEGER, XMLSchema.LONG, XMLSchema.INT, XMLSchema.SHORT, XMLSchema.BYTE, XMLSchema.NON_POSITIVE_INTEGER, 
+#                XMLSchema.NEGATIVE_INTEGER, XMLSchema.NON_NEGATIVE_INTEGER, XMLSchema.POSITIVE_INTEGER, XMLSchema.UNSIGNED_LONG, 
+#                XMLSchema.UNSIGNED_INT, XMLSchema.UNSIGNED_SHORT, XMLSchema.UNSIGNED_BYTE,]:
+#            XMLSchema.name2URIMap[str(uri)] = uri
     
     @staticmethod
     def name2URI (name, exception_if_failure=True):

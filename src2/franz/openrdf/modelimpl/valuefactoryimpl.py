@@ -21,17 +21,15 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.allegrograph.encodedliteral import EncodedLiteral
+from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import BNode, URI, Value
 from franz.openrdf.model.literal import Literal
 from franz.openrdf.model.valuefactory import ValueFactory
-from franz.openrdf.modelimpl.valueimpl import URIImpl, BNodeImpl
-from franz.openrdf.modelimpl.literalimpl import LiteralImpl, CompoundLiteral
+from franz.openrdf.modelimpl.literalimpl import  CompoundLiteral
 from franz.openrdf.modelimpl.statementimpl import StatementImpl
 from franz.openrdf.model.statement import Statement
-from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+
 from franz.openrdf.vocabulary.owl import OWL
 
 import datetime
@@ -40,19 +38,14 @@ class ValueFactoryImpl(ValueFactory):
     """
     AllegroGraph-specific implementation of ValueFactory
     """
-    def __init__(self, store):
-        self.store = store
-        RDF.reinitialize(self, store)
-        RDFS.reinitialize(self, store)        
-        XMLSchema.reinitialize(self, store)
-        OWL.reinitialize(self, store)
-        Literal.reinitialize()
+#    def __init__(self, store):
+#        self.store = store
+#        RDF.reinitialize(self, store)
+#        RDFS.reinitialize(self, store)        
+#        XMLSchema.reinitialize(self, store)
+#        OWL.reinitialize(self, store)
+#        Literal.reinitialize()
 
-    def createBNode(self, nodeID=None):
-        """
-        Creates a new blank node with the given node identifier.
-        """
-        return BNodeImpl(None, id=nodeID, store=self.store)
     
     def object_position_term_to_openrdf_term(self, term, predicate=None):
         """
@@ -67,52 +60,18 @@ class ValueFactoryImpl(ValueFactory):
         if not inlinedType and isinstance(term, Literal) and term.datatype:
             inlinedType = self.store.inlined_datatypes.get(term.datatype)
         if inlinedType:
-            return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
+            raise UnimplementedMethodException("Inlined literals are not yet implemented")
+            ##return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
         else:
             return term
     
-    def _interpret_value(self, value, datatype):
-        """
-        If 'self' is not a string, convert it into one, and infer its
-        datatype, unless 'datatype' is set (i.e., overrides it).
-        """
-        if isinstance(value, str):
-            return value, datatype
-        elif isinstance(value, int):
-            return str(value), datatype or XMLSchema.INT
-        elif isinstance(value, float):
-            return str(value), datatype or XMLSchema.FLOAT
-        elif isinstance(value, bool):
-            return str(value), datatype or XMLSchema.BOOLEAN
-        elif isinstance(value, datetime.datetime):
-            return str(value), datatype or XMLSchema.DATETIME
-        elif isinstance(value, datetime.time):
-            return str(value), datatype or XMLSchema.TIME
-        elif isinstance(value, datetime.date):
-            return str(value), datatype or XMLSchema.DATE
-        else:
-            return str(value), datatype
-    
-    def createLiteral(self, value, datatype=None, language=None, upi=None, store=None):
-        """
-        Create a new literal with value 'value'.  'datatype' if supplied,
-        should be a URI, in which case 'value' should be a string.
-        """
-        value, datatype = self._interpret_value(value, datatype)
-        return LiteralImpl(value, datatype=datatype, language=language, upi=upi, store=store)
-
     def createStatement(self, subject, predicate, object, context=None):
         """
         Create a new statement with the supplied subject, predicate and object
         and associated context.  Arguments have type Resource, URI, Value, and Resource.
         """
-        return StatementImpl(subject, predicate, object, context=context, store=self.store)
-    
-    def createURI(self, uri=None, namespace=None, localname=None, store=None, upi=None):
-        """
-        Creates a new URI from the supplied string-representation(s)
-        """
-        return URIImpl(uri=uri, namespace=namespace, localname=localname, store=self.store, upi=upi)
+        return StatementImpl(subject, predicate, object, context=context)
+
     
     def createRange(self, lowerBound, upperBound):
         """

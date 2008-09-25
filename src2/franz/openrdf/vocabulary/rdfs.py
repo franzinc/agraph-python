@@ -64,38 +64,38 @@ class RDFS:
             RDFS.name2URIMap[str(uri)] = uri
 
             
-    @staticmethod
-    def reinitialize(factory, store=None):
-        """
-        Initialize the values in the factory, or
-        reinitialize the values in factory with more efficient
-        resources and literals (one's that know what store they
-        belong to).
-        """
-        RDFS.RESOURCE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Resource")
-        RDFS.LITERAL = factory.createURI(namespace=RDFS.NAMESPACE, localname="Literal")
-        RDFS.CLASS = factory.createURI(namespace=RDFS.NAMESPACE, localname="Class")
-        RDFS.SUBCLASSOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subClassOf")
-        RDFS.SUBPROPERTYOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subPropertyOf")
-        RDFS.DOMAIN = factory.createURI(namespace=RDFS.NAMESPACE, localname="domain")
-        RDFS.RANGE = factory.createURI(namespace=RDFS.NAMESPACE, localname="range")
-        RDFS.COMMENT = factory.createURI(namespace=RDFS.NAMESPACE, localname="comment")
-        RDFS.LABEL = factory.createURI(namespace=RDFS.NAMESPACE, localname="label")
-        RDFS.DATATYPE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Datatype")
-        RDFS.CONTAINER = factory.createURI(namespace=RDFS.NAMESPACE, localname="Container")
-        RDFS.MEMBER = factory.createURI(namespace=RDFS.NAMESPACE, localname="member")
-        RDFS.ISDEFINEDBY = factory.createURI(namespace=RDFS.NAMESPACE, localname="isDefinedBy")
-        RDFS.SEEALSO = factory.createURI(namespace=RDFS.NAMESPACE, localname="seeAlso")
-        RDFS.CONTAINERMEMBERSHIPPROPERTY = factory.createURI(namespace=RDFS.NAMESPACE, localname="ContainerMembershipProperty")
-
-        ## (re)build 'name2URI' dictionary
-        RDFS.name2URIMap = {}
-        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS, 
-                    RDFS.SUBCLASSOF, RDFS.SUBPROPERTYOF, RDFS.DOMAIN, 
-                    RDFS.RANGE, RDFS.COMMENT, RDFS.LABEL, RDFS.DATATYPE, 
-                    RDFS.CONTAINER, RDFS.MEMBER, RDFS.ISDEFINEDBY, 
-                    RDFS.SEEALSO, RDFS.CONTAINERMEMBERSHIPPROPERTY, ]:
-            RDFS.name2URIMap[str(uri)] = uri
+#    @staticmethod
+#    def reinitialize(factory, store=None):
+#        """
+#        Initialize the values in the factory, or
+#        reinitialize the values in factory with more efficient
+#        resources and literals (one's that know what store they
+#        belong to).
+#        """
+#        RDFS.RESOURCE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Resource")
+#        RDFS.LITERAL = factory.createURI(namespace=RDFS.NAMESPACE, localname="Literal")
+#        RDFS.CLASS = factory.createURI(namespace=RDFS.NAMESPACE, localname="Class")
+#        RDFS.SUBCLASSOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subClassOf")
+#        RDFS.SUBPROPERTYOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subPropertyOf")
+#        RDFS.DOMAIN = factory.createURI(namespace=RDFS.NAMESPACE, localname="domain")
+#        RDFS.RANGE = factory.createURI(namespace=RDFS.NAMESPACE, localname="range")
+#        RDFS.COMMENT = factory.createURI(namespace=RDFS.NAMESPACE, localname="comment")
+#        RDFS.LABEL = factory.createURI(namespace=RDFS.NAMESPACE, localname="label")
+#        RDFS.DATATYPE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Datatype")
+#        RDFS.CONTAINER = factory.createURI(namespace=RDFS.NAMESPACE, localname="Container")
+#        RDFS.MEMBER = factory.createURI(namespace=RDFS.NAMESPACE, localname="member")
+#        RDFS.ISDEFINEDBY = factory.createURI(namespace=RDFS.NAMESPACE, localname="isDefinedBy")
+#        RDFS.SEEALSO = factory.createURI(namespace=RDFS.NAMESPACE, localname="seeAlso")
+#        RDFS.CONTAINERMEMBERSHIPPROPERTY = factory.createURI(namespace=RDFS.NAMESPACE, localname="ContainerMembershipProperty")
+#
+#        ## (re)build 'name2URI' dictionary
+#        RDFS.name2URIMap = {}
+#        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS, 
+#                    RDFS.SUBCLASSOF, RDFS.SUBPROPERTYOF, RDFS.DOMAIN, 
+#                    RDFS.RANGE, RDFS.COMMENT, RDFS.LABEL, RDFS.DATATYPE, 
+#                    RDFS.CONTAINER, RDFS.MEMBER, RDFS.ISDEFINEDBY, 
+#                    RDFS.SEEALSO, RDFS.CONTAINERMEMBERSHIPPROPERTY, ]:
+#            RDFS.name2URIMap[str(uri)] = uri
         
     
     @staticmethod

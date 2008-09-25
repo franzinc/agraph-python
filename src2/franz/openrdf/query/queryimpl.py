@@ -89,20 +89,17 @@ class AbstractQuery(Query):
         are present in the repository). 
         """ 
         return self.includeInferred
+    
+    @staticmethod
+    def _check_language(self, queryLanguage):
+        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
+            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
+                                         % queryLanguage)
 
-class BooleanQueryImpl(GraphQuery, AbstractQuery):
+class BooleanQueryImpl(BooleanQuery, AbstractQuery):
     def __init__(self, queryLanguage, queryString, baseURI=None):
-        if not queryLanguage == QueryLanguage.SPARQL:
-            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL."
-                                         % QueryLanguage.SPARQL)
-        super(GraphQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
-        self.direct_caller = None
-        
-    def setDirectCaller(self, caller):
-        """
-        Internal call to embed the evaluator context into the query.
-        """
-        self.direct_caller = caller
+        AbstractQuery._check_language(queryLanguage)
+        super(BooleanQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
     
     ## NOT YET IMPLEMENTED:
 #    def evaluate(self):
@@ -116,54 +113,17 @@ class BooleanQueryImpl(GraphQuery, AbstractQuery):
 
 class GraphQueryImpl(GraphQuery, AbstractQuery):
     def __init__(self, queryLanguage, queryString, baseURI=None):
-        if not queryLanguage == QueryLanguage.SPARQL:
-            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL."
-                                         % QueryLanguage.SPARQL)
+        AbstractQuery._check_language(queryLanguage)
         super(GraphQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
-        self.direct_caller = None
-        
-    def setDirectCaller(self, caller):
-        """
-        Internal call to embed the evaluator context into the query.
-        """
-        self.direct_caller = caller
     
     def evaluate(self):
         """
         Execute the embedded query against the RDF store.  Return
         an iterator that produces for each step a Statement
         """
-        more = []
-        statementIt = self.direct_caller.twinqlFind(self.queryString, 0, 0, includeInferred=self.includeInferred, more=more)
-        return statementIt
-
-## CURRENTLY, THE urllib2 CODE IS RUNNING VERY SLOWLY, SO THE 'GO_FAST'
-## SETTING IS IN FACT SLOWER.  ALSO, IT NEEDS A HYBRID SERVER TO FUNCTION,
-## WHICH HAS NOT YET BEEN FORMALLY BLESSED:
-GO_FAST = False
-from franz.wire.doquery import do_compact_query
-from franz.openrdf.query.queryresultimpl import CompactTupleQueryResultImpl
+        raise UnimplementedMethodException("GraphQuery.evaluate")
 
 class TupleQueryImpl(TupleQuery, AbstractQuery):
-    def __init__(self, queryLanguage, queryString, baseURI=None):
-        if not queryLanguage == QueryLanguage.SPARQL:
-            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL."
-                                         % QueryLanguage.SPARQL)
-        super(TupleQueryImpl, self).__init__(queryLanguage, queryString, baseURI=baseURI)
-        self.direct_caller = None
-        self.connection = None
-        
-    def setDirectCaller(self, caller):
-        """
-        Internal call to embed the evaluator context into the query.
-        """
-        self.direct_caller = caller
-        
-    def setConnection(self, connection):
-        """
-        Internal call to embed the conneciton into the query.
-        """
-        self.connection = connection
     
     def evaluate(self, jdbc=False):
         """
@@ -189,46 +149,42 @@ class TupleQueryImpl(TupleQuery, AbstractQuery):
                     onlyNullContext = True
         if self.connection:
             query = self.splicePrefixesIntoQuery(query, self.connection)
-        if GO_FAST:
-            resultReader = do_compact_query(query)
-            if jdbc:
+        if jdbc:
                 return JDBCTuples(resultReader, query)
-            else:
-                return CompactTupleQueryResultImpl(resultReader, query)
         else:
             options = [BEHAVIOR, 'default'] if onlyNullContext else []
             bindingsIt = self.direct_caller.twinqlSelect(query, None, 0, 0, self.includeInferred, options)
             return bindingsIt
     
-    def spliceDatasetIntoQuery(self, query, dataset):
-        """
-        If 'query' has a dataset, splice its declarations into the query.
-        """
-        substituteFroms = dataset.asQuery(True)
-        if not substituteFroms: return query
-        if not self.queryLanguage == QueryLanguage.SPARQL: return query
-        lcQuery = query.lower()
-        fromPos = lcQuery.find('from')
-        wherePos = lcQuery.find('where')
-        if wherePos < 0:
-            wherePos = len(query)        
-        if fromPos < 0:
-            fromPos = wherePos
-        splicedQuery = ''.join([query[:fromPos], substituteFroms, query[wherePos:]])
-        return splicedQuery
-
-    def splicePrefixesIntoQuery(self, query, connection):
-        """
-        Add build-in and registered prefixes to 'query' when needed.
-        """
-        lcQuery = query.lower()
-        referenced = []
-        for ns in connection.getNamespaces():
-            if lcQuery.find(ns.getPrefix()) >= 0 and lcQuery.find("prefix %s" % ns.getPrefix) < 0:
-                referenced.append(ns)
-        for ref in referenced:
-            query = "PREFIX %s: <%s> %s" % (ref.getPrefix(), ref.getName(), query)
-        return query
+#    def spliceDatasetIntoQuery(self, query, dataset):
+#        """
+#        If 'query' has a dataset, splice its declarations into the query.
+#        """
+#        substituteFroms = dataset.asQuery(True)
+#        if not substituteFroms: return query
+#        if not self.queryLanguage == QueryLanguage.SPARQL: return query
+#        lcQuery = query.lower()
+#        fromPos = lcQuery.find('from')
+#        wherePos = lcQuery.find('where')
+#        if wherePos < 0:
+#            wherePos = len(query)        
+#        if fromPos < 0:
+#            fromPos = wherePos
+#        splicedQuery = ''.join([query[:fromPos], substituteFroms, query[wherePos:]])
+#        return splicedQuery
+#
+#    def splicePrefixesIntoQuery(self, query, connection):
+#        """
+#        Add build-in and registered prefixes to 'query' when needed.
+#        """
+#        lcQuery = query.lower()
+#        referenced = []
+#        for ns in connection.getNamespaces():
+#            if lcQuery.find(ns.getPrefix()) >= 0 and lcQuery.find("prefix %s" % ns.getPrefix) < 0:
+#                referenced.append(ns)
+#        for ref in referenced:
+#            query = "PREFIX %s: <%s> %s" % (ref.getPrefix(), ref.getName(), query)
+#        return query
 
          
 

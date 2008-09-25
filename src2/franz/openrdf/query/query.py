@@ -23,10 +23,13 @@
 
 
 from franz.openrdf.exceptions import *
+from franz.openrdf.repository.jdbcresultset import JDBCResultSet
+from franz.openrdf.repository.repositoryresult import RepositoryResult
 
 class QueryLanguage:
     registered_languages = []
     SPARQL = None
+    PROLOG = None
     def __init__(self, name):
         self.name = name
         QueryLanguage.registered_languages.append(self)
@@ -46,6 +49,7 @@ class QueryLanguage:
         return None
     
 QueryLanguage.SPARQL = QueryLanguage('SPARQL')
+QueryLanguage.PROLOG = QueryLanguage('PROLOG')
 
 #############################################################################
 ##
@@ -58,54 +62,66 @@ class Query(object):
     predefine bindings in the query to be able to reuse the same query with
     different bindings.
     """
+    def __init__(self, queryLanguage, queryString, baseURI=None):
+        self.queryLanguage = queryLanguage
+        self.queryString = queryString
+        self.baseURI = baseURI
+        self.dataset = None
+        self.includeInferred = False
 
     def setBinding(self, name, value):
         """
         Binds the specified variable to the supplied value. Any value that was
         previously bound to the specified value will be overwritten.
         """
-        raise UnimplementedMethodException("setBinding")
+        self.bindings.addBinding(name, value)
 
     def removeBinding(self, name):
         """ 
         Removes a previously set binding on the supplied variable. Calling this
         method with an unbound variable name has no effect.
         """ 
-        raise UnimplementedMethodException("removeBinding")
+        self.bindings.removeBinding(name)
 
     def getBindings(self):
         """
         Retrieves the bindings that have been set on this query. 
         """ 
-        raise UnimplementedMethodException("getBindings")
+        return self.bindings
 
     def setDataset(self, dataset):
         """
         Specifies the dataset against which to evaluate a query, overriding any
         dataset that is specified in the query itself. 
         """ 
-        raise UnimplementedMethodException("setDataset")
+        self.dataset = dataset
      
     def getDataset(self):
         """
         Gets the dataset that has been set using {@link #setDataset(Dataset)}, if  any. 
         """ 
-        raise UnimplementedMethodException("setBinding")
+        return self.dataset
      
-    def setIncludeInferred(self, getDataset):
+    def setIncludeInferred(self, includeInferred):
         """
         Determine whether evaluation results of this query should include inferred
         statements (if any inferred statements are present in the repository). The
         default setting is 'true'. 
         """ 
-        raise UnimplementedMethodException("setIncludeInferred")
+        self.includeInferred = includeInferred
 
     def getIncludeInferred(self):
         """
         Returns whether or not this query will return inferred statements (if any
         are present in the repository). 
         """ 
-        raise UnimplementedMethodException("getIncludeInferred")
+        return self.includeInferred
+    
+    @staticmethod
+    def _check_language(self, queryLanguage):
+        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
+            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
+                                         % queryLanguage)
     
 
 #############################################################################
@@ -113,15 +129,34 @@ class Query(object):
 #############################################################################
 
 class TupleQuery(Query):
+    def __init__(self, queryLanguage, queryString, baseURI=None):
+        Query._check_language(queryLanguage)
+        super(TupleQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
+        self.connection = None
+        
+    def setConnection(self, connection):
+        """
+        Internal call to embed the connection into the query.
+        """
+        self.connection = connection
     
-    def evaluate(self):
+    def evaluate(self, jdbc=False):
         """
         Execute the embedded query against the RDF store.  Return
         an iterator that produces for each step a tuple of values
         (resources and literals) corresponding to the variables
         or expressions in a 'select' clause (or its equivalent).
+        If 'jdbc', returns a JDBC-style iterator that miminizes the
+        overhead of creating response objects.        
         """
-        raise UnimplementedMethodException("evaluate")
+        if self.queryLanguage == QueryLanguage.SPARQL:
+            stringTuples = self.connection.evalSparqlQuery()
+        elif self.queryLanguage == QueryLanguage.PROLOG:
+            stringTuples = self.connection.evalPrologQuery()
+        if jdbc:
+            return JDBCResultSet(stringTuples)
+        else:
+            return RepositoryResult(stringTuples)
 
 class GraphQuery(Query):
     

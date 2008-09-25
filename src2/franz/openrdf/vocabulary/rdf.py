@@ -74,36 +74,36 @@ class RDF:
             RDF.name2URIMap[str(uri)] = uri
 
             
-    @staticmethod
-    def reinitialize(factory, store=None):
-        """
-        Initialize the values in the factory, or
-        reinitialize the values in factory with more efficient
-        resources and literals (one's that know what store they
-        belong to).
-        """
-        RDF.TYPE = factory.createURI(namespace=RDF.NAMESPACE, localname="type", store=store)
-        RDF.PROPERTY = factory.createURI(namespace=RDF.NAMESPACE, localname="Property", store=store)
-        RDF.XMLLITERAL = factory.createURI(namespace=RDF.NAMESPACE, localname="XMLLiteral", store=store)
-        RDF.SUBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="subject", store=store)
-        RDF.PREDICATE = factory.createURI(namespace=RDF.NAMESPACE, localname="predicate", store=store)
-        RDF.OBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="object", store=store)
-        RDF.STATEMENT = factory.createURI(namespace=RDF.NAMESPACE, localname="Statement", store=store)
-        RDF.BAG = factory.createURI(namespace=RDF.NAMESPACE, localname="Bag", store=store)
-        RDF.ALT = factory.createURI(namespace=RDF.NAMESPACE, localname="Alt", store=store)
-        RDF.SEQ = factory.createURI(namespace=RDF.NAMESPACE, localname="Seq", store=store)
-        RDF.VALUE = factory.createURI(namespace=RDF.NAMESPACE, localname="value", store=store)
-        RDF.LI = factory.createURI(namespace=RDF.NAMESPACE, localname="li", store=store)
-        RDF.LIST = factory.createURI(namespace=RDF.NAMESPACE, localname="List", store=store)
-        RDF.FIRST = factory.createURI(namespace=RDF.NAMESPACE, localname="first", store=store)
-        RDF.REST = factory.createURI(namespace=RDF.NAMESPACE, localname="rest", store=store)
-        RDF.NIL = factory.createURI(namespace=RDF.NAMESPACE, localname="nil", store=store)
-        ## (re)build 'name2URI' dictionary
-        RDF.name2URIMap = {}
-        for uri in [RDF.TYPE, RDF.PROPERTY, RDF.XMLLITERAL, RDF.SUBJECT, RDF.PREDICATE, RDF.OBJECT,
-                    RDF.STATEMENT, RDF.BAG, RDF.ALT, RDF.SEQ, RDF.VALUE, RDF.LI, RDF.LIST, RDF.FIRST,
-                    RDF.REST, RDF.NIL,]:
-            RDF.name2URIMap[str(uri)] = uri
+#    @staticmethod
+#    def reinitialize(factory, store=None):
+#        """
+#        Initialize the values in the factory, or
+#        reinitialize the values in factory with more efficient
+#        resources and literals (one's that know what store they
+#        belong to).
+#        """
+#        RDF.TYPE = factory.createURI(namespace=RDF.NAMESPACE, localname="type", store=store)
+#        RDF.PROPERTY = factory.createURI(namespace=RDF.NAMESPACE, localname="Property", store=store)
+#        RDF.XMLLITERAL = factory.createURI(namespace=RDF.NAMESPACE, localname="XMLLiteral", store=store)
+#        RDF.SUBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="subject", store=store)
+#        RDF.PREDICATE = factory.createURI(namespace=RDF.NAMESPACE, localname="predicate", store=store)
+#        RDF.OBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="object", store=store)
+#        RDF.STATEMENT = factory.createURI(namespace=RDF.NAMESPACE, localname="Statement", store=store)
+#        RDF.BAG = factory.createURI(namespace=RDF.NAMESPACE, localname="Bag", store=store)
+#        RDF.ALT = factory.createURI(namespace=RDF.NAMESPACE, localname="Alt", store=store)
+#        RDF.SEQ = factory.createURI(namespace=RDF.NAMESPACE, localname="Seq", store=store)
+#        RDF.VALUE = factory.createURI(namespace=RDF.NAMESPACE, localname="value", store=store)
+#        RDF.LI = factory.createURI(namespace=RDF.NAMESPACE, localname="li", store=store)
+#        RDF.LIST = factory.createURI(namespace=RDF.NAMESPACE, localname="List", store=store)
+#        RDF.FIRST = factory.createURI(namespace=RDF.NAMESPACE, localname="first", store=store)
+#        RDF.REST = factory.createURI(namespace=RDF.NAMESPACE, localname="rest", store=store)
+#        RDF.NIL = factory.createURI(namespace=RDF.NAMESPACE, localname="nil", store=store)
+#        ## (re)build 'name2URI' dictionary
+#        RDF.name2URIMap = {}
+#        for uri in [RDF.TYPE, RDF.PROPERTY, RDF.XMLLITERAL, RDF.SUBJECT, RDF.PREDICATE, RDF.OBJECT,
+#                    RDF.STATEMENT, RDF.BAG, RDF.ALT, RDF.SEQ, RDF.VALUE, RDF.LI, RDF.LIST, RDF.FIRST,
+#                    RDF.REST, RDF.NIL,]:
+#            RDF.name2URIMap[str(uri)] = uri
         
     
     @staticmethod
