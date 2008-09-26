@@ -1,7 +1,7 @@
 (eval-when (compile eval load)
   (require :agraph)
   (require :aserve)
-  (require :acache)) ;; TODO do we need this?
+  (require :acache))
 
 (defpackage :agraph-http-server
   (:use :cl :net.aserve :db.agraph :db.agraph.sparql

@@ -150,11 +150,11 @@
   (if all (index-all-triples) (index-new-triples))
   :null)
 
-(defservice :get "freetextindices" ()
+(defservice :get "freetextpredicates" ()
   (values :list (mapcar (lambda (n) (format nil "<~a>" n))
                         (freetext-registered-predicates))))
 
-(defservice :post "freetextindices" ((predicate :string))
+(defservice :post "freetextpredicates" ((predicate :string))
   (assert-writeable)
   (let ((part (assert-part predicate)))
     (request-assert (char= (char predicate 0) #\<) "Text indexing predicates must be URIs.")
