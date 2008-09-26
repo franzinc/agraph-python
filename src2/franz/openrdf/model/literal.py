@@ -107,6 +107,13 @@ class Literal(Value):
             sb.append(str(self.datatype))
         return ''.join(sb)
 
+    def toNTriples(self):
+        """
+        Return an NTriples representation of a resource, in this case, wrap
+        it in angle brackets.
+        """
+        return str(self)
+
 ###############################################################################
 ## Automatic conversion from Literal to Python object
 ###############################################################################
@@ -135,52 +142,36 @@ class Literal(Value):
             else:
                 return self.label
     
-    @staticmethod
-    def reinitialize():        
-        Literal.XSDToPython = {
-            str(XMLSchema.DURATION) : None, 
-        #    str(XMLSchema.DATETIME) : parseDateTime, 
-        #    str(XMLSchema.TIME) : parseTime, 
-        #    str(XMLSchema.DATE) : parseDate, 
-            str(XMLSchema.GYEARMONTH) : None, 
-            str(XMLSchema.GYEAR) : None, 
-            str(XMLSchema.GMONTHDAY) : None, 
-            str(XMLSchema.GDAY) : None, 
-            str(XMLSchema.GMONTH) : None, 
-            str(XMLSchema.STRING) : None, 
-            str(XMLSchema.BOOLEAN) : bool, 
-        #    str(XMLSchema.BASE64BINARY) : base64.decodeString, 
-            str(XMLSchema.HEXBINARY) : None, 
-            str(XMLSchema.FLOAT) : float, 
-            str(XMLSchema.DECIMAL) : float, 
-            str(XMLSchema.DOUBLE) : float, 
-            str(XMLSchema.ANYURI) : None, 
-            str(XMLSchema.QNAME) : None, 
-            str(XMLSchema.NOTATION) : None, 
-            str(XMLSchema.NORMALIZEDSTRING) : None, 
-            str(XMLSchema.TOKEN) : None, 
-            str(XMLSchema.LANGUAGE) : None, 
-            str(XMLSchema.NMTOKEN) : None, 
-            str(XMLSchema.NMTOKENS) : None, 
-            str(XMLSchema.NAME) : None, 
-            str(XMLSchema.NCNAME) : None, 
-            str(XMLSchema.ID) : None, 
-            str(XMLSchema.IDREF) : None, 
-            str(XMLSchema.IDREFS) : None, 
-            str(XMLSchema.ENTITY) : None, 
-            str(XMLSchema.ENTITIES) : None, 
-            str(XMLSchema.INTEGER) : long, 
-            str(XMLSchema.LONG) : long, 
-            str(XMLSchema.INT) : long, 
-            str(XMLSchema.SHORT) : int, 
-            str(XMLSchema.BYTE) : int, 
-            str(XMLSchema.NON_POSITIVE_INTEGER) : int, 
-            str(XMLSchema.NEGATIVE_INTEGER) : int, 
-            str(XMLSchema.NON_NEGATIVE_INTEGER) : int, 
-            str(XMLSchema.POSITIVE_INTEGER) : int, 
-            str(XMLSchema.UNSIGNED_LONG) : long, 
-            str(XMLSchema.UNSIGNED_INT) : long, 
-            str(XMLSchema.UNSIGNED_SHORT) : int, 
-            str(XMLSchema.UNSIGNED_BYTE) : int, 
-            }
+        
+###############################################################################
+# Extension to Sesame API
+###############################################################################
+
+class CompoundLiteral(Literal):
+    """
+    A compound literal represents a range, a geospatial coordinate,
+    or other useful compound structure.
+    TODO: FIGURE OUT SYNTAX FOR OTHER TYPES. INSURE THAT
+    THE SYNTAX FOR A RANGE DOESN'T CONFLICT/OVERLAP
+    """
+    RANGE_LITERAL = 'rangeLiteral'
+    def __init__(self, choice, lowerBound=None, upperBound=None):
+        self.choice = choice
+        if choice == CompoundLiteral.RANGE_LITERAL:
+            self.lowerBound = lowerBound # should be a LiteralImpl
+            self.upperBound = upperBound # should be a LiteralImpl
+        ## other compound types go here.
+        else:
+            raise IllegalArgumentException("Can't interpret the choice '%s' of a compound literal." % choice)
+    
+    def isRangeLiteral(self):
+        return self.choice == CompoundLiteral.RANGE_LITERAL
+    
+    def getLowerBound(self):
+        return self.lowerBound
+    
+    def getUpperBound(self):
+        return self.upperBound
+    
+
         

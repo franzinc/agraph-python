@@ -25,15 +25,15 @@ import os
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.sail.sail import Sail, SailConnection
-from franz.openrdf.sail.repositoryresultimpl import RepositoryResultImpl, CompoundRepositoryResultImpl
-from franz.openrdf.sail.jdbcresultsetimpl import JDBCResultSetImpl, CompoundJDBCResultSetImpl
+from franz.openrdf.repository.repositoryresult import RepositoryResult
+from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.model.value import Value, URI, BNode, Namespace
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 from franz.openrdf.vocabulary.owl import OWL
-from franz.openrdf.query.queryimpl import AbstractQuery, TupleQueryImpl, GraphQueryImpl, BooleanQueryImpl
+from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery
 from franz.allegrograph.directcalls import DirectCaller
 from franz.allegrograph.upi import UPI
 from franz.openrdf.rio.rdfformat import RDFFormat
@@ -81,9 +81,7 @@ from franz.openrdf.rio.rdfformat import RDFFormat
 class AllegroGraphRepositoryConnection(SailConnection):
     def __init__(self, store):
         self.sail_store = store 
-        self.term2internal = store.getTerm2InternalManager()
-        self.internal_ag_store = store.getInternalAllegroGraph()
-        self.directCaller = DirectCaller(self.internal_ag_store.verifyEnabled(), self.term2internal)
+        self.mini_repository = store.mini_repository
         self.is_closed = False
     
     def rollback(self):
@@ -101,7 +99,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         executed against the RDF storage.
         """
         ## THIS IS BOGUS:
-        return AbstractQuery(queryString, queryLanguage, baseURI)
+        return Query(queryString, queryLanguage, baseURI)
 
     def prepareTupleQuery(self, queryLanguage, queryString, baseURI=None):
         """
@@ -110,8 +108,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         query.  The result of query
         execution is an iterator of tuples.
         """
-        query = TupleQueryImpl(queryLanguage, queryString, baseURI=baseURI)
-        query.setDirectCaller(self.directCaller)
+        query = TupleQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
 
@@ -122,7 +119,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         or DESCRIBE query.  The result of query
         execution is an iterator of statements/quads.
         """
-        query = GraphQueryImpl(queryLanguage, queryString, baseURI=baseURI)
+        query = GraphQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setDirectCaller(self.directCaller)
         return query
 
@@ -132,7 +129,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         executed against the RDF storage.  'queryString' must be an ASK
         query.  The result is true or false.
         """
-        query = BooleanQueryImpl(queryLanguage, queryString, baseURI=baseURI)
+        query = BooleanQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setDirectCaller(self.directCaller)
         return query
 
@@ -153,8 +150,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
         contexts in this repository.
         """
         if contexts == []:
-            return self.directCaller.numberOfTriples()
+            self.mini_repository.getSize()
         else:
+            print "Computing the size of a context is currently very expensive"
             resultSet = self.getJDBCStatements(None, None, None, contexts)
             count = 0
             while resultSet.next():
@@ -208,17 +206,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
         obj = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(obj, predicate=pred)
         if not isinstance(contexts, list):
             contexts = [contexts]
-        if len(contexts) <= 1:
-            cursor = self.directCaller.getTriples(subj, pred, obj, contexts, includeInferred=includeInferred)
-            return RepositoryResultImpl(cursor)
-        else:
-            ## kludge until AGraph can handle multiple contexts:
-            cursors = []
-            for cxt in contexts:
-                cursor = self.directCaller.getTriples(subj, pred, obj, [cxt], includeInferred=includeInferred)
-                cursors.append(cursor)
-            return CompoundRepositoryResultImpl(cursors)
-
+        stringTuples = self.mini_repository.getStatements(subj, pred, obj, contexts, infer=includeInferred)
+        return RepositoryResult(stringTuples)
+       
     def getJDBCStatements(self, subj, pred,  obj, contexts=[], includeInferred=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
@@ -229,17 +219,8 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         if not isinstance(contexts, list):
             contexts = [contexts]
-        if len(contexts) <= 1:
-            cursor = self.directCaller.getTriples(subj, pred, obj, contexts, includeInferred=includeInferred)
-            return JDBCResultSetImpl(cursor=cursor)
-        else:
-            ## kludge until AGraph can handle multiple contexts:
-            cursors = []
-            for cxt in contexts:
-                cursor = self.directCaller.getTriples(subj, pred, obj, [cxt], includeInferred=includeInferred)
-                cursors.append(cursor)
-            return CompoundJDBCResultSetImpl(cursors)
-
+        stringTuples = self.mini_repository.getStatements(subj, pred, obj, contexts, infer=includeInferred)
+        return JDBCResultSet(stringTuples)
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
         """
@@ -290,55 +271,45 @@ class AllegroGraphRepositoryConnection(SailConnection):
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)
         
-    
+    def _contexts_to_ntriple_contexts(self, contexts):
+        if isinstance(contexts (list, tuple)):
+            cxts = [c.toNTriples for c in contexts]
+        elif contexts:
+            cxts = contexts.toNTriples
+        else:
+            cxts = None
+            return cxts
+        
     def addTriple(self, subject, predicate, object, contexts=None):
         """
         Add the supplied triple of values to this repository, optionally to
         one or more named contexts.        
-        """
-        mgr = self.term2internal
-        internalStore = mgr.internal_ag_store
-        s = mgr.openTermToInternalStringTerm(subject)
-        p = mgr.openTermToInternalStringTerm(predicate)
-        object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
-        o = mgr.openTermToInternalStringTerm(object)
-        internalDirectConnector = internalStore.verifyEnabled()
-        if contexts is None:
-            internalDirectConnector.addTriple(internalStore, s, p, o, mgr.nullContextObject())
-        elif isinstance(contexts, list):
-            for c in contexts:
-                internalDirectConnector.addTriple(internalStore, s, p, o, mgr.openTermToInternalStringTerm(c))
-        else:  ## assume 'contexts' is a single context:
-            internalDirectConnector.addTriple(internalStore, s, p, o, mgr.openTermToInternalStringTerm(contexts))
-
+        """       
+        self.mini_repository.addStatement(subject.toNTriples(), predicate.toNTriples(), object.toNTriples(),
+                                          self._contexts_to_ntriple_contexts(contexts))
+        
     def addTriples(self, triples_or_quads, context=None):
         """
         Add the supplied triples or quads to this repository.  Each triple can
         be a list or a tuple of Values.   If 'context' is set, then 
         the first argument must contain only triples, and each is inserted into
         the designated context.
+        
+        TODO: CONSIDER ALLOWING LISTS OF NTRIPLES STRINGS AS INPUT HERE
         """
-        mgr = self.term2internal
-        internalStore = mgr.internal_ag_store
-        subjects = [None] * len(triples_or_quads)
-        predicates = [None] * len(triples_or_quads)
-        objects = [None] * len(triples_or_quads)
-        contexts = [None] * len(triples_or_quads)
-        contextString = mgr.openTermToInternalStringTerm(context) if context else None
-        counter = 0
-        for stmt in triples_or_quads:           
-            subjects[counter] = mgr.openTermToInternalStringTerm(stmt[0])
-            predicates[counter] = mgr.openTermToInternalStringTerm(stmt[1])
-            objects[counter] = mgr.openTermToInternalStringTerm(stmt[2])
-            if contextString:
-                contexts[counter] = contextString
-            elif len(stmt) == 4:
-                contexts[counter] = mgr.openTermToInternalStringTerm(stmt[3])
+        quads = []
+        for q in triples_or_quads:
+            quad = [None] * 4
+            if isinstance(quad, (list, tuple)):
+                quad[0] = q[0].toNTriples()
+                quad[1] = q[1].toNTriples()
+                quad[2] = q[2].toNTriples()
+                quad[3] = q[3].toNTriples() if q[3] else self._contexts_to_ntriple_contexts(context)
             else:
-                contexts[counter] = mgr.nullContextObject()
-            counter += 1
-        internalDirectConnector = internalStore.verifyEnabled()
-        internalDirectConnector.addTriples(internalStore, subjects, predicates, objects, contexts)
+                quad[0] = q.getSubject().toNTriples()
+                quad[1] = q.getPredicate().toNTriples()
+                quad[2] = q.getObject().toNTriples()
+                quad[3] = q.getContext().toNTriples() if q.getContext() else self._contexts_to_ntriple_contexts(context)
                 
 #     * Adds the supplied statement to this repository, optionally to one or more
 #     * named contexts.

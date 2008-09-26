@@ -22,8 +22,8 @@
 ##***** END LICENSE BLOCK *****
 
 from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import BNode, URI
-from franz.openrdf.model.literal import Literal
+from franz.openrdf.model.value import Value, BNode, URI
+from franz.openrdf.model.literal import Literal, CompoundLiteral
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
@@ -113,5 +113,37 @@ class ValueFactory(object):
                 return Literal(label, language=language)
         else:
             raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
+
+#############################################################################
+## Extension to Sesame API
+#############################################################################
+
         
+    def object_position_term_to_openrdf_term(self, term, predicate=None):
+        """
+        If 'term' is a string, integer, float, etc, convert it to
+        a Literal term.  Otherwise, if its a Value, just pass it through.
+        """
+        if term is None: return term
+        if isinstance(term, CompoundLiteral): return term
+        if not isinstance(term, Value):
+            term = self.createLiteral(term)
+        inlinedType = self.store.inlined_predicates.get(predicate.getURI()) if predicate else None            
+        if not inlinedType and isinstance(term, Literal) and term.datatype:
+            inlinedType = self.store.inlined_datatypes.get(term.datatype)
+        if inlinedType:
+            raise UnimplementedMethodException("Inlined literals are not yet implemented")
+            ##return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
+        else:
+            return term
+    
+    def createRange(self, lowerBound, upperBound):
+        """
+        Create a compound literal representing a range from 'lowerBound' to 'upperBound'
+        """
+        lowerBound = self.object_position_term_to_openrdf_term(lowerBound)
+        upperBound = self.object_position_term_to_openrdf_term(upperBound)
+        return CompoundLiteral(choice=CompoundLiteral.RANGE_LITERAL, lowerBound=lowerBound, upperBound=upperBound)
+        
+
 

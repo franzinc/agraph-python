@@ -24,7 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
-from franz.openrdf.repository.repositoryresult import RepositoryResult
+from franz.openrdf.query.queryresult import TupleQueryResult
 
 class QueryLanguage:
     registered_languages = []
@@ -148,15 +148,22 @@ class TupleQuery(Query):
         or expressions in a 'select' clause (or its equivalent).
         If 'jdbc', returns a JDBC-style iterator that miminizes the
         overhead of creating response objects.        
+        TODO: DOESN'T TAKE DATASETS INTO ACCOUNT.  THAT NEEDS TO BE COMMUNICATED
+        TO THE SERVER SOMEHOW.      
         """
+        ## before executing, see if there is a dataset that needs to be incorporated into the query
+        if self.dataset:
+            raise UnimplementedMethodException("Query datasets not yet implemented")
+        mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:
-            stringTuples = self.connection.evalSparqlQuery()
+            ## THIS IS BOGUS; WE GET BACK COLUMN NAMES AND TUPLES:
+            response = mini.evalSparqlQuery(self.queryString)
         elif self.queryLanguage == QueryLanguage.PROLOG:
-            stringTuples = self.connection.evalPrologQuery()
+            response = mini.evalPrologQuery(self.queryString)
         if jdbc:
-            return JDBCResultSet(stringTuples)
+                raise UnimplementedMethodException("'jdbc' option not yet implemented for 'evaluate'")
         else:
-            return RepositoryResult(stringTuples)
+            return TupleQueryResult(response['names'], response['values'])
 
 class GraphQuery(Query):
     

@@ -24,8 +24,8 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.sail.sail import Sail
-from franz.openrdf.modelimpl.valueimpl import URIImpl
-from franz.openrdf.modelimpl.valuefactoryimpl import ValueFactoryImpl
+from franz.openrdf.model.value import URI
+from franz.openrdf.model.valuefactory import ValueFactory
 from franz.openrdf.sail.agrepositoryconnection import AllegroGraphRepositoryConnection
 from franz.openrdf.exceptions import *
 from franz.allegrograph.startup import StartUp
@@ -79,10 +79,9 @@ class AllegroGraphStore(Sail):
         self.translated_options = None
         ## system state fields:
         self.connection = None
-        self.internal_ag_store = None
+        self.mini_repository
         self.is_closed = False
         self.value_factory = None
-        self.term2internal = None
         self.inlined_predicates = {}
         self.inlined_datatypes = {}
         
@@ -117,8 +116,7 @@ class AllegroGraphStore(Sail):
         Initialize this store. This will establish a connection to the remote 
         server, or die trying.
         """
-        self.internal_ag_store = StartUp.startUpTripleStore(self.access_verb, self.host, self.database_name, 
-                                                  self.database_directory, self.options)
+        print "INITIALIZING NOT YET IMPLEMENTED :("
         
     def indexTriples(self, all=False, asynchronous=False):
         """
@@ -159,8 +157,8 @@ class AllegroGraphStore(Sail):
         If 'datatype', then typed literal objects with a datatype matching 'datatype' will
         use an inlined encoding of type 'inlinedType'.
         """
-        predicate = predicate.getURI() if isinstance(predicate, URIImpl) else predicate
-        datatype = datatype.getURI() if isinstance(datatype, URIImpl) else datatype
+        predicate = predicate.getURI() if isinstance(predicate, URI) else predicate
+        datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
         if predicate:
             if not inlinedType:
                 raise IllegalArgumentException("Missing 'inlinedType' parameter in call to 'registerInlinedDatatype'")
@@ -238,7 +236,7 @@ class AllegroGraphStore(Sail):
         Return a ValueFactory for this store
         """
         if not self.value_factory:
-            self.value_factory = ValueFactoryImpl(self)
+            self.value_factory = ValueFactory(self)
         return self.value_factory
     
 ###################################################################################

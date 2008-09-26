@@ -59,8 +59,8 @@ class Repository:
         contexts -- strings in "http://foo.com" form or "null" for
         the default context. Return type depends on the query type.
         ASK gives a boolean, SELECT a {names, values} object
-        containing arrays of arrays of terms. CONSTRUCT and DESCRIBE
-        return an array of arrays representing statements."""
+        containing lists of lists of terms. CONSTRUCT and DESCRIBE
+        return a list of lists representing statements."""
         return jsonRequest(self.curl, "POST", self.url,
                            urlenc(query=query, infer=infer, context=context, environment=self.environment))
 

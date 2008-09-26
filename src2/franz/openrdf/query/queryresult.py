@@ -66,7 +66,7 @@ class TupleQueryResult(QueryResult):
         self.cursor = 0        
         tupleWidth = len(variable_names)
         self.tupleCount = len(string_tuples)        
-        self.reusableRow = [None for k in range(tupleWidth)]
+        self.reusableRow = [None] * tupleWidth
     
     def __iter__(self): return self
     

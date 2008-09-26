@@ -35,6 +35,12 @@ class Value(object):
     def __str__(self): raise UnimplementedMethodException()
     def __eq__(self): raise UnimplementedMethodException()
     def __hash__(self): raise UnimplementedMethodException()   
+
+    def toNTriples(self):
+        """
+        Return an NTriples representation of an open rdf term
+        """
+        return UnimplementedMethodException("Failed to implement 'toNTriples' on instance of type %s" % type(self))
     
 class Resource(Value):
     pass
@@ -82,6 +88,13 @@ class URI(Resource):
         if (self.localNameIdx < 0):
             self.localNameIdx = uris.getLocalNameIndex(self.getURI())
         return self.uri[0, self.localNameIdx]
+    
+    def toNTriples(self):
+        """
+        Return an NTriples representation of a resource, in this case, wrap
+        it in angle brackets.
+        """
+        return "<%s>" % self.uri
     
 class BNode(Resource):
     """
