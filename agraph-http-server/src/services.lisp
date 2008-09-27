@@ -61,7 +61,7 @@
     (multiple-value-bind (result verb names)
         (handler-case (run-sparql parsed :engine :algebra :rdf-format :cursor
                                   :results-format (if (eq (second parsed) :ask) :boolean :cursor)
-                                  :from-named context)
+                                  :from context)
           (error (e) (request-failed (princ-to-string e))))
       (ecase verb
         (:ask (values :boolean result))
@@ -72,7 +72,7 @@
 (defun prolog-query (query env)
   (handler-case (multiple-value-bind (values names) (run-prolog query (@namespaces env) (@prolog-package env))
                   (values :row-cursor (wrap-list-cursor values names)))
-    (error (e) (request-failed (princ-to-string e)))))
+    #+(or)(error (e) (request-failed (princ-to-string e)))))
 
 (defservice :post "functor" ((definition :string) (environment :string nil))
   (let ((env (assert-environment environment)))

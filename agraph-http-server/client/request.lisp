@@ -6,8 +6,8 @@
   ((response-code :initarg :response :reader @response)))
 
 (defmethod print-object ((err request-failed) stream)
-  (format stream "Request failed (status ~a): ~a"
-          (@response err) (call-next-method)))
+  (format stream "Request failed (status ~a): " (@response err))
+  (call-next-method))
 
 (defun boolstr (val)
   (if val "true" "false"))

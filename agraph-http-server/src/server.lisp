@@ -23,6 +23,9 @@
   (setf (slot-value server 'cache)
         (let (*allegrocache*) (open-file-database cache-file :if-does-not-exist :create))))
 
+(defun close-http-server (server)
+  (close-database :db (@cache server)))
+
 (defclass store-spec ()
   ((name :initarg :name :reader @name :index :any-unique)
    (file :initarg :file :reader @file)
