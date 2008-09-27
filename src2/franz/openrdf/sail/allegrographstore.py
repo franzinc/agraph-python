@@ -27,13 +27,12 @@ from franz.openrdf.sail.sail import Sail
 from franz.openrdf.model.value import URI
 from franz.openrdf.model.valuefactory import ValueFactory
 from franz.openrdf.sail.agrepositoryconnection import AllegroGraphRepositoryConnection
-from franz.openrdf.exceptions import *
-from franz.allegrograph.startup import StartUp
-from franz.allegrograph.open2ag import Term2InternalManager
-from franz.transport.agconnection import AllegroGraphConnection as AGInternalConnection
+from franz.miniclient.repository import AllegroGraphServer
+from franz.miniclient.repository import Repository as MiniRepository
 
-LEGAL_OPTIONS = {}
-LEGAL_OPTION_TYPES = {}
+READ_ONLY = 'READ_ONLY'
+
+LEGAL_OPTION_TYPES = {READ_ONLY: bool,}
 
 # * A Sesame Sail contains RDF data that can be queried and updated.
 # * Access to the Sail can be acquired by opening a connection to it.
@@ -49,25 +48,17 @@ class AllegroGraphStore(Sail):
     repository where they are used to initialize the startup and 
     server execution.
     """
-    RENEW = AGInternalConnection.RENEW
-    ACCESS = AGInternalConnection.ACCESS
-    OPEN = AGInternalConnection.OPEN
-    CREATE = AGInternalConnection.CREATE
-    REPLACE = AGInternalConnection.REPLACE
-    
-    EXPECTED_UNIQUE_RESOURCES = "EXPECTED_UNIQUE_RESOURCES"
-    WITH_INDICES = "WITH_INDICES"
-    INCLUDE_STANDARD_PARTS = "INCLUDE_STANDARD_PARTS"
-    READ_ONLY = "READ_ONLY"
-    INDIRECT_HOST = "INDIRECT_HOST"
-    INDIRECT_PORT = "INDIRECT_PORT"
+    RENEW = 'renew'
+    ACCESS = 'access'
+    OPEN = 'open'
+    CREATE = 'create'
+    REPLACE = 'replace'
 
-    EXPECTED_UNIQUE_RESOURCES_OP = "expected-unique-resources"
-    WITH_INDICES_OP = "with-indices"
-    INCLUDE_STANDARD_PARTS_OP = "include-standard-parts"
-    READ_ONLY_OP = "read-only-p"
-    INDIRECT_HOST_OP = "indirect-host"
-    INDIRECT_PORT_OP = "indirect-port"
+#    EXPECTED_UNIQUE_RESOURCES = "EXPECTED_UNIQUE_RESOURCES"
+#    WITH_INDICES = "WITH_INDICES"
+#    INCLUDE_STANDARD_PARTS = "INCLUDE_STANDARD_PARTS"
+#    INDIRECT_HOST = "INDIRECT_HOST"
+#    INDIRECT_PORT = "INDIRECT_PORT"
     
     def __init__(self, accessVerb, host, databaseName, dbDirectory, port=4567, **options):
         self.access_verb = accessVerb
@@ -79,7 +70,8 @@ class AllegroGraphStore(Sail):
         self.translated_options = None
         ## system state fields:
         self.connection = None
-        self.mini_repository
+        self.mini_server = None
+        self.mini_repository = None
         self.is_closed = False
         self.value_factory = None
         self.inlined_predicates = {}
@@ -91,19 +83,7 @@ class AllegroGraphStore(Sail):
 #        self.database_name = sailStore.getDatabaseName()
 #        self.database_directory = sailStore.getDatabaseDirectory()
 #        self.options = sailStore.getOptions()
-#        
-        
-    def translated_options(self):
-        global LEGAL_OPTION_TYPES
-        for key, value in self.options.iteritems():
-            valueType = LEGAL_OPTION_TYPES.get(key)
-            if not type:
-                raise IllegalOptionException("Unrecognized option '%s'.  Legal options are:\n   %s"
-                         % (key, [opt for opt in LEGAL_OPTIONS.iterkeys()]))
-            if not isinstance(value, valueType):
-                raise IllegalOptionException("Invalid option '%s=%s'.  Expected an option of type '%s'" %
-                                             (key, value, valueType))
-            
+#                            
     
     def getAccessVerb(self): return self.access_verb
     def getHost(self): return self.host
@@ -111,12 +91,54 @@ class AllegroGraphStore(Sail):
     def getDatabaseDirectory(self): return self.database_directory
     def getOptions(self): return self.options
     
+    def _attach_to_mini_repository(self):
+        """
+        Connect to the mini-server, create a mini-repository, and 
+        execute a RENEW, OPEN, CREATE, or ACCESS.
+        
+        TODO: FIGURE OUT WHAT 'REPLACE' DOES
+        """
+        address = "%s:%s" % (self.host, self.port)
+        conn = AllegroGraphServer(address)
+        dbName = self.database_name
+        clearIt = False
+        if self.access_verb == AllegroGraphStore.RENEW:
+            if dbName in conn.listTripleStores():
+                ## not nice, since someone else probably has it open:
+                clearIt = True
+            else:
+                try:
+                    conn.openTripleStore(dbName, self.database_directory)
+                    clearIt = True
+                except:
+                    conn.createTripleStore(dbName, self.database_directory)                    
+        elif self.access_verb == AllegroGraphStore.CREATE:
+            if dbName in conn.listTripleStores():
+                raise IllegalOptionException(
+                    "Can't create triple store named '%s' because a store with that name already exists.",
+                    dbName)
+            conn.createTripleStore(dbName, self.database_directory)
+        elif self.access_verb == AllegroGraphStore.OPEN:
+            if not dbName in conn.listTripleStores():
+                conn.openTripleStore(dbName, self.database_directory) 
+        elif self.access_verb == AllegroGraphStore.ACCESS:
+            if not dbName in conn.listTripleStores():
+                try:
+                    conn.openTripleStore(dbName, self.database_directory)
+                except:
+                    conn.createTripleStore(dbName, self.database_directory) 
+        self.mini_server = conn       
+        self.mini_repository = conn.getRepository(dbName)
+        ## we are done unless a RENEW requires us to clear the store
+        if clearIt:
+            self.mini_repository.deleteStatement(None, None, None, None)
+    
     def initialize(self):
         """
         Initialize this store. This will establish a connection to the remote 
         server, or die trying.
         """
-        print "INITIALIZING NOT YET IMPLEMENTED :("
+        self._attach_to_mini_repository()
         
     def indexTriples(self, all=False, asynchronous=False):
         """
@@ -126,10 +148,7 @@ class AllegroGraphStore(Sail):
         the indexing task as a separate thread, and don't wait for it to complete.
         Note. Upon version 4.0, calling this will no longer be necessary.        
         """
-        if all:
-            self.internal_ag_store.indexAllTriples(wait=(not asynchronous))
-        else:
-            self.internal_ag_store.indexNewTriples(wait=(not asynchronous))
+        self.mini_repository.indexStatements(all=all)
 
     def registerFreeTextPredicate(self,uri=None, namespace=None, localname=None):
         """
@@ -139,7 +158,7 @@ class AllegroGraphStore(Sail):
         work properly.
         """
         uri = uri or (namespace + localname)
-        self.internal_ag_store.registerFreetextPredicate("<%s>" % uri)
+        self.mini_repository.registerFreeTextPredicate(uri)
         
     def _translate_inlined_type(self, type):
         if type == "int": return "int"
@@ -169,22 +188,9 @@ class AllegroGraphStore(Sail):
             lispType = self._translate_inlined_type(inlinedType or datatype)
             mapping = [datatype, lispType, "datatype"]
             self.inlined_datatypes[datatype] = lispType
-        self.internal_ag_store.addDataMapping(mapping)
+        ##self.internal_ag_store.addDataMapping(mapping)
+        raise UnimplementedMethodException("Inlined datatypes not yet implemented.")
         
-    def getInternalAllegroGraph(self):
-        """
-        Return the AllegroGraph instance for this store.  This is an internal
-        call, not to be called by applications.
-        """
-        return self.internal_ag_store
-    
-    def getTerm2InternalManager(self):
-        if not self.term2internal:
-            if not self.internal_ag_store:
-                raise InitializationException("Failed to initialize internal AllegroGraphStore before first use.")
-            self.term2internal = Term2InternalManager(self.internal_ag_store, self.getValueFactory())
-        return self.term2internal
-
     def setDataDirectory(self, dataDir):
         """
         Set the directory where data and logging for this store is stored.
@@ -206,9 +212,8 @@ class AllegroGraphStore(Sail):
         THE ACCESS OPTION MIGHT NOT MAKE SENSE THE SECOND TIME AROUND (KILLING THAT IDEA!)
         """
         try:
-            StartUp.shutDownTripleStore(self.internal_ag_store)
+            self.mini_server.close()
         finally:
-            self.internal_ag_store = None
             self.is_closed = True
 
     def isWritable(self):
@@ -218,7 +223,7 @@ class AllegroGraphStore(Sail):
         determined by the writability of the Sail that this store operates
         on.
         """
-        return not self.options.get(AllegroGraphStore.READ_ONLY)
+        return self.mini_repository.is_writable()
 
     def getConnection(self):
         """
@@ -239,40 +244,7 @@ class AllegroGraphStore(Sail):
             self.value_factory = ValueFactory(self)
         return self.value_factory
     
-###################################################################################
-##
-###################################################################################
 
-    def get_connector(self):
-        """
-        Return the connector to the socket.
-        """
-        return self.internal_ag_store.verifyEnabled()
-
-
-###################################################################################
-## Initialization of static variables takes place AFTER the class
-## has been defined:
-###################################################################################
-   
-LEGAL_OPTIONS = {
-    AllegroGraphStore.EXPECTED_UNIQUE_RESOURCES: AllegroGraphStore.EXPECTED_UNIQUE_RESOURCES_OP,
-    AllegroGraphStore.WITH_INDICES: AllegroGraphStore.WITH_INDICES_OP,
-    AllegroGraphStore.INCLUDE_STANDARD_PARTS: AllegroGraphStore.INCLUDE_STANDARD_PARTS_OP,
-    AllegroGraphStore.READ_ONLY: AllegroGraphStore.READ_ONLY_OP,
-    AllegroGraphStore.INDIRECT_HOST: AllegroGraphStore.INDIRECT_HOST_OP,
-    AllegroGraphStore.INDIRECT_PORT: AllegroGraphStore.INDIRECT_PORT_OP,
-}
-
-LEGAL_OPTION_TYPES = {
-    AllegroGraphStore.EXPECTED_UNIQUE_RESOURCES: long,
-    AllegroGraphStore.WITH_INDICES: list,
-    AllegroGraphStore.INCLUDE_STANDARD_PARTS: bool,
-    AllegroGraphStore.READ_ONLY: bool,
-    AllegroGraphStore.INDIRECT_HOST: str,
-    AllegroGraphStore.INDIRECT_PORT: int,
-}
-    
        
         
         

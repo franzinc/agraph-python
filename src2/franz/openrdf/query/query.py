@@ -156,12 +156,11 @@ class TupleQuery(Query):
             raise UnimplementedMethodException("Query datasets not yet implemented")
         mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:
-            ## THIS IS BOGUS; WE GET BACK COLUMN NAMES AND TUPLES:
             response = mini.evalSparqlQuery(self.queryString)
         elif self.queryLanguage == QueryLanguage.PROLOG:
             response = mini.evalPrologQuery(self.queryString)
         if jdbc:
-                raise UnimplementedMethodException("'jdbc' option not yet implemented for 'evaluate'")
+            raise UnimplementedMethodException("'jdbc' option not yet implemented for 'evaluate'")
         else:
             return TupleQueryResult(response['names'], response['values'])
 

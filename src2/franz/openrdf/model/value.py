@@ -42,6 +42,7 @@ class Value(object):
         """
         return UnimplementedMethodException("Failed to implement 'toNTriples' on instance of type %s" % type(self))
     
+    
 class Resource(Value):
     pass
 

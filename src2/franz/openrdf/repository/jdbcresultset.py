@@ -95,11 +95,9 @@ class JDBCResultSet(object):
         JDBCResultSet.SUBJECT, JDBCResultSet.PREDICATE, JDBCResultSet.OBJECT, JDBCResultSet.CONTEXT
         as values for the 'index' argument. 
         """
-        if self.socket_cursor:
+        if self.string_tules:
             self._validate_cursor_index(index)
-            quad = self.socket_cursor.current_quad
-            component_type = quad.getPartType_FromIndex(index)            
-            label = quad.queryPartLabel(index)
+            stringTuple = None
             if component_type == AGU_ANON:
                 ## code here mimics BNode code:
                 return "_:%s" % label
@@ -150,13 +148,13 @@ class JDBCResultSet(object):
             self.socket_cursor = None
   
       
-class CompoundJDBCResultSetImpl(JDBCResultSetImpl):
+class CompoundJDBCResultSet(JDBCResultSet):
     """
     Combines multiple cursors into one.  Overcomes temporary inability of AG to 
     handle multiple contexts in a getTriples.
     """
     def __init__(self, cursors):
-        self.cursors = [JDBCResultSetImpl(crsr) for crsr in cursors]
+        self.cursors = [JDBCResultSet(crsr) for crsr in cursors]
         self.current_cursor = self.cursors[0]
         self.cursor_index = 0
                     

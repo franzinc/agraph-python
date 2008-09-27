@@ -21,9 +21,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-
 from franz.openrdf.exceptions import *
-from franz.openrdf.model.valuefactory import ValueFactory
+from franz.openrdf.model.value import Value, URI
+from franz.openrdf.model.literal import Literal
 
 class Statement:
     """
@@ -86,21 +86,21 @@ class Statement:
 
     def getSubject(self):         
         if not self.subject:
-            self.subject = ValueFactory.stringTermToTerm(self.string_tuple[0])
+            self.subject = Statement.stringTermToTerm(self.string_tuple[0])
         return self.subject
     
     def setSubject(self, subject): self.subject = subject
     
     def getPredicate(self):
         if not self.predicate:
-            self.predicate = ValueFactory.stringTermToTerm(self.string_tuple[1])
+            self.predicate = Statement.stringTermToTerm(self.string_tuple[1])
         return self.predicate
      
     def setPredicate(self, predicate):self.predicate = predicate
     
     def getObject(self):
         if not self.object:
-            self.object = ValueFactory.stringTermToTerm(self.string_tuple[2])
+            self.object = Statement.stringTermToTerm(self.string_tuple[2])
         return self.object
     
     def setObject(self, object): self.object = object
@@ -108,7 +108,35 @@ class Statement:
     def getContext(self): 
         if not self.context:
             if len(self.string_tuple == 3): return None
-            self.subject = ValueFactory.stringTermToTerm(self.string_tuple[4])
+            self.subject = Statement.stringTermToTerm(self.string_tuple[4])
         return self.context
     
     def setContext(self, context): self.context = context
+    
+    @staticmethod
+    def stringTermToTerm(string_term):
+        """
+        Given a string representing a term in ntriples format, return
+        a URI, Literal, or BNode.
+        TODO: BNODES NOT YET IMPLEMENTED
+        """
+        if not string_term: return string_term
+        if string_term[0] == '<':
+            uri = string_term[1:-1]
+            return URI(uri)
+        elif string_term[0] == '"':
+            ## we have a double-quoted literal with either a data type or a language indicator
+            caratPos = string_term.find('^^')
+            if caratPos >= 0:
+                label = string_term[1:caratPos - 1]
+                datatype = string_term[caratPos + 2:]
+                return Literal(label, datatype=datatype)
+            else:
+                atPos = string_term.find('@')
+                label = string_term[1:atPos - 1]
+                language = string_term[atPos + 1:]
+                return Literal(label, language=language)
+        else:
+            raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
+
+

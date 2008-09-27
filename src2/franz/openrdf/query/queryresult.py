@@ -23,7 +23,7 @@
 
 
 from franz.openrdf.exceptions import *
-from franz.openrdf.model.valuefactory import ValueFactory
+from franz.openrdf.model.statement import Statement
 
 #############################################################################
 ##
@@ -114,7 +114,7 @@ class DictBindingSet(dict):
     def _get_ith_value(self, index):
         term = self.reusable_row[index]
         if not term:
-            term = ValueFactory.stringTermToTerm(self.string_tuple[index])
+            term = Statement.stringTermToTerm(self.string_tuple[index])
             self.reusable_row[index] = term
         return term
         

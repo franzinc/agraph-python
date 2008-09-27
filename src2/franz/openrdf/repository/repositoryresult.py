@@ -24,7 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
-from franz.openrdf.modelimpl.statementimpl import StatementImpl
+from franz.openrdf.model.statement import Statement
 
 # * A RepositoryResult is a result collection of objects (for example
 # * {@link org.openrdf.model.Statement}, {@link org.openrdf.model.Namespace},
@@ -57,7 +57,7 @@ class RepositoryResult(object):  ## inherits IterationWrapper
         """
         Allocate a Statement and fill it in from 'string_tuple'.
         """
-        stmt = StatementImpl(None, None, None, None)
+        stmt = Statement(None, None, None, None)
         stmt.setQuad(string_tuple)
         return stmt
     

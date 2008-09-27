@@ -88,31 +88,6 @@ class ValueFactory(object):
         """
         return URI(uri=uri, namespace=namespace, localname=localname)
     
-    @staticmethod
-    def stringTermToTerm(string_term):
-        """
-        Given a string representing a term in ntriples format, return
-        a URI, Literal, or BNode.
-        TODO: BNODES NOT YET IMPLEMENTED
-        """
-        if not string_term: return string_term
-        if string_term[0] == '<':
-            uri = string_term[1:-1]
-            return URI(uri)
-        elif string_term[0] == '"':
-            ## we have a double-quoted literal with either a data type or a language indicator
-            caratPos = string_term.find('^^')
-            if caratPos >= 0:
-                label = string_term[1:caratPos - 1]
-                datatype = string_term[caratPos + 2:]
-                return Literal(label, datatype=datatype)
-            else:
-                atPos = string_term.find('@')
-                label = string_term[1:atPos - 1]
-                language = string_term[atPos + 1:]
-                return Literal(label, language=language)
-        else:
-            raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
 
 #############################################################################
 ## Extension to Sesame API

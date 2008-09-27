@@ -34,8 +34,6 @@ from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery
-from franz.allegrograph.directcalls import DirectCaller
-from franz.allegrograph.upi import UPI
 from franz.openrdf.rio.rdfformat import RDFFormat
 
 # * Main interface for updating data in and performing queries on a Sesame
@@ -95,15 +93,17 @@ class AllegroGraphRepositoryConnection(SailConnection):
     
     def prepareQuery(self, queryLanguage, queryString, baseURI=None):
         """
-        Parse 'queryString' into a query object which can be
+        Embed 'queryString' into a query object which can be
         executed against the RDF storage.
         """
-        ## THIS IS BOGUS:
-        return Query(queryString, queryLanguage, baseURI)
+        ## THIS IS BOGUS; OR IS IT?  WE DON'T KNOW WHAT KIND OF QUERY IT IS:
+        query = Query(queryString, queryLanguage, baseURI)
+        query.setConnection(self)
+        return query
 
     def prepareTupleQuery(self, queryLanguage, queryString, baseURI=None):
         """
-        Parse 'queryString' into a query object which can be
+        Embed 'queryString' into a query object which can be
         executed against the RDF storage.  'queryString' must be a SELECT
         query.  The result of query
         execution is an iterator of tuples.
@@ -120,7 +120,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         execution is an iterator of statements/quads.
         """
         query = GraphQuery(queryLanguage, queryString, baseURI=baseURI)
-        query.setDirectCaller(self.directCaller)
+        query.setConnection(self)        
         return query
 
     def prepareBooleanQuery(self, queryLanguage, queryString, baseURI=None):
@@ -130,7 +130,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         query.  The result is true or false.
         """
         query = BooleanQuery(queryLanguage, queryString, baseURI=baseURI)
-        query.setDirectCaller(self.directCaller)
+        query.setConnection(self)
         return query
 
 
@@ -170,7 +170,14 @@ class AllegroGraphRepositoryConnection(SailConnection):
     def isEmpty(self):
         return self.size() == 0
        
-
+    def _contexts_to_ntriple_contexts(self, contexts):
+        if isinstance(contexts (list, tuple)):
+            cxts = [c.toNTriples() for c in contexts]
+        elif contexts:
+            cxts = contexts.toNTriples
+        else:
+            cxts = None
+            return cxts
 
 #     * Gets all statements with a specific subject, predicate and/or object from
 #     * the repository. The result is optionally restricted to the specified set
@@ -196,20 +203,19 @@ class AllegroGraphRepositoryConnection(SailConnection):
 #     *         {@link RepositoryException} when an error when a problem occurs
 #     *         during retrieval.
     #RepositoryResult<Statement> 
-    def getStatements(self, subj, pred,  obj, contexts=[], includeInferred=False):
+    def getStatements(self, subject, predicate,  object, contexts=[], includeInferred=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
         of named contexts.  Returns a RepositoryResult that produces a 'Statement'
         each time that 'next' is called.
         """
-        obj = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(obj, predicate=pred)
-        if not isinstance(contexts, list):
-            contexts = [contexts]
-        stringTuples = self.mini_repository.getStatements(subj, pred, obj, contexts, infer=includeInferred)
+        object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
+        stringTuples = self.mini_repository.getStatements(subject.toNTriples(), predicate.toNTriples,
+                 object.toNTriples(), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
         return RepositoryResult(stringTuples)
        
-    def getJDBCStatements(self, subj, pred,  obj, contexts=[], includeInferred=False):
+    def getJDBCStatements(self, subject, predicate,  object, contexts=[], includeInferred=False):        
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -217,9 +223,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
         to be selectively extracted from the result, without the bulky overhead
         of the OpenRDF BindingSet protocol.
         """
-        if not isinstance(contexts, list):
-            contexts = [contexts]
-        stringTuples = self.mini_repository.getStatements(subj, pred, obj, contexts, infer=includeInferred)
+        object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
+        stringTuples = self.mini_repository.getStatements(subject.toNTriples(), predicate.toNTriples,
+                 object.toNTriples(), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
         return JDBCResultSet(stringTuples)
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
@@ -261,24 +267,15 @@ class AllegroGraphRepositoryConnection(SailConnection):
                 ## If so, generate an absolute path name to enable AG server to read it:
                 if os.path.exists(os.path.abspath(filePath)):
                     filePath = os.path.abspath(filePath)                    
-        contextString = self.directCaller.canonicalize_context_argument(context)
+        contextString = context.toNTriples()
         if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
             ## PASSING "NTRIPLE" AS 'ext' ARG FAILS HERE.  THE DOCUMENTATION DOESN'T
             ## SAY WHAT THE ACCEPTABLE VALUE(S) ARE:
-            self.internal_ag_store.verifyEnabled().loadNTriples(self.internal_ag_store, filePath, contextString, None, None, None, None)
+            raise UnimplementedMethodException("LOAD NTRIPLES NOT YET IMPLEMENTED BY MINI_SERVER")            
         elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):
-            self.internal_ag_store.verifyEnabled().loadRDF(self.internal_ag_store, filePath, contextString, base, None)
+            raise UnimplementedMethodException("LOAD RDF NOT YET IMPLEMENTED BY MINI_SERVER")
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)
-        
-    def _contexts_to_ntriple_contexts(self, contexts):
-        if isinstance(contexts (list, tuple)):
-            cxts = [c.toNTriples for c in contexts]
-        elif contexts:
-            cxts = contexts.toNTriples
-        else:
-            cxts = None
-            return cxts
         
     def addTriple(self, subject, predicate, object, contexts=None):
         """
@@ -287,6 +284,15 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """       
         self.mini_repository.addStatement(subject.toNTriples(), predicate.toNTriples(), object.toNTriples(),
                                           self._contexts_to_ntriple_contexts(contexts))
+    
+    def _to_ntriples(self, term):
+        """
+        If 'term' is an OpenRDF term, convert it to a string.  If its already
+        a string; assume its in ntriples format, and just pass it through.
+        """
+        if not term: return term
+        elif isinstance(term, str): return term
+        else: return term.toNtriples()
         
     def addTriples(self, triples_or_quads, context=None):
         """
@@ -294,22 +300,21 @@ class AllegroGraphRepositoryConnection(SailConnection):
         be a list or a tuple of Values.   If 'context' is set, then 
         the first argument must contain only triples, and each is inserted into
         the designated context.
-        
-        TODO: CONSIDER ALLOWING LISTS OF NTRIPLES STRINGS AS INPUT HERE
         """
+        ntripleContexts = self._contexts_to_ntriple_contexts(context)
         quads = []
         for q in triples_or_quads:
             quad = [None] * 4
             if isinstance(quad, (list, tuple)):
-                quad[0] = q[0].toNTriples()
-                quad[1] = q[1].toNTriples()
-                quad[2] = q[2].toNTriples()
-                quad[3] = q[3].toNTriples() if q[3] else self._contexts_to_ntriple_contexts(context)
+                quad[0] = self._to_ntriples(q[0])
+                quad[1] = self._to_ntriples(q[1])
+                quad[2] = self._to_ntriples(q[2])
+                quad[3] = self._to_ntriples(q[3]) if q[3] else ntripleContexts
             else:
-                quad[0] = q.getSubject().toNTriples()
-                quad[1] = q.getPredicate().toNTriples()
-                quad[2] = q.getObject().toNTriples()
-                quad[3] = q.getContext().toNTriples() if q.getContext() else self._contexts_to_ntriple_contexts(context)
+                quad[0] = self._to_ntriples(q.getSubject())
+                quad[1] = self._to_ntriples(q.getPredicate())
+                quad[2] = self._to_ntriples(q.getObject())
+                quad[3] = self._to_ntriples(q.getContext()) if q.getContext() else ntripleContexts
                 
 #     * Adds the supplied statement to this repository, optionally to one or more
 #     * named contexts.
@@ -356,29 +361,11 @@ class AllegroGraphRepositoryConnection(SailConnection):
         Removes the statement(s) with the specified subject, predicate and object
         from the repository, optionally restricted to the specified contexts.
         """
-        mgr = self.term2internal
-        ## tricky: we need to distinguish between the null context (None) and
-        ## all contexts '[]':
-        if contexts is None:
-            contexts = mgr.nullContextObject()
-        elif isinstance(contexts, list) and not contexts:
-            ## THIS IS *NOT* A NICE OPTION, BUT I HATE THE SESAME CONVENTION EVEN MORE - RMM
-            contexts = mgr.wildValue()
-        internalStore = mgr.internal_ag_store
-        s = mgr.openTermToInternalStringTermOrWild(subject)
-        p = mgr.openTermToInternalStringTermOrWild(predicate)
-        object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
-        o = mgr.openTermToInternalStringTermOrWild(object)
-        internalDirectConnector = internalStore.verifyEnabled()
-        if contexts in [mgr.nullContextObject(), mgr.wildValue()]:
-            internalDirectConnector.delete(internalStore, s, p, o, contexts, True)
-        elif isinstance(contexts, list):
-            for c in contexts:
-                internalDirectConnector.delete(internalStore, s, p, o, mgr.openTermToInternalStringTerm(c), True)
-        else:  ## assume 'contexts' is a single context:
-            internalDirectConnector.delete(internalStore, s, p, o, mgr.openTermToInternalStringTerm(contexts), True)
-
-
+        ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
+        ntripleContexts = self._contexts_to_ntriple_contexts(contexts)        
+        self.mini_repository.deleteStatements(self._to_ntriples(subject),
+                self._to_ntriples(predicate), self._to_ntriples(object),
+                self._to_ntriples(contexts) if contexts else ntripleContexts)
    
 #     * Removes the supplied statement from the specified contexts in the
 #     * repository.
