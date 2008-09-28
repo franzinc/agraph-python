@@ -4,9 +4,10 @@ import time, cjson
 from request import *
 
 class AllegroGraphServer:
-    def __init__(self, url):
+    def __init__(self, url, user=None, password=None):
         self.url = url
         self.curl = pycurl.Curl()
+        if user and password: self.setAuth(user, password)
 
     def listTripleStores(self):
         """Returns the names of open stores on the server."""
@@ -54,30 +55,34 @@ class Repository:
     def isWriteable(self):
         return jsonRequest(self.curl, "GET", self.url + "/writeable")
 
-    def evalSparqlQuery(self, query, infer=False, context=None):
+    def evalSparqlQuery(self, query, infer=False, context=None, callback=None):
         """Execute a SPARQL query. Context can be None or a list of
-        contexts -- strings in "http://foo.com" form or "null" for
-        the default context. Return type depends on the query type.
-        ASK gives a boolean, SELECT a {names, values} object
-        containing lists of lists of terms. CONSTRUCT and DESCRIBE
-        return a list of lists representing statements."""
+        contexts -- strings in "http://foo.com" form or "null" for the
+        default context. Return type depends on the query type. ASK
+        gives a boolean, SELECT a {names, values} object containing
+        lists of lists of terms. CONSTRUCT and DESCRIBE return a list
+        of lists representing statements. Callback WILL NOT work on
+        ASK queries."""
         return jsonRequest(self.curl, "POST", self.url,
-                           urlenc(query=query, infer=infer, context=context, environment=self.environment))
+                           urlenc(query=query, infer=infer, context=context, environment=self.environment),
+                           rowreader=callback and RowReader(callback))
 
-    def evalPrologQuery(self, query, infer=False):
+    def evalPrologQuery(self, query, infer=False, callback=None):
         """Execute a Prolog query. Returns a {names, values} object."""
         return jsonRequest(self.curl, "POST", self.url,
-                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment))
+                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment),
+                           rowreader=callback and RowReader(callback))
 
     def definePrologFunctor(self, definition):
         nullRequest(self.curl, "POST", self.url + "/functor", urlenc(definition=definition, environment=self.environment))
 
-    def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False):
+    def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
         return jsonRequest(self.curl, "GET", self.url + "/statements",
-                           urlenc(subj=subj, pred=pred, obj=obj, context=context, infer=infer))
+                           urlenc(subj=subj, pred=pred, obj=obj, context=context, infer=infer),
+                           rowreader=callback and RowReader(callback))
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
@@ -94,11 +99,11 @@ class Repository:
         """Add a collection of statements to the repository. Quads
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
-        nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads))
+        nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads), contentType="application/json")
 
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""
-        nullRequest(self.curl, "POST", self.url + "/statements/json/delete", cjson.encode(quads))
+        nullRequest(self.curl, "POST", self.url + "/statements/json/delete", cjson.encode(quads), contentType="application/json")
 
     def listIndices(self):
         """List the SPOGI-indices that are active in the repository."""
@@ -121,18 +126,19 @@ class Repository:
         True, the whole repository is re-indexed."""
         nullRequest(self.curl, "POST", self.url + "/index", urlenc(all=all))
 
-    def evalFreeTextSearch(self, pattern, infer=False):
+    def evalFreeTextSearch(self, pattern, infer=False, callback=None):
         """Use free-text indices to search for the given pattern.
         Returns an array of statements."""
-        return jsonRequest(self.curl, "GET", self.url + "/freetext", urlenc(pattern=pattern, infer=infer))
+        return jsonRequest(self.curl, "GET", self.url + "/freetext", urlenc(pattern=pattern, infer=infer),
+                           rowreader=callback and RowReader(callback))
 
     def listFreeTextPredicates(self):
         """List the predicates that are used for free-text indexing."""
-        return jsonRequest(self.curl, "GET", self.url + "/freetextindices")
+        return jsonRequest(self.curl, "GET", self.url + "/freetextpredicates")
 
     def registerFreeTextPredicate(self, predicate):
         """Add a predicate for free-text indexing."""
-        nullRequest(self.curl, "POST", self.url + "/freetextindices", urlenc(predicate=predicate))
+        nullRequest(self.curl, "POST", self.url + "/freetextpredicates", urlenc(predicate=predicate))
 
     def setEnvironment(self, name):
         """Repositories use a current environment, which are
@@ -201,8 +207,14 @@ def test2():
     for v in answer['values']:
         print v
 
+def test3():
+    conn = AllegroGraphServer("http://localhost:8080")
+    rep = conn.getRepository("foo")
+    def printrow(row, names): print "%s %s" %(repr(row), repr(names))
+    print rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
+
 if __name__ == '__main__':
-    choice = 2
+    choice = 3
     print "Run test%i" % choice
     if choice == 1: test1()   
     elif choice == 2: test2()       
