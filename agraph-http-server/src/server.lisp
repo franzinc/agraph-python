@@ -69,11 +69,11 @@
     (close-triple-store))
   (open-store server name file nil))
 
-(defun close-store (server name)
+(defun close-store (server store)
+  (close-triple-store :db (@db store))
   (with-server-cache (server t)
-    (let ((spec (find-store-spec name)))
-      (request-assert spec "No repository named '~a' known." name)
-      (remhash name (@open-stores server))
+    (let ((spec (@spec store)))
+      (remhash (@name spec) (@open-stores server))
       (delete-instance spec))))
 
 (defparameter *default-namespaces*

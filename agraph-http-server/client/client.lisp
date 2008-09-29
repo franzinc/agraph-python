@@ -2,6 +2,9 @@
 
 (defclass agraph-client (http-service) ())
 
+(defun repo-url (name)
+  (format nil "/repositories/~a" (urlenc name)))
+
 (defun list-triple-stores (clnt)
   (json-request clnt :get "/repositories"))
 
@@ -12,10 +15,10 @@
   (null-request clnt :post "/repository/create" (urlenc "name" name "file" filename)))
 
 (defun close-triple-store (clnt name)
-  (null-request clnt :post "/repository/close" (urlenc "name" name)))
+  (null-request clnt :delete (repo-url name)))
 
 (defun get-repository (clnt name &optional environment)
-  (make-instance 'repository :url (format nil "~a/repositories/~a" (@url-prefix clnt) name)
+  (make-instance 'repository :url (concatenate 'string (@url-prefix clnt) (repo-url name))
                  :auth (@auth clnt) :environment environment))
 
 

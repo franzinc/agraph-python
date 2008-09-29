@@ -1,24 +1,11 @@
 (in-package :agraph-http-client)
 
-(defparameter *utf8* (excl:crlf-base-ef :utf-8))
-
 (define-condition request-failed (simple-error)
   ((response-code :initarg :response :reader @response)))
 
 (defmethod print-object ((err request-failed) stream)
   (format stream "Request failed (status ~a): " (@response err))
   (call-next-method))
-
-(defun boolstr (val)
-  (if val "true" "false"))
-
-(defun urlenc (&rest pairs)
-  (query-to-form-urlencoded
-   (loop :for (name val) :on pairs :by #'cddr
-         :append (etypecase val
-                   (null nil)
-                   (cons (mapcar (lambda (v) (cons name v)) val))
-                   (string (list (cons name val)))))))
 
 (defclass http-service ()
   ((url-prefix :initarg :url :reader @url-prefix)

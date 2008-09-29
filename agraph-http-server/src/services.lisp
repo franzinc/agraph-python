@@ -17,8 +17,8 @@
   (create-store *server* name file)
   :null)
 
-(defservice (:post :nostore) "repository/close" ((name :string))
-  (close-store *server* name)
+(defservice :delete "" ()
+  (close-store *server* *store*)
   :null)
 
 
@@ -72,7 +72,7 @@
 (defun prolog-query (query env)
   (handler-case (multiple-value-bind (values names) (run-prolog query (@namespaces env) (@prolog-package env))
                   (values :row-cursor (wrap-list-cursor values names)))
-    #+(or)(error (e) (request-failed (princ-to-string e)))))
+    (error (e) (request-failed (princ-to-string e)))))
 
 (defservice :post "functor" ((definition :string) (environment :string nil))
   (let ((env (assert-environment environment)))

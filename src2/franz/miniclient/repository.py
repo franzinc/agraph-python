@@ -25,7 +25,7 @@ class AllegroGraphServer:
 
     def closeTripleStore(self, name):
         """Close a server-side triple store."""
-        nullRequest(self.curl, "POST", self.url + "/repository/close", urlenc(name=name))
+        nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
 
     def getRepository(self, name):
         """Create an access object for a triple store."""

@@ -4,5 +4,5 @@
   ((:module "client" :components
             ((:file "packages")
              (:file "misc" :depends-on ("packages"))
-             (:file "request" :depends-on ("packages"))
+             (:file "request" :depends-on ("misc"))
              (:file "client" :depends-on ("request" "misc"))))))

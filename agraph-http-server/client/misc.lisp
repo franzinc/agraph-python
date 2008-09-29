@@ -1,5 +1,20 @@
 (in-package :agraph-http-client)
 
+(defparameter *utf8* (excl:crlf-base-ef :utf-8))
+
+(defun boolstr (val)
+  (if val "true" "false"))
+
+(defun urlenc (&rest pairs)
+  (if (cdr pairs)
+      (query-to-form-urlencoded
+       (loop :for (name val) :on pairs :by #'cddr
+             :append (etypecase val
+                       (null nil)
+                       (cons (mapcar (lambda (v) (cons name v)) val))
+                       (string (list (cons name val))))))
+      (net.aserve::encode-form-urlencoded (car pairs) :external-format *utf8*)))
+
 (defun read-text-file (file &optional (external-format *utf8*))
   "Slurp a text file into a string."
   (with-open-file (input file :direction :input)
