@@ -150,7 +150,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         contexts in this repository.
         """
         if contexts == []:
-            self.mini_repository.getSize()
+            return self.mini_repository.getSize()
         else:
             print "Computing the size of a context is currently very expensive"
             resultSet = self.getJDBCStatements(None, None, None, contexts)
@@ -171,7 +171,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
         return self.size() == 0
        
     def _contexts_to_ntriple_contexts(self, contexts):
-        if isinstance(contexts (list, tuple)):
+        if contexts is None:
+            return None
+        elif isinstance(contexts, (list, tuple)):
             cxts = [c.toNTriples() for c in contexts]
         elif contexts:
             cxts = contexts.toNTriples
@@ -211,9 +213,11 @@ class AllegroGraphRepositoryConnection(SailConnection):
         each time that 'next' is called.
         """
         object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
-        stringTuples = self.mini_repository.getStatements(subject.toNTriples(), predicate.toNTriples,
-                 object.toNTriples(), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
+        stringTuples = self.mini_repository.getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
+                 self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
         return RepositoryResult(stringTuples)
+    
+    COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
        
     def getJDBCStatements(self, subject, predicate,  object, contexts=[], includeInferred=False):        
         """
@@ -224,9 +228,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
         of the OpenRDF BindingSet protocol.
         """
         object = self.sail_store.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
-        stringTuples = self.mini_repository.getStatements(subject.toNTriples(), predicate.toNTriples,
-                 object.toNTriples(), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
-        return JDBCResultSet(stringTuples)
+        stringTuples = self.mini_repository.getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
+                 self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
+        return JDBCResultSet(stringTuples, column_names = AllegroGraphRepositoryConnection.COLUMN_NAMES)
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
         """
@@ -282,8 +286,8 @@ class AllegroGraphRepositoryConnection(SailConnection):
         Add the supplied triple of values to this repository, optionally to
         one or more named contexts.        
         """       
-        self.mini_repository.addStatement(subject.toNTriples(), predicate.toNTriples(), object.toNTriples(),
-                                          self._contexts_to_ntriple_contexts(contexts))
+        self.mini_repository.addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
+                        self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts))
     
     def _to_ntriples(self, term):
         """
@@ -292,7 +296,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         if not term: return term
         elif isinstance(term, str): return term
-        else: return term.toNtriples()
+        else: return term.toNTriples()
         
     def addTriples(self, triples_or_quads, context=None):
         """
@@ -363,7 +367,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
         ntripleContexts = self._contexts_to_ntriple_contexts(contexts)        
-        self.mini_repository.deleteStatements(self._to_ntriples(subject),
+        self.mini_repository.deleteStatement(self._to_ntriples(subject),
                 self._to_ntriples(predicate), self._to_ntriples(object),
                 self._to_ntriples(contexts) if contexts else ntripleContexts)
    

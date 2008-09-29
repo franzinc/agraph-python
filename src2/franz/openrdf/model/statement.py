@@ -61,10 +61,11 @@ class Statement:
         sb.append(self.string_tuple[1])
         sb.append(", ")
         sb.append(self.string_tuple[2])
-        cxt = self.self.string_tuple[3]
-        if cxt:
-            sb.append(", ")        
-            sb.append(self.string_tuple[3])        
+        if len(self.string_tuple) > 3:
+            cxt = self.string_tuple[3]
+            if cxt:
+                sb.append(", ")        
+                sb.append(self.string_tuple[3])        
         sb.append(")")
         return ''.join(sb)
 
@@ -131,12 +132,40 @@ class Statement:
                 label = string_term[1:caratPos - 1]
                 datatype = string_term[caratPos + 2:]
                 return Literal(label, datatype=datatype)
-            else:
-                atPos = string_term.find('@')
+            atPos = string_term.find('@')
+            if atPos >=0:
                 label = string_term[1:atPos - 1]
                 language = string_term[atPos + 1:]
                 return Literal(label, language=language)
+            else:
+                return Literal(string_term[1:-1])
         else:
             raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
-
+        
+    @staticmethod
+    def ntriples_string_to_value(string_term):
+        """
+        Given a string representing a term in ntriples format, return
+        a URI or the label portion of a literal (a string minus the double quotes).
+        TODO: IMPLEMENT BNODES
+        """
+        if not string_term: return string_term
+        if string_term[0] == '<':
+            uri = string_term[1:-1]
+            return uri
+        elif string_term[0] == '"':
+            ## we have a double-quoted literal with either a data type or a language indicator
+            caratPos = string_term.find('^^')
+            if caratPos >= 0:
+                label = string_term[1:caratPos - 1]
+                return label
+            atPos = string_term.find('@')
+            if atPos >=0:
+                label = string_term[1:atPos - 1]
+                return label
+            else:
+                return string_term[1:-1]
+        else:
+            raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
+                
 

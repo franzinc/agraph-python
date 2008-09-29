@@ -241,7 +241,7 @@ class AllegroGraphStore(Sail):
         Return a ValueFactory for this store
         """
         if not self.value_factory:
-            self.value_factory = ValueFactory(self)
+            self.value_factory = ValueFactory()
         return self.value_factory
     
 

@@ -95,6 +95,9 @@ class Literal(Value):
         raise UnimplementedMethodException("calendarValue")
 
     def __str__(self):
+        """
+        Display an ntriples syntax for this literal.
+        """
         sb = []
         sb.append('"')
         sb.append(self.getLabel())

@@ -118,7 +118,7 @@ class Query(object):
         return self.includeInferred
     
     @staticmethod
-    def _check_language(self, queryLanguage):
+    def _check_language(queryLanguage):
         if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
             raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
                                          % queryLanguage)
@@ -160,7 +160,7 @@ class TupleQuery(Query):
         elif self.queryLanguage == QueryLanguage.PROLOG:
             response = mini.evalPrologQuery(self.queryString)
         if jdbc:
-            raise UnimplementedMethodException("'jdbc' option not yet implemented for 'evaluate'")
+            return JDBCResultSet(response['values'], column_names = response['names'])
         else:
             return TupleQueryResult(response['names'], response['values'])
 

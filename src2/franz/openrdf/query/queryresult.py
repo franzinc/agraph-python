@@ -61,12 +61,12 @@ class TupleQueryResult(QueryResult):
     free any resources it keeps hold of.
     """
     def __init__(self, variable_names, string_tuples):
-        self.variableNames = variable_names
+        self.variableNames = [v[1:] for v in variable_names]  ## strip off question marks
         self.string_tuples = string_tuples
         self.cursor = 0        
-        tupleWidth = len(variable_names)
+        self.tuple_width = len(variable_names)
         self.tupleCount = len(string_tuples)        
-        self.reusableRow = [None] * tupleWidth
+        self.reusableRow = [None] * self.tuple_width
     
     def __iter__(self): return self
     
@@ -74,11 +74,11 @@ class TupleQueryResult(QueryResult):
         if self.cursor >= self.tupleCount:
             raise StopIteration()
         i = 0
-        while i < self.tupleWidth:
+        while i < self.tuple_width:
             self.reusableRow[i] = None
             i += 1
         bs = DictBindingSet(self.variableNames, self.string_tuples[self.cursor], self.reusableRow)
-        self.socket_cursor += 1
+        self.cursor += 1
         return bs        
 
     def close(self):
@@ -106,10 +106,10 @@ class DictBindingSet(dict):
         self.reusable_row = reusable_row
     
     def _validate_index(self, index):
-        if index >= 0 and index < len(self.values): return index
+        if index >= 0 and index < len(self.string_tuple): return index
         else:
             raise IllegalArgumentException("Out-of-bounds index passed to BindingSet." +
-                                           "  Index must be between 1 and %s, inclusive." % len(self.values)) 
+                                           "  Index must be between 1 and %s, inclusive." % len(self.string_tuple)) 
             
     def _get_ith_value(self, index):
         term = self.reusable_row[index]
@@ -119,11 +119,12 @@ class DictBindingSet(dict):
         return term
         
     def __getitem__(self, key):
-        if isinstance(key, int): return self.values[self._validate_index(key)]
+        if isinstance(key, int): 
+            return self.string_tuple[self._validate_index(key)]
         else:
             for i in range(len(self.variable_names)):
                 if key == self.variable_names[i]:
-                    return self.get_ith_value(i)
+                    return self._get_ith_value(i)
         raise IllegalArgumentException(("Illegal key '%s' passed to binding set." +
                             "\n   Legal keys are %s") % (key, str(self.variable_names)))
  
@@ -141,6 +142,7 @@ class DictBindingSet(dict):
             self[name] = value
         
     def addBinding(self, binding):
+        print "ADDBINDING", binding
         self.addBindingPair(binding.getName(),  binding.getValue())
         
     def removeBinding(self, name):
