@@ -44,8 +44,9 @@ class RDFXMLWriter(RDFWriter):
         self.lastWrittenSubject = None
         self.namespaceTable = {}
         self.buffer = []
-    
+        self.headerBuffer = None   
         self.prev = None
+        
     def _catch_dup(self, stmt):
         if (self.prev and
             stmt.subject == self.prev.subject and
@@ -69,10 +70,14 @@ class RDFXMLWriter(RDFWriter):
         finally: 
             statements.close()
         if self.file_path:
-            file = open(self.file_path, 'w')            
+            file = open(self.file_path, 'w')
+            file.writelines(self.headerBuffer)
             file.writelines(self.buffer)
         else:
-            result = ''.join(self.buffer)
+            combined = self.headerBuffer
+            combined.extend(self.buffer)
+            result = ''.join(combined)
+            ## write to standard output
             print result
 
     def startRDF(self):
@@ -86,7 +91,15 @@ class RDFXMLWriter(RDFWriter):
         self.buffer.append(string)
 
     def writeHeader(self):
+        """
+        Write out the header to a separate buffer.  Designed to that it can be written at 
+        the end of the load, just before the string buffer is written to a file.
+        Side-effect: Temporarily swap out the regular buffer while generating the
+        header; then replace original buffer.
+        """
         try:
+            saveBuf = self.buffer
+            self.buffer = []
             ## This export format needs the RDF namespace to be defined, add a
             ## prefix for it if there isn't one yet.
             self.setNamespace("rdf", RDF.NAMESPACE, False)
@@ -105,6 +118,8 @@ class RDFXMLWriter(RDFWriter):
             self.writeEndOfStartTag()
             self.writeNewLine()
         finally: 
+            self.headerBuffer = self.buffer
+            self.buffer = saveBuf
             self.headerWritten = True
 
     def endRDF(self):
@@ -128,6 +143,12 @@ class RDFXMLWriter(RDFWriter):
 #            if v == value
 #        
 
+    def getNamespacePrefix(self, namespace):
+        """
+        Return the prefix assigned to 'namespace', or None
+        """
+        return self.namespaceTable.get(namespace)
+    
     def setNamespace(self, prefix, name, fixedPrefix): 
         if self.headerWritten:
             ## Header containing namespace declarations has already been written
@@ -147,10 +168,10 @@ class RDFXMLWriter(RDFWriter):
                         raise IllegalArgumentException("Prefix is not a valid XML namespace prefix: " + prefix)
                 if len(prefix) == 0 or not isLegalPrefix: 
                     prefix = "ns"
-                number = 1
-                while (prefix + number) in self.namespaceTable.itervalus(): 
+                number = 2
+                while (prefix + str(number)) in self.namespaceTable.itervalues(): 
                     number += 1
-                prefix += number
+                prefix += str(number)
             self.namespaceTable[name] = prefix
 
     def handleStatement(self, st):
@@ -168,8 +189,10 @@ class RDFXMLWriter(RDFWriter):
                     + predString)
         predNamespace = predString[0:predSplitIdx]
         predLocalName = predString[predSplitIdx:]
-        if not self.headerWritten: 
-            self.writeHeader()
+        ## don't write the header out now; wait until the end, so that we can create namespace
+        ## prefixes on the fly:
+#        if not self.headerWritten: 
+#            self.writeHeader()
         ## SUBJECT
         if not subj == self.lastWrittenSubject: ## assumes that Resource equality is working here 
             self.flushPendingStatements()
@@ -241,8 +264,12 @@ class RDFXMLWriter(RDFWriter):
             self.lastWrittenSubject = None
     
     def writeStartOfStartTag(self, namespace, localName):
-        prefix = self.namespaceTable.get(namespace)
-        if prefix == None: 
+        prefix = self.getNamespacePrefix(namespace)
+        if prefix is None:
+            ## generate new prefix for 'namespace':
+            self.setNamespace("ns", namespace, None)
+            prefix = self.getNamespacePrefix(namespace)
+        if prefix is None:
             self.write("<")
             self.write(localName)
             self.write(" xmlns=\"")
@@ -266,8 +293,8 @@ class RDFXMLWriter(RDFWriter):
         self.write("\"")
 
     def writeAttribute(self, namespace, attName, value):
-        prefix = self.namespaceTable.get(namespace)
-        if prefix == None or len(prefix) == 0: 
+        prefix = self.getNamespacePrefix(namespace)
+        if prefix is None or len(prefix) == 0: 
             raise Exception("No prefix has been declared for the namespace used in this attribute: "
                     + namespace)
         self.write(" ")
@@ -285,8 +312,8 @@ class RDFXMLWriter(RDFWriter):
         self.write("/>")
 
     def writeEndTag(self, namespace, localName):
-        prefix = self.namespaceTable.get(namespace)
-        if prefix == None or len(prefix) == 0:
+        prefix = self.getNamespacePrefix(namespace)
+        if prefix is None or len(prefix) == 0:
             self.write("</")
             self.write(localName)
             self.write(">")        

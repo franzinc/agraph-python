@@ -176,7 +176,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         elif isinstance(contexts, (list, tuple)):
             cxts = [c.toNTriples() for c in contexts]
         elif contexts:
-            cxts = contexts.toNTriples
+            cxts = contexts.toNTriples()
         else:
             cxts = None
             return cxts
@@ -271,7 +271,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
                 ## If so, generate an absolute path name to enable AG server to read it:
                 if os.path.exists(os.path.abspath(filePath)):
                     filePath = os.path.abspath(filePath)                    
-        contextString = context.toNTriples()
+        contextString = self._contexts_to_ntriple_contexts(context)
         if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
             ## PASSING "NTRIPLE" AS 'ext' ARG FAILS HERE.  THE DOCUMENTATION DOESN'T
             ## SAY WHAT THE ACCEPTABLE VALUE(S) ARE:
