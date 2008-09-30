@@ -89,7 +89,7 @@ class Repository:
         nullRequest(self.curl, "POST", self.url + "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
-    def deleteStatement(self, subj=None, pred=None, obj=None, context=None):
+    def deleteMatchingStatements(self, subj=None, pred=None, obj=None, context=None):
         """Delete all statements matching the constraints from the
         repository. Context can be None or a single graph name."""
         nullRequest(self.curl, "DELETE", self.url + "/statements",
@@ -100,6 +100,25 @@ class Repository:
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
         nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads), contentType="application/json")
+
+    def loadFile(self, file, format, serverSide=False):
+        urlformat = None
+        mime = None
+        if format == "ntriples":
+            urlformat = "ntriples"
+            mime = "text/plain"
+        else if format == "rdf/xml":
+            urlformat = "rdfxml"
+            mime = "application/rdf+xml"
+        else:
+            raise Error("Only 'ntriples' and 'rdf/xml' are supported as formats by loadFile.")
+
+        if serverSide:
+            nullRequest(self.curl, "POST", self.url + "/statements/load/" + urlformat, urlenc(file=file))
+        else:
+            f = open(file)
+            try: nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat, f.read(), contentType=mime)
+            finally: f.close()
 
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""

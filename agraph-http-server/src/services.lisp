@@ -167,9 +167,19 @@
     (error (e) (request-failed (princ-to-string e))))
   :null)
 
+(defservice :post "statements/load/ntriples" ((file :string))
+  (handler-case (load-ntriples file)
+    (error (e) (request-failed (princ-to-string e))))
+  :null)
+    
 (defservice :post "statements/rdfxml" ((body :postbody))
   (assert-writeable)
   (handler-case (load-rdf/xml-from-string body)
+    (error (e) (request-failed (princ-to-string e))))
+  :null)
+
+(defservice :post "statements/load/rdfxml" ((file :string))
+  (handler-case (load-rdf/xml file)
     (error (e) (request-failed (princ-to-string e))))
   :null)
 
