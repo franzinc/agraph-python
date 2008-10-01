@@ -166,7 +166,7 @@
   (request-assert (or file (> (length body) 0)) "No file or data given.")
   (handler-case (if file
                     (load-ntriples file :graph context)
-                    (load-ntriples-from-string body :graph (part->value (assert-part context))))
+                    (load-ntriples-from-string body :graph (and context (part->value (assert-part context)))))
     (error (e) (request-failed (princ-to-string e))))
   :null)
     
@@ -175,7 +175,7 @@
   (request-assert (or file (> (length body) 0)) "No file or data given.")
   (handler-case (if file
                     (load-rdf/xml file :base-uri base-uri :graph context)
-                    (load-rdf/xml-from-string body :base-uri base-uri :graph (part->value (assert-part context))))
+                    (load-rdf/xml-from-string body :base-uri base-uri :graph (and context (part->value (assert-part context)))))
     (error (e) (request-failed (princ-to-string e))))
   :null)
 
