@@ -159,7 +159,7 @@ def test6():
     context = myRepository.getValueFactory().createURI(location)
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read football triples into the null context:
-    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=context)
+    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     myRepository.indexTriples(all=True, asynchronous=False)
