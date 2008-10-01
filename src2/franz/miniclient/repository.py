@@ -87,7 +87,6 @@ class Repository:
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
-        print "AAA", subj, pred, obj, context
         nullRequest(self.curl, "POST", self.url + "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
@@ -121,6 +120,7 @@ class Repository:
             body = f.read()
             f.close()
             file = None
+        print "CALL loadFile context:", context
         nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat + "?" +
                     urlenc(file=file, context=context, baseURI=baseURI), body, contentType=mime)
 
