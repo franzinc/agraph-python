@@ -106,8 +106,9 @@ class Literal(Value):
             sb.append('@')
             sb.append(self.language)
         if self.datatype:
-            sb.append("^^")
+            sb.append("^^<")
             sb.append(str(self.datatype))
+            sb.append(">")
         return ''.join(sb)
 
     def toNTriples(self):

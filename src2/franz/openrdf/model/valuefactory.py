@@ -26,6 +26,8 @@ from franz.openrdf.model.value import Value, BNode, URI
 from franz.openrdf.model.literal import Literal, CompoundLiteral
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.rdfs import RDFS
+from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 import datetime, traceback
@@ -34,8 +36,12 @@ class ValueFactory(object):
     """
     A factory for creating URIs, blank nodes, literals and statements.
     """
-    def __init__(self):
+    def __init__(self, store):
+        self.store = store
         RDF.initialize(self)
+        RDFS.initialize(self)
+        XMLSchema.initialize(self)
+        OWL.initialize(self)
 
     def createBNode(self, nodeID=None):
         """
