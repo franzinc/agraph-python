@@ -107,7 +107,7 @@ class Repository:
         if format == "ntriples":
             urlformat = "ntriples"
             mime = "text/plain"
-        else if format == "rdf/xml":
+        elif format == "rdf/xml":
             urlformat = "rdfxml"
             mime = "application/rdf+xml"
         else:
