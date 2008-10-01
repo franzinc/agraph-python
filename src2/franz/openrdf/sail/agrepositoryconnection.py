@@ -179,7 +179,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
             cxts = contexts.toNTriples()
         else:
             cxts = None
-            return cxts
+        return cxts
 
 #     * Gets all statements with a specific subject, predicate and/or object from
 #     * the repository. The result is optionally restricted to the specified set
@@ -257,7 +257,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         else:
             raise IllegalArgumentException("Illegal first argument to 'add'.  Expected a Value, Statement, File, or string.")
             
-    def addFile(self, filePath, base=None, format=None, context=None):
+    def addFile(self, filePath, base=None, format=None, context=None, serverSide=False):
         """
         Load the file or file path 'filePath' into the store.  'base' optionally defines a base URI,
         'format' is RDFFormat.NTRIPLES or RDFFormat.RDFXML, and 'context' optionally specifies
@@ -273,11 +273,9 @@ class AllegroGraphRepositoryConnection(SailConnection):
                     filePath = os.path.abspath(filePath)                    
         contextString = self._contexts_to_ntriple_contexts(context)
         if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
-            ## PASSING "NTRIPLE" AS 'ext' ARG FAILS HERE.  THE DOCUMENTATION DOESN'T
-            ## SAY WHAT THE ACCEPTABLE VALUE(S) ARE:
-            raise UnimplementedMethodException("LOAD NTRIPLES NOT YET IMPLEMENTED BY MINI_SERVER")            
+            self.mini_repository.loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide)
         elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):
-            raise UnimplementedMethodException("LOAD RDF NOT YET IMPLEMENTED BY MINI_SERVER")
+            self.mini_repository.loadFile(filePath, 'rdf/xml', context=contextString, baseURI=base, serverSide=serverSide)
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)
         
@@ -367,7 +365,7 @@ class AllegroGraphRepositoryConnection(SailConnection):
         """
         ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
         ntripleContexts = self._contexts_to_ntriple_contexts(contexts)        
-        self.mini_repository.deleteStatement(self._to_ntriples(subject),
+        self.mini_repository.deleteMatchingStatements(self._to_ntriples(subject),
                 self._to_ntriples(predicate), self._to_ntriples(object),
                 self._to_ntriples(contexts) if contexts else ntripleContexts)
    

@@ -33,7 +33,6 @@ class InitializationException(Exception):
 class UnimplementedMethodException(Exception):
     pass
 
-
 class IllegalStateException (Exception):
     pass
 

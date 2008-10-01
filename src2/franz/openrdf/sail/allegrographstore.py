@@ -131,7 +131,7 @@ class AllegroGraphStore(Sail):
         self.mini_repository = conn.getRepository(dbName)
         ## we are done unless a RENEW requires us to clear the store
         if clearIt:
-            self.mini_repository.deleteStatement(None, None, None, None)
+            self.mini_repository.deleteMatchingStatements(None, None, None, None)
     
     def initialize(self):
         """

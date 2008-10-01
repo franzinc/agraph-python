@@ -40,7 +40,7 @@ class Value(object):
         """
         Return an NTriples representation of an open rdf term
         """
-        return UnimplementedMethodException("Failed to implement 'toNTriples' on instance of type %s" % type(self))
+        raise UnimplementedMethodException("Failed to implement 'toNTriples' on instance of type %s" % type(self))
     
     
 class Resource(Value):
@@ -117,6 +117,9 @@ class BNode(Resource):
     
     def __hash__(self):
         return self.idString.__hash__()
+    
+    def toNTriples(self):
+        return "_:%s" % self.id
 
 
 class Namespace(object):

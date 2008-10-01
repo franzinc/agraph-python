@@ -22,7 +22,7 @@
 ##***** END LICENSE BLOCK *****
 
 from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value, URI
+from franz.openrdf.model.value import Value, URI, BNode
 from franz.openrdf.model.literal import Literal
 
 class Statement:
@@ -119,7 +119,6 @@ class Statement:
         """
         Given a string representing a term in ntriples format, return
         a URI, Literal, or BNode.
-        TODO: BNODES NOT YET IMPLEMENTED
         """
         if not string_term: return string_term
         if string_term[0] == '<':
@@ -139,8 +138,10 @@ class Statement:
                 return Literal(label, language=language)
             else:
                 return Literal(string_term[1:-1])
+        elif string_term[0] == '_' and string_term[1] == ':':
+            return BNode(string_term[2:])
         else:
-            raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
+            raise BadFormatException("Cannot translate '%s' into an OpenRDF term." % string_term)
         
     @staticmethod
     def ntriples_string_to_value(string_term):

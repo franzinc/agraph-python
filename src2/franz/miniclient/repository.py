@@ -2,6 +2,7 @@
 
 import time, cjson
 from request import *
+from franz.openrdf.exceptions import *
 
 class AllegroGraphServer:
     def __init__(self, url, user=None, password=None):
@@ -86,6 +87,7 @@ class Repository:
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
+        print "AAA", subj, pred, obj, context
         nullRequest(self.curl, "POST", self.url + "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
@@ -111,7 +113,7 @@ class Repository:
             urlformat = "rdfxml"
             mime = "application/rdf+xml"
         else:
-            raise Error("Only 'ntriples' and 'rdf/xml' are supported as formats by loadFile.")
+            raise IllegalArgumentException("Only 'ntriples' and 'rdf/xml' are supported as formats by loadFile.")
 
         body = ""
         if not serverSide:

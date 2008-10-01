@@ -173,16 +173,15 @@ class JDBCResultSet(object):
         Advance to the next tuple.  Return True if there is one, and False
         if the iterator has been exhausted.
         """
-        if self.string_tuples:
-            if self.cursor < len(self.string_tuples):
-                self.current_strings_row = self.string_tuples[self.cursor]
-                self.current_terms_row = None
-                self.cursor += 1
-                return True
-            else:
-                return False
-        else:
+        if self.string_tuples is None:
             raise JDBCException("Failed to properly initialize JDBC ResultSet")
+        if self.cursor < len(self.string_tuples):
+            self.current_strings_row = self.string_tuples[self.cursor]
+            self.current_terms_row = None
+            self.cursor += 1
+            return True
+        else:
+            return False
     
     def close(self):
         """
