@@ -161,25 +161,21 @@
     (register-freetext-predicate part))
   :null)
 
-(defservice :post "statements/ntriples" ((body :postbody))
+(defservice :post "statements/ntriples" ((file :string nil) (context :string nil) (body :postbody))
   (assert-writeable)
-  (handler-case (load-ntriples-from-string body)
-    (error (e) (request-failed (princ-to-string e))))
-  :null)
-
-(defservice :post "statements/load/ntriples" ((file :string))
-  (handler-case (load-ntriples file)
+  (request-assert (or file (> (length body) nil)) "No file or data given.")
+  (handler-case (if file
+                    (load-ntriples file :graph context)
+                    (load-ntriples-from-string body :graph context))
     (error (e) (request-failed (princ-to-string e))))
   :null)
     
-(defservice :post "statements/rdfxml" ((body :postbody))
+(defservice :post "statements/rdfxml" ((file :string nil) (context :string nil) ((base-uri "baseURI") :string nil) (body :postbody))
   (assert-writeable)
-  (handler-case (load-rdf/xml-from-string body)
-    (error (e) (request-failed (princ-to-string e))))
-  :null)
-
-(defservice :post "statements/load/rdfxml" ((file :string))
-  (handler-case (load-rdf/xml file)
+  (request-assert (or file (> (length body) nil)) "No file or data given.")
+  (handler-case (if file
+                    (load-rdf/xml file :base-uri base-uri :graph context)
+                    (load-rdf/xml-from-string body :base-uri base-uri :graph context))
     (error (e) (request-failed (princ-to-string e))))
   :null)
 

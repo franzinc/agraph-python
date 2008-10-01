@@ -101,7 +101,7 @@ class Repository:
         element, the graph name, may be None."""
         nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads), contentType="application/json")
 
-    def loadFile(self, file, format, serverSide=False):
+    def loadFile(self, file, format, baseURI=None, context=None, serverSide=False):
         urlformat = None
         mime = None
         if format == "ntriples":
@@ -113,12 +113,14 @@ class Repository:
         else:
             raise Error("Only 'ntriples' and 'rdf/xml' are supported as formats by loadFile.")
 
-        if serverSide:
-            nullRequest(self.curl, "POST", self.url + "/statements/load/" + urlformat, urlenc(file=file))
-        else:
+        body = ""
+        if not serverSide:
             f = open(file)
-            try: nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat, f.read(), contentType=mime)
-            finally: f.close()
+            body = f.read()
+            f.close()
+            file = None
+        nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat + "?" +
+                    urlenc(file=file, context=context, baseURI=baseURI), body, contentType=mime)
 
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""
