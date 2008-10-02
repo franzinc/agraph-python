@@ -7,7 +7,8 @@
 
 (defservice (:put :newstore) "" ()
   (request-assert (not (get-store *server* *store-name*)) "There is already a store named '~a'." *store-name*)
-  (create-store *server* *store-name*))
+  (create-store *server* *store-name*)
+  :null)
 
 (defservice :delete "" ()
   (delete-store *server* *store*)

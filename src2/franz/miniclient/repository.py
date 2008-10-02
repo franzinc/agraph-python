@@ -11,7 +11,7 @@ class AllegroGraphServer:
         """Returns the names of open stores on the server."""
         return jsonRequest(self.curl, "GET", self.url + "/repositories")
 
-    def createTripleStore(self, name, fileName):
+    def createTripleStore(self, name):
         """Ask the server to create a new triple store."""
         nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name))
 
