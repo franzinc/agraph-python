@@ -115,7 +115,7 @@ class Repository:
             urlformat = "rdfxml"
             mime = "application/rdf+xml"
         else:
-            raise UnsupportedFormatError(format)
+            raise Repository.UnsupportedFormatError(format)
 
         body = ""
         if not serverSide:
