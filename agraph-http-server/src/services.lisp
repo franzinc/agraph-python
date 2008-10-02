@@ -164,18 +164,20 @@
 (defservice :post "statements/ntriples" ((file :string nil) (context :string nil) (body :postbody))
   (assert-writeable)
   (request-assert (or file (> (length body) 0)) "No file or data given.")
+  (setf context (and context (assert-part context)))
   (handler-case (if file
                     (load-ntriples file :graph context)
-                    (load-ntriples-from-string body :graph (and context (part->value (assert-part context)))))
+                    (load-ntriples-from-string body :graph context))
     (error (e) (request-failed (princ-to-string e))))
   :null)
     
 (defservice :post "statements/rdfxml" ((file :string nil) (context :string nil) ((base-uri "baseURI") :string nil) (body :postbody))
   (assert-writeable)
   (request-assert (or file (> (length body) 0)) "No file or data given.")
+  (setf context (and context (assert-part context)))
   (handler-case (if file
                     (load-rdf/xml file :base-uri base-uri :graph context)
-                    (load-rdf/xml-from-string body :base-uri base-uri :graph (and context (part->value (assert-part context)))))
+                    (load-rdf/xml-from-string body :base-uri base-uri :graph context))
     (error (e) (request-failed (princ-to-string e))))
   :null)
 

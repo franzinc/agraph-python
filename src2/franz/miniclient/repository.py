@@ -1,8 +1,5 @@
-# TODO streaming cursors for queries
-
 import time, cjson
 from request import *
-from franz.openrdf.exceptions import *
 
 class AllegroGraphServer:
     def __init__(self, url, user=None, password=None):
@@ -102,6 +99,12 @@ class Repository:
         element, the graph name, may be None."""
         nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads), contentType="application/json")
 
+    class UnsupportedFormatError(Exception):
+        def __init__(self, format):
+            self.format = format
+        def __str__(self):
+            return "'%s' file format not supported (try 'ntriples' or 'rdf/xml')." % self.format
+
     def loadFile(self, file, format, baseURI=None, context=None, serverSide=False):
         urlformat = None
         mime = None
@@ -112,7 +115,7 @@ class Repository:
             urlformat = "rdfxml"
             mime = "application/rdf+xml"
         else:
-            raise IllegalArgumentException("Only 'ntriples' and 'rdf/xml' are supported as formats by loadFile.")
+            raise UnsupportedFormatError(format)
 
         body = ""
         if not serverSide:
@@ -120,7 +123,6 @@ class Repository:
             body = f.read()
             f.close()
             file = None
-        print "CALL loadFile context:", context
         nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat + "?" +
                     urlenc(file=file, context=context, baseURI=baseURI), body, contentType=mime)
 
@@ -243,4 +245,3 @@ if __name__ == '__main__':
     elif choice == 2: test2()       
     elif choice == 3: test3()       
     elif choice == 4: test4()               
-   

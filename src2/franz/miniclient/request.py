@@ -73,7 +73,6 @@ def jsonRequest(curl, method, url, body=None, contentType="application/x-www-for
         makeRequest(curl, method, url, body, "application/json", contentType, callback=rowreader.process, errCallback=raiseErr)
 
 def nullRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded"):
-    print "CALL nullRequest url: %s  body: %s" % (url, body)
     status, body = makeRequest(curl, method, url, body, "application/json", contentType)
     if (status != 200): raise RequestError(status, body)
 
