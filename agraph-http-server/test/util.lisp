@@ -10,8 +10,7 @@
         (data (gensym)))
     `(let ((,data (package-path "test/server/" t))
            (,server nil))
-       (setf ,server (make-instance 'agraph-http-server :cache-file ,data ,@args
-                                    :directory (package-path "test/repositories/")))
+       (setf ,server (make-instance 'agraph-http-server :directory (package-path "test/repositories/") ,@args))
        (start :port 8080)
        (publish-http-server net.aserve:*wserver* ,server)
        (unwind-protect (progn ,@body)
