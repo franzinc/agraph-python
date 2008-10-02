@@ -5,7 +5,7 @@
   (:use :cl :net.aserve :net.aserve.client :st-json :excl)
   (:export #:agraph-client
            #:list-triple-stores #:get-repository
-           #:open-triple-store #:create-triple-store #:close-triple-store
+           #:create-triple-store #:delete-triple-store
            #:repository #:repository-environment
            #:repository-size #:repository-contexts #:repository-writeable-p
            #:sparql-query #:prolog-query #:define-prolog-functor

@@ -8,13 +8,10 @@
 (defun list-triple-stores (clnt)
   (json-request clnt :get "/repositories"))
 
-(defun open-triple-store (clnt name filename &optional readonly)
-  (null-request clnt :post "/repository/open" (urlenc "name" name "file" filename "readOnly" readonly)))
+(defun create-triple-store (clnt name)
+  (null-request clnt :put "/repositories/~a" (urlenc name)))
 
-(defun create-triple-store (clnt name filename)
-  (null-request clnt :post "/repository/create" (urlenc "name" name "file" filename)))
-
-(defun close-triple-store (clnt name)
+(defun delete-triple-store (clnt name)
   (null-request clnt :delete (repo-url name)))
 
 (defun get-repository (clnt name &optional environment)

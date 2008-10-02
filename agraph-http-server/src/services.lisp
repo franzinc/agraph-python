@@ -3,22 +3,14 @@
 (in-package :agraph-http-server)
 
 (defservice (:get :nostore) "repositories" ()
-  (let ((names ()))
-    (with-server-cache (*server*)
-      (doclass (spec 'store-spec)
-        (push (@name spec) names)))
-    (values :list names)))
+  (values :list (list-stores *server*)))
 
-(defservice (:post :nostore) "repository/open" ((name :string) (file :string) ((read-only "readOnly") :boolean nil))
-  (open-store *server* name file read-only)
-  :null)
-
-(defservice (:post :nostore) "repository/create" ((name :string) (file :string))
-  (create-store *server* name file)
-  :null)
+(defservice (:put :newstore) "" ()
+  (request-assert (not (get-store *server* *store-name*)) "There is already a store named '~a'." *store-name*)
+  (create-store *server* *store-name*))
 
 (defservice :delete "" ()
-  (close-store *server* *store*)
+  (delete-store *server* *store*)
   :null)
 
 
@@ -31,11 +23,8 @@
 (defun assert-context (string)
   (if (string= string "null") (default-graph-upi *db*) (assert-part string)))
 
-(defun store-name ()
-  (@name (@spec *store*)))
-
 (defun assert-environment (name)
-  (or (get-environment *server* (store-name) name)
+  (or (get-environment *server* *store-name* name)
       (request-failed "Environment '~a' not found." name)))
 
 (defservice (:get :post) "" ((query :string) (infer :boolean nil) (context :list)
@@ -224,16 +213,16 @@
   :null)
 
 (defservice :get "environments" ()
-  (values :list (list-environments *server* (store-name))))
+  (values :list (list-environments *server* *store-name*)))
 
 (defservice :post "environments" ((name :string nil))
   (if name
-      (request-assert (not (get-environment *server* (store-name) name))
+      (request-assert (not (get-environment *server* *store-name* name))
                       "An environment named '~a' already exists.")
       (loop (setf name (random-string 10))
-         (unless (get-environment *server* (store-name) name) (return))))
+         (unless (get-environment *server* *store-name* name) (return))))
   (with-server-cache (*server* t)
-    (make-instance 'environment :id (list (store-name) name)))
+    (make-instance 'environment :id (list *store-name* name)))
   (values :string name))
 
 (defservice :delete "environments" ((name :string))

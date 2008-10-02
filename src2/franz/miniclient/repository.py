@@ -11,18 +11,12 @@ class AllegroGraphServer:
         """Returns the names of open stores on the server."""
         return jsonRequest(self.curl, "GET", self.url + "/repositories")
 
-    def openTripleStore(self, name, fileName, readOnly=False):
-        """Ask the server to open a given triple store."""
-        nullRequest(self.curl, "POST", self.url + "/repository/open",
-                    urlenc(name=name, file=fileName, readOnly=readOnly))
-
     def createTripleStore(self, name, fileName):
         """Ask the server to create a new triple store."""
-        nullRequest(self.curl, "POST", self.url + "/repository/create",
-                    urlenc(name=name, file=fileName))
+        nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name))
 
-    def closeTripleStore(self, name):
-        """Close a server-side triple store."""
+    def deleteTripleStore(self, name):
+        """Delete a server-side triple store."""
         nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
 
     def getRepository(self, name):
@@ -220,10 +214,7 @@ def test2():
     conn = AllegroGraphServer("http://localhost:8080")
     dbName = 'testP'
     if not dbName in conn.listTripleStores():
-        try:
-            conn.openTripleStore(dbName, "/Users/bmacgregor/Desktop/AGFolder/")
-        except:
-            conn.createTripleStore(dbName, "/Users/bmacgregor/Desktop/AGFolder/")            
+        conn.createTripleStore(dbName)
     rep = conn.getRepository(dbName)        
     rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', None)
     query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
@@ -234,7 +225,7 @@ def test2():
 
 def test3():
     conn = AllegroGraphServer("http://localhost:8080")
-    rep = conn.getRepository("foo")
+    rep = conn.getRepository("kennedy")
     def printrow(row, names): print "%s %s" %(repr(row), repr(names))
     print rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
 

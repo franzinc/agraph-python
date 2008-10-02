@@ -22,7 +22,7 @@
            :response *response-unauthorized*
            :headers '((:www-authenticate "Basic realm=\"AllegroGraph Server\"")))))
 
-(defun dispatch-service (server store path req ent)
+(defun dispatch-service (server *store-name* path req ent)
   (handler-case
       (let ((service (or (find-service path (request-method req))
                          (request-failed* *response-not-found* "Not found.")))
@@ -32,11 +32,11 @@
         (when (@username server)
           (multiple-value-bind (name pass) (get-basic-authorization req)
             (check-auth name pass)))
-        (unless (or (and store (service-store-p service)) (not store))
+        (unless (eq (service-store-p service) (and *store-name* t))
           (request-failed* *response-not-found* "Not found."))
-        (when store
-          (setf *store* (or (get-store server store)
-                            (request-failed* *response-not-found* "No store '~a' known." store))
+        (when (and *store-name* (not (service-new-store-p service)))
+          (setf *store* (or (get-store server *store-name*)
+                            (request-failed* *response-not-found* "No store '~a' known." *store-name*))
                 *db* (@db *store*)))
         (multiple-value-bind (type value) (call-service service (interpret-parameters service (read-parameter req)))
           (write-response value (negotiate-format type req) req ent)))

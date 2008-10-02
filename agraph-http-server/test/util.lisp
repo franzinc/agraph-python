@@ -10,13 +10,15 @@
         (data (gensym)))
     `(let ((,data (package-path "test/server/" t))
            (,server nil))
-       (setf ,server (make-instance 'agraph-http-server :cache-file ,data ,@args))
+       (setf ,server (make-instance 'agraph-http-server :cache-file ,data ,@args
+                                    :directory (package-path "test/repositories/")))
        (start :port 8080)
        (publish-http-server net.aserve:*wserver* ,server)
        (unwind-protect (progn ,@body)
          (close-http-server ,server)
          (net.aserve:shutdown)
-         (delete-directory-and-files ,data)))))
+         (delete-directory-and-files ,data)
+         (delete-directory-and-files (package-path "test/repositories/"))))))
 
 (defmacro with-client ((name &rest args) &body body)
   `(let ((,name (make-instance 'agraph-client :url "http://localhost:8080" ,@args)))

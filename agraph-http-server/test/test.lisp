@@ -17,12 +17,11 @@
       (create-triple-store cl "foo" (package-path "test/foo/" t))
       (create-triple-store cl "bar" (package-path "test/bar/" t))
       (test '("bar" "foo") (sort (list-triple-stores cl) #'string<) :test #'equal)
-      (close-triple-store cl "foo")
+      (delete-triple-store cl "foo")
       (test '("bar") (list-triple-stores cl) :test #'equal)
-      (open-triple-store cl "foo" (package-path "test/foo" t))
+      (create-triple-store cl "foo" (package-path "test/foo" t))
       (test '("bar" "foo") (sort (list-triple-stores cl) #'string<) :test #'equal)
-      (close-triple-store cl "bar")
-      (delete-directory-and-files (package-path "test/bar/"))
+      (delete-triple-store cl "bar")
 
       (let ((rep (get-repository cl "foo"))
             (statement '("\"abc\"@en" "<http://something.org/predicate>"
@@ -74,5 +73,4 @@
         (test nil (repository-environments rep))
         (delete-matching-statements rep))
 
-      (close-triple-store cl "foo")
-      (delete-directory-and-files (package-path "test/foo/")))))
+      (delete-triple-store cl "foo"))))

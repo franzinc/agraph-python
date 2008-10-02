@@ -1,15 +1,15 @@
 (in-package :agraph-http-server)
 
-(defstruct service store-p args result func methods)
+(defstruct service store-p new-store-p args result func methods)
 
 (defparameter *services* (make-hash-table :test 'equal))
 
-(defun service (methods name args func store-p)
+(defun service (methods name args func store-p new-store-p)
   (flet ((string-name (spec)
            (let ((name (car spec)))
              (cons (etypecase name (symbol (string-downcase (symbol-name name))) (cons (second name)))
                    (cdr spec)))))
-    (let ((s (make-service :store-p store-p
+    (let ((s (make-service :store-p store-p :new-store-p new-store-p
                            :args (mapcar #'string-name args)
                            :func func)))
       (dolist (method methods)
@@ -20,13 +20,15 @@
   `(service ',(intersection options '(:get :post :put :delete)) ,name ',args
             (lambda ,(mapcar (lambda (n) (etypecase (car n) (symbol (car n)) (cons (caar n)))) args)
               ,@body)
-            ,(not (member :nostore options))))
+            ,(not (member :nostore options))
+            ,(and (member :newstore options) t)))
 
 (defun find-service (path method)
   (gethash (cons path method) *services*))
 
 (defvar *server*)
 (defvar *store*)
+(defvar *store-name*)
 
 (defun call-service (service parameters)
   (apply (service-func service) parameters))
