@@ -425,46 +425,76 @@ class AllegroGraphRepositoryConnection(SailConnection):
             handler.handleNamespace(prefix, name)
         statements = self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
         handler.export(statements)
+
+    #############################################################################################
+    ## Server-side implementation of namespaces
+    #############################################################################################
       
-    
-    #############################################################################################
-    ## In-memory implementation of namespaces
-    #############################################################################################
-    
-    NAMESPACES_MAP = {}
-    
-    def _get_namespaces_map(self):
-        map = AllegroGraphRepositoryConnection.NAMESPACES_MAP
-        if not map:
-            map.update({"rdf": RDF.NAMESPACE, 
-                        "rdfs": RDFS.NAMESPACE,
-                        "xsd": XMLSchema.NAMESPACE,
-                        "owl": OWL.NAMESPACE, 
-                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/",                                             
-                        })
-        return map
-    
-    ## Gets all declared namespaces as a RepositoryResult of {@link Namespace}
+    ## Get all declared prefix/namespace pairs
     def getNamespaces(self):
-        return [Namespace(prefix, name) for prefix, name in self._get_namespaces_map().iteritems()]
+        dict = {}
+        for pair in self.mini_repository.listNamespaces():
+            dict[pair[0]] = pair[1]
+        print "GET NAMESPACES", dict
+        return dict        
 
     ## Gets the namespace that is associated with the specified prefix, if any.
     def getNamespace(self, prefix):
-        name = self._get_namespaces_map().get(prefix.lower())
-        if name: return Namespace(prefix.lower(), name)
+        return self.getNamespaces().get(prefix)
 
     ## Sets the prefix for a namespace.
     def setNamespace(self, prefix, name):
-        self._get_namespaces_map()[prefix.lower()] = name
+        self.mini_repository.addNamespace(prefix, name)
 
     ## Removes a namespace declaration by removing the association between a
     ## prefix and a namespace name.
     def removeNamespace(self, prefix):
-        self._get_namespaces_map()[prefix] = None
+        self.mini_repository.deleteNamespace(prefix)
 
     ## Removes all namespace declarations from the repository.
     def clearNamespaces(self):
-        self._get_namespaces_map().clear()
+        for prefix in self.getNamespaces().iterkeys():
+            self.removeNamespace(prefix)
+
+    
+#    #############################################################################################
+#    ## In-memory implementation of namespaces
+#    #############################################################################################
+#    
+#    NAMESPACES_MAP = {}
+#    
+#    def _get_namespaces_map(self):
+#        map = AllegroGraphRepositoryConnection.NAMESPACES_MAP
+#        if not map:
+#            map.update({"rdf": RDF.NAMESPACE, 
+#                        "rdfs": RDFS.NAMESPACE,
+#                        "xsd": XMLSchema.NAMESPACE,
+#                        "owl": OWL.NAMESPACE, 
+#                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/",                                             
+#                        })
+#        return map
+    
+#    ## Gets all declared namespaces as a RepositoryResult of {@link Namespace}
+#    def getNamespaces(self):
+#        return [Namespace(prefix, name) for prefix, name in self._get_namespaces_map().iteritems()]
+#
+#    ## Gets the namespace that is associated with the specified prefix, if any.
+#    def getNamespace(self, prefix):
+#        name = self._get_namespaces_map().get(prefix.lower())
+#        if name: return Namespace(prefix.lower(), name)
+#
+#    ## Sets the prefix for a namespace.
+#    def setNamespace(self, prefix, name):
+#        self._get_namespaces_map()[prefix.lower()] = name
+#
+#    ## Removes a namespace declaration by removing the association between a
+#    ## prefix and a namespace name.
+#    def removeNamespace(self, prefix):
+#        self._get_namespaces_map()[prefix] = None
+#
+#    ## Removes all namespace declarations from the repository.
+#    def clearNamespaces(self):
+#        self._get_namespaces_map().clear()
 
 
 

@@ -42,6 +42,7 @@ class ValueFactory(object):
         RDFS.initialize(self)
         XMLSchema.initialize(self)
         OWL.initialize(self)
+        self.store.getConnection().setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
 
     def createBNode(self, nodeID=None):
         """

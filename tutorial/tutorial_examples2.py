@@ -24,12 +24,13 @@ def test1():
     """
     Tests getting the repository up.  Is called by most of the other tests to do the startup.
     """
-    sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
-    store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testP",
+    sesameDir = "/tmp/agraph_test"
+    store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testj",
                               sesameDir, port=8080)
     myRepository = Repository(store)
     myRepository.initialize()
     print "Repository is up!"
+    print "INITIAL SIZE", myRepository.getConnection().size()
     return myRepository
     
 def test2():
@@ -130,7 +131,7 @@ def test5():
         statements = conn.getStatements(None, None, obj)
         for s in statements:
             print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
+    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
         print "Query triples matching '%s'." % obj
         queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
         SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
@@ -152,7 +153,7 @@ def test6():
     path1 = "./vc-db-1.rdf"    
     path2 = "./football.nt"            
     baseURI = "http://example.org/example/local"
-    location = "/tutorial/vc_db_1_rdf" 
+    location = "/tutorial/vc_db_1.rdf" 
     ## EXPERIMENT:
     location = "http://www.franz.com/tutorial/vc_db_1_rdf" 
     
@@ -242,7 +243,7 @@ def test10():
     for s in statements:
         print s
     statements = conn.getStatements(None, None, None, [context1, context2])
-    print "Triples in contexts 1 and 2:"
+    print "Triples in contexts 1 or 2:"
     for s in statements:
         print s
     queryString = """
@@ -313,6 +314,7 @@ def test12():
     booktype = f.createURI(namespace=exns, localname="Book")
     booktitle = f.createURI(namespace=exns, localname="title")    
     wonderland = f.createLiteral('Alice in Wonderland')
+    conn.clear()    
     conn.add(alice, RDF.TYPE, persontype)
     conn.add(alice, fullname, alicename)
     conn.add(book, RDF.TYPE, booktype)    
@@ -324,15 +326,18 @@ def test12():
     SELECT ?s ?p ?o
     WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }
     """
-#    queryxxString=""" 
-#    SELECT ?s ?p ?o
-#    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
-#    """
+    queryString=""" 
+    SELECT ?s ?p ?o
+    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
+    """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Query results"
+    print "Found %i query results" % len(result.string_tuples)
+    count = 0
     for bindingSet in result:
         print bindingSet
+        count += 1
+        if count > 5: break
 
 def test13():
     """
@@ -358,10 +363,14 @@ def test13():
     rows = conn.getStatements(None, age, range)
     for r in rows:
         print r 
+        
+def test14():
+    pass
+
 
 if __name__ == '__main__':
     choices = [i for i in range(1,5)]
-    choices = [6]
+    choices = [12]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -378,7 +387,8 @@ if __name__ == '__main__':
         elif choice == 10: test10()                            
         elif choice == 11: test11()
         elif choice == 12: test12()                                                                                   
-        elif choice == 13: test13()                                                                                           
+        elif choice == 13: test13()  
+        elif choice == 14: test14()                                                                                         
         else:
             print "No such test exists."
     

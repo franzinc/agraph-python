@@ -112,6 +112,7 @@ class DictBindingSet(dict):
                                            "  Index must be between 1 and %s, inclusive." % len(self.string_tuple)) 
             
     def _get_ith_value(self, index):
+        print "GET ITH VALUE"
         term = self.reusable_row[index]
         if not term:
             term = Statement.stringTermToTerm(self.string_tuple[index])
@@ -142,7 +143,6 @@ class DictBindingSet(dict):
             self[name] = value
         
     def addBinding(self, binding):
-        print "ADDBINDING", binding
         self.addBindingPair(binding.getName(),  binding.getValue())
         
     def removeBinding(self, name):
@@ -233,8 +233,8 @@ class DictBindingSet(dict):
         I"M NOT SURE HOW PYTHON WILL USE IT - RMM
         """
         d = {}
-        for i in range(len(self.values)):
-            v = self.values[i]
+        for i in range(len(self.variable_names)):
+            v = self.get(i)
             if strings_dict: v = str(v)
             d[self.variable_names[i]] = v
         return d

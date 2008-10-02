@@ -158,7 +158,7 @@ class AllegroGraphStore(Sail):
         work properly.
         """
         uri = uri or (namespace + localname)
-        self.mini_repository.registerFreeTextPredicate(uri)
+        self.mini_repository.registerFreeTextPredicate("<%s>" % uri)
         
     def _translate_inlined_type(self, type):
         if type == "int": return "int"
