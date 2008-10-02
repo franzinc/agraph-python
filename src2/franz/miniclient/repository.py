@@ -175,8 +175,8 @@ class Repository:
     def listEnvironments(self):
         return jsonRequest(self.curl, "GET", self.url + "/environments")
 
-    def createEnvironment(self, name):
-        nullRequest(self.curl, "POST", self.url + "/environments", urlenc(name=name))
+    def createEnvironment(self, name=None):
+        return jsonRequest(self.curl, "POST", self.url + "/environments", urlenc(name=name))
 
     def deleteEnvironment(self, name):
         nullRequest(self.curl, "DELETE", self.url + "/environments", urlenc(name=name))

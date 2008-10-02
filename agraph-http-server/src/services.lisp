@@ -226,12 +226,15 @@
 (defservice :get "environments" ()
   (values :list (list-environments *server* (store-name))))
 
-(defservice :post "environments" ((name :string))
-  (request-assert (not (get-environment *server* (store-name) name))
-                  "An environment named '~a' already exists.")
+(defservice :post "environments" ((name :string nil))
+  (if name
+      (request-assert (not (get-environment *server* (store-name) name))
+                      "An environment named '~a' already exists.")
+      (loop (setf name (random-string 10))
+         (unless (get-environment *server* (store-name) name) (return))))
   (with-server-cache (*server* t)
     (make-instance 'environment :id (list (store-name) name)))
-  :null)
+  (values :string name))
 
 (defservice :delete "environments" ((name :string))
   (let ((env (assert-environment name)))
