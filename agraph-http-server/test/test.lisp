@@ -12,7 +12,7 @@
 
 (with-tests (:name "AG http server")
   (with-server
-    (let ((client (make-instance 'agraph-http-client :url "http://heffalump:8080")))
+    (let ((client (make-instance 'agraph-http-client :url "http://localhost:8080")))
       (test '("/catalogs/catalog") (list-catalogs client) :test #'equal)
       (let ((repo (get-catalog client "/catalogs/catalog")))
         (test nil (list-triple-stores repo))
