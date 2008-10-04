@@ -8,6 +8,11 @@
            (serve-request catalog (subseq (net.uri:uri-path (request-raw-uri req)) (length prefix)) req ent)))
     (publish-prefix :prefix prefix :server wserver :function #'serve)))
 
+(defun publish-catalog-list (path wserver server)
+  (flet ((list-catalogs (req ent)
+           (write-response (catalog-urls server) (negotiate-format :list req) req ent)))
+    (publish :path path :server wserver :function #'list-catalogs)))
+
 (defun serve-request (catalog path req ent)
   (multiple-value-bind (matches match store store-path) (match-re "^repositories/([^/]+)(?:/(.*))?$" path)
     (declare (ignore match))

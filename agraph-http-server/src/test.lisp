@@ -1,6 +1,6 @@
 (in-package :agraph-http-server)
 
-(setf *catalog* (make-instance 'published-catalog :directory "/home/marijn/src/lisp/agraph-browser/"))
+(setf *catalog* (make-instance 'catalog :directory "/home/marijn/src/lisp/agraph-browser/"))
 (start :port 8080)
 (publish-catalog *wserver* *catalog*)
 

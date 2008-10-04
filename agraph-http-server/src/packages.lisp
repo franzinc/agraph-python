@@ -6,6 +6,6 @@
 (defpackage :agraph-http-server
   (:use :cl :net.aserve :db.agraph :db.agraph.sparql
         :st-json :db.allegrocache :excl)
-  (:export #:agraph-http-server
-           #:published-catalog #:publish-catalog #:close-catalog
+  (:export #:create-server #:shutdown-server #:add-catalog
+           #:catalog #:publish-catalog #:close-catalog
            #:start #:shutdown))

@@ -123,3 +123,13 @@ work for federated triple stores."
   (defun random-string (len)
     (with-output-to-string (out)
       (dotimes (i len) (princ (elt abc (random (length abc))) out)))))
+
+(defun directorify-path (path)
+  (let ((str (namestring path)))
+    (if (or (zerop (length str)) (char= #\/ (char str (1- (length str)))))
+        path
+        (concatenate 'string str "/"))))
+
+(defun directory-name (path)
+  (let ((n (car (last (pathname-directory path)))))
+    (and (stringp n) n)))
