@@ -1,7 +1,7 @@
 
 from franz.openrdf.sail.sail import SailRepository
 from franz.openrdf.repository.repository import Repository
-from franz.openrdf.sail.allegrographstore import AllegroGraphStore
+from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
@@ -9,7 +9,6 @@ from franz.openrdf.query.dataset import Dataset
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.rdfwriter import  NTriplesWriter
 from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
-
 
 import os, urllib, datetime, time
 
@@ -22,15 +21,14 @@ def test0():
 
 def test1():
     """
-    Tests getting the repository up.  Is called by most of the other tests to do the startup.
+    Tests getting the repository up.  Is called by the other tests to do the startup.
     """
-    sesameDir = "/tmp/agraph_test"
-    store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testj",
-                              sesameDir, port=8080)
-    myRepository = Repository(store)
+    server = AllegroGraphServer("localhost", port=8080)
+    print "Available repositories", server.listRepositories()    
+    myRepository = Repository(server, "agraph_test", Repository.RENEW)
     myRepository.initialize()
-    print "Repository is up!"
-    print "INITIAL SIZE", myRepository.getConnection().size()
+    print "Repository %s is up!  It contains %i statements." % (
+                myRepository.getDatabaseName(), myRepository.getConnection().size())
     return myRepository
     
 def test2():
@@ -56,10 +54,8 @@ def test2():
     ## bob's name is "Bob":
     conn.add(bob, f.createURI("http://example.org/ontology/name"), bobsName)
     print "Triple count: ", conn.size()
-    for s in conn.getStatements(None, None, None, None): print s    
     conn.remove(bob, name, bobsName)
     print "Triple count: ", conn.size()
-    for s in conn.getStatements(None, None, None, None): print s
     conn.add(bob, name, bobsName)    
     return myRepository
 
@@ -169,15 +165,6 @@ def test6():
         
 def test7():    
     conn = test6().getConnection()
-    
-#    print "TEMPORARILY FILL EMPTY CONTEXT"
-#    location = "/tutorial/vc_db_1_rdf" 
-#    f = conn.sail_store.getValueFactory()
-#    context = f.createURI(location)
-#    for t in conn.getStatements(None, None, None):
-#        q = f.createStatement(t.getSubject(), t.getPredicate(), t.getObject(), context)
-#        conn.add(q)
-    
     queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();
@@ -188,11 +175,6 @@ def test7():
 import urlparse
 
 def test8():
-    if True:
-        myRepository = test2()
-        print "TEMPORARILY USING 'test2' INSTEAD OF 'test6'"
-    else:
-        myRepository = test6()
     conn = myRepository.getConnection()
     location = "/tutorial/vc_db_1_rdf" 
     context = myRepository.getValueFactory().createURI(location)
