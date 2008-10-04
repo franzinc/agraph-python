@@ -25,7 +25,7 @@ def test1():
     """
     server = AllegroGraphServer("localhost", port=8080)
     print "Available repositories", server.listRepositories()    
-    myRepository = Repository(server, "agraph_test", Repository.RENEW)
+    myRepository = Repository(server, "agraph_test3", Repository.RENEW)
     myRepository.initialize()
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), myRepository.getConnection().size())
@@ -267,6 +267,7 @@ def test11():
     conn.add(alice, RDF.TYPE, person)
     myRepository.indexTriples(all=True, asynchronous=True)
     conn.setNamespace('ex', exns)
+    #conn.removeNamespace('ex')
     queryString = """
     SELECT ?s ?p ?o 
     WHERE { ?s ?p ?o . FILTER ((?p = rdf:type) && (?o = ex:Person) ) }
@@ -352,7 +353,7 @@ def test14():
 
 if __name__ == '__main__':
     choices = [i for i in range(1,5)]
-    choices = [12]
+    choices = [11]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
