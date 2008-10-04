@@ -26,7 +26,7 @@ from franz.openrdf.exceptions import *
 from franz.openrdf.repository.repository import Repository
 
 # * A Sesame repository that contains RDF data that can be queried and updated.
-# * Access to the repository can be acquired by openening a connection to it.
+# * Access to the repository can be acquired by opening a connection to it.
 # * This connection can then be used to query and/or update the contents of the
 # * repository. Depending on the implementation of the repository, it may or may
 # * not support multiple concurrent connections.
@@ -36,6 +36,9 @@ from franz.openrdf.repository.repository import Repository
 # * Forgetting the latter can result in loss of data (depending on the Repository
 # * implementation)!
 class Sail:
+    """
+    Currently, this class is NOT USED!!!
+    """
 
     def setDataDir(self, dataDir):
         """

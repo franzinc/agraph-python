@@ -128,6 +128,19 @@ class Query(object):
 ##
 #############################################################################
 
+def splicePrefixesIntoQuery(query, connection):
+    """
+    Add build-in and registered prefixes to 'query' when needed.
+    """
+    lcQuery = query.lower()
+    referenced = []
+    for prefix, ns in connection.getNamespaces().iteritems():
+        if lcQuery.find(prefix) >= 0 and lcQuery.find("prefix %s" % prefix) < 0:
+            referenced.append((prefix, ns))
+    for ref in referenced:
+        query = "PREFIX %s: <%s> %s" % (ref[0], ref[1], query)
+    return query
+
 class TupleQuery(Query):
     def __init__(self, queryLanguage, queryString, baseURI=None):
         Query._check_language(queryLanguage)
@@ -151,14 +164,17 @@ class TupleQuery(Query):
         TODO: DOESN'T TAKE DATASETS INTO ACCOUNT.  THAT NEEDS TO BE COMMUNICATED
         TO THE SERVER SOMEHOW.      
         """
-        ## before executing, see if there is a dataset that needs to be incorporated into the query
-        if self.dataset:
-            raise UnimplementedMethodException("Query datasets not yet implemented")
+        if self.dataset and self.dataset.getDefaultGraphs():
+            raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
+        namedContexts = self.connection._contexts_to_ntriple_contexts(
+                        self.dataset.getNamedGraphs() if self.dataset else None)
         mini = self.connection.mini_repository
-        if self.queryLanguage == QueryLanguage.SPARQL:
-            response = mini.evalSparqlQuery(self.queryString)
+        if self.queryLanguage == QueryLanguage.SPARQL:            
+            query = splicePrefixesIntoQuery(self.queryString, self.connection)
+            response = mini.evalSparqlQuery(query, context=namedContexts)
+            
         elif self.queryLanguage == QueryLanguage.PROLOG:
-            response = mini.evalPrologQuery(self.queryString)
+            response = mini.evalPrologQuery(self.queryString, context=namedContexts)
         if jdbc:
             return JDBCResultSet(response['values'], column_names = response['names'])
         else:

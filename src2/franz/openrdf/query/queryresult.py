@@ -112,7 +112,6 @@ class DictBindingSet(dict):
                                            "  Index must be between 1 and %s, inclusive." % len(self.string_tuple)) 
             
     def _get_ith_value(self, index):
-        print "GET ITH VALUE"
         term = self.reusable_row[index]
         if not term:
             term = Statement.stringTermToTerm(self.string_tuple[index])

@@ -23,7 +23,9 @@
 
 
 from franz.openrdf.exceptions import *
+from franz.openrdf.model.value import URI
 from franz.openrdf.model.valuefactory import ValueFactory 
+from franz.openrdf.repository.repositoryconnection import RepositoryConnection
 
 # * A Sesame repository that contains RDF data that can be queried and updated.
 # * Access to the repository can be acquired by openening a connection to it.
@@ -36,27 +38,76 @@ from franz.openrdf.model.valuefactory import ValueFactory
 # * Forgetting the latter can result in loss of data (depending on the Repository
 # * implementation)!
 class Repository:
-    def __init__(self, sail):
-        self.sail = sail
+    RENEW = 'renew'
+    ACCESS = 'access'
+    OPEN = 'open'
+    CREATE = 'create'
+    REPLACE = 'replace'
 
-    def setDataDirectory(self, dataDir):
-        """
-        Set the directory where data and logging for this repository is stored.
-        """
-        self.sail.setDataDir(dataDir)
+    def __init__(self, server, database_name, access_verb):
+        self.server = server
+        self.mini_server = server.mini_server
+        self.database_name = database_name
+        self.access_verb = access_verb
+        ## system state fields:
+        self.connection = None
+        self.value_factory = None
+        self.inlined_predicates = {}
+        self.inlined_datatypes = {}
 
-    def getDataDirectory(self):
+         
+    def getDatabaseName(self):
         """
-        Get the directory where data and logging for this repository is stored.
+        Return the name of the database (remote triple store) that this repository is
+        interfacing with.
+        """ 
+        return self.database_name        
+    
+    def _attach_to_mini_repository(self):
         """
-        return self.sail.getDataDirectory()
-
+        Create a mini-repository and execute a RENEW, OPEN, CREATE, or ACCESS.
+        
+        TODO: FIGURE OUT WHAT 'REPLACE' DOES
+        """
+        clearIt = False
+        dbName = self.database_name
+        conn = self.mini_server
+        if self.access_verb == Repository.RENEW:
+            if dbName in conn.listTripleStores():
+                ## not nice, since someone else probably has it open:
+                clearIt = True
+            else:
+                conn.createTripleStore(dbName)                    
+        elif self.access_verb == Repository.CREATE:
+            if dbName in conn.listTripleStores():
+                raise IllegalOptionException(
+                    "Can't create triple store named '%s' because a store with that name already exists.",
+                    dbName)
+            conn.createTripleStore(dbName)
+        elif self.access_verb == Repository.OPEN:
+            if not dbName in conn.listTripleStores():
+                raise IllegalOptionException(
+                    "Can't open a triple store named '%s' because there is none.", dbName)
+        elif self.access_verb == Repository.ACCESS:
+            if not dbName in conn.listTripleStores():
+                conn.createTripleStore(dbName)      
+        self.mini_repository = conn.getRepository(dbName)
+        ## we are done unless a RENEW requires us to clear the store
+        if clearIt:
+            self.mini_repository.deleteMatchingStatements(None, None, None, None)
+        
     def initialize(self):
         """
         Initializes this repository. A repository needs to be initialized before
         it can be used.
         """
-        self.sail.initialize()
+        self._attach_to_mini_repository()
+        ## EXPERIMENTATION WITH INITIALIZING AN ENVIRONMENT.  DIDN'T LOOK RIGHT - RMM
+#        self.environment = self.mini_repository.createEnvironment()
+#        print "ENV", self.environment
+#        self.mini_repository.deleteEnvironment(self.environment)
+#        print "ENV AfTER", self.mini_repository.listEnvironments()
+         
         
     def indexTriples(self, all=False, asynchronous=False):
         """
@@ -66,7 +117,7 @@ class Repository:
         the indexing task as a separate thread, and don't wait for it to complete.
         Note. Upon version 4.0, calling this will no longer be necessary.        
         """
-        self.sail.indexTriples(all=all, asynchronous=asynchronous)
+        self.mini_repository.indexStatements(all=all)
 
     def registerFreeTextPredicate(self,uri=None, namespace=None, localname=None):
         """
@@ -75,8 +126,17 @@ class Repository:
         triples/statements.  This is needed to make the  fti:match  operator
         work properly.
         """
-        self.sail.registerFreeTextPredicate(uri=uri, namespace=namespace, localname=localname)
-
+        uri = uri or (namespace + localname)
+        self.mini_repository.registerFreeTextPredicate("<%s>" % uri)
+        
+    def _translate_inlined_type(self, type):
+        if type == "int": return "int"
+        elif type == "datetime": return "date-time"
+        elif type == "float": return "float"
+        else:
+            raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
+                    "'int', 'float', and 'datetime'")
+        
     def registerInlinedDatatype(self, predicate=None, datatype=None, inlinedType=None):
         """
         Register an inlined datatype.  If 'predicate', then object arguments to triples
@@ -85,39 +145,60 @@ class Repository:
         If 'datatype', then typed literal objects with a datatype matching 'datatype' will
         use an inlined encoding of type 'inlinedType'.
         """
-        self.sail.registerInlinedDatatype(predicate=predicate, datatype=datatype, inlinedType=inlinedType)
-
+        predicate = predicate.getURI() if isinstance(predicate, URI) else predicate
+        datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
+        if predicate:
+            if not inlinedType:
+                raise IllegalArgumentException("Missing 'inlinedType' parameter in call to 'registerInlinedDatatype'")
+            lispType = self._translate_inlined_type(inlinedType)
+            mapping = [predicate, lispType, "predicate"]
+            self.inlined_predicates[predicate] = lispType
+        elif datatype:
+            lispType = self._translate_inlined_type(inlinedType or datatype)
+            mapping = [datatype, lispType, "datatype"]
+            self.inlined_datatypes[datatype] = lispType
+        ##self.internal_ag_store.addDataMapping(mapping)
+        raise UnimplementedMethodException("Inlined datatypes not yet implemented.")
+        
     def shutDown(self):
         """
-        Shuts the repository down, releasing any resources that it keeps hold of.
-        Once shut down, the repository can no longer be used until it is
-        re-initialized.
+        Shuts the store down, releasing any resources that it keeps hold of.
+        Once shut down, the store can no longer be used.
+        
+        TODO: WE COULD PRESUMABLY ADD SOME LOGIC TO MAKE A RESTART POSSIBLE, ALTHOUGH
+        THE ACCESS OPTION MIGHT NOT MAKE SENSE THE SECOND TIME AROUND (KILLING THAT IDEA!)
         """
-        self.sail.shutDown()
+        self.mini_server = None
+        self.mini_repository = None
 
     def isWritable(self):
         """
-        Checks whether this repository is writable, i.e. if the data contained in
-        this repository can be changed. The writability of the repository is
-        determined by the writability of the Sail that this repository operates
+        Checks whether this store is writable, i.e. if the data contained in
+        this store can be changed. The writability of the store is
+        determined by the writability of the Sail that this store operates
         on.
         """
-        return self.sail.isWritable()
+        return self.mini_repository.is_writable()
 
     def getConnection(self):
         """
-        Opens a connection to this repository that can be used for querying and
-        updating the contents of the repository. Created connections need to be
+        Opens a connection to this store that can be used for querying and
+        updating the contents of the store. Created connections need to be
         closed to make sure that any resources they keep hold of are released. The
         best way to do this is to use a try-finally-block 
         """
-        return self.sail.getConnection()
+        if not self.connection:
+            self.connection = RepositoryConnection(self)
+        return self.connection
 
     def getValueFactory(self):
         """
-        Return a ValueFactory for this Repository
+        Return a ValueFactory for this store
         """
-        return self.sail.getValueFactory()
+        if not self.value_factory:
+            self.value_factory = ValueFactory(self)
+        return self.value_factory
+
     
     
     
