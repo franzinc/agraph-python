@@ -2,7 +2,7 @@
 
 (in-package :agraph-http-server)
 
-(defclass agraph-http-server ()
+(defclass published-catalog ()
   ((cache :reader @cache)
    (lock :initform (mp:make-process-lock) :reader @lock)
    (directory :initarg :directory :reader @directory)
@@ -11,7 +11,7 @@
    (username :initform nil :initarg :username :reader @username)
    (password :initform nil :initarg :password :reader @password)))
 
-(defmacro with-server-cache ((server &optional write-p) &body body)
+(defmacro with-catalog-cache ((server &optional write-p) &body body)
   `(flet ((body () ,@body))
      (let* ((server ,server)
             (*allegrocache* (@cache server)))
@@ -19,7 +19,7 @@
          (rollback)
          ,(if write-p '(prog1 (body) (commit)) '(body))))))
 
-(defmethod initialize-instance :after ((server agraph-http-server) &key cache-file &allow-other-keys)
+(defmethod initialize-instance :after ((server published-catalog) &key cache-file &allow-other-keys)
   (let ((dir (namestring (@directory server))))
     (assert dir)
     (unless (char= #\/ (char dir (1- (length dir))))
@@ -100,15 +100,15 @@
           (make-prolog-package (@functors environment) (@namespaces environment)))))
 
 (defun get-environment (server store name)
-  (or (with-server-cache (server)
+  (or (with-catalog-cache (server)
         (retrieve-from-index 'environment 'id (if name (list store name) store)))
       (and (not name)
-           (with-server-cache (server t)
+           (with-catalog-cache (server t)
              (make-instance 'environment :id store)))))
 
 (defun list-environments (server store)
   (let ((names ()))
-    (with-server-cache (server)
+    (with-catalog-cache (server)
       (doclass (env 'environment)
         (when (and (consp (@id env)) (string= (first (@id env)) store))
           (push (second (@id env)) names))))

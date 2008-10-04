@@ -3,39 +3,39 @@
 (defparameter *response-not-acceptable*
   (net.aserve::make-resp 406 "Not acceptable"))
 
-(defun publish-http-server (wserver simple-server &key (prefix "/"))
+(defun publish-catalog (wserver catalog &key (prefix "/"))
   (flet ((serve (req ent)
-           (simple-serve simple-server (subseq (net.uri:uri-path (request-raw-uri req)) (length prefix)) req ent)))
+           (serve-request catalog (subseq (net.uri:uri-path (request-raw-uri req)) (length prefix)) req ent)))
     (publish-prefix :prefix prefix :server wserver :function #'serve)))
 
-(defun simple-serve (server path req ent)
+(defun serve-request (catalog path req ent)
   (multiple-value-bind (matches match store store-path) (match-re "^repositories/([^/]+)(?:/(.*))?$" path)
     (declare (ignore match))
     (if matches
-        (dispatch-service server store (or store-path "") req ent)
-        (dispatch-service server nil path req ent))))
+        (dispatch-service catalog store (or store-path "") req ent)
+        (dispatch-service catalog nil path req ent))))
 
 (defun check-auth (user pass)
-  (unless (and (equal user (@username *server*))
-               (equal pass (@password *server*)))
+  (unless (and (equal user (@username *catalog*))
+               (equal pass (@password *catalog*)))
     (error 'request-failed :format-control "Not authorised."
            :response *response-unauthorized*
            :headers '((:www-authenticate "Basic realm=\"AllegroGraph Server\"")))))
 
-(defun dispatch-service (server *store-name* path req ent)
+(defun dispatch-service (catalog *store-name* path req ent)
   (handler-case
       (let ((service (or (find-service path (request-method req))
                          (request-failed* *response-not-found* "Not found.")))
             (*db* nil)
             (*store* nil)
-            (*server* server))
-        (when (@username server)
+            (*catalog* catalog))
+        (when (@username catalog)
           (multiple-value-bind (name pass) (get-basic-authorization req)
             (check-auth name pass)))
         (unless (eq (service-store-p service) (and *store-name* t))
           (request-failed* *response-not-found* "Not found."))
         (when (and *store-name* (not (service-new-store-p service)))
-          (setf *store* (or (get-store server *store-name*)
+          (setf *store* (or (get-store catalog *store-name*)
                             (request-failed* *response-not-found* "No store '~a' known." *store-name*))
                 *db* (@db *store*)))
         (multiple-value-bind (type value) (call-service service (interpret-parameters service (read-parameter req)))

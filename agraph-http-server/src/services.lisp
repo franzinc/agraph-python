@@ -3,16 +3,16 @@
 (in-package :agraph-http-server)
 
 (defservice (:get :nostore) "repositories" ()
-  (values :list (list-stores *server*)))
+  (values :list (list-stores *catalog*)))
 
 (defservice (:put :newstore) "" ()
   (request-assert (not (match-re "[/\\\\]" *store-name*)) "Store names must not have slashes or backslashes.")
-  (request-assert (not (get-store *server* *store-name*)) "There is already a store named '~a'." *store-name*)
-  (create-store *server* *store-name*)
+  (request-assert (not (get-store *catalog* *store-name*)) "There is already a store named '~a'." *store-name*)
+  (create-store *catalog* *store-name*)
   :null)
 
 (defservice :delete "" ()
-  (delete-store *server* *store*)
+  (delete-store *catalog* *store*)
   :null)
 
 
@@ -26,7 +26,7 @@
   (if (string= string "null") (default-graph-upi *db*) (assert-part string)))
 
 (defun assert-environment (name)
-  (or (get-environment *server* *store-name* name)
+  (or (get-environment *catalog* *store-name* name)
       (request-failed "Environment '~a' not found." name)))
 
 (defservice (:get :post) "" ((query :string) (infer :boolean nil) (context :list)
@@ -69,7 +69,7 @@
   (let ((env (assert-environment environment)))
     (handler-case (eval-prolog definition (@namespaces env) (@prolog-package env))
       (error (e) (request-failed (princ-to-string e))))
-    (with-server-cache (*server* t)
+    (with-catalog-cache (*catalog* t)
       (push definition (@functors env))))
   :null)
 
@@ -203,32 +203,32 @@
 
 (defservice :post "namespaces" ((prefix :string) (uri :string) (environment :string nil))
   (let ((env (assert-environment environment)))
-    (with-server-cache (*server* t)
+    (with-catalog-cache (*catalog* t)
       (setf (@namespaces env)
             (cons (list prefix uri) (remove prefix (@namespaces env) :key #'car :test #'string=)))))
   :null)
 
 (defservice :delete "namespaces" ((prefix :string) (environment :string nil))
   (let ((env (assert-environment environment)))
-    (with-server-cache (*server* t)
+    (with-catalog-cache (*catalog* t)
       (setf (@namespaces env) (remove prefix (@namespaces env) :key #'car :test #'string=))))
   :null)
 
 (defservice :get "environments" ()
-  (values :list (list-environments *server* *store-name*)))
+  (values :list (list-environments *catalog* *store-name*)))
 
 (defservice :post "environments" ((name :string nil))
   (if name
-      (request-assert (not (get-environment *server* *store-name* name))
+      (request-assert (not (get-environment *catalog* *store-name* name))
                       "An environment named '~a' already exists.")
       (loop (setf name (random-string 10))
-         (unless (get-environment *server* *store-name* name) (return))))
-  (with-server-cache (*server* t)
+         (unless (get-environment *catalog* *store-name* name) (return))))
+  (with-catalog-cache (*catalog* t)
     (make-instance 'environment :id (list *store-name* name)))
   (values :string name))
 
 (defservice :delete "environments" ((name :string))
   (let ((env (assert-environment name)))
-    (with-server-cache (*server* t)
+    (with-catalog-cache (*catalog* t)
       (delete-instance env)))
   :null)

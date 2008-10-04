@@ -7,5 +7,5 @@
 (setf net.aserve::*enable-logging* nil)
 
 (format *query-io* "~%~%Enter the directory in which your triple-stores live: ")
-(setf *server* (make-instance 'agraph-http-server :directory (read-line *query-io*)))
-(publish-http-server *wserver* *server*)
+(setf *catalog* (make-instance 'published-catalog :directory (read-line *query-io*)))
+(publish-catalog *wserver* *catalog*)

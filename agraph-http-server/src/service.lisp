@@ -26,7 +26,7 @@
 (defun find-service (path method)
   (gethash (cons path method) *services*))
 
-(defvar *server*)
+(defvar *catalog*)
 (defvar *store*)
 (defvar *store-name*)
 
