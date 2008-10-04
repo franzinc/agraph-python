@@ -134,16 +134,13 @@
   (if prefix
       (when (assoc prefix (@catalogs server) :test #'string=)
         (error "There is already a catalog published at '~a'" prefix))
-      (flet ((make-prefix (name num)
-               (format nil "/catalogs/~a~a/" (net.aserve::encode-form-urlencoded name :external-format *utf8*)
-                       (if (zerop num) "" num))))
-        (let ((name (or (directory-name directory) "x")))
-          (loop :for num :from 0
-                :for pr := (make-prefix name num)
-                :do (unless (assoc pr (@catalogs server) :test #'string=)
-                      (setf prefix pr)
-                      (return))))))
+      (let* ((name (or (directory-name directory) "x"))
+             (pr (format nil "/catalogs/~a" (net.aserve::encode-form-urlencoded name :external-format *utf8*))))
+        (setf prefix pr)
+        (loop :for num :from 1
+              :while (assoc prefix (@catalogs server) :test #'string=)
+              :do (setf prefix (format nil "~a~a" pr num)))))
   (let ((catalog (make-instance 'catalog :directory directory :username username :password password)))
     (push (cons prefix catalog) (@catalogs server))
-    (publish-catalog (@wserver server) catalog :prefix prefix))
+    (publish-catalog (@wserver server) catalog :prefix (concatenate 'string prefix "/")))
   (values))

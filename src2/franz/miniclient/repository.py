@@ -1,7 +1,13 @@
 import time, cjson
 from request import *
 
-class AllegroGraphServer:
+def listCatalogs(serverURL):
+    return jsonRequest(pycurl.Curl(), "GET", serverURL + "/catalogs")
+
+def openCatalog(serverURL, catalog, user=None, password=None):
+    return Catalog(serverURL + catalog, user, password)
+    
+class Catalog:
     def __init__(self, url, user=None, password=None):
         self.url = url
         self.curl = pycurl.Curl()
@@ -191,31 +197,39 @@ class Repository:
 ## TESTING CODE
 ######################################################
 
-def timeQuery(rep):
-    n = 100
-    size = 5
+def timeQuery(rep, n, size):
     t = time.time()
     for i in range(n):
-        rep.evaluateQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
+        rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
     print "Did %d %d-row queries in %f seconds." % (n, size, time.time() - t)
 
+def getCatalog(serverURL):
+    cats = listCatalogs(serverURL)
+    if len(cats) == 0:
+        print "No catalogs on server."
+    else:
+        return openCatalog(serverURL, cats[0])
+
+def getRepository(serverURL):
+    cat = getCatalog(serverURL)
+    if not cat: return None
+    repos = cat.listTripleStores()
+    if len(repos) == 0:
+        print "No repositories in catalog %s" % cats[0]
+    else:
+        return cat.getRepository(repos[0])
     
 def test1():
-    conn = AllegroGraphServer("http://localhost:8080")
-    storeNames = conn.getTripleStores()
-    print "Stores", storeNames
-    if len(storeNames) > 0:
-        print "Found repositories " + repr(storeNames) + ", opening " + storeNames[0]
-        rep = conn.getRepository(storeNames[0])
-        print "Repository size = %d" % rep.size()
-        timeQuery(rep)
+    rep = getRepository("http://localhost:8080")
+    print "Repository size = %d" % rep.getSize()
+    timeQuery(rep, 100, 5)
 
 def test2():
-    conn = AllegroGraphServer("http://localhost:8080")
+    cat = getCatalog("http://localhost:8080")
     dbName = 'testP'
-    if not dbName in conn.listTripleStores():
-        conn.createTripleStore(dbName)
-    rep = conn.getRepository(dbName)        
+    if not dbName in cat.listTripleStores():
+        cat.createTripleStore(dbName)
+    rep = cat.getRepository(dbName)        
     rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', None)
     query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
     answer = rep.evalSparqlQuery(query)
@@ -224,10 +238,9 @@ def test2():
         print v
 
 def test3():
-    conn = AllegroGraphServer("http://localhost:8080")
-    rep = conn.getRepository("kennedy")
+    rep = getRepository("http://localhost:8080")
     def printrow(row, names): print "%s %s" %(repr(row), repr(names))
-    print rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
+    rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
 
 if __name__ == '__main__':
     choice = 3

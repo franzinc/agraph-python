@@ -1,5 +1,3 @@
-;; TODO opening and closing stores
-
 (in-package :agraph-http-server)
 
 (defservice (:get :nostore) "repositories" ()
