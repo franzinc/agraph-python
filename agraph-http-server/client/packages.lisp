@@ -3,7 +3,8 @@
 
 (defpackage :agraph-http-client
   (:use :cl :net.aserve :net.aserve.client :st-json :excl)
-  (:export #:agraph-client
+  (:export #:agraph-http-client #:list-catalogs #:get-catalog
+           #:catalog
            #:list-triple-stores #:get-repository
            #:create-triple-store #:delete-triple-store
            #:repository #:repository-environment

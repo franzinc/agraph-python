@@ -1,22 +1,31 @@
 (in-package :agraph-http-client)
 
-(defclass agraph-client (http-service) ())
+(defclass agraph-http-client (http-service) ())
+
+(defun list-catalogs (client)
+  (json-request client :get "/catalogs"))
+
+(defun get-catalog (client url)
+  (make-instance 'catalog :url (concatenate 'string (@url-prefix client) url)
+                 :auth (@auth client)))
+
+(defclass catalog (http-service) ())
 
 (defun repo-url (name)
   (format nil "/repositories/~a" (urlenc name)))
 
-(defun list-triple-stores (clnt)
-  (json-request clnt :get "/repositories"))
+(defun list-triple-stores (catalog)
+  (json-request catalog :get "/repositories"))
 
-(defun create-triple-store (clnt name)
-  (null-request clnt :put "/repositories/~a" (urlenc name)))
+(defun create-triple-store (catalog name)
+  (null-request catalog :put (format nil "/repositories/~a" (urlenc name))))
 
-(defun delete-triple-store (clnt name)
-  (null-request clnt :delete (repo-url name)))
+(defun delete-triple-store (catalog name)
+  (null-request catalog :delete (repo-url name)))
 
-(defun get-repository (clnt name &optional environment)
-  (make-instance 'repository :url (concatenate 'string (@url-prefix clnt) (repo-url name))
-                 :auth (@auth clnt) :environment environment))
+(defun get-repository (catalog name &optional environment)
+  (make-instance 'repository :url (concatenate 'string (@url-prefix catalog) (repo-url name))
+                 :auth (@auth catalog) :environment environment))
 
 
 (defclass repository (http-service)

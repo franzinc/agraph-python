@@ -1,8 +1,7 @@
 (in-package :agraph-http-server)
 
-(setf *catalog* (make-instance 'catalog :directory "/home/marijn/src/lisp/agraph-browser/"))
-(start :port 8080)
-(publish-catalog *wserver* *catalog*)
+(defvar *server* (create-server :port 8080))
+(add-catalog *server* "/home/marijn/src/lisp/agraph-browser/")
 
 (net.aserve::debug-on :notrap)
 (setf net.aserve::*enable-logging* nil)

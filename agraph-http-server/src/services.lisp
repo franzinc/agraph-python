@@ -4,7 +4,7 @@
   (values :list (list-stores *catalog*)))
 
 (defservice (:put :newstore) "" ()
-  (request-assert (not (match-re "[/\\\\]" *store-name*)) "Store names must not have slashes or backslashes.")
+  (request-assert (not (match-re "[/~\\\\]" *store-name*)) "Store names must not have slashes or backslashes.")
   (request-assert (not (get-store *catalog* *store-name*)) "There is already a store named '~a'." *store-name*)
   (create-store *catalog* *store-name*)
   :null)

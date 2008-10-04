@@ -28,9 +28,9 @@
 
 (defun close-catalog (catalog)
   (close-database :db (@cache catalog))
-  (maphash (lambda (name db)
+  (maphash (lambda (name store)
              (declare (ignore name))
-             (close-triple-store db))
+             (close-triple-store :db (@db store)))
            (@open-stores catalog)))
 
 (defclass open-store ()
@@ -54,7 +54,7 @@
 (defun get-store (catalog name)
   (or (gethash name (@open-stores catalog))
       (let ((file (store-file name catalog)))
-        (and (not (match-re "[/\\\\]" name))
+        (and (not (match-re "[/~\\\\]" name))
              (probe-file (merge-pathnames #p"metadata" file))
              (let (*db*)
                (handler-case (open-triple-store file)
