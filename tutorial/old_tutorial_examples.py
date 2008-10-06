@@ -1,7 +1,7 @@
 
 from franz.openrdf.sail.sail import SailRepository
 from franz.openrdf.repository.repository import Repository
-from franz.openrdf.sail.allegrographserver import AllegroGraphServer
+from franz.openrdf.sail.allegrographstore import AllegroGraphStore
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
@@ -9,6 +9,7 @@ from franz.openrdf.query.dataset import Dataset
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.rdfwriter import  NTriplesWriter
 from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
+
 
 import os, urllib, datetime, time
 
@@ -21,14 +22,14 @@ def test0():
 
 def test1():
     """
-    Tests getting the repository up.  Is called by the other tests to do the startup.
+    Tests getting the repository up.  Is called by most of the other tests to do the startup.
     """
-    server = AllegroGraphServer("localhost", port=8080)
-    print "Available repositories", server.listRepositories()    
-    myRepository = Repository(server, "agraph_test3", Repository.RENEW)
+    sesameDir = "/Users/bmacgregor/Desktop/SesameFolder"
+    store = AllegroGraphStore(AllegroGraphStore.RENEW, "localhost", "testP",
+                              sesameDir, port=4567)
+    myRepository = Repository(store)
     myRepository.initialize()
-    print "Repository %s is up!  It contains %i statements." % (
-                myRepository.getDatabaseName(), myRepository.getConnection().size())
+    print "Repository is up!"
     return myRepository
     
 def test2():
@@ -43,8 +44,6 @@ def test2():
     alicesName = f.createLiteral("Alice")
 
     conn = myRepository.getConnection()
-    print "Triple count before inserts: ", conn.size()
-    for s in conn.getStatements(None, None, None, None): print s    
     ## alice is a person
     conn.add(alice, RDF.TYPE, person)
     ## alice's name is "Alice"
@@ -52,7 +51,7 @@ def test2():
     ## bob is a person
     conn.add(bob, RDF.TYPE, person)
     ## bob's name is "Bob":
-    conn.add(bob, f.createURI("http://example.org/ontology/name"), bobsName)
+    conn.add(bob, name, bobsName)
     print "Triple count: ", conn.size()
     conn.remove(bob, name, bobsName)
     print "Triple count: ", conn.size()
@@ -87,7 +86,7 @@ def test4():
     resultSet = conn.getJDBCStatements(alice, None, None)
     while resultSet.next():
         #print resultSet.getRow()
-        print "   ", resultSet.getValue(2), "   ", resultSet.getString(2)  
+        print "   ", resultSet.getValue(3), "   ", resultSet.getString(3)  
                
 def test5():
     """
@@ -127,7 +126,7 @@ def test5():
         statements = conn.getStatements(None, None, obj)
         for s in statements:
             print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
+    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"1984-12-06"^^xsd:date']:
         print "Query triples matching '%s'." % obj
         queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
         SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
@@ -149,14 +148,11 @@ def test6():
     path1 = "./vc-db-1.rdf"    
     path2 = "./football.nt"            
     baseURI = "http://example.org/example/local"
-    location = "/tutorial/vc_db_1.rdf" 
-    ## EXPERIMENT:
-    location = "http://www.franz.com/tutorial/vc_db_1_rdf" 
-    
+    location = "/tutorial/vc_db_1_rdf" 
     context = myRepository.getValueFactory().createURI(location)
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read football triples into the null context:
-    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES)
     ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     myRepository.indexTriples(all=True, asynchronous=False)
@@ -175,6 +171,7 @@ def test7():
 import urlparse
 
 def test8():
+    myRepository = test6()
     conn = myRepository.getConnection()
     location = "/tutorial/vc_db_1_rdf" 
     context = myRepository.getValueFactory().createURI(location)
@@ -225,7 +222,7 @@ def test10():
     for s in statements:
         print s
     statements = conn.getStatements(None, None, None, [context1, context2])
-    print "Triples in contexts 1 or 2:"
+    print "Triples in contexts 1 and 2:"
     for s in statements:
         print s
     queryString = """
@@ -267,7 +264,6 @@ def test11():
     conn.add(alice, RDF.TYPE, person)
     myRepository.indexTriples(all=True, asynchronous=True)
     conn.setNamespace('ex', exns)
-    #conn.removeNamespace('ex')
     queryString = """
     SELECT ?s ?p ?o 
     WHERE { ?s ?p ?o . FILTER ((?p = rdf:type) && (?o = ex:Person) ) }
@@ -297,7 +293,6 @@ def test12():
     booktype = f.createURI(namespace=exns, localname="Book")
     booktitle = f.createURI(namespace=exns, localname="title")    
     wonderland = f.createLiteral('Alice in Wonderland')
-    conn.clear()    
     conn.add(alice, RDF.TYPE, persontype)
     conn.add(alice, fullname, alicename)
     conn.add(book, RDF.TYPE, booktype)    
@@ -309,18 +304,15 @@ def test12():
     SELECT ?s ?p ?o
     WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }
     """
-    queryString=""" 
-    SELECT ?s ?p ?o
-    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
-    """
+#    queryxxString=""" 
+#    SELECT ?s ?p ?o
+#    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
+#    """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result.string_tuples)
-    count = 0
+    print "Query results"
     for bindingSet in result:
         print bindingSet
-        count += 1
-        if count > 5: break
 
 def test13():
     """
@@ -346,14 +338,10 @@ def test13():
     rows = conn.getStatements(None, age, range)
     for r in rows:
         print r 
-        
-def test14():
-    pass
-
 
 if __name__ == '__main__':
-    choices = [i for i in range(1,5)]
-    choices = [11]
+    choices = [i for i in range(1,14)]
+    choices = [13]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -370,8 +358,7 @@ if __name__ == '__main__':
         elif choice == 10: test10()                            
         elif choice == 11: test11()
         elif choice == 12: test12()                                                                                   
-        elif choice == 13: test13()  
-        elif choice == 14: test14()                                                                                         
+        elif choice == 13: test13()                                                                                           
         else:
             print "No such test exists."
     
