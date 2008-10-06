@@ -44,9 +44,9 @@ class Repository:
     CREATE = 'create'
     REPLACE = 'replace'
 
-    def __init__(self, server, database_name, access_verb):
-        self.server = server
-        self.mini_server = server.mini_server
+    def __init__(self, catalog, database_name, access_verb):
+        self.catalog = catalog
+        self.mini_catalog = catalog.mini_catalog
         self.database_name = database_name
         self.access_verb = access_verb
         ## system state fields:
@@ -71,7 +71,7 @@ class Repository:
         """
         clearIt = False
         dbName = self.database_name
-        conn = self.mini_server
+        conn = self.mini_catalog
         if self.access_verb == Repository.RENEW:
             if dbName in conn.listTripleStores():
                 ## not nice, since someone else probably has it open:
@@ -80,13 +80,13 @@ class Repository:
                 conn.createTripleStore(dbName)                    
         elif self.access_verb == Repository.CREATE:
             if dbName in conn.listTripleStores():
-                raise IllegalOptionException(
+                raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
                     dbName)
             conn.createTripleStore(dbName)
         elif self.access_verb == Repository.OPEN:
             if not dbName in conn.listTripleStores():
-                raise IllegalOptionException(
+                raise ServerException(
                     "Can't open a triple store named '%s' because there is none.", dbName)
         elif self.access_verb == Repository.ACCESS:
             if not dbName in conn.listTripleStores():
@@ -168,7 +168,7 @@ class Repository:
         TODO: WE COULD PRESUMABLY ADD SOME LOGIC TO MAKE A RESTART POSSIBLE, ALTHOUGH
         THE ACCESS OPTION MIGHT NOT MAKE SENSE THE SECOND TIME AROUND (KILLING THAT IDEA!)
         """
-        self.mini_server = None
+        self.mini_catalog = None
         self.mini_repository = None
 
     def isWritable(self):

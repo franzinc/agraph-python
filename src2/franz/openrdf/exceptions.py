@@ -66,6 +66,9 @@ class RDFHandlerException(Exception):
 class BadFormatException(Exception):
     pass
 
+class ServerException(Exception):
+    pass
+
 #class NiceException(Exception):
 #    pass
 #

@@ -23,7 +23,8 @@
 
 
 from franz.openrdf.exceptions import *
-from franz.miniclient.repository import AllegroGraphServer as MiniServer
+from franz.miniclient import repository as miniserver
+from franz.miniclient.repository import Catalog
 
 READ_ONLY = 'READ_ONLY'
 
@@ -51,17 +52,64 @@ class AllegroGraphServer(object):
     def __init__(self, host, port=4567, **options):
         self.host = host
         self.port = port
+        self.username = None
+        self.password = None
+        self.open_catalogs = []
         self.options = options
         self.translated_options = None
-        address = "%s:%s" % (self.host, self.port)
-        self.mini_server = MiniServer(address)
+    
+    def _get_address(self):
+        return "%s:%s" % (self.host, self.port)
     
     def getHost(self): return self.host
     def getOptions(self): return self.options
 
-    def listRepositories(self):
-        return self.mini_server.listTripleStores()
+    def listCatalogs(self):
+        catNames = []
+        for longName in miniserver.listCatalogs(self._get_address()):
+            pos = longName.rfind('/')
+            catNames.append(longName[pos + 1:])
+        return catNames
+    
+    def openCatalog(self, shortName):
+        """
+        Open a catalog named 'catalogName'.
+        """
+        if not shortName in self.listCatalogs():
+            raise ServerException("There is no catalog named '%s'" % shortName)
+        for cat in self.open_catalogs:
+            if cat.getName() == shortName:
+                return cat
+        longName = '/catalogs/' + shortName
+        miniCatalog = miniserver.openCatalog(self._get_address(), longName, user=self.username, password=self.password)
+        catalog = Catalog(shortName, miniCatalog, self)
+        return catalog
 
+class Catalog(object):
+    """
+    Container of multiple repositories (triple stores).
+    """
+    def __init__(self, short_name, mini_catalog, server):
+        self.server = server
+        self.mini_catalog = mini_catalog
+        self.short_name = short_name
+        self.is_closed = False
+        
+    def getName(self):
+        return self.short_name
+    
+    def listRepositories(self):
+        """
+        Return a list of names of repositories (triple stores) managed by
+        this catalog.
+        """
+        return self.mini_catalog.listTripleStores()
+    
+    def close(self):
+        if self.is_closed: return
+        self.server.open_catalogs.remove(self)
+        self.is_closed = True
+        
        
         
         

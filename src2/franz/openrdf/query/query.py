@@ -117,12 +117,37 @@ class Query(object):
         """ 
         return self.includeInferred
     
+    def setConnection(self, connection):
+        """
+        Internal call to embed the connection into the query.
+        """
+        self.connection = connection
+    
+    def evaluate_generic_query(self):
+        """
+        Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
+        or 'ask' query (in the SPARQL case).  Return an appropriate response.
+        """
+        if self.dataset and self.dataset.getDefaultGraphs():
+            raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
+        namedContexts = self.connection._contexts_to_ntriple_contexts(
+                        self.dataset.getNamedGraphs() if self.dataset else None)
+        mini = self.connection.mini_repository
+        if self.queryLanguage == QueryLanguage.SPARQL:            
+            query = splicePrefixesIntoQuery(self.queryString, self.connection)
+            response = mini.evalSparqlQuery(query, context=namedContexts)
+            
+        elif self.queryLanguage == QueryLanguage.PROLOG:
+            response = mini.evalPrologQuery(self.queryString, context=namedContexts)
+        return response
+
     @staticmethod
     def _check_language(queryLanguage):
         if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
             raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
                                          % queryLanguage)
-    
+            
+  
 
 #############################################################################
 ##
@@ -147,12 +172,6 @@ class TupleQuery(Query):
         super(TupleQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
         self.connection = None
         
-    def setConnection(self, connection):
-        """
-        Internal call to embed the connection into the query.
-        """
-        self.connection = connection
-    
     def evaluate(self, jdbc=False):
         """
         Execute the embedded query against the RDF store.  Return
@@ -164,17 +183,7 @@ class TupleQuery(Query):
         TODO: DOESN'T TAKE DATASETS INTO ACCOUNT.  THAT NEEDS TO BE COMMUNICATED
         TO THE SERVER SOMEHOW.      
         """
-        if self.dataset and self.dataset.getDefaultGraphs():
-            raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
-        namedContexts = self.connection._contexts_to_ntriple_contexts(
-                        self.dataset.getNamedGraphs() if self.dataset else None)
-        mini = self.connection.mini_repository
-        if self.queryLanguage == QueryLanguage.SPARQL:            
-            query = splicePrefixesIntoQuery(self.queryString, self.connection)
-            response = mini.evalSparqlQuery(query, context=namedContexts)
-            
-        elif self.queryLanguage == QueryLanguage.PROLOG:
-            response = mini.evalPrologQuery(self.queryString, context=namedContexts)
+        response = self.evaluate_generic_query()
         if jdbc:
             return JDBCResultSet(response['values'], column_names = response['names'])
         else:
@@ -185,9 +194,10 @@ class GraphQuery(Query):
     def evaluate(self):
         """
         Execute the embedded query against the RDF store.  Return
-        an iterator that produces for each step a Statement.
+        a graph.
         """
-        raise UnimplementedMethodException("evaluate")
+        response = self.evaluate_generic_query()
+        return response
 
 class BooleanQuery(Query):
     
@@ -196,6 +206,7 @@ class BooleanQuery(Query):
         Execute the embedded query against the RDF store.  Return
         true or false
         """
-        raise UnimplementedMethodException("evaluate")
+        response = self.evaluate_generic_query()
+        return "yes" if response else "no"
 
 
