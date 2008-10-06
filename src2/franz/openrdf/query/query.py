@@ -205,9 +205,8 @@ class BooleanQuery(Query):
     def evaluate(self):
         """
         Execute the embedded query against the RDF store.  Return
-        true or false
+        True or False
         """
-        response = self.evaluate_generic_query()
-        return "yes" if response else "no"
+        return self.evaluate_generic_query()
 
 
