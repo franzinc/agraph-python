@@ -25,6 +25,7 @@
 from franz.openrdf.exceptions import *
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.query.queryresult import TupleQueryResult
+from franz.openrdf.query.queryresult import GraphQueryResult
 
 class QueryLanguage:
     registered_languages = []
@@ -197,7 +198,7 @@ class GraphQuery(Query):
         a graph.
         """
         response = self.evaluate_generic_query()
-        return response
+        return GraphQueryResult(response)
 
 class BooleanQuery(Query):
     

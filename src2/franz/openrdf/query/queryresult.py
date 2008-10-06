@@ -24,6 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.statement import Statement
+from franz.openrdf.repository.repositoryresult import RepositoryResult
 
 #############################################################################
 ##
@@ -42,15 +43,25 @@ class QueryResult(object):
 
 class GraphQueryResult(QueryResult):
     """
-    A representation of a variable-binding query result as a sequence of
-    BindingSet objects. Each query result consists of zero or more
-    solutions, each of which represents a single query solution as a set of
-    bindings. Note: take care to always close a TupleQueryResult after use to
-    free any resources it keeps hold of.
+    A graph query result is an iterator of Statement's.  This is incredibly inefficient.    
     """
-    ## Method logic 100% inherited from 'RepositoryResultImpl', except for the method
-    ## 'getNamespaces', which is not yet implemented.
-
+    def __init__(self, string_tuples):
+        self.result = RepositoryResult(string_tuples)
+    
+    def __iter__(self): return self.result
+    
+    def close(self):
+        """
+        Shut down the iterator, to insure that resources are free'd up.
+        """
+        self.result.close()
+        
+    def next(self):
+        """
+        Return the next Statement in the answer, if there is one.  Otherwise,
+        raise StopIteration exception.
+        """
+        return self.result.next()
 
 class TupleQueryResult(QueryResult):
     """
