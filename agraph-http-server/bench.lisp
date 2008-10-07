@@ -19,14 +19,19 @@
 (add-statements *repo* (loop :for i :below 50
                              :collect (list (format nil "<http://foo.com#~a>" i) "<http://bar.com>"
                                             (format nil "\"~a\"" i) :null)))
+(index-repository *repo* t)
 
-(format t "~%Timing 1000 1-row queries.")
-(time (dotimes (i 1000)
+(format t "~%Timing 500 1-row queries.")
+(time (dotimes (i 500)
         (sparql-query *repo* "select ?x ?y ?z {?x ?y ?z} limit 1")))
 
 (format t "~%Timing 500 10-row queries.")
 (time (dotimes (i 500)
         (sparql-query *repo* "select ?x ?y ?z {?x ?y ?z} limit 10")))
+
+(format t "~%Timing 500 50-row queries.")
+(time (dotimes (i 500)
+        (sparql-query *repo* "select ?x ?y ?z {?x ?y ?z} limit 50")))
 
 ;; Clean up
 (in-package :agraph-http-server)
