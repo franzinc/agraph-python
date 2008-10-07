@@ -24,6 +24,9 @@
 
 from franz.openrdf.exceptions import *
 
+ALL_CONTEXTS = 'ALL_CONTEXTS'
+MINI_NULL_CONTEXT = 'null'
+
 class Dataset:
     """
     Records a set of default and named graphs that can restrict 
@@ -33,13 +36,17 @@ class Dataset:
         self.defaultGraphs = set([])
         self.namedGraphs = set([])
 
-    def getDefaultGraphs(self): return [g for g in self.defaultGraphs]
+    def getDefaultGraphs(self):
+        if not self.defaultGraphs: return ALL_CONTEXTS 
+        else: return [g for g in self.defaultGraphs]
     
     def addDefaultGraph(self, uri): self.defaultGraphs.add(uri)
     
     def removeDefaultGraph(self, uri): self.defaultGraphs.remove(uri) 
  
-    def getNamedGraphs(self): return [g for g in self.namedGraphs]
+    def getNamedGraphs(self): 
+        if not self.namedGraphs: return ALL_CONTEXTS
+        else: return [g for g in self.namedGraphs]
     
     def addNamedGraph(self, uri): self.namedGraphs.add(uri)
     

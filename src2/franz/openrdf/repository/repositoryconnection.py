@@ -29,6 +29,7 @@ from franz.openrdf.repository.repositoryresult import RepositoryResult
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery
+from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
 from franz.openrdf.rio.rdfformat import RDFFormat
 
 from franz.openrdf.vocabulary.rdf import RDF
@@ -74,7 +75,6 @@ from franz.openrdf.vocabulary.xmlschema import XMLSchema
 # * // Ex 5: this method adds a statement to context1 in the store. It completely ignores any
 # * // context the statement itself has.
 # * RepositoryConnection.add(statement, context1);
- 
 
 class RepositoryConnection(object):
     def __init__(self, repository):
@@ -144,12 +144,12 @@ class RepositoryConnection(object):
 #     *        method operates on the entire repository.
 #     * @return The number of explicit statements from the specified contexts in
 #     *         this repository.
-    def size(self, contexts=[]):
+    def size(self, contexts=ALL_CONTEXTS):
         """
         Returns the number of (explicit) statements that are in the specified
         contexts in this repository.
         """
-        if contexts == []:
+        if contexts == ALL_CONTEXTS:
             return self.mini_repository.getSize()
         else:
             print "Computing the size of a context is currently very expensive"
@@ -169,16 +169,31 @@ class RepositoryConnection(object):
 #     *         If the repository could not be checked to be empty.
     def isEmpty(self):
         return self.size() == 0
+    
+    def _context_to_ntriples(self, context, none_is_mini_null=False):
+        if context: return context.toNTriples()
+        elif none_is_mini_null: return MINI_NULL_CONTEXT
+        else: return None            
        
-    def _contexts_to_ntriple_contexts(self, contexts):
-        if contexts is None:
-            return None
-        elif isinstance(contexts, (list, tuple)):
-            cxts = [c.toNTriples() for c in contexts]
-        elif contexts:
-            cxts = contexts.toNTriples()
-        else:
+    def _contexts_to_ntriple_contexts(self, contexts, none_is_mini_null=False):
+        """
+        Do three transformations here.  Convert from context object(s) to
+        context strings (angle brackets).
+        Also, convert singleton context to list of contexts, and convert
+        ALL_CONTEXTS to None.
+        And, convert None context to 'null'.
+        """
+        if contexts == ALL_CONTEXTS or contexts is None:
+            ## consistency would dictate that  None => [None], but this would
+            ## likely surprise users, so we don't do that:
             cxts = None
+        elif contexts is None:
+            if none_is_mini_null: cxts = [MINI_NULL_CONTEXT]
+            else: cxts = None
+        elif isinstance(contexts, (list, tuple)):
+            cxts = [(c.toNTriples() if c else MINI_NULL_CONTEXT) for c in contexts]
+        else:
+            cxts = [contexts.toNTriples()]
         return cxts
 
 #     * Gets all statements with a specific subject, predicate and/or object from
@@ -205,7 +220,7 @@ class RepositoryConnection(object):
 #     *         {@link RepositoryException} when an error when a problem occurs
 #     *         during retrieval.
     #RepositoryResult<Statement> 
-    def getStatements(self, subject, predicate,  object, contexts=[], includeInferred=False):
+    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -219,7 +234,7 @@ class RepositoryConnection(object):
     
     COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
        
-    def getJDBCStatements(self, subject, predicate,  object, contexts=[], includeInferred=False):        
+    def getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False):        
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -270,8 +285,13 @@ class RepositoryConnection(object):
                 ## looks like its a relative file path; test to see if there is a local file that matches.
                 ## If so, generate an absolute path name to enable AG server to read it:
                 if os.path.exists(os.path.abspath(filePath)):
-                    filePath = os.path.abspath(filePath)                    
-        contextString = self._contexts_to_ntriple_contexts(context)
+                    filePath = os.path.abspath(filePath)
+        if isinstance(context, (list, tuple)):
+            if len(context) > 1:
+                raise IllegalArgumentException("Multiple contexts passed to 'addFile': %s" % context)
+            context = context[0] if context else None
+        contextString = self._context_to_ntriples(context, none_is_mini_null=True)
+        print "ADDFILE", contextString
         if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
             self.mini_repository.loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide)
         elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):
@@ -285,7 +305,7 @@ class RepositoryConnection(object):
         one or more named contexts.        
         """       
         self.mini_repository.addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
-                        self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts))
+                        self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True))
     
     def _to_ntriples(self, term):
         """
@@ -296,14 +316,14 @@ class RepositoryConnection(object):
         elif isinstance(term, str): return term
         else: return term.toNTriples()
         
-    def addTriples(self, triples_or_quads, context=None):
+    def addTriples(self, triples_or_quads, context=ALL_CONTEXTS):
         """
         Add the supplied triples or quads to this repository.  Each triple can
         be a list or a tuple of Values.   If 'context' is set, then 
         the first argument must contain only triples, and each is inserted into
         the designated context.
         """
-        ntripleContexts = self._contexts_to_ntriple_contexts(context)
+        ntripleContexts = self._contexts_to_ntriple_contexts(context, none_is_mini_null=True)
         quads = []
         for q in triples_or_quads:
             quad = [None] * 4
@@ -364,7 +384,8 @@ class RepositoryConnection(object):
         from the repository, optionally restricted to the specified contexts.
         """
         ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
-        ntripleContexts = self._contexts_to_ntriple_contexts(contexts)        
+        ## THIS IS BOGUS FOR 'None' CONTEXT; COMPLETELY AMBIGUOUS:
+        ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)        
         self.mini_repository.deleteMatchingStatements(self._to_ntriples(subject),
                 self._to_ntriples(predicate), self._to_ntriples(object),
                 self._to_ntriples(contexts) if contexts else ntripleContexts)
@@ -413,10 +434,10 @@ class RepositoryConnection(object):
     ##        method operates on the entire repository.
     ## @param handler
     ##        The handler that will handle the RDF data.
-    def export(self, handler, contexts=[]):
+    def export(self, handler, contexts=ALL_CONTEXTS):
         self.exportStatements(None, None, None, False, handler, contexts=contexts)
 
-    def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=None):
+    def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS):
         """
         Exports all statements with a specific subject, predicate and/or object
         from the repository, optionally from the specified contexts.        

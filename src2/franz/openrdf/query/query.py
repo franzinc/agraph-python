@@ -26,6 +26,7 @@ from franz.openrdf.exceptions import *
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.query.queryresult import TupleQueryResult
 from franz.openrdf.query.queryresult import GraphQueryResult
+from franz.openrdf.query.dataset import ALL_CONTEXTS
 
 class QueryLanguage:
     registered_languages = []
@@ -129,10 +130,10 @@ class Query(object):
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
         """
-        if self.dataset and self.dataset.getDefaultGraphs():
+        if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
             raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
         namedContexts = self.connection._contexts_to_ntriple_contexts(
-                        self.dataset.getNamedGraphs() if self.dataset else None)
+                        self.dataset.getNamedGraphs() if self.dataset else ALL_CONTEXTS)
         mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:            
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
