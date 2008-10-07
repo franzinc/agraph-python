@@ -15,7 +15,7 @@ def urlenc(**args):
         if val is None: pass
         elif val == True: enc(name, "true")
         elif val == False: enc(name, "false")
-        elif hasattr(val, "append"):
+        elif isinstance(val, list):
             for elt in val: encval(name, elt)
         else: enc(name, val.encode("utf-8"))
     for name, val in args.iteritems():

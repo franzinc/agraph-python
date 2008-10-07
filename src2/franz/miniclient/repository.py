@@ -222,7 +222,7 @@ def getRepository(serverURL):
 def test1():
     rep = getRepository("http://localhost:8080")
     print "Repository size = %d" % rep.getSize()
-    timeQuery(rep, 100, 5)
+    timeQuery(rep, 1000, 1)
 
 def test2():
     cat = getCatalog("http://localhost:8080")
@@ -243,7 +243,7 @@ def test3():
     rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
 
 if __name__ == '__main__':
-    choice = 3
+    choice = 1
     print "Run test%i" % choice
     if choice == 1: test1()   
     elif choice == 2: test2()       
