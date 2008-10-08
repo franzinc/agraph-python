@@ -149,7 +149,7 @@ class RepositoryConnection(object):
         Returns the number of (explicit) statements that are in the specified
         contexts in this repository.
         """
-        if contexts == ALL_CONTEXTS:
+        if contexts == ALL_CONTEXTS or contexts is None:
             return self.mini_repository.getSize()
         else:
             print "Computing the size of a context is currently very expensive"
@@ -291,7 +291,6 @@ class RepositoryConnection(object):
                 raise IllegalArgumentException("Multiple contexts passed to 'addFile': %s" % context)
             context = context[0] if context else None
         contextString = self._context_to_ntriples(context, none_is_mini_null=True)
-        print "ADDFILE", contextString
         if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
             self.mini_repository.loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide)
         elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):

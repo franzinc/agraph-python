@@ -108,8 +108,8 @@ class Statement:
     
     def getContext(self): 
         if not self.context:
-            if len(self.string_tuple == 3): return None
-            self.subject = Statement.stringTermToTerm(self.string_tuple[4])
+            if len(self.string_tuple) == 3: return None
+            self.subject = Statement.stringTermToTerm(self.string_tuple[3])
         return self.context
     
     def setContext(self, context): self.context = context
