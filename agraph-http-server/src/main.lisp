@@ -1,4 +1,4 @@
-;; $Id: main.lisp,v 1.1 2008/10/08 16:42:38 layer Exp $
+;; $Id: main.lisp,v 1.2 2008/10/08 16:49:57 layer Exp $
 
 (in-package :agraph-http-server)
 
@@ -7,21 +7,27 @@
 #+mswindows
 (error "does not work on Windows yet.")
 
-(defun main-1 (port directories log-file)
+(defun main-1 (port directories log-file debug)
   (when (not (excl.osi:detach-from-terminal-supported-p))
     (error "Cannot daemonize."))
   
-  (let ((lf (open log-file :direction :output :if-exists
-		  :supersede)))
-    (cond ((= (excl.osi:fork) 0)
-	   (format t "Daemonizing...~%")
-	   ;; child
-	   (setf (file-contents "sys:server.pid")
-	     (format nil "~d~%" (excl.osi:getpid)))
-	   (excl.osi:detach-from-terminal :output-stream lf
-					  :error-output-stream lf))
-	  (t ;; parent
-	   (exit 0 :quiet t))))  
+  ;; Exit on SIGINT
+  (excl::add-signal-handler
+   2 (lambda (sig cont)
+       (excl::sig-handler-exit sig cont)))
+
+  (unless debug
+    (let ((lf (open log-file :direction :output :if-exists
+		    :supersede)))
+      (cond ((= (excl.osi:fork) 0)
+	     (format t "Daemonizing...~%")
+	     ;; child
+	     (setf (file-contents "sys:server.pid")
+	       (format nil "~d~%" (excl.osi:getpid)))
+	     (excl.osi:detach-from-terminal :output-stream lf
+					    :error-output-stream lf))
+	    (t ;; parent
+	     (exit 0 :quiet t))))  )
   
   (setf net.aserve::*enable-logging* nil)
   (let ((port (or (ignore-errors (parse-integer port)) 8080)))
@@ -36,9 +42,11 @@
   (sys:with-command-line-arguments
       (("port" :long port :required-companion)
        ("log" :long log-file :required-companion)
+       ("D" :short debug)
        ("d" :short directories :required-companion :allow-multiple-options))
       (rest :command-line-arguments args)
-    (handler-case (main-1 port directories (or log-file "sys:server.log"))
+    (handler-case (main-1 port directories (or log-file "sys:server.log")
+			  debug)
       (error (c)
 	(format t "~&~a~&" c)
 	#+mswindows
