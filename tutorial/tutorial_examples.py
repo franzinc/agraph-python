@@ -1,8 +1,8 @@
 
-from franz.openrdf.sail.sail import SailRepository
+
+from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository
-from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
@@ -28,7 +28,7 @@ def test1():
     print "Available catalogs", server.listCatalogs()
     catalog = server.openCatalog('ag')          
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
-    myRepository = Repository(catalog, "agraph_test3", Repository.RENEW)
+    myRepository = Repository(catalog, "agraph_test4", Repository.RENEW)
     myRepository.initialize()
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), myRepository.getConnection().size())
@@ -153,8 +153,6 @@ def test6():
     path2 = "./football.nt"            
     baseURI = "http://example.org/example/local"
     location = "/tutorial/vc_db_1.rdf" 
-    ## EXPERIMENT:
-    location = "http://www.franz.com/tutorial/vc_db_1_rdf" 
     
     context = myRepository.getValueFactory().createURI(location)
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
@@ -163,11 +161,16 @@ def test6():
     ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     myRepository.indexTriples(all=True, asynchronous=False)
-    print "After loading, repository contains %s vcard triples and %s football triples." % (conn.size(context), conn.size(None))
+    print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i football triples in context '%s'." % (
+           conn.size(context), context, conn.size([None]), None)
     return myRepository
         
 def test7():    
     conn = test6().getConnection()
+    print "Match all and print subjects and contexts"
+    result = conn.getStatements(None, None, None, None)
+    for row in result: print row.getSubject(), row.getContext()
+    print "Same thing with SPARQL query"
     queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();
@@ -231,6 +234,14 @@ def test10():
     print "Triples in contexts 1 or 2:"
     for s in statements:
         print s
+        
+    ##TEMPORARY:
+        statements = conn.getStatements(None, None, None, [None, context2])
+    print "Triples in contexts None or 2:"
+    for s in statements:
+        print s
+    ## END TEMPORARY
+    
     queryString = """
     SELECT ?s ?p ?o ?c
     WHERE { GRAPH ?c {?s ?p ?o . } } 
@@ -244,6 +255,10 @@ def test10():
     print "Query over contexts 1 and 2."
     for bindingSet in result:
         print bindingSet.getRow()
+    
+    print "Skipping Default Graphs until they are implemented"
+    return
+
     queryString = """
     SELECT ?s ?p ?o    
     WHERE {?s ?p ?o . } 
@@ -352,6 +367,9 @@ def test13():
         print r 
         
 def test14():
+    """
+    Ask, Construct, and Describe queries 
+    """
     conn = test2().getConnection()
     conn.setNamespace('ex', "http://example.org/people/")
     conn.setNamespace('ont', "http://example.org/ontology/")
@@ -362,20 +380,65 @@ def test14():
     queryString = """ask { ?s ont:name "Alice" } """
     booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)
     result = booleanQuery.evaluate(); 
-    print "Boolean RESULT", result
+    print "Boolean result", result
     queryString = """construct {?s ?p ?o} where { ?s ?p ?o . filter (?o = "Alice") } """
     constructQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
     result = constructQuery.evaluate(); 
-    print "Construct RESULT", result
-    queryString = """describe {?s ?p ?o} where { ?s ?p ?o . filter (?o = "Alice") } """
-    constructQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
-    result = constructQuery.evaluate(); 
-    print "Describe RESULT", result
+    print "Construct result", [st for st in result]
+    queryString = """describe ?s where { ?s ?p ?o . filter (?o = "Alice") } """
+    describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
+    result = describeQuery.evaluate(); 
+    print "Describe result"
+    for st in result: print st 
+
+def test15():
+    """
+    Queries per second.
+    """
+    myRepository = test6()
+    conn = myRepository.getConnection()
+    
+    reps = 1 #1000
+    
+    ##TEMPORARY
+    location = "/tutorial/vc_db_1.rdf" 
+    context = myRepository.getValueFactory().createURI(location)
+    ## END TEMPORARY
+    
+    t = time.time()
+    for i in range(reps):
+        count = 0
+        resultSet = conn.getJDBCStatements(None, None, None, [context, None])
+        while resultSet.next(): count += 1
+    print "Did %d %d-row matches in %f seconds." % (reps, count, time.time() - t)
+ 
+    t = time.time()
+    for i in range(reps):
+        count = 0
+        statments = conn.getStatements(None, None, None, None)
+        for st in statments:
+            st.getSubject()
+            st.getPredicate()
+            st.getObject() 
+            count += 1
+    print "Did %d %d-row matches in %f seconds." % (reps, count, time.time() - t)
+   
+    for size in [1, 5, 20, 100]:
+        queryString = """select ?x ?y ?z {?x ?y ?z} limit %d""" % size
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        t = time.time()
+        for i in range(reps):
+            count = 0
+            result = tupleQuery.evaluate(); 
+            for row in result: count += 1
+            #while result.next(): count += 1
+        print "Did %d %d-row queries in %f seconds." % (reps, count, time.time() - t)
+
 
 
 if __name__ == '__main__':
     choices = [i for i in range(1,5)]
-    choices = [14]
+    choices = [7]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -394,6 +457,7 @@ if __name__ == '__main__':
         elif choice == 12: test12()                                                                                   
         elif choice == 13: test13()  
         elif choice == 14: test14()                                                                                         
+        elif choice == 15: test15()                                                                                                 
         else:
             print "No such test exists."
     
