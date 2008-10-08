@@ -97,13 +97,13 @@
 
 (defservice :post "statements" ((subj :string) (pred :string) (obj :string) (context :string nil))
   (assert-writeable)
-  (add-triple (assert-part subj) (assert-part pred) (assert-part obj) :g (and context (assert-part context)))
+  (add-triple (assert-part subj) (assert-part pred) (assert-part obj) :g (and context (assert-context context)))
   :null)
 
 (defservice :delete "statements" ((subj :string nil) (pred :string nil) (obj :string nil) (context :string nil))
   (assert-writeable)
   (flet ((part (val) (and val (assert-part val))))
-    (delete-triples :s (part subj) :p (part pred) :o (part obj) :g (part context)))
+    (delete-triples :s (part subj) :p (part pred) :o (part obj) :g (and context (assert-context context))))
   :null)
 
 (defservice :get "size" ()
@@ -153,7 +153,7 @@
 (defservice :post "statements/ntriples" ((file :string nil) (context :string nil) (body :postbody))
   (assert-writeable)
   (request-assert (or file (> (length body) 0)) "No file or data given.")
-  (setf context (and context (assert-part context)))
+  (setf context (and context (assert-context context)))
   (handler-case (if file
                     (load-ntriples file :graph context)
                     (load-ntriples-from-string body :graph context))
@@ -163,7 +163,7 @@
 (defservice :post "statements/rdfxml" ((file :string nil) (context :string nil) ((base-uri "baseURI") :string nil) (body :postbody))
   (assert-writeable)
   (request-assert (or file (> (length body) 0)) "No file or data given.")
-  (setf context (and context (assert-part context)))
+  (setf context (and context (assert-context context)))
   (handler-case (if file
                     (load-rdf/xml file :base-uri base-uri :graph context)
                     (load-rdf/xml-from-string body :base-uri base-uri :graph context))
