@@ -11,4 +11,5 @@
              (:file "server" :depends-on ("misc"))
              (:file "service" :depends-on ("misc"))
              (:file "services" :depends-on ("service" "server" "cursor" "prolog"))
-             (:file "http" :depends-on ("service" "server" "formats" "deflate"))))))
+             (:file "http" :depends-on ("service" "server" "formats" "deflate"))
+	     (:file "main" :depends-on ("http"))))))
