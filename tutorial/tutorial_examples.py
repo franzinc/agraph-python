@@ -181,6 +181,7 @@ def test7():
 import urlparse
 
 def test8():
+    myRepository = test6()
     conn = myRepository.getConnection()
     location = "/tutorial/vc_db_1_rdf" 
     context = myRepository.getValueFactory().createURI(location)
@@ -438,7 +439,7 @@ def test15():
 
 if __name__ == '__main__':
     choices = [i for i in range(1,5)]
-    choices = [7]
+    choices = [8]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
