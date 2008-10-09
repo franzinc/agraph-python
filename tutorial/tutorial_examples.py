@@ -152,9 +152,7 @@ def test6():
     path1 = "./vc-db-1.rdf"    
     path2 = "./football.nt"            
     baseURI = "http://example.org/example/local"
-    location = "/tutorial/vc_db_1.rdf" 
-    
-    context = myRepository.getValueFactory().createURI(location)
+    context = myRepository.getValueFactory().createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read football triples into the null context:
     conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
@@ -162,7 +160,7 @@ def test6():
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     myRepository.indexTriples(all=True, asynchronous=False)
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i football triples in context '%s'." % (
-           conn.size(context), context, conn.size([None]), None)
+           conn.size(context), context, conn.size('null'), 'null')
     return myRepository
         
 def test7():    
@@ -181,18 +179,17 @@ def test7():
 import urlparse
 
 def test8():
-    myRepository = test6()
+    myRepository = test6() 
     conn = myRepository.getConnection()
-    location = "/tutorial/vc_db_1_rdf" 
-    context = myRepository.getValueFactory().createURI(location)
+    context = myRepository.getValueFactory().createURI("http://example.org#vcards")
     outputFile = "/tmp/temp.nt"
-    #outputFile = None
+    outputFile = None
     if outputFile == None:
         print "Writing to Standard Out instead of to a file"
     ntriplesWriter = NTriplesWriter(outputFile)
     conn.export(ntriplesWriter, context);
     outputFile2 = "/tmp/temp.rdf"
-    #outputFile2 = None
+    outputFile2 = None
     if outputFile2 == None:
         print "Writing to Standard Out instead of to a file"
     rdfxmlfWriter = RDFXMLWriter(outputFile2)    
@@ -235,14 +232,14 @@ def test10():
     print "Triples in contexts 1 or 2:"
     for s in statements:
         print s
-        
-    ##TEMPORARY:
-        statements = conn.getStatements(None, None, None, [None, context2])
-    print "Triples in contexts None or 2:"
+    statements = conn.getStatements(None, None, None, ['null', context2])
+    print "Triples in contexts null or 2:"
     for s in statements:
         print s
-    ## END TEMPORARY
     
+    ### TEMPORARY
+    return
+
     queryString = """
     SELECT ?s ?p ?o ?c
     WHERE { GRAPH ?c {?s ?p ?o . } } 
@@ -402,8 +399,7 @@ def test15():
     reps = 1 #1000
     
     ##TEMPORARY
-    location = "/tutorial/vc_db_1.rdf" 
-    context = myRepository.getValueFactory().createURI(location)
+    context = myRepository.getValueFactory().createURI("http://example.org#vcards")
     ## END TEMPORARY
     
     t = time.time()
@@ -436,9 +432,8 @@ def test15():
         print "Did %d %d-row queries in %f seconds." % (reps, count, time.time() - t)
 
 
-
 if __name__ == '__main__':
-    choices = [i for i in range(1,5)]
+    choices = [i for i in range(1,13)]
     choices = [8]
     for choice in choices:
         print "\n==========================================================================="
@@ -458,7 +453,8 @@ if __name__ == '__main__':
         elif choice == 12: test12()                                                                                   
         elif choice == 13: test13()  
         elif choice == 14: test14()                                                                                         
-        elif choice == 15: test15()                                                                                                 
+        elif choice == 15: test15()     
+        elif choice == 16: test16()                                                                                              
         else:
             print "No such test exists."
     
