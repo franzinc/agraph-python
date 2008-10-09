@@ -171,7 +171,8 @@ class RepositoryConnection(object):
         return self.size() == 0
     
     def _context_to_ntriples(self, context, none_is_mini_null=False):
-        if context: return context.toNTriples()
+        if context == MINI_NULL_CONTEXT: return MINI_NULL_CONTEXT
+        elif context: return context.toNTriples()
         elif none_is_mini_null: return MINI_NULL_CONTEXT
         else: return None            
        
@@ -191,9 +192,9 @@ class RepositoryConnection(object):
             if none_is_mini_null: cxts = [MINI_NULL_CONTEXT]
             else: cxts = None
         elif isinstance(contexts, (list, tuple)):
-            cxts = [(c.toNTriples() if c else MINI_NULL_CONTEXT) for c in contexts]
+            cxts = [self._context_to_ntriples(c, none_is_mini_null=True) for c in contexts]
         else:
-            cxts = [contexts.toNTriples()]
+            cxts = [self._context_to_ntriples(contexts, none_is_mini_null=True)]
         return cxts
 
 #     * Gets all statements with a specific subject, predicate and/or object from
@@ -227,6 +228,9 @@ class RepositoryConnection(object):
         of named contexts.  Returns a RepositoryResult that produces a 'Statement'
         each time that 'next' is called.
         """
+        #contexts='null'
+        print "GETSTATEMENTS", contexts
+        
         object = self.repository.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         stringTuples = self.mini_repository.getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
                  self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
