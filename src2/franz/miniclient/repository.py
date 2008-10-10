@@ -105,18 +105,18 @@ class Repository:
         def __str__(self):
             return "'%s' file format not supported (try 'ntriples' or 'rdf/xml')." % self.format
 
-    def loadFile(self, file, format, baseURI=None, context=None, serverSide=False):
-        urlformat = None
-        mime = None
-        if format == "ntriples":
-            urlformat = "ntriples"
-            mime = "text/plain"
-        elif format == "rdf/xml":
-            urlformat = "rdfxml"
-            mime = "application/rdf+xml"
-        else:
-            raise Repository.UnsupportedFormatError(format)
+    def checkFormat(self, format):
+        if format == "ntriples": return ("ntriples", "text/plain")
+        elif format == "rdf/xml": return ("rdfxml", "application/rdf+xml")
+        else: raise Repository.UnsupportedFormatError(format)
 
+    def loadData(self, data, format, baseURI=None, context=None):
+        urlformat, mime = self.checkFormat(format)
+        nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat + "?" +
+                    urlenc(context=context, baseURI=baseURI), data.encode("utf-8"), contentType=mime)
+
+    def loadFile(self, file, format, baseURI=None, context=None, serverSide=False):
+        urlformat, mime = self.checkFormat(format)
         body = ""
         if not serverSide:
             f = open(file)
@@ -229,10 +229,11 @@ def test2():
     dbName = 'testP'
     if not dbName in cat.listTripleStores():
         cat.createTripleStore(dbName)
-    rep = cat.getRepository(dbName)        
-    rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', None)
+    rep = cat.getRepository(dbName)
+    rep.deleteMatchingStatements()
+    rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', "<http://foo.com>")
     query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
-    answer = rep.evalSparqlQuery(query)
+    answer = rep.evalSparqlQuery(query, context="<http://foo.com>")
     print answer['names']
     for v in answer['values']:
         print v

@@ -2,10 +2,11 @@ import StringIO, pycurl, urllib, cjson, locale
 
 class RequestError(Exception):
     def __init__(self, status, message):
+        print status, message
         self.status = status
         self.message = message
     def __str__(self):
-        return "Server returned %d: %s" % (self.status, self.message)
+        return "Server returned %s: %s" % (self.status, self.message)
 
 def urlenc(**args):
     buf = []
