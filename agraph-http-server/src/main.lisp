@@ -1,4 +1,4 @@
-;; $Id: main.lisp,v 1.2 2008/10/08 16:49:57 layer Exp $
+;; $Id: main.lisp,v 1.3 2008/10/11 21:34:15 layer Exp $
 
 (in-package :agraph-http-server)
 
@@ -7,7 +7,17 @@
 #+mswindows
 (error "does not work on Windows yet.")
 
-(defun main-1 (port directories log-file debug)
+(defun start-python-http-server (port directories)
+  (setf net.aserve::*enable-logging* nil)
+  (let ((port (or port 8080)))
+    (setq *server* (create-server :port port))
+    (format t "~%~%Running at port ~a." port))
+  (dolist (dir directories)
+    (add-catalog *server* dir)
+    (format t "~%Publishing directory '~a'.~%" dir))
+  (loop (sleep most-positive-fixnum)))
+
+(defun python-http-server-main-1 (port directories log-file debug)
   (when (not (excl.osi:detach-from-terminal-supported-p))
     (error "Cannot daemonize."))
   
@@ -27,26 +37,23 @@
 	     (excl.osi:detach-from-terminal :output-stream lf
 					    :error-output-stream lf))
 	    (t ;; parent
-	     (exit 0 :quiet t))))  )
+	     (exit 0 :quiet t)))))
   
-  (setf net.aserve::*enable-logging* nil)
-  (let ((port (or (ignore-errors (parse-integer port)) 8080)))
-    (setq *server* (create-server :port port))
-    (format t "~%~%Running at port ~a." port))
-  (dolist (dir directories)
-    (add-catalog *server* dir)
-    (format t "~%Publishing directory '~a'.~%" dir))
-  (loop (sleep most-positive-fixnum)))
+  (start-python-http-server port directories))
 
-(defun cl-user::main (&rest args)
+(defun cl-user::python-http-server-main (&rest args)
   (sys:with-command-line-arguments
       (("port" :long port :required-companion)
        ("log" :long log-file :required-companion)
        ("D" :short debug)
        ("d" :short directories :required-companion :allow-multiple-options))
       (rest :command-line-arguments args)
-    (handler-case (main-1 port directories (or log-file "sys:server.log")
-			  debug)
+    (declare (ignore rest))
+    (handler-case (python-http-server-main-1
+		   (when port (ignore-errors (parse-integer port)))
+		   directories
+		   (or log-file "sys:server.log") 
+		   debug)
       (error (c)
 	(format t "~&~a~&" c)
 	#+mswindows

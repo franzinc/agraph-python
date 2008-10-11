@@ -31,9 +31,9 @@
 (defconstant +adler32-base+ 65521)
 
 (defun adler32-update (adler-high adler-low buf start count)
-  (declare (type array-index start count)
+  (declare #-allegro (type array-index start count)
            (type (unsigned-byte 16) adler-high adler-low)
-           (type octet-vector buf)
+           #-allegro (type octet-vector buf)
            (optimize speed))
   (cond ((zerop count)
          (values adler-high adler-low))

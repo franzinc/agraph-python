@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2008/10/08 16:42:38 layer Exp $
+# $Id: Makefile,v 1.2 2008/10/11 21:34:15 layer Exp $
 
 localmakefile := $(shell test -f Makefile.local && echo yes)
 
@@ -22,6 +22,7 @@ build: FORCE
 	echo '(load "load")' >> build.tmp
 	echo '(generate-executable "aghttpd"' >> build.tmp
 	echo '  (quote ("load.lisp")) ' >> build.tmp
+	echo '  :restart-init-function (quote python-http-server-main) ' >> build.tmp
 	echo '  :include-compiler nil ' >> build.tmp
 	echo '  :runtime :standard)' >> build.tmp
 	$(lisp) -d build.out -L build.tmp -kill
