@@ -23,6 +23,7 @@
 
 
 from franz.openrdf.exceptions import *
+from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository as miniserver
 from franz.miniclient.repository import Catalog
 
@@ -104,6 +105,9 @@ class Catalog(object):
         this catalog.
         """
         return self.mini_catalog.listTripleStores()
+    
+    def getRepository(self, name, access_verb):
+        return Repository(self, name, access_verb)
     
     def close(self):
         if self.is_closed: return

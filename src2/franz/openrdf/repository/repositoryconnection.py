@@ -227,10 +227,7 @@ class RepositoryConnection(object):
         the repository. The result is optionally restricted to the specified set
         of named contexts.  Returns a RepositoryResult that produces a 'Statement'
         each time that 'next' is called.
-        """
-        #contexts='null'
-        print "GETSTATEMENTS", contexts
-        
+        """        
         object = self.repository.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         stringTuples = self.mini_repository.getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
                  self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)

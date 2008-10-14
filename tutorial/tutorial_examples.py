@@ -28,7 +28,7 @@ def test1():
     print "Available catalogs", server.listCatalogs()
     catalog = server.openCatalog('ag')          
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
-    myRepository = Repository(catalog, "agraph_test4", Repository.RENEW)
+    myRepository = catalog.getRepository("agraph_test4", Repository.RENEW)
     myRepository.initialize()
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), myRepository.getConnection().size())
@@ -434,7 +434,7 @@ def test15():
 
 if __name__ == '__main__':
     choices = [i for i in range(1,13)]
-    choices = [8]
+    choices = [2]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
