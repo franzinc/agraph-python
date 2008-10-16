@@ -53,7 +53,7 @@ class Repository:
     def isWriteable(self):
         return jsonRequest(self.curl, "GET", self.url + "/writeable")
 
-    def evalSparqlQuery(self, query, infer=False, context=None, callback=None):
+    def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -62,8 +62,8 @@ class Repository:
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
         return jsonRequest(self.curl, "POST", self.url,
-                           urlenc(query=query, infer=infer, context=context, environment=self.environment),
-                           rowreader=callback and RowReader(callback))
+                           urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
+                                  environment=self.environment), rowreader=callback and RowReader(callback))
 
     def evalPrologQuery(self, query, infer=False, callback=None):
         """Execute a Prolog query. Returns a {names, values} object."""
