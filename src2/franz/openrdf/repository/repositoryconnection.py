@@ -184,7 +184,7 @@ class RepositoryConnection(object):
         ALL_CONTEXTS to None.
         And, convert None context to 'null'.
         """
-        if contexts == ALL_CONTEXTS or contexts is None:
+        if contexts == ALL_CONTEXTS:  ## or contexts is None:
             ## consistency would dictate that  None => [None], but this would
             ## likely surprise users, so we don't do that:
             cxts = None

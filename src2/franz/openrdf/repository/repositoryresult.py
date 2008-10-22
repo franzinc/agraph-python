@@ -88,7 +88,7 @@ class RepositoryResult(object):  ## inherits IterationWrapper
 #     * objects that already occur in this Set.
 #     * <P>
 #     * Caution: use of this filtering mechanism is potentially memory-intensive.
-    def enableDuplicateFilterself(self):
+    def enableDuplicateFilter(self):
         raise UnimplementedMethodException()
 
 
