@@ -130,17 +130,20 @@ class Query(object):
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
         """
-        if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
-            raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
+        ##if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
+        ##    raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
         namedContexts = self.connection._contexts_to_ntriple_contexts(
-                        self.dataset.getNamedGraphs() if self.dataset else ALL_CONTEXTS)
+                        self.dataset.getNamedGraphs() if self.dataset else None)
+        regularContexts = self.connection._contexts_to_ntriple_contexts(
+                self.dataset.getDefaultGraphs() if self.dataset else ALL_CONTEXTS)
         mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:            
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
-            response = mini.evalSparqlQuery(query, context=namedContexts)
-            
+            response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
+                                            infer=self.includeInferred)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
-            response = mini.evalPrologQuery(self.queryString, context=namedContexts)
+            response = mini.evalPrologQuery(self.queryString, context=regularContexts, 
+                                            namedContext=namedContexts, infer=self.includeInferred)
         return response
 
     @staticmethod

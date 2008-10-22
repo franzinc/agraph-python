@@ -61,7 +61,7 @@ class Repository:
         lists of lists of terms. CONSTRUCT and DESCRIBE return a list
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
-        return jsonRequest(self.curl, "POST", self.url,
+        return jsonRequest(self.curl, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
                                   environment=self.environment), rowreader=callback and RowReader(callback))
 
@@ -203,50 +203,116 @@ def timeQuery(rep, n, size):
         rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
     print "Did %d %d-row queries in %f seconds." % (n, size, time.time() - t)
 
-def getCatalog(serverURL):
-    cats = listCatalogs(serverURL)
-    if len(cats) == 0:
-        print "No catalogs on server."
-    else:
-        return openCatalog(serverURL, cats[0])
+#def getCatalog(serverURL):
+#    cats = listCatalogs(serverURL)
+#    if len(cats) == 0:
+#        print "No catalogs on server."
+#    else:
+#        return openCatalog(serverURL, cats[0])
+#
+#def getRepository(serverURL):
+#    cat = getCatalog(serverURL)
+#    if not cat: return None
+#    repos = cat.listTripleStores()
+#    if len(repos) == 0:
+#        print "No repositories in catalog %s" % cats[0]
+#    else:
+#        return cat.getRepository(repos[0])
+#    
+#def test1():
+#    rep = getRepository("http://localhost:8080")
+#    print "Repository size = %d" % rep.getSize()
+#    timeQuery(rep, 1000, 1)
+#
+#def test2():
+#    cat = getCatalog("http://localhost:8080")
+#    dbName = 'testP'
+#    if not dbName in cat.listTripleStores():
+#        cat.createTripleStore(dbName)
+#    rep = cat.getRepository(dbName)
+#    rep.deleteMatchingStatements()
+#    rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', "<http://foo.com>")
+#    query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
+#    answer = rep.evalSparqlQuery(query, context="<http://foo.com>")
+#    print answer['names']
+#    for v in answer['values']:
+#        print v
+#
+#def test3():
+#    rep = getRepository("http://localhost:8080")
+#    def printrow(row, names): print "%s %s" %(repr(row), repr(names))
+#    rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
 
-def getRepository(serverURL):
-    cat = getCatalog(serverURL)
-    if not cat: return None
-    repos = cat.listTripleStores()
-    if len(repos) == 0:
-        print "No repositories in catalog %s" % cats[0]
-    else:
-        return cat.getRepository(repos[0])
-    
-def test1():
-    rep = getRepository("http://localhost:8080")
-    print "Repository size = %d" % rep.getSize()
-    timeQuery(rep, 1000, 1)
-
-def test2():
-    cat = getCatalog("http://localhost:8080")
-    dbName = 'testP'
-    if not dbName in cat.listTripleStores():
-        cat.createTripleStore(dbName)
-    rep = cat.getRepository(dbName)
-    rep.deleteMatchingStatements()
-    rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', "<http://foo.com>")
+def test0():
+    cats = listCatalogs("http://localhost:8080")
+    print "List of catalogs:", cats
+    cat = openCatalog("http://localhost:8080", cats[0])
+    print "Found cat", cat.url
+    reps = cat.listTripleStores()
+    print "Is 'test' there??:", reps, "test" in reps
+    try:
+        print "Creating repository 'test'"
+        cat.createTripleStore("test")
+        reps = cat.listTripleStores()
+        print "Now is 'test' there??:", reps, "test" in reps
+    except: pass
+    rep = cat.getRepository("test")
+    size = rep.getSize() 
+    print "Size of 'test' repository", size
+    if size == 0:
+        rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', "<http://foo.com>")
     query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
     answer = rep.evalSparqlQuery(query, context="<http://foo.com>")
     print answer['names']
     for v in answer['values']:
         print v
+    timeQuery(rep, 1000, 5)
 
-def test3():
-    rep = getRepository("http://localhost:8080")
-    def printrow(row, names): print "%s %s" %(repr(row), repr(names))
-    rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
+def openRep ():
+    cats = listCatalogs("http://localhost:8080")
+    print "List of catalogs:", cats
+    cat = openCatalog("http://localhost:8080", cats[0])
+    print "Found cat", cat.url
+    reps = cat.listTripleStores()
+    print "Is 'test' there??:", reps, "test" in reps
+    try:
+        print "Creating repository 'test'"
+        cat.createTripleStore("test")
+        reps = cat.listTripleStores()
+        print "Now is 'test' there??:", reps, "test" in reps
+    except: pass
+    rep = cat.getRepository("test")
+    size = rep.getSize() 
+    print "Size of 'test' repository", size
+    return rep
+
+def makeTerm(term, is_literal=False):
+    if is_literal:
+        return "\"" + term + "\"";
+    elif not term == None:
+        return "<" + term + ">";
+    else:
+        return None
+
+def makeStatement(subject, predicate, object, context=None, is_literal=False):
+    return [makeTerm(subject), makeTerm(predicate), makeTerm(object, is_literal=is_literal),
+            makeTerm(context)]
+
+def test1():
+    rep = openRep(); 
+    print("Adding statements ...");
+    ns = "http:example#";
+    stmts = []    
+    stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
+    stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
+    rep.addStatements(stmts);
+    print "Repository size = ", rep.getSize()    
 
 if __name__ == '__main__':
     choice = 1
     print "Run test%i" % choice
-    if choice == 1: test1()   
+    if choice == 0: test0()
+    elif choice == 1: test1()   
     elif choice == 2: test2()       
     elif choice == 3: test3()       
     elif choice == 4: test4()               
