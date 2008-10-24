@@ -78,8 +78,14 @@ class Repository:
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
+        subjEnd, predEnd, objEnd = None, None, None
+        if isinstance(subj, tuple): subj, subjEnd = subj
+        if isinstance(pred, tuple): pred, predEnd = pred
+        if isinstance(obj, tuple): obj, objEnd = obj
+
         return jsonRequest(self.curl, "GET", self.url + "/statements",
-                           urlenc(subj=subj, pred=pred, obj=obj, context=context, infer=infer),
+                           urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
+                                  obj=obj, objEnd=objEnd, context=context, infer=infer),
                            rowreader=callback and RowReader(callback))
 
     def addStatement(self, subj, pred, obj, context=None):
@@ -309,7 +315,7 @@ def test1():
     print "Repository size = ", rep.getSize()    
 
 if __name__ == '__main__':
-    choice = 1
+    choice = 3
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()   
