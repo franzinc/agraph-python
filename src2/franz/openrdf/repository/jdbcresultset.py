@@ -72,7 +72,7 @@ class JDBCResultSet(object):
         elif isinstance(index, str):
             i = 0
             name = index.lower()
-            while i < self.column_names:
+            while i < len(self.column_names):
                 if name == self.column_names[i]:
                     return i
                 i += 1
@@ -107,11 +107,11 @@ class JDBCResultSet(object):
         """
         index = self._get_valid_cursor_index(index)
         try:
-            value =  int(Statement.ntriples_string_to_value(self.string_tuples[index]))
+            value =  int(Statement.ntriples_string_to_value(self.current_strings_row[index]))
             return value
         except:
             raise JDBCException("Cannot convert value '%s' to an integer." 
-                                % Statement.ntriples_string_to_value(self.string_tuples[index]))
+                                % Statement.ntriples_string_to_value(self.current_strings_row[index]))
 
     def getMetaData(self):
         """
@@ -130,6 +130,7 @@ class JDBCResultSet(object):
         i = 0
         while i < self.tuple_width:
             self.getValue(i)
+            i += 1;
         return self._get_terms_row()
         
     def getString(self, index):

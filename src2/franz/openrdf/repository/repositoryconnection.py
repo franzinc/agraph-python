@@ -25,6 +25,7 @@ import os
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
+from franz.openrdf.model.valuefactory import CompoundLiteral
 from franz.openrdf.repository.repositoryresult import RepositoryResult
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.model.statement import Statement
@@ -81,6 +82,9 @@ class RepositoryConnection(object):
         self.repository = repository 
         self.mini_repository = repository.mini_repository
         self.is_closed = False
+        
+    def getValueFactory(self):
+        return self.repository.getValueFactory()
         
     def rollback(self):
         print "PRETENDING TO ROLLBACK"
@@ -197,40 +201,42 @@ class RepositoryConnection(object):
             cxts = [self._context_to_ntriples(contexts, none_is_mini_null=True)]
         return cxts
 
-#     * Gets all statements with a specific subject, predicate and/or object from
-#     * the repository. The result is optionally restricted to the specified set
-#     * of named contexts.
-#     * 
-#     * @param subj
-#     *        A Resource specifying the subject, or <tt>null</tt> for a
-#     *        wildcard.
-#     * @param pred
-#     *        A URI specifying the predicate, or <tt>null</tt> for a wildcard.
-#     * @param obj
-#     *        A Value specifying the object, or <tt>null</tt> for a wildcard.
-#     * @param contexts
-#     *        The context(s) to get the data from. Note that this parameter is a
-#     *        vararg and as such is optional. If no contexts are supplied the
-#     *        method operates on the entire repository.
-#     * @param includeInferred
-#     *        if false, no inferred statements are returned; if true, inferred
-#     *        statements are returned if available. The default is true.
-#     * @return The statements matching the specified pattern. The result object
-#     *         is a {@link RepositoryResult} object, a lazy Iterator-like object
-#     *         containing {@link Statement}s and optionally throwing a
-#     *         {@link RepositoryException} when an error when a problem occurs
-#     *         during retrieval.
-    #RepositoryResult<Statement> 
+    def _convert_term_to_mini_term(self, term, predicate_for_object=None):
+        """
+        If 'term' is a Value, convert it to an ntriples string.  If its a Python
+        term, do likewise
+        If 'term' is a CompoundLiteral or a list or tuple, separate out the second
+        value, ntriplize it, and return a binary tuple.
+        TODO: FIGURE OUT HOW COORDINATE PAIRS WILL WORK HERE
+        """ 
+        factory = self.getValueFactory()
+        if isinstance(term, CompoundLiteral):
+            ## FOR NOW, ASSUME ITS A RANGE_LITERAL:
+            beginTerm = term.getLowerBound()
+            endTerm = term.getUpperBound()
+            return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
+        elif isinstance(term, (tuple, list)):
+            beginTerm = factory.object_position_term_to_openrdf_term(term[0])
+            endTerm = factory.object_position_term_to_openrdf_term(term[1])
+            return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
+        elif predicate_for_object:
+            term = factory.object_position_term_to_openrdf_term(term, predicate=predicate_for_object)
+            return self._to_ntriples(term)
+        else:
+            return self._to_ntriples(term)
+    
     def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
         of named contexts.  Returns a RepositoryResult that produces a 'Statement'
         each time that 'next' is called.
-        """        
-        object = self.repository.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
-        stringTuples = self.mini_repository.getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
-                 self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
+        """
+        subj = self._convert_term_to_mini_term(subject)
+        pred = self._convert_term_to_mini_term(predicate)
+        obj = self._convert_term_to_mini_term(object, predicate)
+        stringTuples = self.mini_repository.getStatements(subj, pred, obj,
+                 self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
         return RepositoryResult(stringTuples)
     
     COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
@@ -303,9 +309,10 @@ class RepositoryConnection(object):
         """
         Add the supplied triple of values to this repository, optionally to
         one or more named contexts.        
-        """       
+        """ 
+        obj = self.getValueFactory().object_position_term_to_openrdf_term(object)
         self.mini_repository.addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
-                        self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True))
+                        self._to_ntriples(obj), self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True))
     
     def _to_ntriples(self, term):
         """
@@ -383,11 +390,12 @@ class RepositoryConnection(object):
         Removes the statement(s) with the specified subject, predicate and object
         from the repository, optionally restricted to the specified contexts.
         """
+        obj = self.getValueFactory().object_position_term_to_openrdf_term(object)
         ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
         ## THIS IS BOGUS FOR 'None' CONTEXT; COMPLETELY AMBIGUOUS:
         ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)        
         self.mini_repository.deleteMatchingStatements(self._to_ntriples(subject),
-                self._to_ntriples(predicate), self._to_ntriples(object),
+                self._to_ntriples(predicate), self._to_ntriples(obj),
                 self._to_ntriples(contexts) if contexts else ntripleContexts)
    
 #     * Removes the supplied statement from the specified contexts in the
