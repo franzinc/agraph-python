@@ -1,1 +1,1 @@
-cjson and pycurl built by Marijn for Windows python clients
+The Windows clients need to use cjson and pycurl built using mingw.
