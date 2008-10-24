@@ -256,7 +256,6 @@ def test10():
     WHERE {?s ?p ?o . } 
     """
     ds = Dataset()
-    ds.addDefaultGraph(context1)
     ds.addDefaultGraph('null')
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setDataset(ds)   
@@ -375,7 +374,7 @@ def test14():
     carol = f.createURI(namespace=exns, localname="carol")    
     age = f.createURI(namespace=exns, localname="age")
     range = f.createRange(30, 50)
-    myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
+    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
     ## THIS IS A TODO:
     #myRepository.inlineStandardDatatypes()
     conn.add(alice, age, 42)
@@ -431,7 +430,7 @@ def test15():
 
 if __name__ == '__main__':
     choices = [i for i in range(1,14)]
-    choices = [10]
+    choices = [14]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
