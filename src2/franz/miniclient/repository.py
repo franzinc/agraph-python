@@ -198,6 +198,15 @@ class Repository:
         nullRequest(self.curl, "DELETE", self.url + "/namespaces",
                     urlenc(prefix=prefix, environment=self.environment))
 
+    def listMappedTypes(self):
+        return jsonRequest(self.curl, "GET", self.url + "/typemapping")
+
+    def addMappedType(self, type, primitiveType):
+        nullRequest(self.curl, "POST", self.url + "/typemapping", urlenc(type=type, primitiveType=primitiveType))
+
+    def deleteMappedType(self, type):
+        nullRequest(self.curl, "DELETE", self.url + "/typemapping", urlenc(type=type))
+
 
 ######################################################
 ## TESTING CODE
