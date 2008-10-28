@@ -359,30 +359,30 @@ def test13():
     print "Describe result"
     for st in result: print st 
     
-def test14():
-    """
-    Range matches
-    """
-    myRepository = test1();
-    conn = myRepository.getConnection()
-    conn.clear()
-    f = myRepository.getValueFactory()
-    exns = "http://example.org/people/"
-    conn.setNamespace('ex', exns)
-    alice = f.createURI(namespace=exns, localname="alice")
-    bob = f.createURI(namespace=exns, localname="bob")
-    carol = f.createURI(namespace=exns, localname="carol")    
-    age = f.createURI(namespace=exns, localname="age")
-    range = f.createRange(30, 50)
-    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
-    ## THIS IS A TODO:
-    #myRepository.inlineStandardDatatypes()
-    conn.add(alice, age, 42)
-    conn.add(bob, age, 24)    
-    conn.add(carol, age, "39")        
-    rows = conn.getStatements(None, age, range)
-    for r in rows:
-        print r 
+#def test14():
+#    """
+#    Range matches
+#    """
+#    myRepository = test1();
+#    conn = myRepository.getConnection()
+#    conn.clear()
+#    f = myRepository.getValueFactory()
+#    exns = "http://example.org/people/"
+#    conn.setNamespace('ex', exns)
+#    alice = f.createURI(namespace=exns, localname="alice")
+#    bob = f.createURI(namespace=exns, localname="bob")
+#    carol = f.createURI(namespace=exns, localname="carol")    
+#    age = f.createURI(namespace=exns, localname="age")
+#    range = f.createRange(30, 50)
+#    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
+#    ## THIS IS A TODO:
+#    #myRepository.inlineStandardDatatypes()
+#    conn.add(alice, age, 42)
+#    conn.add(bob, age, 24)    
+#    conn.add(carol, age, "39")        
+#    rows = conn.getStatements(None, age, range)
+#    for r in rows:
+#        print r 
         
 
 def test15():
@@ -430,7 +430,7 @@ def test15():
 
 if __name__ == '__main__':
     choices = [i for i in range(1,14)]
-    choices = [14]
+    choices = [2]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -448,9 +448,9 @@ if __name__ == '__main__':
         elif choice == 11: test11()
         elif choice == 12: test12()                                                                                   
         elif choice == 13: test13()  
-        elif choice == 14: test14()                                                                                         
-        elif choice == 15: test15()     
-        elif choice == 16: test16()                                                                                              
+#        elif choice == 14: test14()                                                                                         
+#        elif choice == 15: test15()     
+#        elif choice == 16: test16()                                                                                              
         else:
             print "No such test exists."
     
