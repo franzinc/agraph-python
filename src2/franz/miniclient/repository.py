@@ -65,10 +65,10 @@ class Repository:
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
                                   environment=self.environment), rowreader=callback and RowReader(callback))
 
-    def evalPrologQuery(self, query, infer=False, callback=None):
+    def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
         """Execute a Prolog query. Returns a {names, values} object."""
         return jsonRequest(self.curl, "POST", self.url,
-                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment),
+                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment, limit=limit),
                            rowreader=callback and RowReader(callback))
 
     def definePrologFunctor(self, definition):
@@ -207,6 +207,16 @@ class Repository:
     def deleteMappedType(self, type):
         nullRequest(self.curl, "DELETE", self.url + "/typemapping", urlenc(type=type))
 
+    def listMappedPredicates(self):
+        return jsonRequest(self.curl, "GET", self.url + "/predicatemapping")
+
+    def addMappedPredicate(self, predicate, primitiveType):
+        nullRequest(self.curl, "POST", self.url + "/predicatemapping",
+                    urlenc(predicate=predicate, primitiveType=primitiveType))
+
+    def deleteMappedType(self, predicate):
+        nullRequest(self.curl, "DELETE", self.url + "/predicatemapping", urlenc(predicate=predicate))
+
 
 ######################################################
 ## TESTING CODE
@@ -283,27 +293,28 @@ def test0():
         print v
     timeQuery(rep, 1000, 5)
 
-def openRep ():
-    cats = listCatalogs("http://localhost:8080")
+def openRep (name="test"):
+    server = "http://localhost:8080"
+    cats = listCatalogs(server)
     print "List of catalogs:", cats
-    cat = openCatalog("http://localhost:8080", cats[0])
+    cat = openCatalog(server, cats[0])
     print "Found cat", cat.url
     reps = cat.listTripleStores()
-    print "Is 'test' there??:", reps, "test" in reps
+    print ("Is '%s' there??:" % name), reps, name in reps
     try:
-        print "Creating repository 'test'"
-        cat.createTripleStore("test")
+        print "Creating repository '%s'" % name
+        cat.createTripleStore(name)
         reps = cat.listTripleStores()
-        print "Now is 'test' there??:", reps, "test" in reps
+        print ("Now is '%s' there??:" % name), reps, name in reps
     except: pass
-    rep = cat.getRepository("test")
+    rep = cat.getRepository(name)
     size = rep.getSize() 
-    print "Size of 'test' repository", size
+    print ("Size of '%s' repository" % name), size
     return rep
 
 def makeTerm(term, is_literal=False):
     if is_literal:
-        return "\"" + term + "\"";
+        return "\"" + term.replace("\"", "\\\"") + "\"";
     elif not term == None:
         return "<" + term + ">";
     else:
@@ -321,10 +332,10 @@ def test1():
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts);
-    print "Repository size = ", rep.getSize()    
+    print "Repository size = ", rep.getSize()
 
 if __name__ == '__main__':
-    choice = 3
+    choice = 2
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()   
