@@ -15,7 +15,8 @@ class Catalog:
 
     def listTripleStores(self):
         """Returns the names of open stores on the server."""
-        return jsonRequest(self.curl, "GET", self.url + "/repositories")
+        repos = jsonRequest(self.curl, "GET", self.url + "/repositories")
+        return [repo["id"][1:-1].replace("\\\"", "\"") for repo in repos]
 
     def createTripleStore(self, name):
         """Ask the server to create a new triple store."""
@@ -335,7 +336,7 @@ def test1():
     print "Repository size = ", rep.getSize()
 
 if __name__ == '__main__':
-    choice = 2
+    choice = 1
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()   
