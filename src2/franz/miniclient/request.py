@@ -76,7 +76,7 @@ def jsonRequest(curl, method, url, body=None, contentType="application/x-www-for
 
 def nullRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded"):
     status, body = makeRequest(curl, method, url, body, "application/json", contentType)
-    if (status != 200): raise RequestError(status, body)
+    if (status < 200 or status > 204): raise RequestError(status, body)
 
 class RowReader:
     def __init__(self, callback):

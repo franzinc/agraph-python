@@ -328,11 +328,11 @@ def makeStatement(subject, predicate, object, context=None, is_literal=False):
 def test1():
     rep = openRep(); 
     print("Adding statements ...");
-    ns = "http:example#";
+    ns = "http://example.com#";
     stmts = []    
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
-    rep.addStatements(stmts);
+    rep.addStatements(stmts)
     print "Repository size = ", rep.getSize()
 
 if __name__ == '__main__':
