@@ -6,7 +6,7 @@ def listCatalogs(serverURL):
 
 def openCatalog(serverURL, catalog, user=None, password=None):
     return Catalog(serverURL + catalog, user, password)
-    
+
 class Catalog:
     def __init__(self, url, user=None, password=None):
         self.url = url
@@ -91,8 +91,8 @@ class Repository:
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
-        nullRequest(self.curl, "POST", self.url + "/statements",
-                    urlenc(subj=subj, pred=pred, obj=obj, context=context))
+        nullRequest(self.curl, "POST", self.url + "/statements", cjson.encode([[subj, pred, obj, context]]),
+                    contentType="application/json")
 
     def deleteMatchingStatements(self, subj=None, pred=None, obj=None, context=None):
         """Delete all statements matching the constraints from the
@@ -104,7 +104,7 @@ class Repository:
         """Add a collection of statements to the repository. Quads
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
-        nullRequest(self.curl, "POST", self.url + "/statements/json", cjson.encode(quads), contentType="application/json")
+        nullRequest(self.curl, "POST", self.url + "/statements", cjson.encode(quads), contentType="application/json")
 
     class UnsupportedFormatError(Exception):
         def __init__(self, format):
@@ -113,29 +113,28 @@ class Repository:
             return "'%s' file format not supported (try 'ntriples' or 'rdf/xml')." % self.format
 
     def checkFormat(self, format):
-        if format == "ntriples": return ("ntriples", "text/plain")
-        elif format == "rdf/xml": return ("rdfxml", "application/rdf+xml")
+        if format == "ntriples": return "text/plain"
+        elif format == "rdf/xml": return "application/rdf+xml"
         else: raise Repository.UnsupportedFormatError(format)
 
     def loadData(self, data, format, baseURI=None, context=None):
-        urlformat, mime = self.checkFormat(format)
-        nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat + "?" +
-                    urlenc(context=context, baseURI=baseURI), data.encode("utf-8"), contentType=mime)
+        nullRequest(self.curl, "POST", self.url + "/statements?" + urlenc(context=context, baseURI=baseURI),
+                    data.encode("utf-8"), contentType=self.checkFormat(format))
 
     def loadFile(self, file, format, baseURI=None, context=None, serverSide=False):
-        urlformat, mime = self.checkFormat(format)
+        mime = self.checkFormat(format)
         body = ""
         if not serverSide:
             f = open(file)
             body = f.read()
             f.close()
             file = None
-        nullRequest(self.curl, "POST", self.url + "/statements/" + urlformat + "?" +
-                    urlenc(file=file, context=context, baseURI=baseURI), body, contentType=mime)
+        params = urlenc(file=file, context=context, baseURI=baseURI)
+        nullRequest(self.curl, "POST", self.url + "/statements?" + params, body, contentType=mime)
 
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""
-        nullRequest(self.curl, "POST", self.url + "/statements/json/delete", cjson.encode(quads), contentType="application/json")
+        nullRequest(self.curl, "POST", self.url + "/statements/delete", cjson.encode(quads), contentType="application/json")
 
     def listIndices(self):
         """List the SPOGI-indices that are active in the repository."""
@@ -187,7 +186,7 @@ class Repository:
 
     def deleteEnvironment(self, name):
         nullRequest(self.curl, "DELETE", self.url + "/environments", urlenc(name=name))
-        
+
     def listNamespaces(self):
         return jsonRequest(self.curl, "GET", self.url + "/namespaces", urlenc(environment=self.environment))
 
@@ -229,46 +228,6 @@ def timeQuery(rep, n, size):
         rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
     print "Did %d %d-row queries in %f seconds." % (n, size, time.time() - t)
 
-#def getCatalog(serverURL):
-#    cats = listCatalogs(serverURL)
-#    if len(cats) == 0:
-#        print "No catalogs on server."
-#    else:
-#        return openCatalog(serverURL, cats[0])
-#
-#def getRepository(serverURL):
-#    cat = getCatalog(serverURL)
-#    if not cat: return None
-#    repos = cat.listTripleStores()
-#    if len(repos) == 0:
-#        print "No repositories in catalog %s" % cats[0]
-#    else:
-#        return cat.getRepository(repos[0])
-#    
-#def test1():
-#    rep = getRepository("http://localhost:8080")
-#    print "Repository size = %d" % rep.getSize()
-#    timeQuery(rep, 1000, 1)
-#
-#def test2():
-#    cat = getCatalog("http://localhost:8080")
-#    dbName = 'testP'
-#    if not dbName in cat.listTripleStores():
-#        cat.createTripleStore(dbName)
-#    rep = cat.getRepository(dbName)
-#    rep.deleteMatchingStatements()
-#    rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', "<http://foo.com>")
-#    query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
-#    answer = rep.evalSparqlQuery(query, context="<http://foo.com>")
-#    print answer['names']
-#    for v in answer['values']:
-#        print v
-#
-#def test3():
-#    rep = getRepository("http://localhost:8080")
-#    def printrow(row, names): print "%s %s" %(repr(row), repr(names))
-#    rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit 5", callback=printrow)
-
 def test0():
     cats = listCatalogs("http://localhost:8080")
     print "List of catalogs:", cats
@@ -283,7 +242,7 @@ def test0():
         print "Now is 'test' there??:", reps, "test" in reps
     except: pass
     rep = cat.getRepository("test")
-    size = rep.getSize() 
+    size = rep.getSize()
     print "Size of 'test' repository", size
     if size == 0:
         rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', "<http://foo.com>")
@@ -309,7 +268,7 @@ def openRep (name="test"):
         print ("Now is '%s' there??:" % name), reps, name in reps
     except: pass
     rep = cat.getRepository(name)
-    size = rep.getSize() 
+    size = rep.getSize()
     print ("Size of '%s' repository" % name), size
     return rep
 
@@ -326,10 +285,10 @@ def makeStatement(subject, predicate, object, context=None, is_literal=False):
             makeTerm(context)]
 
 def test1():
-    rep = openRep(); 
+    rep = openRep();
     print("Adding statements ...");
-    ns = "http://example.com#";
-    stmts = []    
+    ns = "http://example.org#";
+    stmts = []
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts)
@@ -339,7 +298,7 @@ if __name__ == '__main__':
     choice = 1
     print "Run test%i" % choice
     if choice == 0: test0()
-    elif choice == 1: test1()   
-    elif choice == 2: test2()       
-    elif choice == 3: test3()       
-    elif choice == 4: test4()               
+    elif choice == 1: test1()
+    elif choice == 2: test2()
+    elif choice == 3: test3()
+    elif choice == 4: test4()
