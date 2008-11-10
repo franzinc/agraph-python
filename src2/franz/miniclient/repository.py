@@ -49,7 +49,7 @@ class Repository:
 
     def listContexts(self):
         """Lists the contexts (named graphs) that are present in this repository."""
-        return jsonRequest(self.curl, "GET", self.url + "/contexts")
+        return [t["contextID"] for t in jsonRequest(self.curl, "GET", self.url + "/contexts")]
 
     def isWriteable(self):
         return jsonRequest(self.curl, "GET", self.url + "/writeable")
@@ -292,6 +292,7 @@ def test1():
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts)
+    print rep.listContexts()
     print "Repository size = ", rep.getSize()
 
 if __name__ == '__main__':
