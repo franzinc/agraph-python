@@ -190,13 +190,14 @@ class Repository:
     def listNamespaces(self):
         return jsonRequest(self.curl, "GET", self.url + "/namespaces", urlenc(environment=self.environment))
 
+    def clearNamespaces(self):
+        nullRequest(self.curl, "DELETE", self.url + "/namespaces")
+
     def addNamespace(self, prefix, uri):
-        nullRequest(self.curl, "POST", self.url + "/namespaces",
-                    urlenc(prefix=prefix, uri=uri, environment=self.environment))
+        nullRequest(self.curl, "PUT", self.url + "/namespaces/" + urllib.quote(prefix), uri, contentType="text/plain")
 
     def deleteNamespace(self, prefix):
-        nullRequest(self.curl, "DELETE", self.url + "/namespaces",
-                    urlenc(prefix=prefix, environment=self.environment))
+        nullRequest(self.curl, "DELETE", self.url + "/namespaces/" + urllib.quote(prefix))
 
     def listMappedTypes(self):
         return jsonRequest(self.curl, "GET", self.url + "/typemapping")
@@ -292,7 +293,6 @@ def test1():
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts)
-    print rep.listContexts()
     print "Repository size = ", rep.getSize()
 
 if __name__ == '__main__':
