@@ -16,7 +16,7 @@ class Catalog:
     def listTripleStores(self):
         """Returns the names of open stores on the server."""
         repos = jsonRequest(self.curl, "GET", self.url + "/repositories")
-        return [repo["id"][1:-1].replace("\\\"", "\"") for repo in repos]
+        return [repo["id"][1:-1].replace("\\\"", "\"").replace("\\\\", "\\") for repo in repos]
 
     def createTripleStore(self, name):
         """Ask the server to create a new triple store."""
@@ -150,12 +150,20 @@ class Repository:
 
     def getIndexCoverage(self):
         """Returns the proportion (0-1) of the repository that is indexed."""
-        return jsonRequest(self.curl, "GET", self.url + "/index")
+        return jsonRequest(self.curl, "GET", self.url + "/indexing")
 
     def indexStatements(self, all=False):
         """Index any unindexed statements in the repository. If all is
         True, the whole repository is re-indexed."""
-        nullRequest(self.curl, "POST", self.url + "/index", urlenc(all=all))
+        nullRequest(self.curl, "POST", self.url + "/indexing", urlenc(all=all))
+
+    def setIndexingTripleTreshold(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/indexing/tripleTreshold", "%d" % (size or 0),
+                    contentType="text/plain")
+
+    def setIndexingChunkTreshold(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/indexing/chunkTreshold", "%d" % (size or 0),
+                    contentType="text/plain")
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None):
         """Use free-text indices to search for the given pattern.
@@ -165,11 +173,11 @@ class Repository:
 
     def listFreeTextPredicates(self):
         """List the predicates that are used for free-text indexing."""
-        return jsonRequest(self.curl, "GET", self.url + "/freetextpredicates")
+        return jsonRequest(self.curl, "GET", self.url + "/freetextPredicates")
 
     def registerFreeTextPredicate(self, predicate):
         """Add a predicate for free-text indexing."""
-        nullRequest(self.curl, "POST", self.url + "/freetextpredicates", urlenc(predicate=predicate))
+        nullRequest(self.curl, "POST", self.url + "/freetextPredicates", urlenc(predicate=predicate))
 
     def setEnvironment(self, name):
         """Repositories use a current environment, which are
@@ -202,23 +210,23 @@ class Repository:
                     + urlenc(environment=self.environment))
 
     def listMappedTypes(self):
-        return jsonRequest(self.curl, "GET", self.url + "/typemapping")
+        return jsonRequest(self.curl, "GET", self.url + "/typeMapping")
 
     def addMappedType(self, type, primitiveType):
-        nullRequest(self.curl, "POST", self.url + "/typemapping", urlenc(type=type, primitiveType=primitiveType))
+        nullRequest(self.curl, "POST", self.url + "/typeMapping", urlenc(type=type, primitiveType=primitiveType))
 
     def deleteMappedType(self, type):
-        nullRequest(self.curl, "DELETE", self.url + "/typemapping", urlenc(type=type))
+        nullRequest(self.curl, "DELETE", self.url + "/typeMapping", urlenc(type=type))
 
     def listMappedPredicates(self):
-        return jsonRequest(self.curl, "GET", self.url + "/predicatemapping")
+        return jsonRequest(self.curl, "GET", self.url + "/predicateMapping")
 
     def addMappedPredicate(self, predicate, primitiveType):
-        nullRequest(self.curl, "POST", self.url + "/predicatemapping",
+        nullRequest(self.curl, "POST", self.url + "/predicateMapping",
                     urlenc(predicate=predicate, primitiveType=primitiveType))
 
     def deleteMappedType(self, predicate):
-        nullRequest(self.curl, "DELETE", self.url + "/predicatemapping", urlenc(predicate=predicate))
+        nullRequest(self.curl, "DELETE", self.url + "/predicateMapping", urlenc(predicate=predicate))
 
 
 ######################################################
