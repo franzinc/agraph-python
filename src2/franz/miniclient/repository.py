@@ -43,9 +43,9 @@ class Repository:
         self.curl = curl
         self.environment = None
 
-    def getSize(self):
+    def getSize(self, context=None):
         """Returns the amount of triples in the repository."""
-        return jsonRequest(self.curl, "GET", self.url + "/size")
+        return jsonRequest(self.curl, "GET", self.url + "/size", urlenc(context=context))
 
     def listContexts(self):
         """Lists the contexts (named graphs) that are present in this repository."""
@@ -142,11 +142,11 @@ class Repository:
 
     def addIndex(self, type):
         """Register a SPOGI index."""
-        nullRequest(self.curl, "POST", self.url + "/indices", urlenc(type=type))
+        nullRequest(self.curl, "PUT", self.url + "/indices/" + type)
 
     def deleteIndex(self, type):
         """Drop a SPOGI index."""
-        nullRequest(self.curl, "DELETE", self.url + "/indices", urlenc(type=type))
+        nullRequest(self.curl, "DELETE", self.url + "/indices/" + type)
 
     def getIndexCoverage(self):
         """Returns the proportion (0-1) of the repository that is indexed."""
