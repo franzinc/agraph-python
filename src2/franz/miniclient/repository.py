@@ -73,7 +73,7 @@ class Repository:
                            rowreader=callback and RowReader(callback))
 
     def definePrologFunctor(self, definition):
-        nullRequest(self.curl, "POST", self.url + "/functor", urlenc(definition=definition, environment=self.environment))
+        nullRequest(self.curl, "PUT", self.url + "/functor?" + urlenc(environment=self.environment), definition)
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None):
         """Retrieve all statements matching the given constraints.
@@ -191,13 +191,15 @@ class Repository:
         return jsonRequest(self.curl, "GET", self.url + "/namespaces", urlenc(environment=self.environment))
 
     def clearNamespaces(self):
-        nullRequest(self.curl, "DELETE", self.url + "/namespaces")
+        nullRequest(self.curl, "DELETE", self.url + "/namespaces?" + urlenc(environment=self.environment))
 
     def addNamespace(self, prefix, uri):
-        nullRequest(self.curl, "PUT", self.url + "/namespaces/" + urllib.quote(prefix), uri, contentType="text/plain")
+        nullRequest(self.curl, "PUT", self.url + "/namespaces/" + urllib.quote(prefix) + "?"
+                    + urlenc(environment=self.environment), uri, contentType="text/plain")
 
     def deleteNamespace(self, prefix):
-        nullRequest(self.curl, "DELETE", self.url + "/namespaces/" + urllib.quote(prefix))
+        nullRequest(self.curl, "DELETE", self.url + "/namespaces/" + urllib.quote(prefix) + "?"
+                    + urlenc(environment=self.environment))
 
     def listMappedTypes(self):
         return jsonRequest(self.curl, "GET", self.url + "/typemapping")
