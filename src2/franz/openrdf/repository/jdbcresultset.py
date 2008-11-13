@@ -190,3 +190,5 @@ class JDBCResultSet(object):
         """
         pass
   
+
+    def rowCount(self): return len(self.string_tuples)

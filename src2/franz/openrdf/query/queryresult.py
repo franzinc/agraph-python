@@ -100,6 +100,8 @@ class TupleQueryResult(QueryResult):
         Get the names of the bindings, in order of projection.
         """
         return self.variableNames
+        
+    def rowCount(self): return len(self.string_tuples)
 
 class DictBindingSet(dict):
     """

@@ -153,15 +153,23 @@ class RepositoryConnection(object):
         Returns the number of (explicit) statements that are in the specified
         contexts in this repository.
         """
-        if contexts == ALL_CONTEXTS or contexts is None:
+        cxts = self._contexts_to_ntriple_contexts(contexts, False)
+        if cxts == ALL_CONTEXTS or not cxts:
             return self.mini_repository.getSize()
+        elif len(cxts) == 1:
+            return self.mini_repository.getSize(cxts[0])
         else:
-            print "Computing the size of a context is currently very expensive"
-            resultSet = self.getJDBCStatements(None, None, None, contexts)
-            count = 0
-            while resultSet.next():
-                count += 1
-            return count
+            total = 0
+            for cxt in cxts:
+                total += self.mini_repository.getSize(cxt)
+            return total
+#        else:
+#            print "Computing the size of a context is currently very expensive"
+#            resultSet = self.getJDBCStatements(None, None, None, contexts)
+#            count = 0
+#            while resultSet.next():
+#                count += 1
+#            return count
                 
 
 #     * Returns <tt>true</tt> if this repository does not contain any (explicit)
@@ -175,7 +183,9 @@ class RepositoryConnection(object):
         return self.size() == 0
     
     def _context_to_ntriples(self, context, none_is_mini_null=False):
+        if context is None: return MINI_NULL_CONTEXT if none_is_mini_null else None
         if context == MINI_NULL_CONTEXT: return MINI_NULL_CONTEXT
+        elif context == 'null': return MINI_NULL_CONTEXT
         elif context: return context.toNTriples()
         elif none_is_mini_null: return MINI_NULL_CONTEXT
         else: return None            
@@ -195,6 +205,8 @@ class RepositoryConnection(object):
         elif contexts is None:
             if none_is_mini_null: cxts = [MINI_NULL_CONTEXT]
             else: cxts = None
+        elif contexts == 'null':
+            cxts = [MINI_NULL_CONTEXT]
         elif isinstance(contexts, (list, tuple)):
             cxts = [self._context_to_ntriples(c, none_is_mini_null=True) for c in contexts]
         else:
@@ -311,8 +323,10 @@ class RepositoryConnection(object):
         one or more named contexts.        
         """ 
         obj = self.getValueFactory().object_position_term_to_openrdf_term(object)
-        self.mini_repository.addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
-                        self._to_ntriples(obj), self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True))
+        cxts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
+        for cxt in cxts:
+            self.mini_repository.addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
+                        self._to_ntriples(obj), cxt)
     
     def _to_ntriples(self, term):
         """

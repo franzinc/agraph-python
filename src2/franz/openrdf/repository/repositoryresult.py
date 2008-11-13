@@ -111,3 +111,4 @@ class RepositoryResult(object):  ## inherits IterationWrapper
             if isList: collection.append(stmt)
             else: collection.add(stmt)        
 
+    def rowCount(self): return len(self.string_tuples)

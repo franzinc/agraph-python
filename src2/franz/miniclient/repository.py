@@ -83,6 +83,8 @@ class Repository:
         if isinstance(subj, tuple): subj, subjEnd = subj
         if isinstance(pred, tuple): pred, predEnd = pred
         if isinstance(obj, tuple): obj, objEnd = obj
+        ##print "OBJ", obj, "OBJEND", objEnd
+        ##print "GET STATEMENTS '%s'" % context
         return jsonRequest(self.curl, "GET", self.url + "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                                   obj=obj, objEnd=objEnd, context=context, infer=infer),
@@ -90,6 +92,7 @@ class Repository:
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
+        ##print "ADD STATEMENT CONTEXT '%s' " % context, type(context)
         nullRequest(self.curl, "POST", self.url + "/statements", cjson.encode([[subj, pred, obj, context]]),
                     contentType="application/json")
 
