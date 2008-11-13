@@ -83,7 +83,6 @@ class Repository:
         if isinstance(subj, tuple): subj, subjEnd = subj
         if isinstance(pred, tuple): pred, predEnd = pred
         if isinstance(obj, tuple): obj, objEnd = obj
-
         return jsonRequest(self.curl, "GET", self.url + "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                                   obj=obj, objEnd=objEnd, context=context, infer=infer),
@@ -225,7 +224,7 @@ class Repository:
         nullRequest(self.curl, "POST", self.url + "/predicateMapping",
                     urlenc(predicate=predicate, primitiveType=primitiveType))
 
-    def deleteMappedType(self, predicate):
+    def deleteMappedPredicate(self, predicate):
         nullRequest(self.curl, "DELETE", self.url + "/predicateMapping", urlenc(predicate=predicate))
 
 
