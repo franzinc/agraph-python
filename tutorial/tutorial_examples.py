@@ -15,6 +15,21 @@ import os, urllib, datetime, time
 
 CURRENT_DIRECTORY = os.getcwd() 
 
+RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
+
+def verify(expressionValue, targetValue, quotedExpression, testNum):
+    """
+    Verify that 'expressionValue' equals 'targetValue'.  If not,
+    raise an exception, or print a message advertising the failure.
+    """
+    if not expressionValue == targetValue:
+        message = ("Diagnostic failure in test %s.  Expression '%s' returns '%s' where '%s' expected." %
+                    (testNum, quotedExpression, expressionValue, targetValue))
+        if RAISE_EXCEPTION_ON_VERIFY_FAILURE:
+            raise Exception(message)
+        else:
+            print "BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP \n   ", message
+
 def test0():
     for i in range(0, 5):
         print "Hello World"
@@ -57,8 +72,10 @@ def test2():
     ## bob's name is "Bob":
     conn.add(bob, f.createURI("http://example.org/ontology/name"), bobsName)
     print "Triple count: ", conn.size()
+    verify(conn.size(), 4, 'conn.size()', 2)
     conn.remove(bob, name, bobsName)
     print "Triple count: ", conn.size()
+    verify(conn.size(), 3, 'conn.size()', 2)
     conn.add(bob, name, bobsName)    
     return myRepository
 
@@ -68,6 +85,7 @@ def test3():
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
         result = tupleQuery.evaluate();
+        verify(result.rowCount(), 4, 'result.tupleCount', 3)
         try:
             for bindingSet in result:
                 s = bindingSet.getValue("s")
@@ -84,10 +102,12 @@ def test4():
     conn = myRepository.getConnection()
     alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
     statements = conn.getStatements(alice, None, None)
+    verify(statements.rowCount(), 2, 'statements.rowCount()', 3)
     for s in statements:
         print s
     print "Same thing using JDBC:"
     resultSet = conn.getJDBCStatements(alice, None, None)
+    verify(resultSet.rowCount(), 2, 'resultSet.rowCount()', 3)    
     while resultSet.next():
         #print resultSet.getRow()
         print "   ", resultSet.getValue(2), "   ", resultSet.getString(2)  
@@ -161,6 +181,8 @@ def test6():
     myRepository.indexTriples(all=True, asynchronous=False)
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i football triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
+    verify(conn.size(context), 16, 'conn.size(context)', 6)
+    verify(conn.size('null'), 28, "conn.size('null)", 6)    
     return myRepository
         
 def test7():    
@@ -168,7 +190,7 @@ def test7():
     print "Match all and print subjects and contexts"
     result = conn.getStatements(None, None, None, None)
     for row in result: print row.getSubject(), row.getContext()
-    print "Same thing with SPARQL query"
+    print "Same thing with SPARQL query (can't retrieve triples in the null context)"
     queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();
@@ -183,15 +205,15 @@ def test8():
     conn = myRepository.getConnection()
     context = myRepository.getValueFactory().createURI("http://example.org#vcards")
     outputFile = "/tmp/temp.nt"
-    outputFile = None
+    #outputFile = None
     if outputFile == None:
-        print "Writing to Standard Out instead of to a file"
+        print "Writing RDF to Standard Out instead of to a file"
     ntriplesWriter = NTriplesWriter(outputFile)
     conn.export(ntriplesWriter, context);
     outputFile2 = "/tmp/temp.rdf"
-    outputFile2 = None
+    #outputFile2 = None
     if outputFile2 == None:
-        print "Writing to Standard Out instead of to a file"
+        print "Writing NTriples to Standard Out instead of to a file"
     rdfxmlfWriter = RDFXMLWriter(outputFile2)    
     conn.export(rdfxmlfWriter, context)
 
@@ -225,14 +247,17 @@ def test10():
     conn.add(ted, RDF.TYPE, person)
     conn.add(ted, name, bobsName)
     statements = conn.getStatements(None, None, None)
+    verify(statements.rowCount(), 6, 'statements.rowCount()', 10)
     print "All triples in all contexts:"
     for s in statements:
         print s
     statements = conn.getStatements(None, None, None, [context1, context2])
+    verify(statements.rowCount(), 4, 'statements.rowCount()', 10)
     print "Triples in contexts 1 or 2:"
     for s in statements:
         print s
     statements = conn.getStatements(None, None, None, ['null', context2])
+    verify(statements.rowCount(), 4, 'statements.rowCount()', 10)
     print "Triples in contexts null or 2:"
     for s in statements:
         print s
@@ -246,7 +271,8 @@ def test10():
     ds.addNamedGraph(context2)
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setDataset(ds)
-    result = tupleQuery.evaluate();    
+    result = tupleQuery.evaluate(); 
+    verify(result.rowCount(), 4, 'result.rowCount()', 10)   
     print "Query over contexts 1 and 2."
     for bindingSet in result:
         print bindingSet.getRow()
@@ -259,7 +285,8 @@ def test10():
     ds.addDefaultGraph('null')
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setDataset(ds)   
-    result = tupleQuery.evaluate();    
+    result = tupleQuery.evaluate(); 
+    verify(result.rowCount(), 2, 'result.rowCount()', 10)    
     print "Query over the null context."
     for bindingSet in result:
         print bindingSet.getRow()
@@ -359,30 +386,30 @@ def test13():
     print "Describe result"
     for st in result: print st 
     
-#def test14():
-#    """
-#    Range matches
-#    """
-#    myRepository = test1();
-#    conn = myRepository.getConnection()
-#    conn.clear()
-#    f = myRepository.getValueFactory()
-#    exns = "http://example.org/people/"
-#    conn.setNamespace('ex', exns)
-#    alice = f.createURI(namespace=exns, localname="alice")
-#    bob = f.createURI(namespace=exns, localname="bob")
-#    carol = f.createURI(namespace=exns, localname="carol")    
-#    age = f.createURI(namespace=exns, localname="age")
-#    range = f.createRange(30, 50)
-#    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
-#    ## THIS IS A TODO:
-#    #myRepository.inlineStandardDatatypes()
-#    conn.add(alice, age, 42)
-#    conn.add(bob, age, 24)    
-#    conn.add(carol, age, "39")        
-#    rows = conn.getStatements(None, age, range)
-#    for r in rows:
-#        print r 
+def test14():
+    """
+    Range matches
+    """
+    myRepository = test1();
+    conn = myRepository.getConnection()
+    conn.clear()
+    f = myRepository.getValueFactory()
+    exns = "http://example.org/people/"
+    conn.setNamespace('ex', exns)
+    alice = f.createURI(namespace=exns, localname="alice")
+    bob = f.createURI(namespace=exns, localname="bob")
+    carol = f.createURI(namespace=exns, localname="carol")    
+    age = f.createURI(namespace=exns, localname="age")
+    range = f.createRange(30, 50)
+    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
+    ## THIS IS A TODO:
+    #myRepository.inlineStandardDatatypes()
+    conn.add(alice, age, 42)
+    conn.add(bob, age, 24)    
+    conn.add(carol, age, "39")        
+    rows = conn.getStatements(None, age, range)
+    for r in rows:
+        print r 
         
 
 def test15():
@@ -430,7 +457,7 @@ def test15():
 
 if __name__ == '__main__':
     choices = [i for i in range(1,14)]
-    choices = [2]
+    #choices = [14]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -448,9 +475,9 @@ if __name__ == '__main__':
         elif choice == 11: test11()
         elif choice == 12: test12()                                                                                   
         elif choice == 13: test13()  
-#        elif choice == 14: test14()                                                                                         
-#        elif choice == 15: test15()     
-#        elif choice == 16: test16()                                                                                              
+        elif choice == 14: test14()                                                                                         
+        elif choice == 15: test15()     
+        elif choice == 16: test16()                                                                                              
         else:
             print "No such test exists."
     
