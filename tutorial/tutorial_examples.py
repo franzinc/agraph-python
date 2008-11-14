@@ -41,9 +41,9 @@ def test1():
     """
     server = AllegroGraphServer("localhost", port=8080)
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('ag')          
+    catalog = server.openCatalog('agraph')          
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
-    myRepository = catalog.getRepository("agraph_test3", Repository.RENEW)
+    myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
     myRepository.initialize()
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), myRepository.getConnection().size())
