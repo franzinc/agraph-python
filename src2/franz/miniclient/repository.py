@@ -134,6 +134,9 @@ class Repository:
         params = urlenc(file=file, context=context, baseURI=baseURI)
         nullRequest(self.curl, "POST", self.url + "/statements?" + params, body, contentType=mime)
 
+    def getBlankNodes(self, amount=1):
+        return jsonRequest(self.curl, "POST", self.url + "/blankNodes", urlenc(amount=amount))
+
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""
         nullRequest(self.curl, "POST", self.url + "/statements/delete", cjson.encode(quads), contentType="application/json")
@@ -287,9 +290,9 @@ def openRep (name="test"):
 
 def makeTerm(term, is_literal=False):
     if is_literal:
-        return "\"" + term.replace("\"", "\\\"") + "\"";
+        return "\"" + term.replace("\"", "\\\"") + "\""
     elif not term == None:
-        return "<" + term + ">";
+        return "<" + term + ">"
     else:
         return None
 
@@ -299,8 +302,8 @@ def makeStatement(subject, predicate, object, context=None, is_literal=False):
 
 def test1():
     rep = openRep();
-    print("Adding statements ...");
-    ns = "http://example.org#";
+    print("Adding statements ...")
+    ns = "http://example.org#"
     stmts = []
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
