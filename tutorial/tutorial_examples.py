@@ -399,9 +399,10 @@ def test14():
     alice = f.createURI(namespace=exns, localname="alice")
     bob = f.createURI(namespace=exns, localname="bob")
     carol = f.createURI(namespace=exns, localname="carol")    
-    age = f.createURI(namespace=exns, localname="age")
+    age = f.createURI(namespace=exns, localname="age")    
     range = f.createRange(30, 50)
     if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
+    if True: myRepository.registerInlinedDatatype(datatype=XMLSchema.INT, inlinedType="int")    
     ## THIS IS A TODO:
     #myRepository.inlineStandardDatatypes()
     conn.add(alice, age, 42)
@@ -482,7 +483,7 @@ def test16 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,14)]
-    choices = [13]
+    choices = [14]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

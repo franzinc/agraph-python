@@ -157,8 +157,10 @@ class Repository:
             lispType = self._translate_inlined_type(inlinedType or datatype)
             mapping = [datatype, lispType, "datatype"]
             self.inlined_datatypes[datatype] = lispType
-        ##self.internal_ag_store.addDataMapping(mapping)
-        raise UnimplementedMethodException("Inlined datatypes not yet implemented.")
+        if predicate:
+            self.mini_repository.addMappedPredicate("<%s>" % predicate, lispType)            
+        else:
+            self.mini_repository.addMappedType("<%s>" % datatype, lispType)
         
     def shutDown(self):
         """
