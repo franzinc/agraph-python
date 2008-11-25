@@ -25,6 +25,7 @@
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.util import strings
 
 class Literal(Value):
     """
@@ -100,7 +101,7 @@ class Literal(Value):
         """
         sb = []
         sb.append('"')
-        sb.append(self.getLabel())
+        sb.append(strings.escape_double_quotes(self.getLabel()))
         sb.append('"')
         if self.language:
             sb.append('@')

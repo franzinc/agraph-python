@@ -35,15 +35,15 @@ def test0():
         print "Hello World"
         time.sleep(5)
 
-def test1():
+def test1(accessMode=Repository.RENEW):
     """
     Tests getting the repository up.  Is called by the other tests to do the startup.
     """
     server = AllegroGraphServer("localhost", port=8080)
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('agraph')          
+    catalog = server.openCatalog('scratch')        
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
-    myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
+    myRepository = catalog.getRepository("agraph_test", accessMode)
     myRepository.initialize()
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), myRepository.getConnection().size())
@@ -454,10 +454,35 @@ def test15():
             #while result.next(): count += 1
         print "Did %d %d-row queries in %f seconds." % (reps, count, time.time() - t)
 
+def test16 ():
+    """ CIA FACTBOOK """
+    myRepository = test1(Repository.ACCESS)
+    conn = myRepository.getConnection()
+    f = myRepository.getValueFactory()
+    if conn.size() == 0:
+        print "Reading CIA Fact Book file."
+        path1 = "/FRANZ_CONSULTING/data/ciafactbook.nt"    
+        baseURI = "http://example.org/example/local"
+        conn.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, serverSide=True)
+    myRepository.indexTriples(True);
+    t = time.time()
+    count = 0
+    resultSet = conn.getJDBCStatements(None, None, None, None)
+    while resultSet.next(): count += 1
+    print "Did %d-row matches in %f seconds." % (count, time.time() - t)
+    queryString = "select ?x ?y ?z {?x ?y ?z}"
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    t = time.time()
+    count = 0
+    result = tupleQuery.evaluate(); 
+    for row in result: count += 1
+    print "Did %d-row queries in %f seconds." % (count, time.time() - t)
+    
 
+    
 if __name__ == '__main__':
     choices = [i for i in range(1,14)]
-    #choices = [14]
+    choices = [13]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

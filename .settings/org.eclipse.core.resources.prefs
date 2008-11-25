@@ -1,7 +1,6 @@
-#Fri Oct 03 13:16:09 PDT 2008
+#Mon Nov 24 17:10:45 PST 2008
 eclipse.preferences.version=1
 encoding//src2/franz/openrdf/exceptions.py=UTF-8
-encoding//src2/franz/openrdf/model/literal.py=UTF-8
 encoding//src2/franz/openrdf/model/statement.py=UTF-8
 encoding//src2/franz/openrdf/model/value.py=UTF-8
 encoding//src2/franz/openrdf/model/valuefactory.py=UTF-8
@@ -10,7 +9,6 @@ encoding//src2/franz/openrdf/query/query.py=UTF-8
 encoding//src2/franz/openrdf/query/queryresult.py=UTF-8
 encoding//src2/franz/openrdf/repository/jdbcresultset.py=UTF-8
 encoding//src2/franz/openrdf/repository/repository.py=UTF-8
-encoding//src2/franz/openrdf/repository/repositoryconnection.py=UTF-8
 encoding//src2/franz/openrdf/repository/repositoryresult.py=UTF-8
 encoding//src2/franz/openrdf/rio/converter.py=UTF-8
 encoding//src2/franz/openrdf/rio/rdfformat.py=UTF-8

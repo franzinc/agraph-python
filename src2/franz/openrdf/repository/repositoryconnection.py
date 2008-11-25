@@ -266,7 +266,7 @@ class RepositoryConnection(object):
                  self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
         return JDBCResultSet(stringTuples, column_names = RepositoryConnection.COLUMN_NAMES)
 
-    def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
+    def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
         """
         Calls addTriple, addStatement, or addFile.  If 'contexts' is not
         specified, adds to the null context.
@@ -280,7 +280,7 @@ class RepositoryConnection(object):
                 context = contexts[0]
             else:
                 context = None
-            return self.addFile(arg0, base=base, format=format, context=context)
+            return self.addFile(arg0, base=base, format=format, context=context, serverSide=serverSide)
         elif isinstance(arg0, Value):
             return self.addTriple(arg0, arg1, arg2, contexts=contexts)
         elif isinstance(arg0, Statement):
@@ -404,13 +404,18 @@ class RepositoryConnection(object):
         Removes the statement(s) with the specified subject, predicate and object
         from the repository, optionally restricted to the specified contexts.
         """
-        obj = self.getValueFactory().object_position_term_to_openrdf_term(object)
+        subj = self._to_ntriples(subject)
+        pred = self._to_ntriples(predicate)
+        obj = self._to_ntriples(self.getValueFactory().object_position_term_to_openrdf_term(object))
         ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
-        ## THIS IS BOGUS FOR 'None' CONTEXT; COMPLETELY AMBIGUOUS:
-        ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)        
-        self.mini_repository.deleteMatchingStatements(self._to_ntriples(subject),
-                self._to_ntriples(predicate), self._to_ntriples(obj),
-                self._to_ntriples(contexts) if contexts else ntripleContexts)
+        ## THIS IS BOGUS FOR 'None' CONTEXT???; COMPLETELY AMBIGUOUS:  (NOT SURE IF THIS IS AN OLD STATEMENT)
+        ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)   
+        if len(ntripleContexts) == 0:
+            self.mini_repository.deleteMatchingStatements(subj, pred, obj, None)
+        else:
+            for cxt in ntripleContexts:
+                self.mini_repository.deleteMatchingStatements(subj, pred, obj, cxt)
+
    
 #     * Removes the supplied statement from the specified contexts in the
 #     * repository.
