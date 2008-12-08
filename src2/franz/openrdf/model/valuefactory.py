@@ -36,6 +36,7 @@ class ValueFactory(object):
     """
     A factory for creating URIs, blank nodes, literals and statements.
     """
+    BLANK_NODE_AMOUNT = 10    
     def __init__(self, store):
         self.store = store
         RDF.initialize(self)
@@ -43,11 +44,20 @@ class ValueFactory(object):
         XMLSchema.initialize(self)
         OWL.initialize(self)
         self.store.getConnection().setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
+        self.unusedBNodeIds = []
+        
+    def getUnusedBNodeId(self):
+        if not self.unusedBNodeIds:
+            ## retrieve a set of bnode ids (they include leading '_:', which we strip off later:
+            self.unusedBNodeIds = self.store.mini_repository.getBlankNodes(amount=ValueFactory.BLANK_NODE_AMOUNT)
+        return self.unusedBNodeIds.pop()[2:] ## strip off leading '_:'
 
     def createBNode(self, nodeID=None):
         """
         Creates a new blank node with the given node identifier.
         """
+        if not nodeID:
+            nodeID = self.getUnusedBNodeId()
         return BNode(nodeID)
     
     @staticmethod

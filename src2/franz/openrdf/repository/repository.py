@@ -47,6 +47,7 @@ class Repository:
     def __init__(self, catalog, database_name, access_verb):
         self.catalog = catalog
         self.mini_catalog = catalog.mini_catalog
+        self.mini_repository = None
         self.database_name = database_name
         self.access_verb = access_verb
         ## system state fields:
