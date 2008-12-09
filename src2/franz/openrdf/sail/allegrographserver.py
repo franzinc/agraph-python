@@ -26,6 +26,7 @@ from franz.openrdf.exceptions import *
 from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository as miniserver
 from franz.miniclient.repository import Catalog
+import urllib
 
 READ_ONLY = 'READ_ONLY'
 
@@ -64,12 +65,16 @@ class AllegroGraphServer(object):
     
     def getHost(self): return self.host
     def getOptions(self): return self.options
+    
+    def _long_catalog_name_to_short_name(self, longName):
+        pos = longName.rfind('/')
+        shortName = urllib.unquote_plus(longName[pos + 1:])
+        return shortName
 
     def listCatalogs(self):
         catNames = []
-        for longName in miniserver.listCatalogs(self._get_address()):
-            pos = longName.rfind('/')
-            catNames.append(longName[pos + 1:])
+        for longName in miniserver.listCatalogs(self._get_address()):            
+            catNames.append(self._long_catalog_name_to_short_name(longName))
         return catNames
     
     def openCatalog(self, shortName):
@@ -81,7 +86,10 @@ class AllegroGraphServer(object):
         for cat in self.open_catalogs:
             if cat.getName() == shortName:
                 return cat
-        longName = '/catalogs/' + shortName
+        for longName in miniserver.listCatalogs(self._get_address()):            
+            internalShortName = self._long_catalog_name_to_short_name(longName)
+            if shortName == internalShortName:
+                break ## 'longName' is now set
         miniCatalog = miniserver.openCatalog(self._get_address(), longName, user=self.username, password=self.password)
         catalog = Catalog(shortName, miniCatalog, self)
         return catalog
