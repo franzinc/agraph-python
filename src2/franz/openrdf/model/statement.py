@@ -43,15 +43,15 @@ class Statement:
             ## In general the number of different predicates in sets of
             ## statements is the smallest, so predicate equality is checked
             ## last.
-        spoEqual = self.object.__eq__(other.getObject()) and self.subject.__eq__(other.getSubject()) \
-                and self.predicate.__eq__(other.getPredicate())
+        spoEqual = self.getObject().__eq__(other.getObject()) and self.getSubject().__eq__(other.getSubject()) \
+                and self.getPredicate().__eq__(other.getPredicate())
         if self.context:
-            return spoEqual and self.context.__eq__(other.getContext())
+            return spoEqual and self.getContext().__eq__(other.getContext())
         else:
             return spoEqual
 
     def __hash__(self):
-        return 961 * self.subject.__hash__() + 31 * self.predicate.__hash__() + self.object.__hash__();
+        return 961 * self.getSubject().__hash__() + 31 * self.getPredicate().__hash__() + self.getObject().__hash__();
 
     def __str__(self):
         sb= []
