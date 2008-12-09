@@ -27,6 +27,8 @@ from franz.openrdf.model.value import URI
 from franz.openrdf.model.valuefactory import ValueFactory 
 from franz.openrdf.repository.repositoryconnection import RepositoryConnection
 
+import urllib
+
 # * A Sesame repository that contains RDF data that can be queried and updated.
 # * Access to the repository can be acquired by openening a connection to it.
 # * This connection can then be used to query and/or update the contents of the
@@ -71,28 +73,28 @@ class Repository:
         TODO: FIGURE OUT WHAT 'REPLACE' DOES
         """
         clearIt = False
-        dbName = self.database_name
+        quotedDbName = urllib.quote_plus(self.database_name)
         conn = self.mini_catalog
         if self.access_verb == Repository.RENEW:
-            if dbName in conn.listTripleStores():
+            if quotedDbName in conn.listTripleStores():
                 ## not nice, since someone else probably has it open:
                 clearIt = True
             else:
-                conn.createTripleStore(dbName)                    
+                conn.createTripleStore(quotedDbName)                    
         elif self.access_verb == Repository.CREATE:
-            if dbName in conn.listTripleStores():
+            if quotedDbName in conn.listTripleStores():
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
-                    dbName)
-            conn.createTripleStore(dbName)
+                    quotedDbName)
+            conn.createTripleStore(quotedDbName)
         elif self.access_verb == Repository.OPEN:
-            if not dbName in conn.listTripleStores():
+            if not quotedDbName in conn.listTripleStores():
                 raise ServerException(
-                    "Can't open a triple store named '%s' because there is none.", dbName)
+                    "Can't open a triple store named '%s' because there is none.", quotedDbName)
         elif self.access_verb == Repository.ACCESS:
-            if not dbName in conn.listTripleStores():
-                conn.createTripleStore(dbName)      
-        self.mini_repository = conn.getRepository(dbName)
+            if not quotedDbName in conn.listTripleStores():
+                conn.createTripleStore(quotedDbName)      
+        self.mini_repository = conn.getRepository(quotedDbName)
         ## we are done unless a RENEW requires us to clear the store
         if clearIt:
             self.mini_repository.deleteMatchingStatements(None, None, None, None)
