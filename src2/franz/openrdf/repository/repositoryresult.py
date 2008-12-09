@@ -52,6 +52,7 @@ class RepositoryResult(object):  ## inherits IterationWrapper
     def __init__(self, string_tuples):
         self.string_tuples = string_tuples
         self.cursor = 0
+        self.nonDuplicateSet = None
         
     def _createStatement(self, string_tuple):
         """
@@ -75,7 +76,18 @@ class RepositoryResult(object):  ## inherits IterationWrapper
         raise StopIteration exception.
         TODO: WHOOOA.  WHAT IF WE HAVE TUPLES INSTEAD OF STATEMENTS; HOW DOES THAT WORK???
         """
-        if self.cursor < len(self.string_tuples):
+        if not self.nonDuplicateSet is None:
+            try:
+                savedNonDuplicateSet = self.nonDuplicateSet
+                self.nonDuplicateSet = None
+                while (True):
+                    stmt = self.next()
+                    if not stmt in savedNonDuplicateSet:
+                        savedNonDuplicateSet.add(stmt)
+                        return stmt                        
+            finally:
+                self.nonDuplicateSet = savedNonDuplicateSet
+        elif self.cursor < len(self.string_tuples):
             stringTuple = self.string_tuples[self.cursor]
             self.cursor += 1
             return self._createStatement(stringTuple);
@@ -84,12 +96,12 @@ class RepositoryResult(object):  ## inherits IterationWrapper
 
 #     * Switches on duplicate filtering while iterating over objects. The
 #     * RepositoryResult will keep track of the previously returned objects in a
-#     * {@link java.util.Set} and on calling next() or hasNext() will ignore any
+#     * {@link java.util.Set} and on calling next()  will ignore any
 #     * objects that already occur in this Set.
 #     * <P>
 #     * Caution: use of this filtering mechanism is potentially memory-intensive.
     def enableDuplicateFilter(self):
-        raise UnimplementedMethodException()
+        self.nonDuplicateSet = set([])
 
 
     def asList(self):
