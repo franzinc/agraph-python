@@ -125,6 +125,9 @@ class Statement:
             uri = string_term[1:-1]
             return URI(uri)
         elif string_term[0] == '"':
+            lastPos = string_term.rfind('"')
+            if lastPos == len(string_term) - 1:
+                return Literal(string_term[1:-1])
             ## we have a double-quoted literal with either a data type or a language indicator
             caratPos = string_term.find('^^')
             if caratPos >= 0:
@@ -155,6 +158,12 @@ class Statement:
             uri = string_term[1:-1]
             return uri
         elif string_term[0] == '"':
+            ## look for the trailing double quote:
+            lastPos = string_term.rfind('"')
+            print "STRING TERM", string_term, lastPos
+            if lastPos == len(string_term) - 1:
+                print "   RETURNING", string_term[1:-1]
+                return string_term[1:-1]
             ## we have a double-quoted literal with either a data type or a language indicator
             caratPos = string_term.find('^^')
             if caratPos >= 0:
