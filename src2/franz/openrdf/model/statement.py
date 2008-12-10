@@ -160,9 +160,7 @@ class Statement:
         elif string_term[0] == '"':
             ## look for the trailing double quote:
             lastPos = string_term.rfind('"')
-            print "STRING TERM", string_term, lastPos
             if lastPos == len(string_term) - 1:
-                print "   RETURNING", string_term[1:-1]
                 return string_term[1:-1]
             ## we have a double-quoted literal with either a data type or a language indicator
             caratPos = string_term.find('^^')
