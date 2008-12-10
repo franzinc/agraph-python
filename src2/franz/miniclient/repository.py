@@ -54,7 +54,8 @@ class Repository:
     def isWriteable(self):
         return jsonRequest(self.curl, "GET", self.url + "/writeable")
 
-    def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None):
+    def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
+                        bindings=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -62,9 +63,12 @@ class Repository:
         lists of lists of terms. CONSTRUCT and DESCRIBE return a list
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
+        if (bindings is not None):
+            bindings = [a + " " + b for a, b in bindings.items()]
         return jsonRequest(self.curl, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                                  environment=self.environment), rowreader=callback and RowReader(callback))
+                                  environment=self.environment, bind=bindings),
+                           rowreader=callback and RowReader(callback))
 
     def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
         """Execute a Prolog query. Returns a {names, values} object."""
@@ -308,6 +312,9 @@ def test1():
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts)
+    print rep.listMappedTypes()
+    rep.addMappedType("<http://foo.com/type>", "int")
+    print rep.listMappedTypes()
     print "Repository size = ", rep.getSize()
 
 if __name__ == '__main__':
