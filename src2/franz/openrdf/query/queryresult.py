@@ -133,7 +133,8 @@ class DictBindingSet(dict):
         
     def __getitem__(self, key):
         if isinstance(key, int): 
-            return self.string_tuple[self._validate_index(key)]
+            #return self.string_tuple[self._validate_index(key)]
+            return self._get_ith_value(self._validate_index(key))
         else:
             for i in range(len(self.variable_names)):
                 if key == self.variable_names[i]:

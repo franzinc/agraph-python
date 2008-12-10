@@ -29,7 +29,7 @@ from franz.openrdf.model.valuefactory import CompoundLiteral
 from franz.openrdf.repository.repositoryresult import RepositoryResult
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.model.statement import Statement
-from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery
+from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
 from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
 from franz.openrdf.rio.rdfformat import RDFFormat
 
@@ -136,7 +136,18 @@ class RepositoryConnection(object):
         query = BooleanQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
-
+    
+    def getContextIDs(self):
+        """
+        Return a list of context resources, one for each context referenced by a quad in 
+        the triple store.  Omit the default context, since no one had the intelligence to
+        make it a first-class object.
+        """                         
+        print "Executing relatively slow computation to compute the set of contexts."
+        queryString = "select distinct ?c where {graph ?c {?s ?p ?o}}"
+        query = self.prepareTupleQuery(QueryLanguage.SPARQL, queryString, None)
+        result = query.evaluate()
+        return [bs[0] for bs in result]
 
 
 #     * Returns the number of (explicit) statements that are in the specified

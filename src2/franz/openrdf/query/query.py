@@ -70,20 +70,22 @@ class Query(object):
         self.baseURI = baseURI
         self.dataset = None
         self.includeInferred = False
+        self.bindings = {}
 
     def setBinding(self, name, value):
         """
         Binds the specified variable to the supplied value. Any value that was
         previously bound to the specified value will be overwritten.
         """
-        self.bindings.addBinding(name, value)
+        self.bindings[name] = value
 
     def removeBinding(self, name):
         """ 
         Removes a previously set binding on the supplied variable. Calling this
         method with an unbound variable name has no effect.
         """ 
-        self.bindings.removeBinding(name)
+        if self.bindings.get(name):
+            del self.bindings[name]
 
     def getBindings(self):
         """
@@ -136,11 +138,17 @@ class Query(object):
                         self.dataset.getNamedGraphs() if self.dataset else None)
         regularContexts = self.connection._contexts_to_ntriple_contexts(
                 self.dataset.getDefaultGraphs() if self.dataset else ALL_CONTEXTS)
+        bindings = None
+        if self.bindings:
+            bindings = {}
+            for vbl, val in self.bindings.items():
+                ## paste a question mark in front of 'vbl' (shouldn't be doing this):
+                bindings["?%s" % vbl] = self.connection._convert_term_to_mini_term(val)
         mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:            
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred)            
+                                            infer=self.includeInferred, bindings=bindings)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             response = mini.evalPrologQuery(self.queryString, context=regularContexts, 
                                             namedContext=namedContexts, infer=self.includeInferred)
