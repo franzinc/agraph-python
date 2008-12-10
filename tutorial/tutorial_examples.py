@@ -41,7 +41,7 @@ def test1(accessMode=Repository.RENEW):
     """
     server = AllegroGraphServer("localhost", port=8080)
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('scratch')        
+    catalog = server.openCatalog('scratch')  
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
     myRepository = catalog.getRepository("agraph_test", accessMode)
     myRepository.initialize()
@@ -55,6 +55,7 @@ def test2():
     ## create some resources and literals to make statements out of
     alice = f.createURI("http://example.org/people/alice")
     bob = f.createURI("http://example.org/people/bob")
+    #bob = f.createBNode()
     name = f.createURI("http://example.org/ontology/name")
     person = f.createURI("http://example.org/ontology/Person")
     bobsName = f.createLiteral("Bob")
@@ -102,6 +103,7 @@ def test4():
     conn = myRepository.getConnection()
     alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
     statements = conn.getStatements(alice, None, None)
+    statements.enableDuplicateFilter() ## there are no duplicates, but this exercises the code that checks
     verify(statements.rowCount(), 2, 'statements.rowCount()', 3)
     for s in statements:
         print s
@@ -388,6 +390,23 @@ def test13():
     
 def test14():
     """
+    Parametric queries
+    """
+    conn = test2().getConnection()
+    f = conn.getValueFactory()
+    alice = f.createURI("http://example.org/people/alice")
+    bob = f.createURI("http://example.org/people/bob")
+    queryString = """select ?s ?p ?o where { ?s ?p ?o} """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setBinding("s", alice)
+    result = tupleQuery.evaluate();
+    for r in result: print r  
+    tupleQuery.setBinding("s", bob)
+    result = tupleQuery.evaluate();
+    for r in result: print r  
+    
+def test15():
+    """
     Range matches
     """
     myRepository = test1();
@@ -413,7 +432,7 @@ def test14():
         print r 
         
 
-def test15():
+def test16():
     """
     Queries per second.
     """
@@ -455,7 +474,7 @@ def test15():
             #while result.next(): count += 1
         print "Did %d %d-row queries in %f seconds." % (reps, count, time.time() - t)
 
-def test16 ():
+def test17 ():
     """ CIA FACTBOOK """
     myRepository = test1(Repository.ACCESS)
     conn = myRepository.getConnection()
@@ -482,8 +501,8 @@ def test16 ():
 
     
 if __name__ == '__main__':
-    choices = [i for i in range(1,14)]
-    choices = [14]
+    choices = [i for i in range(1,15)]
+    #choices = [10]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -504,6 +523,7 @@ if __name__ == '__main__':
         elif choice == 14: test14()                                                                                         
         elif choice == 15: test15()     
         elif choice == 16: test16()                                                                                              
+        elif choice == 17: test17()                                                                                                      
         else:
             print "No such test exists."
     
