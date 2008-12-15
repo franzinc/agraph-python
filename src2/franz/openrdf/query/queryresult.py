@@ -72,7 +72,7 @@ class TupleQueryResult(QueryResult):
     free any resources it keeps hold of.
     """
     def __init__(self, variable_names, string_tuples):
-        self.variableNames = [v[1:] for v in variable_names]  ## strip off question marks
+        self.variableNames = variable_names
         self.string_tuples = string_tuples
         self.cursor = 0        
         self.tuple_width = len(variable_names)

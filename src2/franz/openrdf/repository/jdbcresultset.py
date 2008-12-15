@@ -41,7 +41,8 @@ class JDBCResultSet(object):
     """
     COUNTING_STARTS_AT = 0   # real JDBC starts at one; we could change this to 1 if users want
     def __init__(self, string_tuples, column_names=None):
-        self.column_names = [v[1:].lower() for v in column_names]  ## strip off question marks
+        ## NOT SURE WHY WE CALL 'lower' HERE:
+        self.column_names = [v.lower() for v in column_names]
         self.string_tuples = string_tuples
         self.cursor = 0
         self.tuple_width = None

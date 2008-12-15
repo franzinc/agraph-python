@@ -142,8 +142,7 @@ class Query(object):
         if self.bindings:
             bindings = {}
             for vbl, val in self.bindings.items():
-                ## paste a question mark in front of 'vbl' (shouldn't be doing this):
-                bindings["?%s" % vbl] = self.connection._convert_term_to_mini_term(val)
+                bindings[vbl] = self.connection._convert_term_to_mini_term(val)
         mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:            
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
