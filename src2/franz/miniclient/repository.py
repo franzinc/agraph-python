@@ -22,6 +22,11 @@ class Catalog:
         """Ask the server to create a new triple store."""
         nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name))
 
+    def federateTripleStores(self, name, storeNames):
+        """Create a federated store."""
+        nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
+                    "?" + urlenc(federate=storeNames))
+
     def deleteTripleStore(self, name):
         """Delete a server-side triple store."""
         nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
