@@ -442,9 +442,8 @@ def test16():
         print "\n%s Apples:\t" % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    server = AllegroGraphServer("localhost", port=8080)
-    catalog = server.openCatalog('scratch')  
-    print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories()) 
+    catalog = AllegroGraphServer("localhost", port=8080).openCatalog('scratch') 
+    ## create two ordinary stores, and one federated store: 
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     rf = redConn.getValueFactory()
     greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
@@ -452,7 +451,8 @@ def test16():
     rainbowConn = (catalog.getRepository("rainbowthings", Repository.RENEW)
                          .addFederatedTripleStores(["redthings", "greenthings"]).initialize().getConnection())
     rbf = rainbowConn.getValueFactory()
-    ex = "http://www.demo.com/example"
+    ex = "http://www.demo.com/example#"
+    ## add a few triples to the red and green stores:
     redConn.add(rf.createURI(ex+"mcintosh"), RDF.TYPE, rf.createURI(ex+"Apple"))
     redConn.add(rf.createURI(ex+"reddelicious"), RDF.TYPE, rf.createURI(ex+"Apple"))    
     greenConn.add(gf.createURI(ex+"pippin"), RDF.TYPE, gf.createURI(ex+"Apple"))
@@ -461,6 +461,7 @@ def test16():
     greenConn.setNamespace('ex', ex)
     rainbowConn.setNamespace('ex', ex)        
     queryString = "select ?s where { ?s rdf:type ex:Apple }"
+    ## query each of the stores; observe that the federated one is the union of the other two:
     pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 

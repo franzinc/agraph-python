@@ -37,6 +37,7 @@ from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.util import uris
 
 # * Main interface for updating data in and performing queries on a Sesame
 # * repository. By default, a RepositoryConnection is in autoCommit mode, meaning
@@ -543,13 +544,14 @@ class RepositoryConnection(object):
     def getNamespace(self, prefix):
         """
         Return the namespace that is associated with the specified prefix, if any.
-        """
+        """        
         return self._get_namespaces_map().get(prefix.lower())
 
     def setNamespace(self, prefix, namespace):
         """
         Define (or redefine) a namespace 'namespace' for 'prefix'
         """
+        uris.validateNamespace(namespace, True)
         self._get_namespaces_map()[prefix.lower()] = namespace
 
     def removeNamespace(self, prefix):

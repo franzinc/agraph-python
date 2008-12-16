@@ -61,8 +61,7 @@ class URI(Resource):
         elif namespace and localname:
             self.uri = namespace + localname
         else:
-            self.uri = None        
-        self.localNameIdx = -1
+            self.uri = None
     
     def __str__(self): return self.getURI()
 
@@ -81,14 +80,12 @@ class URI(Resource):
         return self.uri
     
     def getLocalName(self):
-        if (self.localNameIdx < 0):
-            self.localNameIdx = uris.getLocalNameIndex(self.getURI())
-        return self.uri[self.localNameIdx:]
+        pos = uris.getLocalNameIndex(self.getURI())
+        return self.uri[pos:]
     
     def getNamespace(self):
-        if (self.localNameIdx < 0):
-            self.localNameIdx = uris.getLocalNameIndex(self.getURI())
-        return self.uri[0:self.localNameIdx]
+        pos = uris.getLocalNameIndex(self.getURI())
+        return self.uri[0:pos]
     
     def toNTriples(self):
         """
