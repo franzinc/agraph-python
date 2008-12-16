@@ -171,12 +171,12 @@ class Repository:
         True, the whole repository is re-indexed."""
         nullRequest(self.curl, "POST", self.url + "/indexing", urlenc(all=all))
 
-    def setIndexingTripleTreshold(self, size=None):
-        nullRequest(self.curl, "PUT", self.url + "/indexing/tripleTreshold", "%d" % (size or 0),
+    def setIndexingTripleThreshold(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/indexing/tripleThreshold", "%d" % (size or 0),
                     contentType="text/plain")
 
-    def setIndexingChunkTreshold(self, size=None):
-        nullRequest(self.curl, "PUT", self.url + "/indexing/chunkTreshold", "%d" % (size or 0),
+    def setIndexingChunkThreshold(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/indexing/chunkThreshold", "%d" % (size or 0),
                     contentType="text/plain")
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None):
