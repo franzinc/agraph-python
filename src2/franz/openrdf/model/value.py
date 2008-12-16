@@ -83,12 +83,12 @@ class URI(Resource):
     def getLocalName(self):
         if (self.localNameIdx < 0):
             self.localNameIdx = uris.getLocalNameIndex(self.getURI())
-        return self.uri[self.localNameIdx]
+        return self.uri[self.localNameIdx:]
     
     def getNamespace(self):
         if (self.localNameIdx < 0):
             self.localNameIdx = uris.getLocalNameIndex(self.getURI())
-        return self.uri[0, self.localNameIdx]
+        return self.uri[0:self.localNameIdx]
     
     def toNTriples(self):
         """

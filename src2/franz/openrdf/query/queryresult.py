@@ -122,7 +122,7 @@ class DictBindingSet(dict):
         if index >= 0 and index < len(self.string_tuple): return index
         else:
             raise IllegalArgumentException("Out-of-bounds index passed to BindingSet." +
-                                           "  Index must be between 1 and %s, inclusive." % len(self.string_tuple)) 
+                                           "  Index must be between 0 and %i, inclusive." % (len(self.string_tuple) - 1)) 
             
     def _get_ith_value(self, index):
         term = self.reusable_row[index]

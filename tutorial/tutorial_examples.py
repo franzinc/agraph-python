@@ -399,10 +399,13 @@ def test14():
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setBinding("s", alice)
-    result = tupleQuery.evaluate();
+    result = tupleQuery.evaluate()
+    return
+    print "Facts about Alice:"
     for r in result: print r  
     tupleQuery.setBinding("s", bob)
-    result = tupleQuery.evaluate();
+    print "Facts about Bob:"    
+    result = tupleQuery.evaluate()
     for r in result: print r  
     
 def test15():
@@ -430,9 +433,39 @@ def test15():
     rows = conn.getStatements(None, age, range)
     for r in rows:
         print r 
-        
 
 def test16():
+    """
+    Federated triple stores.
+    """
+    def pt(kind, rows):
+        print "\n%s Apples:\t" % kind.capitalize(),
+        for r in rows: print r[0].getLocalName(),
+    
+    server = AllegroGraphServer("localhost", port=8080)
+    catalog = server.openCatalog('scratch')  
+    print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories()) 
+    redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
+    rf = redConn.getValueFactory()
+    greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
+    gf = greenConn.getValueFactory()    
+    rainbowConn = (catalog.getRepository("rainbowthings", Repository.RENEW)
+                         .addFederatedTripleStores(["redthings", "greenthings"]).initialize().getConnection())
+    rbf = rainbowConn.getValueFactory()
+    ex = "http://www.demo.com/example"
+    redConn.add(rf.createURI(ex+"mcintosh"), RDF.TYPE, rf.createURI(ex+"Apple"))
+    redConn.add(rf.createURI(ex+"reddelicious"), RDF.TYPE, rf.createURI(ex+"Apple"))    
+    greenConn.add(gf.createURI(ex+"pippin"), RDF.TYPE, gf.createURI(ex+"Apple"))
+    greenConn.add(gf.createURI(ex+"kermitthefrog"), RDF.TYPE, gf.createURI(ex+"Frog"))
+    redConn.setNamespace('ex', ex)
+    greenConn.setNamespace('ex', ex)
+    rainbowConn.setNamespace('ex', ex)        
+    queryString = "select ?s where { ?s rdf:type ex:Apple }"
+    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
+    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
+    pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
+
+def test26():
     """
     Queries per second.
     """
@@ -474,7 +507,7 @@ def test16():
             #while result.next(): count += 1
         print "Did %d %d-row queries in %f seconds." % (reps, count, time.time() - t)
 
-def test17 ():
+def test27 ():
     """ CIA FACTBOOK """
     myRepository = test1(Repository.ACCESS)
     conn = myRepository.getConnection()
@@ -502,7 +535,7 @@ def test17 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,15)]
-    #choices = [10]
+    choices = [16]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -521,9 +554,11 @@ if __name__ == '__main__':
         elif choice == 12: test12()                                                                                   
         elif choice == 13: test13()  
         elif choice == 14: test14()                                                                                         
-        elif choice == 15: test15()     
-        elif choice == 16: test16()                                                                                              
-        elif choice == 17: test17()                                                                                                      
+        elif choice == 15: test15()    
+        elif choice == 16: test16()            
+         
+        elif choice == 26: test26()                                                                                              
+        elif choice == 27: test27()                                                                                                      
         else:
             print "No such test exists."
     

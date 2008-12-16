@@ -55,62 +55,89 @@ class Repository:
         ## system state fields:
         self.connection = None
         self.value_factory = None
+        self.is_initialized = False
+        self.federated_triple_stores = None
         self.inlined_predicates = {}
         self.inlined_datatypes = {}
-
          
     def getDatabaseName(self):
         """
         Return the name of the database (remote triple store) that this repository is
         interfacing with.
         """ 
-        return self.database_name        
+        return self.database_name
     
+    def _create_triple_store(self, quotedDbName):
+        miniCat = self.mini_catalog
+        if self.federated_triple_stores:
+            miniCat.federateTripleStores(quotedDbName, [urllib.quote_plus(ts) for ts in self.federated_triple_stores])
+        else:
+            miniCat.createTripleStore(quotedDbName)
+          
     def _attach_to_mini_repository(self):
         """
         Create a mini-repository and execute a RENEW, OPEN, CREATE, or ACCESS.
         
         TODO: FIGURE OUT WHAT 'REPLACE' DOES
         """
-        clearIt = False
+        #clearIt = False
         quotedDbName = urllib.quote_plus(self.database_name)
         conn = self.mini_catalog
         if self.access_verb == Repository.RENEW:
             if quotedDbName in conn.listTripleStores():
                 ## not nice, since someone else probably has it open:
-                clearIt = True
-            else:
-                conn.createTripleStore(quotedDbName)                    
+                conn.deleteTripleStore(quotedDbName)
+            self._create_triple_store(quotedDbName)                    
         elif self.access_verb == Repository.CREATE:
             if quotedDbName in conn.listTripleStores():
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
                     quotedDbName)
-            conn.createTripleStore(quotedDbName)
+            self._create_triple_store(quotedDbName)
         elif self.access_verb == Repository.OPEN:
             if not quotedDbName in conn.listTripleStores():
                 raise ServerException(
                     "Can't open a triple store named '%s' because there is none.", quotedDbName)
         elif self.access_verb == Repository.ACCESS:
             if not quotedDbName in conn.listTripleStores():
-                conn.createTripleStore(quotedDbName)      
+                self._create_triple_store(quotedDbName)      
         self.mini_repository = conn.getRepository(quotedDbName)
-        ## we are done unless a RENEW requires us to clear the store
-        if clearIt:
-            self.mini_repository.deleteMatchingStatements(None, None, None, None)
+#        ## we are done unless a RENEW requires us to clear the store
+#        if clearIt:
+#            self.mini_repository.deleteMatchingStatements(None, None, None, None)
         
     def initialize(self):
         """
         Initializes this repository. A repository needs to be initialized before
-        it can be used.
+        it can be used.  Return 'self' (so that we can chain this call if we like).
         """
+        if self.is_initialized:
+            raise InitializationException("A repository cannot be initialized twice.")
         self._attach_to_mini_repository()
         ## EXPERIMENTATION WITH INITIALIZING AN ENVIRONMENT.  DIDN'T LOOK RIGHT - RMM
 #        self.environment = self.mini_repository.createEnvironment()
 #        print "ENV", self.environment
 #        self.mini_repository.deleteEnvironment(self.environment)
 #        print "ENV AfTER", self.mini_repository.listEnvironments()
-         
+        self.is_initialized = True
+        return self    
+    
+    def addFederatedTripleStores(self, tripleStoreNames):
+        """
+        Make this repository a federated store that includes the stores named in
+        'tripleStoreNames'.  This call must precede the call to 'initialize'.  It
+        may be called multiple times.        
+        """
+        if self.is_initialized:
+            raise InitializationException("Federated triples stores must be added prior to calling 'initialize'.")
+        if not self.access_verb in [Repository.CREATE, Repository.RENEW]:
+            raise InitializationException("Adding federated triple stores requires a CREATE or RENEW access option.\n" +
+                                          "The current access is set to '%s'." % self.access_verb)
+        if not self.federated_triple_stores:
+            self.federated_triple_stores = set([])
+        for ts in tripleStoreNames:
+            self.federated_triple_stores.add(ts)
+        return self
         
     def indexTriples(self, all=False, asynchronous=False):
         """

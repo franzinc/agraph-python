@@ -129,4 +129,9 @@ if __name__ == '__main__':
         elif choice == 16: test16()                                                                                              
         else:
             print "No such test exists."
+            
+## TODO LIST:
+## reified quads
+## deleteTripleStore
+## 
     
