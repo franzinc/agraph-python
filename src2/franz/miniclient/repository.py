@@ -310,7 +310,7 @@ def makeStatement(subject, predicate, object, context=None, is_literal=False):
             makeTerm(context)]
 
 def test1():
-    rep = openRep();
+    rep = openRep()
     print("Adding statements ...")
     ns = "http://example.org#"
     stmts = []
