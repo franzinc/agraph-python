@@ -88,6 +88,8 @@ class ValueFactory(object):
         Create a new literal with value 'value'.  'datatype' if supplied,
         should be a URI, in which case 'value' should be a string.
         """
+        if isinstance(value, (tuple, list)) and len(value) == 2:
+            return self.createRange(value[0], value[1])
         value, datatype = ValueFactory._interpret_value(value, datatype)
         return Literal(value, datatype=datatype, language=language)
         
@@ -120,14 +122,17 @@ class ValueFactory(object):
         if isinstance(term, CompoundLiteral): return term
         if not isinstance(term, Value):
             term = self.createLiteral(term)
-        inlinedType = self.store.inlined_predicates.get(predicate.getURI()) if predicate else None            
-        if not inlinedType and isinstance(term, Literal) and term.datatype:
-            inlinedType = self.store.inlined_datatypes.get(term.datatype)
-        if inlinedType:
-            raise UnimplementedMethodException("Inlined literals are not yet implemented")
-            ##return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
-        else:
-            return term
+        ## ONCE UPON A TIME, I IMPLEMENTED CLIENT-SIDE ENCODED LITERALS, EMULATING THE OLD JAVA
+        ## CLIENT.  NOW, MY RECOLLECTION IS THAT THEY ARE HANDLED SERVER-SIDE IN THE HTTPD SERVER
+        ## IN THAT CASE THIS CODE SHOULD NOT BE NEEDED:
+#        inlinedType = self.store.inlined_predicates.get(predicate.getURI()) if predicate else None            
+#        if not inlinedType and isinstance(term, Literal) and term.datatype:
+#            inlinedType = self.store.inlined_datatypes.get(term.datatype)
+#        if inlinedType:
+#            #raise UnimplementedMethodException("Inlined literals are not yet implemented")
+#            #return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
+#            return term
+        return term
     
     def createRange(self, lowerBound, upperBound):
         """

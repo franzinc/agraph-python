@@ -82,26 +82,26 @@ class Repository:
         """
         #clearIt = False
         quotedDbName = urllib.quote_plus(self.database_name)
-        conn = self.mini_catalog
+        miniCat = self.mini_catalog
         if self.access_verb == Repository.RENEW:
-            if quotedDbName in conn.listTripleStores():
+            if quotedDbName in miniCat.listTripleStores():
                 ## not nice, since someone else probably has it open:
-                conn.deleteTripleStore(quotedDbName)
+                miniCat.deleteTripleStore(quotedDbName)
             self._create_triple_store(quotedDbName)                    
         elif self.access_verb == Repository.CREATE:
-            if quotedDbName in conn.listTripleStores():
+            if quotedDbName in miniCat.listTripleStores():
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
                     quotedDbName)
             self._create_triple_store(quotedDbName)
         elif self.access_verb == Repository.OPEN:
-            if not quotedDbName in conn.listTripleStores():
+            if not quotedDbName in miniCat.listTripleStores():
                 raise ServerException(
                     "Can't open a triple store named '%s' because there is none.", quotedDbName)
         elif self.access_verb == Repository.ACCESS:
-            if not quotedDbName in conn.listTripleStores():
+            if not quotedDbName in miniCat.listTripleStores():
                 self._create_triple_store(quotedDbName)      
-        self.mini_repository = conn.getRepository(quotedDbName)
+        self.mini_repository = miniCat.getRepository(quotedDbName)
 #        ## we are done unless a RENEW requires us to clear the store
 #        if clearIt:
 #            self.mini_repository.deleteMatchingStatements(None, None, None, None)
