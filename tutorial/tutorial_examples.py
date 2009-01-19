@@ -399,8 +399,7 @@ def test14():
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setBinding("s", alice)
-    result = tupleQuery.evaluate()
-    return
+    result = tupleQuery.evaluate()    
     print "Facts about Alice:"
     for r in result: print r  
     tupleQuery.setBinding("s", bob)
@@ -422,15 +421,14 @@ def test15():
     bob = f.createURI(namespace=exns, localname="bob")
     carol = f.createURI(namespace=exns, localname="carol")    
     age = f.createURI(namespace=exns, localname="age")    
-    range = f.createRange(30, 50)
-    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
-    if True: myRepository.registerInlinedDatatype(datatype=XMLSchema.INT, inlinedType="int")    
-    ## THIS IS A TODO:
-    #myRepository.inlineStandardDatatypes()
+    range = f.createRange(20, 40)
+    if True: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
+    if False: myRepository.registerInlinedDatatype(datatype=XMLSchema.INT, inlinedType="int")    
     conn.add(alice, age, 42)
-    conn.add(bob, age, 24)    
-    conn.add(carol, age, "39")        
-    rows = conn.getStatements(None, age, range)
+    conn.add(bob, age, 24) 
+    conn.add(carol, age, "39") 
+    #rows = conn.getStatements(None, age, range)    
+    rows = conn.getStatements(None, age, (30,50))
     for r in rows:
         print r 
 
@@ -536,7 +534,7 @@ def test27 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,15)]
-    choices = [16]
+    choices = [15]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
