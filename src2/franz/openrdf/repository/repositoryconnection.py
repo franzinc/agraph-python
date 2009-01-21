@@ -32,6 +32,7 @@ from franz.openrdf.model.statement import Statement
 from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
 from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
 from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.query import query as query_module
 
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
@@ -511,6 +512,7 @@ class RepositoryConnection(object):
     def addRule(self, rule, language=None):
         language = language or self.ruleLanguage
         if language == QueryLanguage.PROLOG:
+            rule = query_module.expandPrologQueryPrefixes(rule, self)
             self.mini_repository.definePrologFunctor(rule)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
