@@ -240,8 +240,11 @@ class RepositoryConnection(object):
             endTerm = term.getUpperBound()
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         elif isinstance(term, (tuple, list)):
+            factory = self.getValueFactory()
             beginTerm = factory.object_position_term_to_openrdf_term(term[0])
+            factory.validateRangeConstant(beginTerm, predicate_for_object)
             endTerm = factory.object_position_term_to_openrdf_term(term[1])
+            factory.validateRangeConstant(endTerm, predicate_for_object)            
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         elif predicate_for_object:
             term = factory.object_position_term_to_openrdf_term(term, predicate=predicate_for_object)

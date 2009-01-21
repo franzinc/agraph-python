@@ -112,6 +112,26 @@ class ValueFactory(object):
 ## Extension to Sesame API
 #############################################################################
 
+    def validateRangeConstant(self, term, predicate):
+        datatype = term.getDatatype()
+        if not datatype:
+            raise Exception("Illegal term in range expression '%s' needs to have a datatype." % term.getValue())
+        rep = self.store.getConnection().repository
+        if rep.mapped_datatypes.get(datatype): return
+        elif predicate and rep.mapped_predicates.get(predicate.getURI()): return
+        else:
+            raise Exception("Illegal term in range expression '%s' with datatype '%s' does not have a datatype or predicate mapping." %
+                             (term.getValue(), datatype))
+
+    def validateCompoundLiteral(self, term, predicate):
+        """
+        Check to see if range boundaries are mapped.
+        """
+        if not isinstance(term, CompoundLiteral): return
+        if term.choice == CompoundLiteral.RANGE_LITERAL:
+            self.validateRangeConstant(term.lowerBound, predicate)
+            self.validateRangeConstant(term.upperBound, predicate)            
+
         
     def object_position_term_to_openrdf_term(self, term, predicate=None):
         """
@@ -119,19 +139,10 @@ class ValueFactory(object):
         a Literal term.  Otherwise, if its a Value, just pass it through.
         """
         if term is None: return term
-        if isinstance(term, CompoundLiteral): return term
-        if not isinstance(term, Value):
+        if isinstance(term, CompoundLiteral): 
+            self.validateCompoundLiteral(term, predicate)
+        elif not isinstance(term, Value):
             term = self.createLiteral(term)
-        ## ONCE UPON A TIME, I IMPLEMENTED CLIENT-SIDE ENCODED LITERALS, EMULATING THE OLD JAVA
-        ## CLIENT.  NOW, MY RECOLLECTION IS THAT THEY ARE HANDLED SERVER-SIDE IN THE HTTPD SERVER
-        ## IN THAT CASE THIS CODE SHOULD NOT BE NEEDED:
-#        inlinedType = self.store.inlined_predicates.get(predicate.getURI()) if predicate else None            
-#        if not inlinedType and isinstance(term, Literal) and term.datatype:
-#            inlinedType = self.store.inlined_datatypes.get(term.datatype)
-#        if inlinedType:
-#            #raise UnimplementedMethodException("Inlined literals are not yet implemented")
-#            #return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
-#            return term
         return term
     
     def createRange(self, lowerBound, upperBound):

@@ -41,6 +41,8 @@ class Literal(Value):
         self.label = label
 
     def getLabel(self): return self.label
+    
+    def getValue(self): return self.getLabel()
 
     def setLabel(self, label): self.label = label    
     

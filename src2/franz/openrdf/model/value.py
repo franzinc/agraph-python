@@ -79,6 +79,8 @@ class URI(Resource):
         """
         return self.uri
     
+    def getValue(self): return self.getURI()
+    
     def getLocalName(self):
         pos = uris.getLocalNameIndex(self.getURI())
         return self.uri[pos:]

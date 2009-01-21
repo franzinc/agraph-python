@@ -57,8 +57,8 @@ class Repository:
         self.value_factory = None
         self.is_initialized = False
         self.federated_triple_stores = None
-        self.inlined_predicates = {}
-        self.inlined_datatypes = {}
+        self.mapped_predicates = {}
+        self.mapped_datatypes = {}
          
     def getDatabaseName(self):
         """
@@ -182,11 +182,11 @@ class Repository:
                 raise IllegalArgumentException("Missing 'inlinedType' parameter in call to 'registerInlinedDatatype'")
             lispType = self._translate_inlined_type(inlinedType)
             mapping = [predicate, lispType, "predicate"]
-            self.inlined_predicates[predicate] = lispType
+            self.mapped_predicates[predicate] = lispType
         elif datatype:
             lispType = self._translate_inlined_type(inlinedType or datatype)
             mapping = [datatype, lispType, "datatype"]
-            self.inlined_datatypes[datatype] = lispType
+            self.mapped_datatypes[datatype] = lispType
         if predicate:
             self.mini_repository.addMappedPredicate("<%s>" % predicate, lispType)            
         else:
