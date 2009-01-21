@@ -198,7 +198,6 @@ def helpExpandPrologQueryPrefixes(query, connection, startPos):
                 localName = query[colon + 1: endPos]
                 query = query.replace(query[bang + 1:endPos], "<%s%s>" % (ns, localName))
                 return helpExpandPrologQueryPrefixes(query, connection, endPos)
-    print "RETURNING", query
     return query
 
 def expandPrologQueryPrefixes(query, connection):
