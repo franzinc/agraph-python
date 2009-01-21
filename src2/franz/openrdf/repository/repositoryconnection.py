@@ -526,12 +526,16 @@ class RepositoryConnection(object):
     
     def _get_namespaces_map(self):
         map = RepositoryConnection.NAMESPACES_MAP
+        ## HMM. THE HTTPD SERVER IS NOW ROBUST WITH NAMESPACE SUBSTITUTIONS, SO WE
+        ## DON'T REALLY NEED TO SEED THE MAP ANYMORE:
         if not map:
             map.update({"rdf": RDF.NAMESPACE, 
                         "rdfs": RDFS.NAMESPACE,
                         "xsd": XMLSchema.NAMESPACE,
                         "owl": OWL.NAMESPACE, 
-                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/",                                             
+                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/", 
+                        "dc": "http://purl.org/dc/elements/1.1/",
+                        "dcterms": "http://purl.org/dc/terms/",                                            
                         })
         return map
     

@@ -422,7 +422,7 @@ def test15():
     carol = f.createURI(namespace=exns, localname="carol")    
     age = f.createURI(namespace=exns, localname="age")    
     range = f.createRange(20, 40)
-    if True: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
+    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
     if False: myRepository.registerInlinedDatatype(datatype=XMLSchema.INT, inlinedType="int")    
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
@@ -463,6 +463,24 @@ def test16():
     pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
+
+def test17():
+    """
+    Prolog
+    """
+    conn = test6().getConnection()
+    f = conn.getValueFactory()
+    conn.setNamespace("demo", "http://ag.franz.com/demo#");
+    queryString = """
+    (select (?team ?city)
+            (q ?team !rdf:type !demo:FootballTeam)
+            (q ?team !dc:coverage ?city))
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();     
+    for row in result:
+        print row
+    
 
 def test26():
     """
@@ -534,7 +552,7 @@ def test27 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,15)]
-    choices = [15]
+    choices = [17]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -555,6 +573,7 @@ if __name__ == '__main__':
         elif choice == 14: test14()                                                                                         
         elif choice == 15: test15()    
         elif choice == 16: test16()            
+        elif choice == 17: test17()                    
          
         elif choice == 26: test26()                                                                                              
         elif choice == 27: test27()                                                                                                      
