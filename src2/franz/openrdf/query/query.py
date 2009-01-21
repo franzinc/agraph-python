@@ -193,7 +193,7 @@ def helpExpandPrologQueryPrefixes(query, connection, startPos):
             ns = connection.getNamespace(prefix)
             if ns:
                 for i, c in enumerate(lcQuery[colon + 1:]):
-                    if not (c.isalnum() or c in ['_', '.']): break
+                    if not (c.isalnum() or c in ['_', '.', '-']): break
                 endPos = colon + i + 1 if i else len(query) + 1
                 localName = query[colon + 1: endPos]
                 query = query.replace(query[bang + 1:endPos], "<%s%s>" % (ns, localName))

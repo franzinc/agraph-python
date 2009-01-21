@@ -252,7 +252,7 @@ class RepositoryConnection(object):
         else:
             return self._to_ntriples(term)
     
-    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False):
+    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False, limit=None):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -264,7 +264,7 @@ class RepositoryConnection(object):
         obj = self._convert_term_to_mini_term(object, predicate)
         stringTuples = self.mini_repository.getStatements(subj, pred, obj,
                  self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
-        return RepositoryResult(stringTuples)
+        return RepositoryResult(stringTuples, limit=limit)
     
     COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
        
@@ -488,6 +488,34 @@ class RepositoryConnection(object):
             handler.handleNamespace(prefix, name)
         statements = self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
         handler.export(statements)
+
+    #############################################################################################
+    ## Extensions
+    #############################################################################################
+    
+    def createEnvironment(self, name):
+        self.mini_repository.createEnvironment(name)
+        
+    def deleteEnvironment(self, name):
+        self.mini_repository.deleteEnvironment(name)
+    
+    def setEnvironment(self, name):
+        self.mini_repository.setEnvironment(name)
+    
+    def listEnvironments(self):
+        return self.mini_repository.listEnvironments()
+    
+    def setRuleLanguage(self, queryLanguage):
+        self.ruleLanguage = queryLanguage
+
+    def addRule(self, rule, language=None):
+        language = language or self.ruleLanguage
+        if language == QueryLanguage.PROLOG:
+            self.mini_repository.definePrologFunctor(rule)
+        else:
+            raise Exception("Cannot add a rule because the rule language has not been set.")
+        
+
 
     #############################################################################################
     ## Server-side implementation of namespaces
