@@ -495,7 +495,8 @@ class RepositoryConnection(object):
     #############################################################################################
     
     def createEnvironment(self, name):
-        self.mini_repository.createEnvironment(name)
+        if not name in self.mini_repository.listEnvironments():
+            self.mini_repository.createEnvironment(name)
         
     def deleteEnvironment(self, name):
         self.mini_repository.deleteEnvironment(name)
@@ -510,6 +511,8 @@ class RepositoryConnection(object):
         self.ruleLanguage = queryLanguage
 
     def addRule(self, rule, language=None):
+        if not self.mini_repository.environment:
+            raise Exception("Cannot add a rule because an environment has not been set.")
         language = language or self.ruleLanguage
         if language == QueryLanguage.PROLOG:
             rule = query_module.expandPrologQueryPrefixes(rule, self)

@@ -150,6 +150,7 @@ class Query(object):
                                             infer=self.includeInferred, bindings=bindings)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
+            print "QUERY", query
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         return response
 
