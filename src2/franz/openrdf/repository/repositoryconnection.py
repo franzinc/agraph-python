@@ -499,13 +499,25 @@ class RepositoryConnection(object):
             self.mini_repository.createEnvironment(name)
         
     def deleteEnvironment(self, name):
+        """
+        Delete an environment.  This causes all rule and namespace definitions for this
+        environment to be lost.
+        """
         self.mini_repository.deleteEnvironment(name)
     
     def setEnvironment(self, name):
+        """
+        Choose an environment for execution of a Prolog query.  Rules and namespaces defined 
+        in this environment persist across user sessions.  Call 'deleteEnvironment' to start
+        with a fresh (empty) environment.
+        """
         self.createEnvironment(name)
         self.mini_repository.setEnvironment(name)
     
     def listEnvironments(self):
+        """
+        List the names of environments currently maintained by the system.
+        """
         return self.mini_repository.listEnvironments()
     
     def setRuleLanguage(self, queryLanguage):

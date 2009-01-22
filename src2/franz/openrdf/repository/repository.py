@@ -167,24 +167,24 @@ class Repository:
             raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
                     "'int', 'float', and 'datetime'")
         
-    def registerInlinedDatatype(self, predicate=None, datatype=None, inlinedType=None):
+    def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         """
         Register an inlined datatype.  If 'predicate', then object arguments to triples
-        with that predicate will use an inlined encoding of type 'inlinedType' in their 
+        with that predicate will use an inlined encoding of type 'nativeType' in their 
         internal representation.
         If 'datatype', then typed literal objects with a datatype matching 'datatype' will
-        use an inlined encoding of type 'inlinedType'.
+        use an inlined encoding of type 'nativeType'.
         """
         predicate = predicate.getURI() if isinstance(predicate, URI) else predicate
         datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
         if predicate:
-            if not inlinedType:
-                raise IllegalArgumentException("Missing 'inlinedType' parameter in call to 'registerInlinedDatatype'")
-            lispType = self._translate_inlined_type(inlinedType)
+            if not nativeType:
+                raise IllegalArgumentException("Missing 'nativeType' parameter in call to 'registerDatatypeMapping'")
+            lispType = self._translate_inlined_type(nativeType)
             mapping = [predicate, lispType, "predicate"]
             self.mapped_predicates[predicate] = lispType
         elif datatype:
-            lispType = self._translate_inlined_type(inlinedType or datatype)
+            lispType = self._translate_inlined_type(nativeType or datatype)
             mapping = [datatype, lispType, "datatype"]
             self.mapped_datatypes[datatype] = lispType
         if predicate:
