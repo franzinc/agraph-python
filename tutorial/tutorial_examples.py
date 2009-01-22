@@ -172,31 +172,31 @@ def test6():
     conn = myRepository.getConnection()
     conn.clear()   
     path1 = "./vc-db-1.rdf"    
-    path2 = "./football.nt"            
+    path2 = "./kennedy.ntriples"                
     baseURI = "http://example.org/example/local"
     context = myRepository.getValueFactory().createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
-    ## read football triples into the null context:
+    ## read kennedy triples into the null context:
     conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     myRepository.indexTriples(all=True, asynchronous=False)
-    print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i football triples in context '%s'." % (
+    print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
     verify(conn.size(context), 16, 'conn.size(context)', 6)
-    verify(conn.size('null'), 28, "conn.size('null)", 6)    
+    verify(conn.size('null'), 1214, "conn.size('null)", 6)    
     return myRepository
         
 def test7():    
     conn = test6().getConnection()
     print "Match all and print subjects and contexts"
-    result = conn.getStatements(None, None, None, None)
+    result = conn.getStatements(None, None, None, None, limit=25)
     for row in result: print row.getSubject(), row.getContext()
-    print "Same thing with SPARQL query (can't retrieve triples in the null context)"
+    print "\nSame thing with SPARQL query (can't retrieve triples in the null context)"
     queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();
-    for bindingSet in result:
+    for i, bindingSet in enumerate(result):
         print bindingSet[0], bindingSet[1]
     conn.close()
 
@@ -422,8 +422,8 @@ def test15():
     carol = f.createURI(namespace=exns, localname="carol")    
     age = f.createURI(namespace=exns, localname="age")    
     range = f.createRange(20, 40)
-    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
-    if False: myRepository.registerInlinedDatatype(datatype=XMLSchema.INT, inlinedType="int")    
+    if True: myRepository.registerDatatypeMapping(predicate=age, nativeType="int")
+    if False: myRepository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")    
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
@@ -470,14 +470,37 @@ def test17():
     """
     conn = test6().getConnection()
     f = conn.getValueFactory()
-    conn.setNamespace("demo", "http://ag.franz.com/demo#");
-    queryString = """
-    (select (?team ?city)
-            (q ?team !rdf:type !demo:FootballTeam)
-            (q ?team !dc:coverage ?city))
+    #conn.createEnvironment("ronnie")
+    conn.setEnvironment("ronnie") 
+    #conn.deleteEnvironment("ronnie")    
+    conn.setNamespace("ken", "http://www.franz.com/simple#")
+
+#    queryString = """
+#    (select (?person ?name)
+#            (q ?person !rdf:type !ken:person)
+#            (q ?person !ken:sex !ken:female)
+#            (q ?person !ken:first-name ?name)
+#            )
+#    """
+#    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+#    result = tupleQuery.evaluate();     
+#    for row in result:
+#        print row
+    conn.setRuleLanguage(QueryLanguage.PROLOG)   
+    rule1 = """
+    (<-- (female ?x) ;; IF
+         (q ?x !ken:sex !ken:male))
     """
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-    result = tupleQuery.evaluate();     
+    conn.addRule(rule1)
+    queryString2 = """
+    (select (?person ?name)
+            (q ?person !rdf:type !ken:person)
+            (female ?person)
+            (q ?person !ken:first-name ?name)
+            )
+    """
+    tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)
+    result = tupleQuery2.evaluate();     
     for row in result:
         print row
     

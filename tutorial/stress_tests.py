@@ -131,7 +131,8 @@ if __name__ == '__main__':
             print "No such test exists."
             
 ## TODO LIST:
-## reified quads
 ## deleteTripleStore
-## 
+## range queries
+## reified quads
+## zip files
     
