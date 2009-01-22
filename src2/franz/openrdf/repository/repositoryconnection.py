@@ -502,6 +502,7 @@ class RepositoryConnection(object):
         self.mini_repository.deleteEnvironment(name)
     
     def setEnvironment(self, name):
+        self.createEnvironment(name)
         self.mini_repository.setEnvironment(name)
     
     def listEnvironments(self):
