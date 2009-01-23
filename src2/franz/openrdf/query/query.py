@@ -70,20 +70,22 @@ class Query(object):
         self.baseURI = baseURI
         self.dataset = None
         self.includeInferred = False
+        self.bindings = {}
 
     def setBinding(self, name, value):
         """
         Binds the specified variable to the supplied value. Any value that was
         previously bound to the specified value will be overwritten.
         """
-        self.bindings.addBinding(name, value)
+        self.bindings[name] = value
 
     def removeBinding(self, name):
         """ 
         Removes a previously set binding on the supplied variable. Calling this
         method with an unbound variable name has no effect.
         """ 
-        self.bindings.removeBinding(name)
+        if self.bindings.get(name):
+            del self.bindings[name]
 
     def getBindings(self):
         """
@@ -136,14 +138,20 @@ class Query(object):
                         self.dataset.getNamedGraphs() if self.dataset else None)
         regularContexts = self.connection._contexts_to_ntriple_contexts(
                 self.dataset.getDefaultGraphs() if self.dataset else ALL_CONTEXTS)
+        bindings = None
+        if self.bindings:
+            bindings = {}
+            for vbl, val in self.bindings.items():
+                bindings[vbl] = self.connection._convert_term_to_mini_term(val)
         mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:            
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred)            
+                                            infer=self.includeInferred, bindings=bindings)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
-            response = mini.evalPrologQuery(self.queryString, context=regularContexts, 
-                                            namedContext=namedContexts, infer=self.includeInferred)
+            query = expandPrologQueryPrefixes(self.queryString, self.connection)
+            print "QUERY", query
+            response = mini.evalPrologQuery(query, infer=self.includeInferred)
         return response
 
     @staticmethod
@@ -171,6 +179,35 @@ def splicePrefixesIntoQuery(query, connection):
         query = "PREFIX %s: <%s> %s" % (ref[0], ref[1], query)
     return query
 
+def helpExpandPrologQueryPrefixes(query, connection, startPos):
+    """
+    Convert qnames in 'query' that match prefixes with declared namespaces into full URIs.
+    """
+    lcQuery = query.lower()
+    bang = lcQuery[startPos:].find('!')
+    if bang >= 0:
+        bang = bang + startPos
+        colon = lcQuery[bang:].find(':')
+        if colon >= 0:
+            colon = bang + colon
+            prefix = lcQuery[bang + 1:colon]
+            ns = connection.getNamespace(prefix)
+            if ns:
+                for i, c in enumerate(lcQuery[colon + 1:]):
+                    if not (c.isalnum() or c in ['_', '.', '-']): break
+                endPos = colon + i + 1 if i else len(query) + 1
+                localName = query[colon + 1: endPos]
+                query = query.replace(query[bang + 1:endPos], "<%s%s>" % (ns, localName))
+                return helpExpandPrologQueryPrefixes(query, connection, endPos)
+    return query
+
+def expandPrologQueryPrefixes(query, connection):
+    """
+    Convert qnames in 'query' that match prefixes with declared namespaces into full URIs.
+    This assumes that legal chars in local names are alphanumerics and underscore and period.
+    """
+    return helpExpandPrologQueryPrefixes(query, connection, 0)
+
 class TupleQuery(Query):
     def __init__(self, queryLanguage, queryString, baseURI=None):
         Query._check_language(queryLanguage)
@@ -184,9 +221,7 @@ class TupleQuery(Query):
         (resources and literals) corresponding to the variables
         or expressions in a 'select' clause (or its equivalent).
         If 'jdbc', returns a JDBC-style iterator that miminizes the
-        overhead of creating response objects.        
-        TODO: DOESN'T TAKE DATASETS INTO ACCOUNT.  THAT NEEDS TO BE COMMUNICATED
-        TO THE SERVER SOMEHOW.      
+        overhead of creating response objects.         
         """
         response = self.evaluate_generic_query()
         if jdbc:

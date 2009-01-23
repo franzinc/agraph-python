@@ -29,14 +29,16 @@ from franz.openrdf.model.valuefactory import CompoundLiteral
 from franz.openrdf.repository.repositoryresult import RepositoryResult
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.model.statement import Statement
-from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery
+from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
 from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
 from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.query import query as query_module
 
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.util import uris
 
 # * Main interface for updating data in and performing queries on a Sesame
 # * repository. By default, a RepositoryConnection is in autoCommit mode, meaning
@@ -136,7 +138,18 @@ class RepositoryConnection(object):
         query = BooleanQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
-
+    
+    def getContextIDs(self):
+        """
+        Return a list of context resources, one for each context referenced by a quad in 
+        the triple store.  Omit the default context, since no one had the intelligence to
+        make it a first-class object.
+        """                         
+        print "Executing relatively slow computation to compute the set of contexts."
+        queryString = "select distinct ?c where {graph ?c {?s ?p ?o}}"
+        query = self.prepareTupleQuery(QueryLanguage.SPARQL, queryString, None)
+        result = query.evaluate()
+        return [bs[0] for bs in result]
 
 
 #     * Returns the number of (explicit) statements that are in the specified
@@ -228,8 +241,11 @@ class RepositoryConnection(object):
             endTerm = term.getUpperBound()
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         elif isinstance(term, (tuple, list)):
+            factory = self.getValueFactory()
             beginTerm = factory.object_position_term_to_openrdf_term(term[0])
+            factory.validateRangeConstant(beginTerm, predicate_for_object)
             endTerm = factory.object_position_term_to_openrdf_term(term[1])
+            factory.validateRangeConstant(endTerm, predicate_for_object)            
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         elif predicate_for_object:
             term = factory.object_position_term_to_openrdf_term(term, predicate=predicate_for_object)
@@ -237,7 +253,7 @@ class RepositoryConnection(object):
         else:
             return self._to_ntriples(term)
     
-    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False):
+    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False, limit=None):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -249,7 +265,7 @@ class RepositoryConnection(object):
         obj = self._convert_term_to_mini_term(object, predicate)
         stringTuples = self.mini_repository.getStatements(subj, pred, obj,
                  self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
-        return RepositoryResult(stringTuples)
+        return RepositoryResult(stringTuples, limit=limit)
     
     COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
        
@@ -266,7 +282,7 @@ class RepositoryConnection(object):
                  self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
         return JDBCResultSet(stringTuples, column_names = RepositoryConnection.COLUMN_NAMES)
 
-    def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None):
+    def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
         """
         Calls addTriple, addStatement, or addFile.  If 'contexts' is not
         specified, adds to the null context.
@@ -280,7 +296,7 @@ class RepositoryConnection(object):
                 context = contexts[0]
             else:
                 context = None
-            return self.addFile(arg0, base=base, format=format, context=context)
+            return self.addFile(arg0, base=base, format=format, context=context, serverSide=serverSide)
         elif isinstance(arg0, Value):
             return self.addTriple(arg0, arg1, arg2, contexts=contexts)
         elif isinstance(arg0, Statement):
@@ -404,13 +420,18 @@ class RepositoryConnection(object):
         Removes the statement(s) with the specified subject, predicate and object
         from the repository, optionally restricted to the specified contexts.
         """
-        obj = self.getValueFactory().object_position_term_to_openrdf_term(object)
+        subj = self._to_ntriples(subject)
+        pred = self._to_ntriples(predicate)
+        obj = self._to_ntriples(self.getValueFactory().object_position_term_to_openrdf_term(object))
         ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
-        ## THIS IS BOGUS FOR 'None' CONTEXT; COMPLETELY AMBIGUOUS:
-        ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)        
-        self.mini_repository.deleteMatchingStatements(self._to_ntriples(subject),
-                self._to_ntriples(predicate), self._to_ntriples(obj),
-                self._to_ntriples(contexts) if contexts else ntripleContexts)
+        ## THIS IS BOGUS FOR 'None' CONTEXT???; COMPLETELY AMBIGUOUS:  (NOT SURE IF THIS IS AN OLD STATEMENT)
+        ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)   
+        if len(ntripleContexts) == 0:
+            self.mini_repository.deleteMatchingStatements(subj, pred, obj, None)
+        else:
+            for cxt in ntripleContexts:
+                self.mini_repository.deleteMatchingStatements(subj, pred, obj, cxt)
+
    
 #     * Removes the supplied statement from the specified contexts in the
 #     * repository.
@@ -470,6 +491,51 @@ class RepositoryConnection(object):
         handler.export(statements)
 
     #############################################################################################
+    ## Extensions
+    #############################################################################################
+    
+    def createEnvironment(self, name):
+        if not name in self.mini_repository.listEnvironments():
+            self.mini_repository.createEnvironment(name)
+        
+    def deleteEnvironment(self, name):
+        """
+        Delete an environment.  This causes all rule and namespace definitions for this
+        environment to be lost.
+        """
+        self.mini_repository.deleteEnvironment(name)
+    
+    def setEnvironment(self, name):
+        """
+        Choose an environment for execution of a Prolog query.  Rules and namespaces defined 
+        in this environment persist across user sessions.  Call 'deleteEnvironment' to start
+        with a fresh (empty) environment.
+        """
+        self.createEnvironment(name)
+        self.mini_repository.setEnvironment(name)
+    
+    def listEnvironments(self):
+        """
+        List the names of environments currently maintained by the system.
+        """
+        return self.mini_repository.listEnvironments()
+    
+    def setRuleLanguage(self, queryLanguage):
+        self.ruleLanguage = queryLanguage
+
+    def addRule(self, rule, language=None):
+        if not self.mini_repository.environment:
+            raise Exception("Cannot add a rule because an environment has not been set.")
+        language = language or self.ruleLanguage
+        if language == QueryLanguage.PROLOG:
+            rule = query_module.expandPrologQueryPrefixes(rule, self)
+            self.mini_repository.definePrologFunctor(rule)
+        else:
+            raise Exception("Cannot add a rule because the rule language has not been set.")
+        
+
+
+    #############################################################################################
     ## Server-side implementation of namespaces
     #############################################################################################
       
@@ -509,12 +575,16 @@ class RepositoryConnection(object):
     
     def _get_namespaces_map(self):
         map = RepositoryConnection.NAMESPACES_MAP
+        ## HMM. THE HTTPD SERVER IS NOW ROBUST WITH NAMESPACE SUBSTITUTIONS, SO WE
+        ## DON'T REALLY NEED TO SEED THE MAP ANYMORE:
         if not map:
             map.update({"rdf": RDF.NAMESPACE, 
                         "rdfs": RDFS.NAMESPACE,
                         "xsd": XMLSchema.NAMESPACE,
                         "owl": OWL.NAMESPACE, 
-                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/",                                             
+                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/", 
+                        "dc": "http://purl.org/dc/elements/1.1/",
+                        "dcterms": "http://purl.org/dc/terms/",                                            
                         })
         return map
     
@@ -527,14 +597,17 @@ class RepositoryConnection(object):
     def getNamespace(self, prefix):
         """
         Return the namespace that is associated with the specified prefix, if any.
-        """
+        """        
         return self._get_namespaces_map().get(prefix.lower())
 
     def setNamespace(self, prefix, namespace):
         """
         Define (or redefine) a namespace 'namespace' for 'prefix'
         """
+        uris.validateNamespace(namespace, True)
         self._get_namespaces_map()[prefix.lower()] = namespace
+        if self.mini_repository.environment:
+            self.mini_repository.addNamespace(prefix, namespace)
 
     def removeNamespace(self, prefix):
         """

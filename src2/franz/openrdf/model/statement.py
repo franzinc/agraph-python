@@ -43,15 +43,15 @@ class Statement:
             ## In general the number of different predicates in sets of
             ## statements is the smallest, so predicate equality is checked
             ## last.
-        spoEqual = self.object.__eq__(other.getObject()) and self.subject.__eq__(other.getSubject()) \
-                and self.predicate.__eq__(other.getPredicate())
+        spoEqual = self.getObject().__eq__(other.getObject()) and self.getSubject().__eq__(other.getSubject()) \
+                and self.getPredicate().__eq__(other.getPredicate())
         if self.context:
-            return spoEqual and self.context.__eq__(other.getContext())
+            return spoEqual and self.getContext().__eq__(other.getContext())
         else:
             return spoEqual
 
     def __hash__(self):
-        return 961 * self.subject.__hash__() + 31 * self.predicate.__hash__() + self.object.__hash__();
+        return 961 * self.getSubject().__hash__() + 31 * self.getPredicate().__hash__() + self.getObject().__hash__();
 
     def __str__(self):
         sb= []
@@ -125,6 +125,9 @@ class Statement:
             uri = string_term[1:-1]
             return URI(uri)
         elif string_term[0] == '"':
+            lastPos = string_term.rfind('"')
+            if lastPos == len(string_term) - 1:
+                return Literal(string_term[1:-1])
             ## we have a double-quoted literal with either a data type or a language indicator
             caratPos = string_term.find('^^')
             if caratPos >= 0:
@@ -155,6 +158,10 @@ class Statement:
             uri = string_term[1:-1]
             return uri
         elif string_term[0] == '"':
+            ## look for the trailing double quote:
+            lastPos = string_term.rfind('"')
+            if lastPos == len(string_term) - 1:
+                return string_term[1:-1]
             ## we have a double-quoted literal with either a data type or a language indicator
             caratPos = string_term.find('^^')
             if caratPos >= 0:

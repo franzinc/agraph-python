@@ -72,7 +72,7 @@ class TupleQueryResult(QueryResult):
     free any resources it keeps hold of.
     """
     def __init__(self, variable_names, string_tuples):
-        self.variableNames = [v[1:] for v in variable_names]  ## strip off question marks
+        self.variableNames = variable_names
         self.string_tuples = string_tuples
         self.cursor = 0        
         self.tuple_width = len(variable_names)
@@ -122,7 +122,7 @@ class DictBindingSet(dict):
         if index >= 0 and index < len(self.string_tuple): return index
         else:
             raise IllegalArgumentException("Out-of-bounds index passed to BindingSet." +
-                                           "  Index must be between 1 and %s, inclusive." % len(self.string_tuple)) 
+                                           "  Index must be between 0 and %i, inclusive." % (len(self.string_tuple) - 1)) 
             
     def _get_ith_value(self, index):
         term = self.reusable_row[index]
@@ -133,7 +133,8 @@ class DictBindingSet(dict):
         
     def __getitem__(self, key):
         if isinstance(key, int): 
-            return self.string_tuple[self._validate_index(key)]
+            #return self.string_tuple[self._validate_index(key)]
+            return self._get_ith_value(self._validate_index(key))
         else:
             for i in range(len(self.variable_names)):
                 if key == self.variable_names[i]:

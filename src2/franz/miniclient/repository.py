@@ -22,6 +22,11 @@ class Catalog:
         """Ask the server to create a new triple store."""
         nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name))
 
+    def federateTripleStores(self, name, storeNames):
+        """Create a federated store."""
+        nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
+                    "?" + urlenc(federate=storeNames))
+
     def deleteTripleStore(self, name):
         """Delete a server-side triple store."""
         nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
@@ -54,7 +59,8 @@ class Repository:
     def isWriteable(self):
         return jsonRequest(self.curl, "GET", self.url + "/writeable")
 
-    def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None):
+    def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
+                        bindings=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -62,9 +68,12 @@ class Repository:
         lists of lists of terms. CONSTRUCT and DESCRIBE return a list
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
+        if (bindings is not None):
+            bindings = [a + " " + b for a, b in bindings.items()]
         return jsonRequest(self.curl, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                                  environment=self.environment), rowreader=callback and RowReader(callback))
+                                  environment=self.environment, bind=bindings),
+                           rowreader=callback and RowReader(callback))
 
     def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
         """Execute a Prolog query. Returns a {names, values} object."""
@@ -134,6 +143,9 @@ class Repository:
         params = urlenc(file=file, context=context, baseURI=baseURI)
         nullRequest(self.curl, "POST", self.url + "/statements?" + params, body, contentType=mime)
 
+    def getBlankNodes(self, amount=1):
+        return jsonRequest(self.curl, "POST", self.url + "/blankNodes", urlenc(amount=amount))
+
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""
         nullRequest(self.curl, "POST", self.url + "/statements/delete", cjson.encode(quads), contentType="application/json")
@@ -159,12 +171,12 @@ class Repository:
         True, the whole repository is re-indexed."""
         nullRequest(self.curl, "POST", self.url + "/indexing", urlenc(all=all))
 
-    def setIndexingTripleTreshold(self, size=None):
-        nullRequest(self.curl, "PUT", self.url + "/indexing/tripleTreshold", "%d" % (size or 0),
+    def setIndexingTripleThreshold(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/indexing/tripleThreshold", "%d" % (size or 0),
                     contentType="text/plain")
 
-    def setIndexingChunkTreshold(self, size=None):
-        nullRequest(self.curl, "PUT", self.url + "/indexing/chunkTreshold", "%d" % (size or 0),
+    def setIndexingChunkThreshold(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/indexing/chunkThreshold", "%d" % (size or 0),
                     contentType="text/plain")
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None):
@@ -287,9 +299,9 @@ def openRep (name="test"):
 
 def makeTerm(term, is_literal=False):
     if is_literal:
-        return "\"" + term.replace("\"", "\\\"") + "\"";
+        return "\"" + term.replace("\"", "\\\"") + "\""
     elif not term == None:
-        return "<" + term + ">";
+        return "<" + term + ">"
     else:
         return None
 
@@ -298,13 +310,16 @@ def makeStatement(subject, predicate, object, context=None, is_literal=False):
             makeTerm(context)]
 
 def test1():
-    rep = openRep();
-    print("Adding statements ...");
-    ns = "http://example.org#";
+    rep = openRep()
+    print("Adding statements ...")
+    ns = "http://example.org#"
     stmts = []
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts)
+    print rep.listMappedTypes()
+    rep.addMappedType("<http://foo.com/type>", "int")
+    print rep.listMappedTypes()
     print "Repository size = ", rep.getSize()
 
 if __name__ == '__main__':

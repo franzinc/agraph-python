@@ -35,15 +35,15 @@ def test0():
         print "Hello World"
         time.sleep(5)
 
-def test1():
+def test1(accessMode=Repository.RENEW):
     """
     Tests getting the repository up.  Is called by the other tests to do the startup.
     """
     server = AllegroGraphServer("localhost", port=8080)
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('agraph')          
+    catalog = server.openCatalog('scratch')  
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
-    myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
+    myRepository = catalog.getRepository("agraph_test", accessMode)
     myRepository.initialize()
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), myRepository.getConnection().size())
@@ -55,6 +55,7 @@ def test2():
     ## create some resources and literals to make statements out of
     alice = f.createURI("http://example.org/people/alice")
     bob = f.createURI("http://example.org/people/bob")
+    #bob = f.createBNode()
     name = f.createURI("http://example.org/ontology/name")
     person = f.createURI("http://example.org/ontology/Person")
     bobsName = f.createLiteral("Bob")
@@ -102,6 +103,7 @@ def test4():
     conn = myRepository.getConnection()
     alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
     statements = conn.getStatements(alice, None, None)
+    statements.enableDuplicateFilter() ## there are no duplicates, but this exercises the code that checks
     verify(statements.rowCount(), 2, 'statements.rowCount()', 3)
     for s in statements:
         print s
@@ -170,31 +172,31 @@ def test6():
     conn = myRepository.getConnection()
     conn.clear()   
     path1 = "./vc-db-1.rdf"    
-    path2 = "./football.nt"            
+    path2 = "./kennedy.ntriples"                
     baseURI = "http://example.org/example/local"
     context = myRepository.getValueFactory().createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
-    ## read football triples into the null context:
+    ## read kennedy triples into the null context:
     conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     myRepository.indexTriples(all=True, asynchronous=False)
-    print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i football triples in context '%s'." % (
+    print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
     verify(conn.size(context), 16, 'conn.size(context)', 6)
-    verify(conn.size('null'), 28, "conn.size('null)", 6)    
+    verify(conn.size('null'), 1214, "conn.size('null)", 6)    
     return myRepository
         
 def test7():    
     conn = test6().getConnection()
     print "Match all and print subjects and contexts"
-    result = conn.getStatements(None, None, None, None)
+    result = conn.getStatements(None, None, None, None, limit=25)
     for row in result: print row.getSubject(), row.getContext()
-    print "Same thing with SPARQL query (can't retrieve triples in the null context)"
+    print "\nSame thing with SPARQL query (can't retrieve triples in the null context)"
     queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();
-    for bindingSet in result:
+    for i, bindingSet in enumerate(result):
         print bindingSet[0], bindingSet[1]
     conn.close()
 
@@ -388,6 +390,25 @@ def test13():
     
 def test14():
     """
+    Parametric queries
+    """
+    conn = test2().getConnection()
+    f = conn.getValueFactory()
+    alice = f.createURI("http://example.org/people/alice")
+    bob = f.createURI("http://example.org/people/bob")
+    queryString = """select ?s ?p ?o where { ?s ?p ?o} """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setBinding("s", alice)
+    result = tupleQuery.evaluate()    
+    print "Facts about Alice:"
+    for r in result: print r  
+    tupleQuery.setBinding("s", bob)
+    print "Facts about Bob:"    
+    result = tupleQuery.evaluate()
+    for r in result: print r  
+    
+def test15():
+    """
     Range matches
     """
     myRepository = test1();
@@ -399,20 +420,92 @@ def test14():
     alice = f.createURI(namespace=exns, localname="alice")
     bob = f.createURI(namespace=exns, localname="bob")
     carol = f.createURI(namespace=exns, localname="carol")    
-    age = f.createURI(namespace=exns, localname="age")
-    range = f.createRange(30, 50)
-    if False: myRepository.registerInlinedDatatype(predicate=age, inlinedType="int")
-    ## THIS IS A TODO:
-    #myRepository.inlineStandardDatatypes()
+    age = f.createURI(namespace=exns, localname="age")    
+    range = f.createRange(20, 40)
+    if True: myRepository.registerDatatypeMapping(predicate=age, nativeType="int")
+    if False: myRepository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")    
     conn.add(alice, age, 42)
-    conn.add(bob, age, 24)    
-    conn.add(carol, age, "39")        
-    rows = conn.getStatements(None, age, range)
+    conn.add(bob, age, 24) 
+    conn.add(carol, age, "39") 
+    #rows = conn.getStatements(None, age, range)    
+    rows = conn.getStatements(None, age, (30,50))
     for r in rows:
         print r 
-        
 
-def test15():
+def test16():
+    """
+    Federated triple stores.
+    """
+    def pt(kind, rows):
+        print "\n%s Apples:\t" % kind.capitalize(),
+        for r in rows: print r[0].getLocalName(),
+    
+    catalog = AllegroGraphServer("localhost", port=8080).openCatalog('scratch') 
+    ## create two ordinary stores, and one federated store: 
+    redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
+    rf = redConn.getValueFactory()
+    greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
+    gf = greenConn.getValueFactory()    
+    rainbowConn = (catalog.getRepository("rainbowthings", Repository.RENEW)
+                         .addFederatedTripleStores(["redthings", "greenthings"]).initialize().getConnection())
+    rbf = rainbowConn.getValueFactory()
+    ex = "http://www.demo.com/example#"
+    ## add a few triples to the red and green stores:
+    redConn.add(rf.createURI(ex+"mcintosh"), RDF.TYPE, rf.createURI(ex+"Apple"))
+    redConn.add(rf.createURI(ex+"reddelicious"), RDF.TYPE, rf.createURI(ex+"Apple"))    
+    greenConn.add(gf.createURI(ex+"pippin"), RDF.TYPE, gf.createURI(ex+"Apple"))
+    greenConn.add(gf.createURI(ex+"kermitthefrog"), RDF.TYPE, gf.createURI(ex+"Frog"))
+    redConn.setNamespace('ex', ex)
+    greenConn.setNamespace('ex', ex)
+    rainbowConn.setNamespace('ex', ex)        
+    queryString = "select ?s where { ?s rdf:type ex:Apple }"
+    ## query each of the stores; observe that the federated one is the union of the other two:
+    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
+    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
+    pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
+
+def test17():
+    """
+    Prolog
+    """
+    conn = test6().getConnection()
+    f = conn.getValueFactory()
+    #conn.createEnvironment("ronnie")
+    conn.setEnvironment("ronnie") 
+    #conn.deleteEnvironment("ronnie")    
+    conn.setNamespace("ken", "http://www.franz.com/simple#")
+
+#    queryString = """
+#    (select (?person ?name)
+#            (q ?person !rdf:type !ken:person)
+#            (q ?person !ken:sex !ken:female)
+#            (q ?person !ken:first-name ?name)
+#            )
+#    """
+#    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+#    result = tupleQuery.evaluate();     
+#    for row in result:
+#        print row
+    conn.setRuleLanguage(QueryLanguage.PROLOG)   
+    rule1 = """
+    (<-- (female ?x) ;; IF
+         (q ?x !ken:sex !ken:male))
+    """
+    conn.addRule(rule1)
+    queryString2 = """
+    (select (?person ?name)
+            (q ?person !rdf:type !ken:person)
+            (female ?person)
+            (q ?person !ken:first-name ?name)
+            )
+    """
+    tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)
+    result = tupleQuery2.evaluate();     
+    for row in result:
+        print row
+    
+
+def test26():
     """
     Queries per second.
     """
@@ -454,10 +547,35 @@ def test15():
             #while result.next(): count += 1
         print "Did %d %d-row queries in %f seconds." % (reps, count, time.time() - t)
 
+def test27 ():
+    """ CIA FACTBOOK """
+    myRepository = test1(Repository.ACCESS)
+    conn = myRepository.getConnection()
+    f = myRepository.getValueFactory()
+    if conn.size() == 0:
+        print "Reading CIA Fact Book file."
+        path1 = "/FRANZ_CONSULTING/data/ciafactbook.nt"    
+        baseURI = "http://example.org/example/local"
+        conn.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, serverSide=True)
+    myRepository.indexTriples(True);
+    t = time.time()
+    count = 0
+    resultSet = conn.getJDBCStatements(None, None, None, None)
+    while resultSet.next(): count += 1
+    print "Did %d-row matches in %f seconds." % (count, time.time() - t)
+    queryString = "select ?x ?y ?z {?x ?y ?z}"
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    t = time.time()
+    count = 0
+    result = tupleQuery.evaluate(); 
+    for row in result: count += 1
+    print "Did %d-row queries in %f seconds." % (count, time.time() - t)
+    
 
+    
 if __name__ == '__main__':
-    choices = [i for i in range(1,14)]
-    #choices = [14]
+    choices = [i for i in range(1,15)]
+    choices = [17]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -476,8 +594,12 @@ if __name__ == '__main__':
         elif choice == 12: test12()                                                                                   
         elif choice == 13: test13()  
         elif choice == 14: test14()                                                                                         
-        elif choice == 15: test15()     
-        elif choice == 16: test16()                                                                                              
+        elif choice == 15: test15()    
+        elif choice == 16: test16()            
+        elif choice == 17: test17()                    
+         
+        elif choice == 26: test26()                                                                                              
+        elif choice == 27: test27()                                                                                                      
         else:
             print "No such test exists."
     

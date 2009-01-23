@@ -51,7 +51,7 @@ from franz.openrdf.exceptions import *
 ##         characters. Every legal (non-relative) URI contains at least one
 ##         ':' character to separate the scheme from the rest of the URI.
 def getLocalNameIndex(uri):
-    separatorIdx = uri.find('#')
+    separatorIdx = uri.rfind('#')
     if (separatorIdx < 0):
         separatorIdx = uri.rfind('/')
     if (separatorIdx < 0):
@@ -59,6 +59,15 @@ def getLocalNameIndex(uri):
     if (separatorIdx < 0):
         raise IllegalArgumentException("No separator character founds in URI: " + uri)
     return separatorIdx + 1
+
+def validateNamespace(ns, exception_if_error=False):
+    if not ns:
+        if exception_if_error: raise BadFormatException("Namespace is empty.")
+        else: return False;
+    if not ns[len(ns)-1] in "#/:":
+        if exception_if_error: raise BadFormatException("Illegal namespace; must end with '#', '/', or ':'  %s" % ns)
+        else: return False
+    return True
 
 ## Checks whether the URI consisting of the specified namespace and local
 ## name has been split correctly according to the URI splitting rules

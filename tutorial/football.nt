@@ -4,15 +4,15 @@
 
 <http://ag.franz.com/demo#arsenalfc> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ag.franz.com/demo#FootballTeam> .
 <http://ag.franz.com/demo#arsenalfc> <http://www.w3.org/2000/01/rdf-schema#label> "Arsenal FC" .
-<http://ag.franz.com/demo#arsenalfc>	<http://purl.org/dc/terms/coverage> <http://ag.franz.com/demo#londonuk> .
+<http://ag.franz.com/demo#arsenalfc>	<http://purl.org/dc/elements/1.1/coverage> <http://ag.franz.com/demo#londonuk> .
 
 <http://ag.franz.com/demo#liverpoolfc> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ag.franz.com/demo#FootballTeam> .
 <http://ag.franz.com/demo#liverpoolfc> <http://www.w3.org/2000/01/rdf-schema#label> "Liverpool FC" .
-<http://ag.franz.com/demo#liverpoolfc>	<http://purl.org/dc/terms/coverage> <http://ag.franz.com/demo#liverpooluk> .
+<http://ag.franz.com/demo#liverpoolfc>	<http://purl.org/dc/elements/1.1/coverage> <http://ag.franz.com/demo#liverpooluk> .
 
 <http://ag.franz.com/demo#afcajax> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ag.franz.com/demo#FootballTeam> .
 <http://ag.franz.com/demo#afcajax> <http://www.w3.org/2000/01/rdf-schema#label> "AFC Ajax" .
-<http://ag.franz.com/demo#afcajax>	<http://purl.org/dc/terms/coverage> <http://ag.franz.com/demo#amsterdam> .
+<http://ag.franz.com/demo#afcajax>	<http://purl.org/dc/elements/1.1/coverage> <http://ag.franz.com/demo#amsterdam> .
 
 <http://ag.franz.com/demo#londonuk> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ag.franz.com/demo#City> .
 <http://ag.franz.com/demo#londonuk> <http://www.w3.org/2000/01/rdf-schema#label> "London" .

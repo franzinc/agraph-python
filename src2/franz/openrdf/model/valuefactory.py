@@ -36,6 +36,7 @@ class ValueFactory(object):
     """
     A factory for creating URIs, blank nodes, literals and statements.
     """
+    BLANK_NODE_AMOUNT = 10    
     def __init__(self, store):
         self.store = store
         RDF.initialize(self)
@@ -43,11 +44,20 @@ class ValueFactory(object):
         XMLSchema.initialize(self)
         OWL.initialize(self)
         self.store.getConnection().setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
+        self.unusedBNodeIds = []
+        
+    def getUnusedBNodeId(self):
+        if not self.unusedBNodeIds:
+            ## retrieve a set of bnode ids (they include leading '_:', which we strip off later:
+            self.unusedBNodeIds = self.store.mini_repository.getBlankNodes(amount=ValueFactory.BLANK_NODE_AMOUNT)
+        return self.unusedBNodeIds.pop()[2:] ## strip off leading '_:'
 
     def createBNode(self, nodeID=None):
         """
         Creates a new blank node with the given node identifier.
         """
+        if not nodeID:
+            nodeID = self.getUnusedBNodeId()
         return BNode(nodeID)
     
     @staticmethod
@@ -78,6 +88,8 @@ class ValueFactory(object):
         Create a new literal with value 'value'.  'datatype' if supplied,
         should be a URI, in which case 'value' should be a string.
         """
+        if isinstance(value, (tuple, list)) and len(value) == 2:
+            return self.createRange(value[0], value[1])
         value, datatype = ValueFactory._interpret_value(value, datatype)
         return Literal(value, datatype=datatype, language=language)
         
@@ -100,6 +112,26 @@ class ValueFactory(object):
 ## Extension to Sesame API
 #############################################################################
 
+    def validateRangeConstant(self, term, predicate):
+        datatype = term.getDatatype()
+        if not datatype:
+            raise Exception("Illegal term in range expression '%s' needs to have a datatype." % term.getValue())
+        rep = self.store.getConnection().repository
+        if rep.mapped_datatypes.get(datatype): return
+        elif predicate and rep.mapped_predicates.get(predicate.getURI()): return
+        else:
+            raise Exception("Illegal term in range expression '%s' with datatype '%s' does not have a datatype or predicate mapping." %
+                             (term.getValue(), datatype))
+
+    def validateCompoundLiteral(self, term, predicate):
+        """
+        Check to see if range boundaries are mapped.
+        """
+        if not isinstance(term, CompoundLiteral): return
+        if term.choice == CompoundLiteral.RANGE_LITERAL:
+            self.validateRangeConstant(term.lowerBound, predicate)
+            self.validateRangeConstant(term.upperBound, predicate)            
+
         
     def object_position_term_to_openrdf_term(self, term, predicate=None):
         """
@@ -107,17 +139,11 @@ class ValueFactory(object):
         a Literal term.  Otherwise, if its a Value, just pass it through.
         """
         if term is None: return term
-        if isinstance(term, CompoundLiteral): return term
-        if not isinstance(term, Value):
+        if isinstance(term, CompoundLiteral): 
+            self.validateCompoundLiteral(term, predicate)
+        elif not isinstance(term, Value):
             term = self.createLiteral(term)
-        inlinedType = self.store.inlined_predicates.get(predicate.getURI()) if predicate else None            
-        if not inlinedType and isinstance(term, Literal) and term.datatype:
-            inlinedType = self.store.inlined_datatypes.get(term.datatype)
-        if inlinedType:
-            raise UnimplementedMethodException("Inlined literals are not yet implemented")
-            ##return EncodedLiteral(term.getLabel(), encoding=inlinedType, store=self.store.internal_ag_store)
-        else:
-            return term
+        return term
     
     def createRange(self, lowerBound, upperBound):
         """

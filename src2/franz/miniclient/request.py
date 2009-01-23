@@ -37,7 +37,10 @@ def makeRequest(curl, method, url, body=None, accept="*/*", contentType=None, ca
     curl.setopt(pycurl.CUSTOMREQUEST, method)
     curl.setopt(pycurl.URL, url)
 
-    headers = ["Connection: Keep-Alive", "Accept: " + accept]
+    # The "Expect:" is there to suppress "Expect: 100-continue"
+    # behaviour that is the default in libcurl when posting large
+    # bodies.
+    headers = ["Connection: Keep-Alive", "Accept: " + accept, "Expect:"]
     if contentType and postbody: headers.append("Content-Type: " + contentType)
     curl.setopt(pycurl.HTTPHEADER, headers)
     curl.setopt(pycurl.ENCODING, "") # which means 'any encoding that curl supports'

@@ -27,6 +27,8 @@ from franz.openrdf.model.value import URI
 from franz.openrdf.model.valuefactory import ValueFactory 
 from franz.openrdf.repository.repositoryconnection import RepositoryConnection
 
+import urllib
+
 # * A Sesame repository that contains RDF data that can be queried and updated.
 # * Access to the repository can be acquired by openening a connection to it.
 # * This connection can then be used to query and/or update the contents of the
@@ -47,67 +49,95 @@ class Repository:
     def __init__(self, catalog, database_name, access_verb):
         self.catalog = catalog
         self.mini_catalog = catalog.mini_catalog
+        self.mini_repository = None
         self.database_name = database_name
         self.access_verb = access_verb
         ## system state fields:
         self.connection = None
         self.value_factory = None
-        self.inlined_predicates = {}
-        self.inlined_datatypes = {}
-
+        self.is_initialized = False
+        self.federated_triple_stores = None
+        self.mapped_predicates = {}
+        self.mapped_datatypes = {}
          
     def getDatabaseName(self):
         """
         Return the name of the database (remote triple store) that this repository is
         interfacing with.
         """ 
-        return self.database_name        
+        return self.database_name
     
+    def _create_triple_store(self, quotedDbName):
+        miniCat = self.mini_catalog
+        if self.federated_triple_stores:
+            miniCat.federateTripleStores(quotedDbName, [urllib.quote_plus(ts) for ts in self.federated_triple_stores])
+        else:
+            miniCat.createTripleStore(quotedDbName)
+          
     def _attach_to_mini_repository(self):
         """
         Create a mini-repository and execute a RENEW, OPEN, CREATE, or ACCESS.
         
         TODO: FIGURE OUT WHAT 'REPLACE' DOES
         """
-        clearIt = False
-        dbName = self.database_name
-        conn = self.mini_catalog
+        #clearIt = False
+        quotedDbName = urllib.quote_plus(self.database_name)
+        miniCat = self.mini_catalog
         if self.access_verb == Repository.RENEW:
-            if dbName in conn.listTripleStores():
+            if quotedDbName in miniCat.listTripleStores():
                 ## not nice, since someone else probably has it open:
-                clearIt = True
-            else:
-                conn.createTripleStore(dbName)                    
+                miniCat.deleteTripleStore(quotedDbName)
+            self._create_triple_store(quotedDbName)                    
         elif self.access_verb == Repository.CREATE:
-            if dbName in conn.listTripleStores():
+            if quotedDbName in miniCat.listTripleStores():
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
-                    dbName)
-            conn.createTripleStore(dbName)
+                    quotedDbName)
+            self._create_triple_store(quotedDbName)
         elif self.access_verb == Repository.OPEN:
-            if not dbName in conn.listTripleStores():
+            if not quotedDbName in miniCat.listTripleStores():
                 raise ServerException(
-                    "Can't open a triple store named '%s' because there is none.", dbName)
+                    "Can't open a triple store named '%s' because there is none.", quotedDbName)
         elif self.access_verb == Repository.ACCESS:
-            if not dbName in conn.listTripleStores():
-                conn.createTripleStore(dbName)      
-        self.mini_repository = conn.getRepository(dbName)
-        ## we are done unless a RENEW requires us to clear the store
-        if clearIt:
-            self.mini_repository.deleteMatchingStatements(None, None, None, None)
+            if not quotedDbName in miniCat.listTripleStores():
+                self._create_triple_store(quotedDbName)      
+        self.mini_repository = miniCat.getRepository(quotedDbName)
+#        ## we are done unless a RENEW requires us to clear the store
+#        if clearIt:
+#            self.mini_repository.deleteMatchingStatements(None, None, None, None)
         
     def initialize(self):
         """
         Initializes this repository. A repository needs to be initialized before
-        it can be used.
+        it can be used.  Return 'self' (so that we can chain this call if we like).
         """
+        if self.is_initialized:
+            raise InitializationException("A repository cannot be initialized twice.")
         self._attach_to_mini_repository()
         ## EXPERIMENTATION WITH INITIALIZING AN ENVIRONMENT.  DIDN'T LOOK RIGHT - RMM
 #        self.environment = self.mini_repository.createEnvironment()
 #        print "ENV", self.environment
 #        self.mini_repository.deleteEnvironment(self.environment)
 #        print "ENV AfTER", self.mini_repository.listEnvironments()
-         
+        self.is_initialized = True
+        return self    
+    
+    def addFederatedTripleStores(self, tripleStoreNames):
+        """
+        Make this repository a federated store that includes the stores named in
+        'tripleStoreNames'.  This call must precede the call to 'initialize'.  It
+        may be called multiple times.        
+        """
+        if self.is_initialized:
+            raise InitializationException("Federated triples stores must be added prior to calling 'initialize'.")
+        if not self.access_verb in [Repository.CREATE, Repository.RENEW]:
+            raise InitializationException("Adding federated triple stores requires a CREATE or RENEW access option.\n" +
+                                          "The current access is set to '%s'." % self.access_verb)
+        if not self.federated_triple_stores:
+            self.federated_triple_stores = set([])
+        for ts in tripleStoreNames:
+            self.federated_triple_stores.add(ts)
+        return self
         
     def indexTriples(self, all=False, asynchronous=False):
         """
@@ -137,28 +167,30 @@ class Repository:
             raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
                     "'int', 'float', and 'datetime'")
         
-    def registerInlinedDatatype(self, predicate=None, datatype=None, inlinedType=None):
+    def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         """
         Register an inlined datatype.  If 'predicate', then object arguments to triples
-        with that predicate will use an inlined encoding of type 'inlinedType' in their 
+        with that predicate will use an inlined encoding of type 'nativeType' in their 
         internal representation.
         If 'datatype', then typed literal objects with a datatype matching 'datatype' will
-        use an inlined encoding of type 'inlinedType'.
+        use an inlined encoding of type 'nativeType'.
         """
         predicate = predicate.getURI() if isinstance(predicate, URI) else predicate
         datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
         if predicate:
-            if not inlinedType:
-                raise IllegalArgumentException("Missing 'inlinedType' parameter in call to 'registerInlinedDatatype'")
-            lispType = self._translate_inlined_type(inlinedType)
+            if not nativeType:
+                raise IllegalArgumentException("Missing 'nativeType' parameter in call to 'registerDatatypeMapping'")
+            lispType = self._translate_inlined_type(nativeType)
             mapping = [predicate, lispType, "predicate"]
-            self.inlined_predicates[predicate] = lispType
+            self.mapped_predicates[predicate] = lispType
         elif datatype:
-            lispType = self._translate_inlined_type(inlinedType or datatype)
+            lispType = self._translate_inlined_type(nativeType or datatype)
             mapping = [datatype, lispType, "datatype"]
-            self.inlined_datatypes[datatype] = lispType
-        ##self.internal_ag_store.addDataMapping(mapping)
-        raise UnimplementedMethodException("Inlined datatypes not yet implemented.")
+            self.mapped_datatypes[datatype] = lispType
+        if predicate:
+            self.mini_repository.addMappedPredicate("<%s>" % predicate, lispType)            
+        else:
+            self.mini_repository.addMappedType("<%s>" % datatype, lispType)
         
     def shutDown(self):
         """
