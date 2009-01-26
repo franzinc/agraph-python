@@ -81,8 +81,16 @@ class Repository:
                            urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment, limit=limit),
                            rowreader=callback and RowReader(callback))
 
-    def definePrologFunctor(self, definition):
-        nullRequest(self.curl, "PUT", self.url + "/functor?" + urlenc(environment=self.environment), definition)
+    def definePrologFunctors(self, definitions):
+        """Add Prolog functors to the environment. Takes a string
+        containing Lisp-syntax functor definitions (using the <-- and
+        <- operators)."""
+        nullRequest(self.curl, "PUT", self.url + "/functor?" + urlenc(environment=self.environment), definitions)
+
+    def deletePrologFunctor(self, name=None):
+        """Delete a Prolog functor from the environment, or all of
+        them if name is not given."""
+        nullRequest(self.curl, "DELETE", self.url + "/functor", urlenc(environment=self.environment, name=name))
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None):
         """Retrieve all statements matching the given constraints.
@@ -92,8 +100,6 @@ class Repository:
         if isinstance(subj, tuple): subj, subjEnd = subj
         if isinstance(pred, tuple): pred, predEnd = pred
         if isinstance(obj, tuple): obj, objEnd = obj
-        ##print "OBJ", obj, "OBJEND", objEnd
-        ##print "GET STATEMENTS '%s'" % context
         return jsonRequest(self.curl, "GET", self.url + "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                                   obj=obj, objEnd=objEnd, context=context, infer=infer),
