@@ -150,7 +150,6 @@ class Query(object):
                                             infer=self.includeInferred, bindings=bindings)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
-            print "QUERY", query
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         return response
 
@@ -183,21 +182,28 @@ def helpExpandPrologQueryPrefixes(query, connection, startPos):
     """
     Convert qnames in 'query' that match prefixes with declared namespaces into full URIs.
     """
+    if startPos >= len(query): return query
     lcQuery = query.lower()
-    bang = lcQuery[startPos:].find('!')
-    if bang >= 0:
-        bang = bang + startPos
-        colon = lcQuery[bang:].find(':')
-        if colon >= 0:
-            colon = bang + colon
-            prefix = lcQuery[bang + 1:colon]
+    bangPos = lcQuery[startPos:].find('!')
+    if bangPos >= 0:
+        bangPos = bangPos + startPos
+        startingAtBang = lcQuery[bangPos:]
+        if len(startingAtBang) > 1 and startingAtBang[1] == '<':
+            ## found a fully-qualified namespace; skip past it
+            endPos = startingAtBang.find('>')
+            if endPos < 0: return query ## query is illegal, but that's not our problem
+            return helpExpandPrologQueryPrefixes(query, connection, bangPos + endPos + 1)
+        colonPos = startingAtBang.find(':')
+        if colonPos >= 0:
+            colonPos = bangPos + colonPos
+            prefix = lcQuery[bangPos + 1:colonPos]
             ns = connection.getNamespace(prefix)
             if ns:
-                for i, c in enumerate(lcQuery[colon + 1:]):
+                for i, c in enumerate(lcQuery[colonPos + 1:]):
                     if not (c.isalnum() or c in ['_', '.', '-']): break
-                endPos = colon + i + 1 if i else len(query) + 1
-                localName = query[colon + 1: endPos]
-                query = query.replace(query[bang + 1:endPos], "<%s%s>" % (ns, localName))
+                endPos = colonPos + i + 1 if i else len(query) + 1
+                localName = query[colonPos + 1: endPos]
+                query = query.replace(query[bangPos + 1:endPos], "<%s%s>" % (ns, localName))
                 return helpExpandPrologQueryPrefixes(query, connection, endPos)
     return query
 
@@ -206,7 +212,9 @@ def expandPrologQueryPrefixes(query, connection):
     Convert qnames in 'query' that match prefixes with declared namespaces into full URIs.
     This assumes that legal chars in local names are alphanumerics and underscore and period.
     """
-    return helpExpandPrologQueryPrefixes(query, connection, 0)
+    query = helpExpandPrologQueryPrefixes(query, connection, 0)
+    print "AFTER EXPANSION", query
+    return query
 
 class TupleQuery(Query):
     def __init__(self, queryLanguage, queryString, baseURI=None):

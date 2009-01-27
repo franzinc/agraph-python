@@ -523,17 +523,33 @@ class RepositoryConnection(object):
     def setRuleLanguage(self, queryLanguage):
         self.ruleLanguage = queryLanguage
 
-    def addRule(self, rule, language=None):
+    def addRules(self, rule, language=None):
+        """
+        Add a sequence of one or more rules (in ASCII format) to the current environment.
+        If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
+        former appends a new rule; the latter overwrites any rule with the same predicate.
+        """
         if not self.mini_repository.environment:
             raise Exception("Cannot add a rule because an environment has not been set.")
         language = language or self.ruleLanguage
         if language == QueryLanguage.PROLOG:
             rule = query_module.expandPrologQueryPrefixes(rule, self)
-            self.mini_repository.definePrologFunctor(rule)
+            self.mini_repository.definePrologFunctors(rule)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
         
-
+    def deleteRule(self, predicate, language=None):
+        """
+        Delete rule(s) with predicate named 'predicate'.  If 'predicate' is None, delete
+        all rules.
+        """
+        if not self.mini_repository.environment:
+            raise Exception("Cannot delete a rule because an environment has not been set.")
+        language = language or self.ruleLanguage
+        if language == QueryLanguage.PROLOG:
+            self.mini_repository.deletePrologFunctor(predicate)
+        else:
+            raise Exception("Cannot add a rule because the rule language has not been set.")
 
     #############################################################################################
     ## Server-side implementation of namespaces

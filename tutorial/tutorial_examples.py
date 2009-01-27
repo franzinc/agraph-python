@@ -470,16 +470,15 @@ def test17():
     """
     conn = test6().getConnection()
     f = conn.getValueFactory()
-    #conn.createEnvironment("ronnie")
+    conn.deleteEnvironment("ronnie") ## start fresh        
     conn.setEnvironment("ronnie") 
-    #conn.deleteEnvironment("ronnie")    
-    conn.setNamespace("ken", "http://www.franz.com/simple#")
+    conn.setNamespace("kdy", "http://www.franz.com/simple#")
 
 #    queryString = """
 #    (select (?person ?name)
-#            (q ?person !rdf:type !ken:person)
-#            (q ?person !ken:sex !ken:female)
-#            (q ?person !ken:first-name ?name)
+#            (q ?person !rdf:type !kdy:person)
+#            (q ?person !kdy:sex !kdy:female)
+#            (q ?person !kdy:first-name ?name)
 #            )
 #    """
 #    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -487,16 +486,22 @@ def test17():
 #    for row in result:
 #        print row
     conn.setRuleLanguage(QueryLanguage.PROLOG)   
-    rule1 = """
+    rules2 = """
     (<-- (female ?x) ;; IF
-         (q ?x !ken:sex !ken:male))
+         (q ?x !kdy:sex !kdy:female))
+    (<-- (male ?x) ;; IF
+         (q ?x !kdy:sex !kdy:male))
     """
-    conn.addRule(rule1)
+    conn.addRules(rules2)
+    conn.deleteRule('male')
+    #return
+    
+    
     queryString2 = """
     (select (?person ?name)
-            (q ?person !rdf:type !ken:person)
-            (female ?person)
-            (q ?person !ken:first-name ?name)
+            (q ?person !rdf:type !kdy:person)
+            (male ?person)
+            (q ?person !kdy:first-name ?name)
             )
     """
     tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)
