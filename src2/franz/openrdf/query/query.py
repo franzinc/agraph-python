@@ -213,7 +213,7 @@ def expandPrologQueryPrefixes(query, connection):
     This assumes that legal chars in local names are alphanumerics and underscore and period.
     """
     query = helpExpandPrologQueryPrefixes(query, connection, 0)
-    print "AFTER EXPANSION", query
+    #print "AFTER EXPANSION", query
     return query
 
 class TupleQuery(Query):
