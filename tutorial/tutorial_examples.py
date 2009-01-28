@@ -469,8 +469,8 @@ def test17():
     Prolog queries
     """
     conn = test6().getConnection()
-    conn.deleteEnvironment("kennedies") ## start fresh        
-    conn.setEnvironment("kennedies") 
+    conn.deleteEnvironment("kennedys") ## start fresh        
+    conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
 
 #    queryString = """
@@ -517,8 +517,8 @@ def test18():
             print row
             
     conn = test6().getConnection()
-    conn.deleteEnvironment("kennedies") ## start fresh        
-    conn.setEnvironment("kennedies") 
+    conn.deleteEnvironment("kennedys") ## start fresh        
+    conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
     conn.setRuleLanguage(QueryLanguage.PROLOG)
