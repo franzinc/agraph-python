@@ -466,12 +466,11 @@ def test16():
 
 def test17():
     """
-    Prolog
+    Prolog queries
     """
     conn = test6().getConnection()
-    f = conn.getValueFactory()
-    conn.deleteEnvironment("ronnie") ## start fresh        
-    conn.setEnvironment("ronnie") 
+    conn.deleteEnvironment("kennedies") ## start fresh        
+    conn.setEnvironment("kennedies") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
 
 #    queryString = """
@@ -493,10 +492,8 @@ def test17():
          (q ?x !kdy:sex !kdy:male))
     """
     conn.addRules(rules2)
-    conn.deleteRule('male')
-    #return
-    
-    
+    ## This causes a failure(correctly):
+    #conn.deleteRule('male')
     queryString2 = """
     (select (?person ?name)
             (q ?person !rdf:type !kdy:person)
@@ -508,7 +505,26 @@ def test17():
     result = tupleQuery2.evaluate();     
     for row in result:
         print row
-    
+
+def test18():
+    """
+    Loading Prolog rules
+    """
+    def pq(queryString):
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();     
+        for row in result:
+            print row
+            
+    conn = test6().getConnection()
+    conn.deleteEnvironment("kennedies") ## start fresh        
+    conn.setEnvironment("kennedies") 
+    conn.setNamespace("kdy", "http://www.franz.com/simple#")
+    conn.setNamespace("rltv", "http://www.franz.com/simple#")  
+    conn.setRuleLanguage(QueryLanguage.PROLOG)
+    path = "./relative_rules.txt"
+    conn.loadRules(path)
+    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
 
 def test26():
     """
@@ -580,7 +596,7 @@ def test27 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,15)]
-    choices = [17]
+    choices = [18]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -602,6 +618,7 @@ if __name__ == '__main__':
         elif choice == 15: test15()    
         elif choice == 16: test16()            
         elif choice == 17: test17()                    
+        elif choice == 18: test18()                            
          
         elif choice == 26: test26()                                                                                              
         elif choice == 27: test27()                                                                                                      
