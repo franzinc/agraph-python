@@ -84,6 +84,7 @@ class RepositoryConnection(object):
         self.repository = repository 
         self.mini_repository = repository.mini_repository
         self.is_closed = False
+        self.ruleLanguage = None
         
     def getValueFactory(self):
         return self.repository.getValueFactory()
@@ -503,7 +504,8 @@ class RepositoryConnection(object):
         Delete an environment.  This causes all rule and namespace definitions for this
         environment to be lost.
         """
-        self.mini_repository.deleteEnvironment(name)
+        if name in self.mini_repository.listEnvironments():
+            self.mini_repository.deleteEnvironment(name)
     
     def setEnvironment(self, name):
         """
@@ -523,7 +525,7 @@ class RepositoryConnection(object):
     def setRuleLanguage(self, queryLanguage):
         self.ruleLanguage = queryLanguage
 
-    def addRules(self, rule, language=None):
+    def addRules(self, rules, language=None):
         """
         Add a sequence of one or more rules (in ASCII format) to the current environment.
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
@@ -531,12 +533,24 @@ class RepositoryConnection(object):
         """
         if not self.mini_repository.environment:
             raise Exception("Cannot add a rule because an environment has not been set.")
-        language = language or self.ruleLanguage
+        language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
-            rule = query_module.expandPrologQueryPrefixes(rule, self)
-            self.mini_repository.definePrologFunctors(rule)
+            rules = query_module.expandPrologQueryPrefixes(rules, self)
+            self.mini_repository.definePrologFunctors(rules)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
+        
+    def loadRules(self, file ,language=None):
+        """
+        Load a file of rules into the current environment.
+        'file' is assumed to reside on the client machine.
+        If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
+        former appends a new rule; the latter overwrites any rule with the same predicate.
+        """
+        f = open(file)
+        body = f.read()
+        f.close()
+        self.addRules(body, language)
         
     def deleteRule(self, predicate, language=None):
         """

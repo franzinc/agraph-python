@@ -144,6 +144,9 @@ class Statement:
         elif string_term[0] == '_' and string_term[1] == ':':
             return BNode(string_term[2:])
         else:
+            ## EXPERIMENT:
+            return Literal(str(string_term))
+            ## END EXPERIMENT
             raise BadFormatException("Cannot translate '%s' into an OpenRDF term." % string_term)
         
     @staticmethod
