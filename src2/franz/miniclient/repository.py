@@ -92,6 +92,10 @@ class Repository:
         them if name is not given."""
         nullRequest(self.curl, "DELETE", self.url + "/functor", urlenc(environment=self.environment, name=name))
 
+    def evalInServer(self, code):
+        """Evaluate Common Lisp code in the server."""
+        return jsonRequest(self.curl, "POST", self.url + "/eval?" + urlenc(environment=self.environment), code)
+
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
