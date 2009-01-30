@@ -25,7 +25,7 @@ import os
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
-from franz.openrdf.model.valuefactory import CompoundLiteral
+from franz.openrdf.model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
 from franz.openrdf.repository.repositoryresult import RepositoryResult
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.model.statement import Statement
@@ -235,9 +235,9 @@ class RepositoryConnection(object):
         value, ntriplize it, and return a binary tuple.
         TODO: FIGURE OUT HOW COORDINATE PAIRS WILL WORK HERE
         """ 
+        if isinstance(term, GeoSpatialRegion): return term
         factory = self.getValueFactory()
-        if isinstance(term, CompoundLiteral):
-            ## FOR NOW, ASSUME ITS A RANGE_LITERAL:
+        if isinstance(term, RangeLiteral):
             beginTerm = term.getLowerBound()
             endTerm = term.getUpperBound()
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
@@ -264,9 +264,33 @@ class RepositoryConnection(object):
         subj = self._convert_term_to_mini_term(subject)
         pred = self._convert_term_to_mini_term(predicate)
         obj = self._convert_term_to_mini_term(object, predicate)
-        stringTuples = self.mini_repository.getStatements(subj, pred, obj,
-                 self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
+        cxt = self._contexts_to_ntriple_contexts(contexts)
+        if isinstance(object, GeoSpatialRegion):
+            stringTuples = self._getStatementsInRegion(subj, pred, obj, cxt)
+        else:
+            stringTuples = self.mini_repository._getStatements(subj, pred, obj, cxt
+                 , infer=includeInferred)
         return RepositoryResult(stringTuples, limit=limit)
+    
+    def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None):
+        geoType = region.geoType
+        if isinstance(region, GeoBox):
+            stringTuples = self.mini_repository.getStatementsInsideBox(geoType, predicate,
+                                        region.xMin, region.xMax, region.yMin, region.yMax)
+        elif isinstance(region, GeoCircle):
+            if geoType.system == GeoType.Cartesian:
+                stringTuples = self.mini_repository.getStatementsInsideCircle(geoType, predicate,
+                                        region.x, region.y, region.radius)
+            elif geoType.system == GeoType.LatLong:
+                unit = region.unit or geoType.unit
+                stringTuples = self.mini_repository.getStatementsHaversine(geoType, predicate,
+                                        region.x, region.x, region.radius, unit=unit)
+            else: pass ## can't happen
+        elif isinstance(region, GeoPolygon):
+            stringTuples = self.mini_repository.getStatementsInsideBox(geoType, predicate,
+                                        region.xMin, region.xMax, region.yMin, region.yMax)
+        else: pass ## can't happen
+        return RepositoryResult(stringTuples, limit=limit, subjectFilter=subject)            
     
     COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
        
@@ -598,8 +622,7 @@ class RepositoryConnection(object):
     
     #############################################################################################
     ## In-memory implementation of namespaces
-    #############################################################################################
-    
+    #############################################################################################  
 
     NAMESPACES_MAP = {}
     
@@ -651,5 +674,92 @@ class RepositoryConnection(object):
         """
         self._get_namespaces_map().clear()
 
+    #############################################################################################
+    ## Geo-spatial
+    #############################################################################################
+    
+    def createRectangularSystem(self, scale=None, unit=None, xMin=None, xMax=None, yMin=None, yMax=None):
+        self.geoType = GeoType(GeoType.Cartesian, scale=scale, unit=unit, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
+        return self.geoType
+    
+    def createLatLongSystem(self, unit=None, scale=None, latMin=None, latMax=None, longMin=None, longMax=None):
+        self.geoType = GeoType(GeoType.Spherical, unit=unit, scale=scale, latMin=latMin, latMax=latMax, longMin=longMin, longMax=longMax)
+        return self.geoType
+    
+    def getGeoType(self):
+        return self.geoType
+    
+    def setGeoType(self, geoGrid):
+        self.geoType = geoGrid
+        
+    def createCoordinate(self, x=None, y=None, lat=None, long=None):
+        """
+        Create an x, y  or lat, long  coordinate in the current coordinate system.
+        """
+        return self.geoType.createCoordinate(x=x, y=y, lat=lat, long=long)
+    
+    def createBox(self, xMin, xMax, yMin, yMax):
+        """
+        Define a rectangular region for the current coordinate system.
+        """
+        return self.geoType.createBox(xMin, xMax, yMin, yMax)
+    
+    def createCircle(self, x, y, radius, unit=None, innerRadius=None):
+        """
+        Define a circular region with vertex x,y and radius "radius".
+        The distance unit for the radius is either 'unit' or the unit specified
+        for the current system.  If 'innerRadius' is specified, the region is
+        ring-shaped, consisting of the space between the inner and outer circles.
+        """
+        return self.geoType.createCircle(x, y, radius, unit=unit, innerRadius=innerRadius)
+    
+    def createPolygon(self, vertices, geoType=None):
+        """
+        Define a polygonal region with the specified vertices.  'vertices'
+        is a list of x,y pairs.
+        """
+        return self.geoType.createPolygon(vertices)
 
+class GeoType:
+    Cartesian = 'CARTESIAN'
+    Spherical = 'SPHERICAL'
+    Rectangular = Cartesian
+    LatLong = Spherical
+    def __init__(self, system, scale=None, unit=None, xMin=None, xMax=None, yMin=None, yMax=None,
+                 latMin=None, latMax=None, longMin=None, longMax=None):
+        if system == GeoType.Cartesian:
+            if unit:
+                raise Exception("Units not yet supported for rectangular coordinates.")
+            self.grid = self.mini_repository.getCartesianGeoType(scale, xMin, xMax, yMin, yMax)
+        elif system == GeoType.Spherical:
+            self.system = self.mini_repository.getSphericalGeoType(scale, unit=unit, latMin=latMin, latMax=latMax, longMin=longMin, longMax=longMax)
+        else: pass  ## can't happen
 
+    def createCoordinate(self, x=None, y=None, lat=None, long=None):
+        """
+        Create an x, y  or lat, long  coordinate for the system defined by this geotype. 
+        """
+        return GeoCoordinate(x=(x or lat), y=y or long, geoType=self)
+    
+    def createBox(self, xMin, xMax, yMin, yMax):
+        """
+        Define a rectangular region for the current coordinate system.
+        """
+        return GeoBox(xMin, xMax, yMin, yMax, geoType=self)
+
+    def createCircle(self, x, y, radius, unit=None, innerRadius=None):
+        """
+        Define a circular region with vertex x,y and radius "radius".
+        The distance unit for the radius is either 'unit' or the unit specified
+        for this GeoType.  If 'innerRadius' is specified, the region is
+        ring-shaped, consisting of the space between the inner and outer circles.
+        """
+        return GeoCircle(x, y, radius, unit=unit, innerRadius=innerRadius, geoType=self)
+
+    def createPolygon(self, vertices):
+        """
+        Define a polygonal region with the specified vertices.  'vertices'
+        is a list of x,y pairs.
+        """
+        return GeoPolygon(vertices, geoType=self)
+        

@@ -180,5 +180,54 @@ class CompoundLiteral(Literal):
     def getUpperBound(self):
         return self.upperBound
     
+class RangeLiteral(CompoundLiteral):
+    """
+    A range represents an interval between to scalar values.
+    """
+    def __init__(self, lowerBound=None, upperBound=None):
+        self.lowerBound = lowerBound # should be a LiteralImpl
+        self.upperBound = upperBound # should be a LiteralImpl
+    
+    def getLowerBound(self):
+        return self.lowerBound
+    
+    def getUpperBound(self):
+        return self.upperBound
 
+    
+class GeoCoordinate(CompoundLiteral):
+    def __init__(self, x, y, geoType=None):
+        self.xcoor = x
+        self.ycoor = y
+        self.geoType = geoType
+    
+    def __str__(self): return "(%i, %i)" % (self.xcoor, self.ycoor)
+    
+class GeoSpatialRegion(CompoundLiteral):
+    pass
+
+class GeoBox(GeoSpatialRegion):
+    def __init__(self, x, y, radius, unit=None, innerRadius=None, geoType=None):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.unit = unit
+        self.innerRadius = innerRadius
+        self.geoType = geoType
+        
+class GeoCircle(GeoSpatialRegion):
+    def __init__(self, x, y, radius, unit=None, innerRadius=None, geoType=None):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.unit = unit
+        self.innerRadius = innerRadius
+        self.geoType=geoType
+
+class GeoPolygon(GeoSpatialRegion):
+    def __init__(self, vertices, geoType=None):
+        self.vertices = vertices
+        self.geoType = geoType
+
+        
         

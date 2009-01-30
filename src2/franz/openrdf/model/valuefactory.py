@@ -23,7 +23,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value, BNode, URI
-from franz.openrdf.model.literal import Literal, CompoundLiteral
+from franz.openrdf.model.literal import Literal, RangeLiteral, GeoCoordinate
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
@@ -127,11 +127,11 @@ class ValueFactory(object):
         """
         Check to see if range boundaries are mapped.
         """
-        if not isinstance(term, CompoundLiteral): return
-        if term.choice == CompoundLiteral.RANGE_LITERAL:
+        if isinstance(term, RangeLiteral):
             self.validateRangeConstant(term.lowerBound, predicate)
-            self.validateRangeConstant(term.upperBound, predicate)            
-
+            self.validateRangeConstant(term.upperBound, predicate)
+        elif isinstance(term, GeoCoordinate):
+            pass
         
     def object_position_term_to_openrdf_term(self, term, predicate=None):
         """
@@ -139,7 +139,7 @@ class ValueFactory(object):
         a Literal term.  Otherwise, if its a Value, just pass it through.
         """
         if term is None: return term
-        if isinstance(term, CompoundLiteral): 
+        if isinstance(term, RangeLiteral): 
             self.validateCompoundLiteral(term, predicate)
         elif not isinstance(term, Value):
             term = self.createLiteral(term)
@@ -151,7 +151,7 @@ class ValueFactory(object):
         """
         lowerBound = self.object_position_term_to_openrdf_term(lowerBound)
         upperBound = self.object_position_term_to_openrdf_term(upperBound)
-        return CompoundLiteral(choice=CompoundLiteral.RANGE_LITERAL, lowerBound=lowerBound, upperBound=upperBound)
+        return RangeLiteral(lowerBound=lowerBound, upperBound=upperBound)
         
 
 
