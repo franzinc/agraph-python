@@ -14,9 +14,9 @@ def urlenc(**args):
         buf.append(urllib.quote(name) + "=" + urllib.quote(val))
     def encval(name, val):
         if val is None: pass
+        elif isinstance(val, int): enc(name, "%d" % val)
         elif val == True: enc(name, "true")
         elif val == False: enc(name, "false")
-        elif isinstance(val, int): enc(name, "%d" % val)
         elif isinstance(val, list):
             for elt in val: encval(name, elt)
         else: enc(name, val.encode("utf-8"))

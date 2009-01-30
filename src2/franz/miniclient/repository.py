@@ -1,4 +1,4 @@
-import time, cjson
+import time, cjson, math
 from request import *
 
 def listCatalogs(serverURL):
@@ -128,10 +128,8 @@ class Repository:
         nullRequest(self.curl, "POST", self.url + "/statements", cjson.encode(quads), contentType="application/json")
 
     class UnsupportedFormatError(Exception):
-        def __init__(self, format):
-            self.format = format
-        def __str__(self):
-            return "'%s' file format not supported (try 'ntriples' or 'rdf/xml')." % self.format
+        def __init__(self, format): self.format = format
+        def __str__(self): return "'%s' file format not supported (try 'ntriples' or 'rdf/xml')." % self.format
 
     def checkFormat(self, format):
         if format == "ntriples": return "text/plain"
@@ -252,6 +250,56 @@ class Repository:
     def deleteMappedPredicate(self, predicate):
         nullRequest(self.curl, "DELETE", self.url + "/predicateMapping", urlenc(predicate=predicate))
 
+    def getCartesianGeoType(self, stripWidth, xMin, xMax, yMin, yMax):
+        return jsonRequest(self.curl, "PUT", self.url + "/geo/types/cartesian?" +
+                           urlenc(stripWidth=stripWidth, xmin=xMin, ymin=yMin, xmax=xMax, ymax=yMax))
+
+
+    def getSphericalGeoType(self, stripWidth, unit="degree", latMin=None, latMax=None, longMin=None, longMax=None):
+        return jsonRequest(self.curl, "PUT", self.url + "/geo/types/spherical?" +
+                           urlenc(stripWidth=stripWidth, unit=unit, latmin=latMin, latmax=latMax,
+                                  longmin=longMin, longmax=longMax))
+
+    def listGeoTypes(self):
+        return jsonRequest(self.curl, "GET", self.url + "/geo/types")
+
+    def createCartesianGeoLiteral(self, type, x, y):
+        return "\"%f:%f\"^^<%s>" % (x, y, type)
+
+    class UnsupportedUnitError(Exception):
+        def __init__(self, unit): self.unit = unit
+        def __str__(self): return "'%s' is not a known unit (use km, mile, degree, or radian)." % self.unit
+
+    def unitDegreeFactor(self, unit):
+        if unit == "degree": return 1.0
+        elif unit == "radian": return 57.29577951308232
+        elif unit == "km": return 0.008998159
+        elif unit == "mile": return 0.014481134
+        else: raise Repository.UnsupportedUnitError(unit)
+
+    def createSphericalGeoLiteral(self, type, lat, long, unit="degree"):
+        def asISO6709(number, digits):
+            sign = "+"
+            if (number < 0):
+                sign= "-"
+                number = -number;
+            fl = math.floor(number)
+            return sign + (("%%0%dd" % digits) % fl) + (".%07d" % ((number - fl) * 10000000))
+
+        conv = self.unitDegreeFactor(unit)
+        return "\"%s%s\"^^<%s>" % (asISO6709(lat * conv, 2), asISO6709(long * conv, 3), type)
+
+    def getStatementsInsideBox(self, type, predicate, xMin, xMax, yMin, yMax):
+        return jsonRequest(self.curl, "GET", self.url + "/geo/box",
+                           urlenc(type=type, predicate=predicate, xmin=xMin, xmax=xMax, ymin=yMin, ymax=yMax))
+
+    def getStatementsInsideCircle(self, type, predicate, x, y, radius):
+        return jsonRequest(self.curl, "GET", self.url + "/geo/circle",
+                           urlenc(type=type, predicate=predicate, x=x, y=y, radius=radius))
+
+    def getStatementsHaversine(self, type, predicate, lat, long, radius, unit="km"):
+        return jsonRequest(self.curl, "GET", self.url + "/geo/haversine",
+                           urlenc(type=type, predicate=predicate, lat=lat, long=long, radius=radius, unit=unit))
 
 ######################################################
 ## TESTING CODE
@@ -332,8 +380,27 @@ def test1():
     print rep.listMappedTypes()
     print "Repository size = ", rep.getSize()
 
+def test2():
+    rep = openRep()
+    rep.deleteMatchingStatements()
+    typ = rep.getCartesianGeoType(1, -100, 100, -100, 100)
+    print "Geo type %s" % typ
+    def pt(x, y): return rep.createCartesianGeoLiteral(typ, x, y)
+    rep.addStatement("\"foo\"", "\"at\"", pt(1, 1))
+    rep.addStatement("\"bar\"", "\"at\"", pt(-2.5, 3.4))
+    rep.addStatement("\"baz\"", "\"at\"", pt(-1, 1))
+    print [x[0] for x in rep.getStatementsInsideBox(typ, "\"at\"", -10, 0, 0, 10)]
+    print [x[0] for x in rep.getStatementsInsideCircle(typ, "\"at\"", 0, 0, 2)]
+    typ2 = rep.getSphericalGeoType(5)
+    def pp(lat, lon): return rep.createSphericalGeoLiteral(typ2, lat, lon)
+    rep.addStatement("\"Amsterdam\"", "\"loc\"", pp(52.366665, 4.883333))
+    rep.addStatement("\"London\"", "\"loc\"", pp(51.533333, 0.08333333))
+    rep.addStatement("\"San Francisco\"", "\"loc\"", pp(37.783333, -122.433334))
+    rep.addStatement("\"Salvador\"", "\"loc\"", pp(-13.083333, -38.45))
+    print [x[0] for x in rep.getStatementsHaversine(typ2, "\"loc\"", 50, 0, 1000)]
+
 if __name__ == '__main__':
-    choice = 1
+    choice = 2
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()
