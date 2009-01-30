@@ -251,19 +251,23 @@ class Repository:
         nullRequest(self.curl, "DELETE", self.url + "/predicateMapping", urlenc(predicate=predicate))
 
     def getCartesianGeoType(self, stripWidth, xMin, xMax, yMin, yMax):
+        """Retrieve a cartesian geo-spatial literal type."""
         return jsonRequest(self.curl, "PUT", self.url + "/geo/types/cartesian?" +
                            urlenc(stripWidth=stripWidth, xmin=xMin, ymin=yMin, xmax=xMax, ymax=yMax))
 
 
     def getSphericalGeoType(self, stripWidth, unit="degree", latMin=None, latMax=None, longMin=None, longMax=None):
+        """Retrieve a spherical geo-spatial literal type."""
         return jsonRequest(self.curl, "PUT", self.url + "/geo/types/spherical?" +
                            urlenc(stripWidth=stripWidth, unit=unit, latmin=latMin, latmax=latMax,
                                   longmin=longMin, longmax=longMax))
 
     def listGeoTypes(self):
+        """List the geo-spatial types registered in the store."""
         return jsonRequest(self.curl, "GET", self.url + "/geo/types")
 
     def createCartesianGeoLiteral(self, type, x, y):
+        """Create a geo-spatial literal of the given type."""
         return "\"%f:%f\"^^<%s>" % (x, y, type)
 
     class UnsupportedUnitError(Exception):
@@ -278,6 +282,8 @@ class Repository:
         else: raise Repository.UnsupportedUnitError(unit)
 
     def createSphericalGeoLiteral(self, type, lat, long, unit="degree"):
+        """Create a geo-spatial latitude/longitude literal of the
+        given type. Unit can be 'km', 'mile', 'radian', or 'degree'."""
         def asISO6709(number, digits):
             sign = "+"
             if (number < 0):
@@ -289,17 +295,36 @@ class Repository:
         conv = self.unitDegreeFactor(unit)
         return "\"%s%s\"^^<%s>" % (asISO6709(lat * conv, 2), asISO6709(long * conv, 3), type)
 
+    def getStatementsHaversine(self, type, predicate, lat, long, radius, unit="km"):
+        """Get all the triples with a given predicate whose object
+        lies within radius units from the given latitude/longitude."""
+        return jsonRequest(self.curl, "GET", self.url + "/geo/haversine",
+                           urlenc(type=type, predicate=predicate, lat=lat, long=long, radius=radius, unit=unit))
+
     def getStatementsInsideBox(self, type, predicate, xMin, xMax, yMin, yMax):
+        """Get all the triples with a given predicate whose object
+        lies within the specified box."""
         return jsonRequest(self.curl, "GET", self.url + "/geo/box",
                            urlenc(type=type, predicate=predicate, xmin=xMin, xmax=xMax, ymin=yMin, ymax=yMax))
 
     def getStatementsInsideCircle(self, type, predicate, x, y, radius):
+        """Get all the triples with a given predicate whose object
+        lies within the specified circle."""
         return jsonRequest(self.curl, "GET", self.url + "/geo/circle",
                            urlenc(type=type, predicate=predicate, x=x, y=y, radius=radius))
 
-    def getStatementsHaversine(self, type, predicate, lat, long, radius, unit="km"):
-        return jsonRequest(self.curl, "GET", self.url + "/geo/haversine",
-                           urlenc(type=type, predicate=predicate, lat=lat, long=long, radius=radius, unit=unit))
+    def getStatementsInsidePolygon(self, type, predicate, polygon):
+        """Get all the triples with a given predicate whose object
+        lies within the specified polygon (see createPolygon)."""
+        return jsonRequest(self.curl, "GET", self.url + "/geo/polygon",
+                           urlenc(type=type, predicate=predicate, polygon=polygon))
+
+    def createPolygon(self, resource, points):
+        """Create a polygon with the given name in the store. points
+        should be a list of literals created with createCartesianGeoLiteral."""
+        nullRequest(self.curl, "PUT", self.url + "/geo/polygon?" +
+                    urlenc(resource=resource, point=points))
+
 
 ######################################################
 ## TESTING CODE
@@ -317,12 +342,12 @@ def test0():
     cat = openCatalog("http://localhost:8080", cats[0])
     print "Found cat", cat.url
     reps = cat.listTripleStores()
-    print "Is 'test' there??:", reps, "test" in reps
+    print "Is 'test' there?: ", reps, "test" in reps
     try:
         print "Creating repository 'test'"
         cat.createTripleStore("test")
         reps = cat.listTripleStores()
-        print "Now is 'test' there??:", reps, "test" in reps
+        print "Now is 'test' there?: ", reps, "test" in reps
     except: pass
     rep = cat.getRepository("test")
     size = rep.getSize()
@@ -389,8 +414,11 @@ def test2():
     rep.addStatement("\"foo\"", "\"at\"", pt(1, 1))
     rep.addStatement("\"bar\"", "\"at\"", pt(-2.5, 3.4))
     rep.addStatement("\"baz\"", "\"at\"", pt(-1, 1))
+    rep.addStatement("\"bug\"", "\"at\"", pt(10, -2.421553215))
     print [x[0] for x in rep.getStatementsInsideBox(typ, "\"at\"", -10, 0, 0, 10)]
     print [x[0] for x in rep.getStatementsInsideCircle(typ, "\"at\"", 0, 0, 2)]
+    rep.createPolygon("\"right\"", [pt(0, -100), pt(0, 100), pt(100, 100), pt(100, -100)])
+    print [x[0] for x in rep.getStatementsInsidePolygon(typ, "\"at\"", "\"right\"")]
     typ2 = rep.getSphericalGeoType(5)
     def pp(lat, lon): return rep.createSphericalGeoLiteral(typ2, lat, lon)
     rep.addStatement("\"Amsterdam\"", "\"loc\"", pp(52.366665, 4.883333))
