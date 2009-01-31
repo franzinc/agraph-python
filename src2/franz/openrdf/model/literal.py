@@ -216,12 +216,11 @@ class GeoBox(GeoSpatialRegion):
         self.geoType = geoType
         
 class GeoCircle(GeoSpatialRegion):
-    def __init__(self, x, y, radius, unit=None, innerRadius=None, geoType=None):
+    def __init__(self, x, y, radius, unit=None, geoType=None):
         self.x = x
         self.y = y
         self.radius = radius
         self.unit = unit
-        self.innerRadius = innerRadius
         self.geoType=geoType
 
 class GeoPolygon(GeoSpatialRegion):

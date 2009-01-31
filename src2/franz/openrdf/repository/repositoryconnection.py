@@ -237,6 +237,12 @@ class RepositoryConnection(object):
         """ 
         if isinstance(term, GeoSpatialRegion): return term
         factory = self.getValueFactory()
+        if isinstance(term, GeoCoordinate):
+            if term.geoType == GeoType.Cartesian:
+                return self.mini_repository.createCartesianGeoLiteral(term.geoType, term.x, term.y)
+            elif term.geoType == GeoType.Spherical:
+                unit = term.unit or term.geoType.unit
+                return self.mini_repository.createSphericalGeoLiteral(term.geoType, term.x, term.y, unit=unit)
         if isinstance(term, RangeLiteral):
             beginTerm = term.getLowerBound()
             endTerm = term.getUpperBound()
@@ -704,14 +710,13 @@ class RepositoryConnection(object):
         """
         return self.geoType.createBox(xMin, xMax, yMin, yMax)
     
-    def createCircle(self, x, y, radius, unit=None, innerRadius=None):
+    def createCircle(self, x, y, radius, unit=None):
         """
         Define a circular region with vertex x,y and radius "radius".
         The distance unit for the radius is either 'unit' or the unit specified
-        for the current system.  If 'innerRadius' is specified, the region is
-        ring-shaped, consisting of the space between the inner and outer circles.
+        for the current system.
         """
-        return self.geoType.createCircle(x, y, radius, unit=unit, innerRadius=innerRadius)
+        return self.geoType.createCircle(x, y, radius, unit=unit)
     
     def createPolygon(self, vertices, geoType=None):
         """
@@ -747,14 +752,14 @@ class GeoType:
         """
         return GeoBox(xMin, xMax, yMin, yMax, geoType=self)
 
-    def createCircle(self, x, y, radius, unit=None, innerRadius=None):
+    def createCircle(self, x, y, radius, unit=None):
         """
         Define a circular region with vertex x,y and radius "radius".
         The distance unit for the radius is either 'unit' or the unit specified
         for this GeoType.  If 'innerRadius' is specified, the region is
         ring-shaped, consisting of the space between the inner and outer circles.
         """
-        return GeoCircle(x, y, radius, unit=unit, innerRadius=innerRadius, geoType=self)
+        return GeoCircle(x, y, radius, unit=unit, geoType=self)
 
     def createPolygon(self, vertices):
         """
