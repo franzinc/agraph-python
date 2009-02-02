@@ -238,11 +238,15 @@ class RepositoryConnection(object):
         if isinstance(term, GeoSpatialRegion): return term
         factory = self.getValueFactory()
         if isinstance(term, GeoCoordinate):
-            if term.geoType == GeoType.Cartesian:
-                return self.mini_repository.createCartesianGeoLiteral(term.geoType, term.x, term.y)
-            elif term.geoType == GeoType.Spherical:
+            geoType = term.geoType
+            miniGeoType = geoType._getMiniGeoType()
+            if geoType.system == GeoType.Cartesian:
+                return self.mini_repository.createCartesianGeoLiteral(miniGeoType, term.xcoor, term.ycoor)
+            elif geoType.system == GeoType.Spherical:
                 unit = term.unit or term.geoType.unit
-                return self.mini_repository.createSphericalGeoLiteral(term.geoType, term.x, term.y, unit=unit)
+                return self.mini_repository.createSphericalGeoLiteral(miniGeoType, term.x, term.y, unit=unit)
+            else:
+                raise IllegalOptionException("Unsupported geo coordinate system", geoType.system)
         if isinstance(term, RangeLiteral):
             beginTerm = term.getLowerBound()
             endTerm = term.getUpperBound()
@@ -272,28 +276,29 @@ class RepositoryConnection(object):
         obj = self._convert_term_to_mini_term(object, predicate)
         cxt = self._contexts_to_ntriple_contexts(contexts)
         if isinstance(object, GeoSpatialRegion):
-            stringTuples = self._getStatementsInRegion(subj, pred, obj, cxt)
+            return self._getStatementsInRegion(subj, pred, obj, cxt)
         else:
-            stringTuples = self.mini_repository._getStatements(subj, pred, obj, cxt
-                 , infer=includeInferred)
-        return RepositoryResult(stringTuples, limit=limit)
+            stringTuples = self.mini_repository.getStatements(subj, pred, obj, cxt,
+                 infer=includeInferred)
+            return RepositoryResult(stringTuples, limit=limit)
     
     def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None):
         geoType = region.geoType
+        miniGeoType = geoType._getMiniGeoType()
         if isinstance(region, GeoBox):
-            stringTuples = self.mini_repository.getStatementsInsideBox(geoType, predicate,
+            stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
                                         region.xMin, region.xMax, region.yMin, region.yMax)
         elif isinstance(region, GeoCircle):
             if geoType.system == GeoType.Cartesian:
-                stringTuples = self.mini_repository.getStatementsInsideCircle(geoType, predicate,
+                stringTuples = self.mini_repository.getStatementsInsideCircle(miniGeoType, predicate,
                                         region.x, region.y, region.radius)
             elif geoType.system == GeoType.LatLong:
                 unit = region.unit or geoType.unit
-                stringTuples = self.mini_repository.getStatementsHaversine(geoType, predicate,
+                stringTuples = self.mini_repository.getStatementsHaversine(miniGeoType, predicate,
                                         region.x, region.x, region.radius, unit=unit)
             else: pass ## can't happen
         elif isinstance(region, GeoPolygon):
-            stringTuples = self.mini_repository.getStatementsInsideBox(geoType, predicate,
+            stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
                                         region.xMin, region.xMax, region.yMin, region.yMax)
         else: pass ## can't happen
         return RepositoryResult(stringTuples, limit=limit, subjectFilter=subject)            
@@ -369,11 +374,12 @@ class RepositoryConnection(object):
         Add the supplied triple of values to this repository, optionally to
         one or more named contexts.        
         """ 
-        obj = self.getValueFactory().object_position_term_to_openrdf_term(object)
+        obj = self.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         cxts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
         for cxt in cxts:
+            #print "MINITERM", obj, self._convert_term_to_mini_term(obj)
             self.mini_repository.addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
-                        self._to_ntriples(obj), cxt)
+                        self._convert_term_to_mini_term(obj), cxt)
     
     def _to_ntriples(self, term):
         """
@@ -520,6 +526,26 @@ class RepositoryConnection(object):
             handler.handleNamespace(prefix, name)
         statements = self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
         handler.export(statements)
+
+
+    #############################################################################################
+    ## ValueFactory methods
+    ## Added here because its dumb to have to dispatch from three different objects
+    ## (connection, repository, and value factory) when one will do
+    #############################################################################################
+    
+    def indexTriples(self, all=False, asynchronous=False):
+        return self.repository.indexTriples(all=all, asynchronous=asynchronous)
+    
+    def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
+        return self.repository.registerDatatypeMapping(predicate=predicate, datatype=datatype, nativeType=nativeType)
+
+
+    def createURI(self, uri=None, namespace=None, localname=None):
+        return self.getValueFactory().createURI(uri=uri, namespace=namespace, localname=localname)
+
+    def createRange(self, lowerBound, upperBound):
+        return self.getValueFactory().createRange(lowerBound=lowerBound, upperBound=upperBound)
 
     #############################################################################################
     ## Extensions
@@ -684,19 +710,22 @@ class RepositoryConnection(object):
     ## Geo-spatial
     #############################################################################################
     
-    def createRectangularSystem(self, scale=None, unit=None, xMin=None, xMax=None, yMin=None, yMax=None):
+    def createRectangularSystem(self, scale=None, unit=None, xMin=0, xMax=None, yMin=0, yMax=None):
         self.geoType = GeoType(GeoType.Cartesian, scale=scale, unit=unit, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
+        self.geoType.setConnection(self)        
         return self.geoType
     
     def createLatLongSystem(self, unit=None, scale=None, latMin=None, latMax=None, longMin=None, longMax=None):
         self.geoType = GeoType(GeoType.Spherical, unit=unit, scale=scale, latMin=latMin, latMax=latMax, longMin=longMin, longMax=longMax)
+        self.geoType.setConnection(self)
         return self.geoType
     
     def getGeoType(self):
         return self.geoType
     
-    def setGeoType(self, geoGrid):
-        self.geoType = geoGrid
+    def setGeoType(self, geoType):
+        self.geoType = geoType
+        geoType.setConnection(self)
         
     def createCoordinate(self, x=None, y=None, lat=None, long=None):
         """
@@ -704,11 +733,11 @@ class RepositoryConnection(object):
         """
         return self.geoType.createCoordinate(x=x, y=y, lat=lat, long=long)
     
-    def createBox(self, xMin, xMax, yMin, yMax):
+    def createBox(self, xMin=None, xMax=None, yMin=None, yMax=None):
         """
         Define a rectangular region for the current coordinate system.
         """
-        return self.geoType.createBox(xMin, xMax, yMin, yMax)
+        return self.geoType.createBox(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
     
     def createCircle(self, x, y, radius, unit=None):
         """
@@ -728,29 +757,49 @@ class RepositoryConnection(object):
 class GeoType:
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'
-    Rectangular = Cartesian
-    LatLong = Spherical
     def __init__(self, system, scale=None, unit=None, xMin=None, xMax=None, yMin=None, yMax=None,
                  latMin=None, latMax=None, longMin=None, longMax=None):
+        self.system = system
+        self.connection = None
+        self.scale = scale
+        self.unit = unit
+        self.xMin = xMin
+        self.xMax = xMax
+        self.yMin = yMin
+        self.yMax = yMax
+        self.latMin = latMin,
+        self.latMax = latMax,
+        self.longMin = longMin,
+        self.longMax = longMax
+        self.miniGeoType = None
         if system == GeoType.Cartesian:
             if unit:
                 raise Exception("Units not yet supported for rectangular coordinates.")
-            self.grid = self.mini_repository.getCartesianGeoType(scale, xMin, xMax, yMin, yMax)
-        elif system == GeoType.Spherical:
-            self.system = self.mini_repository.getSphericalGeoType(scale, unit=unit, latMin=latMin, latMax=latMax, longMin=longMin, longMax=longMax)
         else: pass  ## can't happen
+    
+    def setConnection(self, connection): self.connection = connection
+        
+    def _getMiniGeoType(self):
+        if not self.miniGeoType:
+            if self.system == GeoType.Cartesian:
+                self.miniGeoType = self.connection.mini_repository.getCartesianGeoType(str(self.scale), str(self.xMin), str(self.xMax),
+                                                                                str(self.yMin), str(self.yMax))
+            elif self.system == GeoType.Spherical:
+                self.miniGeoType = self.connection.mini_repository.getSphericalGeoType(str(self.scale), unit=str(self.unit), 
+                                latMin=str(self.latMin), latMax=str(self.latMax), longMin=str(self.longMin), longMax=str(self.longMax))
+        return self.miniGeoType
 
-    def createCoordinate(self, x=None, y=None, lat=None, long=None):
+    def createCoordinate(self, x=None, y=None, lat=None, long=None, unit=None):
         """
         Create an x, y  or lat, long  coordinate for the system defined by this geotype. 
         """
-        return GeoCoordinate(x=(x or lat), y=y or long, geoType=self)
+        return GeoCoordinate(x=(x or lat), y=y or long, unit=unit, geoType=self)
     
-    def createBox(self, xMin, xMax, yMin, yMax):
+    def createBox(self, xMin=None, xMax=None, yMin=None, yMax=None, unit=None):
         """
         Define a rectangular region for the current coordinate system.
         """
-        return GeoBox(xMin, xMax, yMin, yMax, geoType=self)
+        return GeoBox(xMin, xMax, yMin, yMax, unit=unit, geoType=self)
 
     def createCircle(self, x, y, radius, unit=None):
         """

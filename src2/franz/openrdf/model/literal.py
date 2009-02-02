@@ -196,23 +196,28 @@ class RangeLiteral(CompoundLiteral):
 
     
 class GeoCoordinate(CompoundLiteral):
-    def __init__(self, x, y, geoType=None):
+    """
+    Define either a cartesian coordinate or a spherical coordinate.  For the
+    latter, nit can be 'km', 'mile', 'radian', or 'degree'
+    """
+    def __init__(self, x, y, unit=None, geoType=None):
         self.xcoor = x
         self.ycoor = y
+        self.unit = unit
         self.geoType = geoType
     
-    def __str__(self): return "(%i, %i)" % (self.xcoor, self.ycoor)
+    def __str__(self): return "|COOR|(%i, %i)" % (self.xcoor, self.ycoor)
     
 class GeoSpatialRegion(CompoundLiteral):
     pass
 
 class GeoBox(GeoSpatialRegion):
-    def __init__(self, x, y, radius, unit=None, innerRadius=None, geoType=None):
-        self.x = x
-        self.y = y
-        self.radius = radius
+    def __init__(self, xMin, xMax, yMin, yMax, unit=None, geoType=None):
+        self.xMin = xMin
+        self.xMax = xMax
+        self.yMin = yMin
+        self.yMax = yMax
         self.unit = unit
-        self.innerRadius = innerRadius
         self.geoType = geoType
         
 class GeoCircle(GeoSpatialRegion):

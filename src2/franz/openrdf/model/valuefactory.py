@@ -23,7 +23,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value, BNode, URI
-from franz.openrdf.model.literal import Literal, RangeLiteral, GeoCoordinate
+from franz.openrdf.model.literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
@@ -103,9 +103,14 @@ class ValueFactory(object):
     
     def createURI(self, uri=None, namespace=None, localname=None):
         """
-        Creates a new URI from the supplied string-representation(s)
+        Creates a new URI from the supplied string-representation(s).
+        If two non-keyword arguments are passed, assumes they represent a
+        namespace/localname pair.
         """
-        return URI(uri=uri, namespace=namespace, localname=localname)
+        if namespace and not localname:
+            return URI(namespace=uri, localname=namespace)
+        else:
+            return URI(uri=uri, namespace=namespace, localname=localname)
     
 
 #############################################################################
@@ -126,6 +131,7 @@ class ValueFactory(object):
     def validateCompoundLiteral(self, term, predicate):
         """
         Check to see if range boundaries are mapped.
+        TODO: ADD VALIDATION FOR GEO TERMS
         """
         if isinstance(term, RangeLiteral):
             self.validateRangeConstant(term.lowerBound, predicate)
@@ -139,7 +145,7 @@ class ValueFactory(object):
         a Literal term.  Otherwise, if its a Value, just pass it through.
         """
         if term is None: return term
-        if isinstance(term, RangeLiteral): 
+        if isinstance(term, CompoundLiteral): 
             self.validateCompoundLiteral(term, predicate)
         elif not isinstance(term, Value):
             term = self.createLiteral(term)

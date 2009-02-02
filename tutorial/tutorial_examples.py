@@ -421,14 +421,13 @@ def test15():
     bob = f.createURI(namespace=exns, localname="bob")
     carol = f.createURI(namespace=exns, localname="carol")    
     age = f.createURI(namespace=exns, localname="age")    
-    range = f.createRange(20, 40)
+    range = f.createRange(30, 50)
     if True: myRepository.registerDatatypeMapping(predicate=age, nativeType="int")
     if False: myRepository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")    
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
-    #rows = conn.getStatements(None, age, range)    
-    rows = conn.getStatements(None, age, (30,50))
+    rows = conn.getStatements(None, age, range)
     for r in rows:
         print r 
 
@@ -524,6 +523,7 @@ def test18():
     conn.setRuleLanguage(QueryLanguage.PROLOG)
     path = "./relative_rules.txt"
     conn.loadRules(path)
+    #pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
     pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
 
 def test26():
@@ -596,7 +596,7 @@ def test27 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,15)]
-    choices = [18]
+    choices = [15]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
