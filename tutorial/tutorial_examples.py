@@ -523,7 +523,7 @@ def test18():
     conn.setRuleLanguage(QueryLanguage.PROLOG)
     path = "./relative_rules.txt"
     conn.loadRules(path)
-    #pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
+    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
     pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
 
 def test26():
@@ -596,7 +596,7 @@ def test27 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,15)]
-    choices = [15]
+    choices = [18]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

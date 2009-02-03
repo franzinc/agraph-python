@@ -2,9 +2,17 @@
 ;; Assumes that the prefix 'rltv' is bound to a namespace
 ;; of your choice
 
+(<-- (string-concat ?result ?string1 ?string2 ?string3)
+     (lisp ?result (string+ ?string1 ?string2 ?string3)))
+
 (<-- (name ?person (?first ?last))
      (q ?person !rltv:first-name ?first)
-     (q ?person !rltv:last-name ?last))     
+     (q ?person !rltv:last-name ?last))  
+     
+(<-- (name ?person ?fullname)
+     (q ?person !rltv:first-name ?first)
+     (q ?person !rltv:last-name ?last)
+     (string-concat ?fullname ?first " " ?last))
 
 (<-- (female ?x)
     (q ?x !rltv:sex !rltv:female))
