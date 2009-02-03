@@ -16,6 +16,7 @@ def urlenc(**args):
         if val is None: pass
         elif isinstance(val, bool): enc(name, (val and "true") or "false")
         elif isinstance(val, int): enc(name, "%d" % val)
+        elif isinstance(val, float): enc(name, "%g" % val)
         elif isinstance(val, list):
             for elt in val: encval(name, elt)
         else: enc(name, val.encode("utf-8"))
