@@ -162,7 +162,7 @@ class Repository:
     def _translate_inlined_type(self, type):
         if type == "int": return "int"
         elif type == "datetime": return "date-time"
-        elif type == "float": return "float"
+        elif type == "float": return "double-float"
         else:
             raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
                     "'int', 'float', and 'datetime'")

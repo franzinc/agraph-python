@@ -244,7 +244,7 @@ class RepositoryConnection(object):
                 return self.mini_repository.createCartesianGeoLiteral(miniGeoType, term.xcoor, term.ycoor)
             elif geoType.system == GeoType.Spherical:
                 unit = term.unit or term.geoType.unit
-                return self.mini_repository.createSphericalGeoLiteral(miniGeoType, term.x, term.y, unit=unit)
+                return self.mini_repository.createSphericalGeoLiteral(miniGeoType, term.xcoor, term.ycoor, unit=unit)
             else:
                 raise IllegalOptionException("Unsupported geo coordinate system", geoType.system)
         if isinstance(term, RangeLiteral):
@@ -292,14 +292,13 @@ class RepositoryConnection(object):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self.mini_repository.getStatementsInsideCircle(miniGeoType, predicate,
                                         region.x, region.y, region.radius)
-            elif geoType.system == GeoType.LatLong:
-                unit = region.unit or geoType.unit
+            elif geoType.system == GeoType.Spherical:
                 stringTuples = self.mini_repository.getStatementsHaversine(miniGeoType, predicate,
-                                        region.x, region.x, region.radius, unit=unit)
+                                        region.x, region.y, region.radius, unit=region.unit)
             else: pass ## can't happen
         elif isinstance(region, GeoPolygon):
-            stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
-                                        region.xMin, region.xMax, region.yMin, region.yMax)
+            stringTuples = self.mini_repository.getStatementsInsidePolygon(miniGeoType, predicate,
+                                        self._convert_term_to_mini_term(region.getResource()))
         else: pass ## can't happen
         return RepositoryResult(stringTuples, limit=limit, subjectFilter=subject)            
     
@@ -543,6 +542,9 @@ class RepositoryConnection(object):
 
     def createURI(self, uri=None, namespace=None, localname=None):
         return self.getValueFactory().createURI(uri=uri, namespace=namespace, localname=localname)
+    
+    def createBNode(self, nodeID=None):
+        return self.getValueFactory().createBNode(nodeID=nodeID)
 
     def createRange(self, lowerBound, upperBound):
         return self.getValueFactory().createRange(lowerBound=lowerBound, upperBound=upperBound)
@@ -710,12 +712,13 @@ class RepositoryConnection(object):
     ## Geo-spatial
     #############################################################################################
     
-    def createRectangularSystem(self, scale=None, unit=None, xMin=0, xMax=None, yMin=0, yMax=None):
+    def createRectangularSystem(self, scale=1, unit=None, xMin=0, xMax=None, yMin=0, yMax=None):
         self.geoType = GeoType(GeoType.Cartesian, scale=scale, unit=unit, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
+                               ##,latMin=None, latMax=None, longMin=None, longMax=None)
         self.geoType.setConnection(self)        
         return self.geoType
     
-    def createLatLongSystem(self, unit=None, scale=None, latMin=None, latMax=None, longMin=None, longMax=None):
+    def createLatLongSystem(self, unit='degree', scale=None, latMin=None, latMax=None, longMin=None, longMax=None):
         self.geoType = GeoType(GeoType.Spherical, unit=unit, scale=scale, latMin=latMin, latMax=latMax, longMin=longMin, longMax=longMax)
         self.geoType.setConnection(self)
         return self.geoType
@@ -747,18 +750,17 @@ class RepositoryConnection(object):
         """
         return self.geoType.createCircle(x, y, radius, unit=unit)
     
-    def createPolygon(self, vertices, geoType=None):
+    def createPolygon(self, vertices, uri=None, geoType=None):
         """
         Define a polygonal region with the specified vertices.  'vertices'
-        is a list of x,y pairs.
+        is a list of x,y pairs.  The 'uri' is optional.
         """
-        return self.geoType.createPolygon(vertices)
+        return self.geoType.createPolygon(vertices, uri=uri)
 
 class GeoType:
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'
-    def __init__(self, system, scale=None, unit=None, xMin=None, xMax=None, yMin=None, yMax=None,
-                 latMin=None, latMax=None, longMin=None, longMax=None):
+    def __init__(self, system, scale=None, unit=None, xMin=None, xMax=None, yMin=None, yMax=None, latMin=None, latMax=None, longMin=None, longMax=None):
         self.system = system
         self.connection = None
         self.scale = scale
@@ -767,9 +769,9 @@ class GeoType:
         self.xMax = xMax
         self.yMin = yMin
         self.yMax = yMax
-        self.latMin = latMin,
-        self.latMax = latMax,
-        self.longMin = longMin,
+        self.latMin = latMin
+        self.latMax = latMax
+        self.longMin = longMin
         self.longMax = longMax
         self.miniGeoType = None
         if system == GeoType.Cartesian:
@@ -780,13 +782,14 @@ class GeoType:
     def setConnection(self, connection): self.connection = connection
         
     def _getMiniGeoType(self):
+        def stringify(term): return str(term) if term is not None else None
         if not self.miniGeoType:
             if self.system == GeoType.Cartesian:
-                self.miniGeoType = self.connection.mini_repository.getCartesianGeoType(str(self.scale), str(self.xMin), str(self.xMax),
-                                                                                str(self.yMin), str(self.yMax))
+                self.miniGeoType = self.connection.mini_repository.getCartesianGeoType(stringify(self.scale), stringify(self.xMin), stringify(self.xMax),
+                                                                                stringify(self.yMin), stringify(self.yMax))
             elif self.system == GeoType.Spherical:
-                self.miniGeoType = self.connection.mini_repository.getSphericalGeoType(str(self.scale), unit=str(self.unit), 
-                                latMin=str(self.latMin), latMax=str(self.latMax), longMin=str(self.longMin), longMax=str(self.longMax))
+                self.miniGeoType = self.connection.mini_repository.getSphericalGeoType(stringify(self.scale), unit=stringify(self.unit), 
+                                latMin=stringify(self.latMin), latMax=stringify(self.latMax), longMin=stringify(self.longMin), longMax=stringify(self.longMax))
         return self.miniGeoType
 
     def createCoordinate(self, x=None, y=None, lat=None, long=None, unit=None):
@@ -810,10 +813,19 @@ class GeoType:
         """
         return GeoCircle(x, y, radius, unit=unit, geoType=self)
 
-    def createPolygon(self, vertices):
+    def createPolygon(self, vertices, uri=None):
         """
         Define a polygonal region with the specified vertices.  'vertices'
-        is a list of x,y pairs.
+        is a list of x,y pairs. The 'uri' is optional.
         """
-        return GeoPolygon(vertices, geoType=self)
+        poly = GeoPolygon(vertices, uri=uri, geoType=self)
+        poly.resource = self.connection.createURI(uri) if uri else self.connection.createBNode()
+        miniResource = self.connection._convert_term_to_mini_term(poly.resource)
+        miniRep = self.connection.mini_repository
+        if self.system == GeoType.Cartesian:
+            miniVertices = [miniRep.createCartesianGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
+        elif self.system == GeoType.Spherical:
+            miniVertices = [miniRep.createSphericalGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
+        miniRep.createPolygon(miniResource, miniVertices)
+        return poly
         

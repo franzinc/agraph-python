@@ -219,6 +219,8 @@ class GeoBox(GeoSpatialRegion):
         self.yMax = yMax
         self.unit = unit
         self.geoType = geoType
+    
+    def __str__(self): return "|Box|%s,%s %s,%s" % (self.xMin, self.xMax, self.yMin, self.yMax)
         
 class GeoCircle(GeoSpatialRegion):
     def __init__(self, x, y, radius, unit=None, geoType=None):
@@ -227,11 +229,21 @@ class GeoCircle(GeoSpatialRegion):
         self.radius = radius
         self.unit = unit
         self.geoType=geoType
+        
+    def __str__(self): return "|Circle|%i,%i, radius=%i" % (self.x, self.y, self.radius)
 
 class GeoPolygon(GeoSpatialRegion):
-    def __init__(self, vertices, geoType=None):
+    def __init__(self, vertices, uri=None, geoType=None):
         self.vertices = vertices
         self.geoType = geoType
-
+        self.uri = uri
+        self.resource = None
+        self.miniPolygon = None
+        
+    def getVertices(self): return self.vertices
+    
+    def getResource(self): return self.resource
+    
+    def __str__(self): return "|Polygon|%s" % self.vertices
         
         
