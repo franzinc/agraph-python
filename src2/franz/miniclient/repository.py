@@ -268,7 +268,7 @@ class Repository:
 
     def createCartesianGeoLiteral(self, type, x, y):
         """Create a geo-spatial literal of the given type."""
-        return "\"%f:%f\"^^<%s>" % (x, y, type)
+        return "\"%+g%+g\"^^<%s>" % (x, y, type)
 
     class UnsupportedUnitError(Exception):
         def __init__(self, unit): self.unit = unit
