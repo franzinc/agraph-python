@@ -471,18 +471,6 @@ def test17():
     conn.deleteEnvironment("kennedys") ## start fresh        
     conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
-
-#    queryString = """
-#    (select (?person ?name)
-#            (q ?person !rdf:type !kdy:person)
-#            (q ?person !kdy:sex !kdy:female)
-#            (q ?person !kdy:first-name ?name)
-#            )
-#    """
-#    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-#    result = tupleQuery.evaluate();     
-#    for row in result:
-#        print row
     conn.setRuleLanguage(QueryLanguage.PROLOG)   
     rules2 = """
     (<-- (female ?x) ;; IF

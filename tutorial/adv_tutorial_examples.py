@@ -97,19 +97,17 @@ def test104():
     conn.createRectangularSystem(scale=1, xMax=100, yMax=100)
     location = conn.createURI(exns, "location")
     #conn.registerDatatypeMapping(predicate=location, nativeType="int")   
-    conn.registerDatatypeMapping(predicate=location, nativeType="float")       
+    #conn.registerDatatypeMapping(predicate=location, nativeType="float")       
     conn.add(alice, location, conn.createCoordinate(30,30))
     conn.add(bob, location, conn.createCoordinate(40, 40))
     conn.add(carol, location, conn.createCoordinate(50, 50)) 
-    #box1 = conn.createBox(20, 40, 20, 40) 
-    box1 = conn.createBox(51.0, 52.0, 0.08, 0.09) 
+    box1 = conn.createBox(20, 40, 20, 40) 
     print box1
     for r in conn.getStatements(None, location, box1) : print r
     box2 = conn.createBox(30, 30, 30, 30) 
     print box2
     for r in conn.getStatements(None, location, box2) : print r
-    circle1 = conn.createCircle(35, 35, radius=10)
-    #circle1 = conn.createCircle(0, 0, radius=100)    
+    circle1 = conn.createCircle(35, 35, radius=10)  
     print circle1
     for r in conn.getStatements(None, location, circle1) : print r 
     polygon1 = conn.createPolygon([(35,40), (40,45),(45,40), (40,35)])
