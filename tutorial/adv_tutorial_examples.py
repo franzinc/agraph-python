@@ -9,7 +9,7 @@ from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.rdfwriter import  NTriplesWriter
 from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
 
-import os, urllib, datetime, time
+import os, urllib, time
 
 CURRENT_DIRECTORY = os.getcwd() 
 
@@ -86,6 +86,7 @@ def test103():
         
 def test104():
     """
+    GeoSpatial Reasoning
     """
     conn = test101();
     conn.clear()
@@ -135,12 +136,34 @@ def test104():
     print box3
     for r in conn.getStatements(None, location, box3) : print r
 
+from datetime import datetime
 
+def test105():
+    """
+    Temporal Reasoning
+    See 'http://seehuhn.de/pages/pdate' for good discussion of Python date classes.
+    """
+    conn = test101();
+    conn.clear()
+    exns = "http://example.org/people/"
+    conn.setNamespace('ex', exns)
+    conn.registerDatatypeMapping(datatype=XMLSchema.DATETIME, nativeType="datetime")
+    alice = conn.createURI(exns, "alice")
+    bob = conn.createURI(exns, "bob")
+    carol = conn.createURI(exns, "carol")    
+    birthdate = conn.createURI(exns, "birthdate")
+    aliceBDay = datetime.strptime("2000-01-01", "%Y-%m-%d")
+    bobBDay = datetime.strptime("2003-01-01", "%Y-%m-%d")
+    carolBDay = datetime.strptime("1999-01-01", "%Y-%m-%d")    
+    conn.add(alice, birthdate, conn.createLiteral(aliceBDay))
+    conn.add(bob, birthdate, conn.createLiteral(bobBDay))
+    afterAliceRange = conn.createRange(aliceBDay, datetime.now())             
+    for r in conn.getStatements(None, None, afterAliceRange): print r
     
-        
+   
 if __name__ == '__main__':
     choices = [i for i in range(1,3)]
-    choices = [4]
+    choices = [5]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number 10%i\n" % choice
@@ -150,7 +173,7 @@ if __name__ == '__main__':
         elif choice == 3: test103()
         elif choice == 4: test104()    
         elif choice == 5: test105()        
-        elif choice == 6: test6()            
+        elif choice == 6: test106()            
         elif choice == 7: test7()                
         elif choice == 8: test8()                
         elif choice == 9: test9()                        

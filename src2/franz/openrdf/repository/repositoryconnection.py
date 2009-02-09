@@ -540,12 +540,31 @@ class RepositoryConnection(object):
         return self.repository.registerDatatypeMapping(predicate=predicate, datatype=datatype, nativeType=nativeType)
 
 
+    def createLiteral(self, value, datatype=None, language=None):
+        """
+        Create a new literal with value 'value'.  'datatype' if supplied,
+        should be a URI, in which case 'value' should be a string.
+        """
+        return self.getValueFactory().createLiteral(value, datatype=datatype, language=language)
+    
     def createURI(self, uri=None, namespace=None, localname=None):
+        """
+        Creates a new URI from the supplied string-representation(s).
+        If two non-keyword arguments are passed, assumes they represent a
+        namespace/localname pair.
+        """
         return self.getValueFactory().createURI(uri=uri, namespace=namespace, localname=localname)
     
     def createBNode(self, nodeID=None):
         return self.getValueFactory().createBNode(nodeID=nodeID)
 
+    def createStatement(self, subject, predicate, object, context=None):
+        """
+        Create a new statement with the supplied subject, predicate and object
+        and associated context.  Arguments have type Resource, URI, Value, and Resource.
+        """
+        return self.getValueFactory().createStatement(subject, predicate, object, context=context)
+    
     def createRange(self, lowerBound, upperBound):
         return self.getValueFactory().createRange(lowerBound=lowerBound, upperBound=upperBound)
 
