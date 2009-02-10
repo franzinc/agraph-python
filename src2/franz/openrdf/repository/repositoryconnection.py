@@ -286,8 +286,12 @@ class RepositoryConnection(object):
         geoType = region.geoType
         miniGeoType = geoType._getMiniGeoType()
         if isinstance(region, GeoBox):
-            stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
+            if geoType.system == GeoType.Cartesian:
+                stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
                                         region.xMin, region.xMax, region.yMin, region.yMax)
+            elif geoType.system == GeoType.Spherical:
+                stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
+                                        region.yMin, region.yMax, region.xMin, region.xMax)
         elif isinstance(region, GeoCircle):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self.mini_repository.getStatementsInsideCircle(miniGeoType, predicate,

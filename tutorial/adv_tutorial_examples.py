@@ -163,7 +163,7 @@ def test105():
    
 if __name__ == '__main__':
     choices = [i for i in range(1,3)]
-    choices = [5]
+    choices = [4]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number 10%i\n" % choice
