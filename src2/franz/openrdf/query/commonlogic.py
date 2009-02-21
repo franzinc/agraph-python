@@ -55,6 +55,16 @@ class Token:
             return '"%s"' % self.value
         else:
             return self.value
+        
+    @staticmethod
+    def reserved_type(token, token_types):
+        if not token.token_type == Token.RESERVED_WORD: return False
+        token_types = token_types if isinstance(token_types, (list, tuple, set)) else [token_types]
+        for t in token_types:
+            if token.value == t: return True
+        return False
+
+ATOMIC_TERM_TOKEN_TYPES = set([Token.VARIABLE, Token.STRING, Token.NUMBER, Token.URI, Token.QNAME])
 
 LEGAL_VARIABLE_CHARS = set(['.', '_', '-',])
 
@@ -273,7 +283,8 @@ class CommonLogicTranslator:
         supplement = ''
         if token:
             supplement = "Error occurred at offset %i in the string \n    %s" % (token.offset, self.source_query)
-            message = "%s\n%s" % (message, supplement) 
+            pointer = '    ' + ' ' * (token.offset + 1) + '^' 
+            message = "%s\n%s\n%s" % (message, supplement, pointer) 
         raise QuerySyntaxException(message)
         
     def clean_source(self):
@@ -320,7 +331,7 @@ class CommonLogicTranslator:
         return None        
     
     def parse_enumeration(self, tokens, is_boolean):
-        if is_boolean:
+        if is_boolean is True:
             self.syntax_exception("Enumeration found where boolean expected:  [%s]" % tokens_to_string(tokens, comma_delimited=True), tokens)
         arguments = self.parse_expressions(tokens, [])
         return OperatorExpression(OperatorExpression.ENUMERATION, arguments)
@@ -349,11 +360,20 @@ class CommonLogicTranslator:
             return self.parse_enumeration(tokens, is_boolean)
         ## must be parenthesized expression
         if not tokens:
-            self.syntax_exception("Found empty")
+            self.syntax_exception("Found empty set of parentheses", tokens)
+        ## check if its a predication:
+        allAtomicArguments = True
+        for t in tokens:
+            if not t.token_type in ATOMIC_TERM_TOKEN_TYPES:
+                allAtomicArguments = False
+                break                
+        if allAtomicArguments:
+            return self.parse_predication(tokens)
+        ## we don't know yet what we have here:
         beginToken = tokens[0]
         tokenType = beginToken.token_type
         value = beginToken.value
-        if tokenType == Token.BRACKET and value == '(':
+        if not self.infix_parse and tokenType == Token.BRACKET and value == '(':
             ## see if last token is closing bracket; otherwise, its illegal:
             endToken = tokens[len(tokens) - 1]
             if endToken.token_type == Token.BRACKET and endToken.value == ')':
@@ -370,7 +390,9 @@ class CommonLogicTranslator:
                     self.syntax_exception("Found value expression where boolean expression expected '%s'" % tokens_to_string(tokens), beginToken)
                 ## NOT SURE ABOUT THIS (ESPECIALLY FOR INFIX):
                 isBoolean = (value in BOOLEAN_OPERATORS and not value in COMPARISON_OPERATORS)
+                print "PARSING OR ARGS", [str(t) for t in tokens]
                 arguments = self.parse_expressions(tokens[1:], [], is_boolean=isBoolean)
+                print "   RETURNS ", arguments
                 return OperatorExpression(value, arguments)
             elif value in [OperatorExpression.TRUE, OperatorExpression.FALSE]:
                 if not is_boolean:
@@ -380,12 +402,33 @@ class CommonLogicTranslator:
                 return OperatorExpression(value, [])
             else:
                 raise Exception("Unimplemented reserved word '%s'" % value)
-        elif is_boolean:
-            return self.parse_predication(tokens)
+        if self.infix_parse:
+            return self.parse_infix_expression(tokens, [], connective=None, needs_another_argument=True, is_boolean='UNKNOWN')
+        elif is_boolean is True:
+                ## THIS ERROR MESSAGE WORKED ONCE.  NEED TO FIND OUT IF IT'S TOO SPECIFIC:
+                self.syntax_exception("Illegal expression %s where prefix expression expected"  % tokens_to_string(tokens), tokens)
         else:
-            return self.parse_function_expression(tokens)            
+            ## THIS IS BOGUS SO FAR.  
+            return self.parse_function_expression(tokens)    
+        
+    def parse_not(self, tokens, expressions, connective=None):
+        """
+        Infix mode needs special handling for the NOT operator (because its a prefix operator).
+        TODO: FIGURE OUT IF 'OPTIONAL' NEEDS SIMILAR HANDLING HERE
+        TODO: GENERALIZE TO ALSO HANDLE 'IN'???
+        """
+        if len(tokens) < 2:
+            self.syntax_exception("Insufficient arguments to negation operator", tokens)
+        beginToken = tokens[1]
+        tokenType = beginToken.token_type
+        beginVal = beginToken.value
+        if beginVal == '(':
+            return self.parse_bracket(tokens[1:], expressions, connective=connective, 
+                                      unary_operator=OperatorExpression.NOT, is_boolean=True)
+        else:
+            self.syntax_exception("NOT operator expects a parenthesized argument", tokens)        
     
-    def parse_bracket(self, tokens, expressions, is_boolean=False, connective=None):
+    def parse_bracket(self, tokens, expressions, is_boolean=False, connective=None, unary_operator=None):
         """
         'tokens' begins with a bracket.  Find the end bracket, and convert the tokens
         in between into an expression.  Recursively parse the remaining expressions.
@@ -402,6 +445,8 @@ class CommonLogicTranslator:
                 elif tok.value == endVal: nestingCounter -= 1
             if nestingCounter == 0:
                 exp = self.parse_bracketed_expression(tokens[1:i], beginBracket, is_boolean)
+                if unary_operator:
+                    exp = OperatorExpression(unary_operator, [exp])
                 expressions.append(exp)
                 if self.infix_parse:
                     return self.parse_infix_expression(tokens[i + 1:], expressions, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
@@ -417,7 +462,7 @@ class CommonLogicTranslator:
         beginToken = tokens[0]
         tokenType = beginToken.token_type
         if tokenType in set([Token.STRING, Token.QNAME, Token.URI, Token.NUMBER]):
-            if is_boolean:
+            if is_boolean is True:
                 self.syntax_exception("Term found where boolean expression expected '%s'" % beginToken.value, beginToken)
             expressions.append(self.token_to_term(beginToken))
             return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
@@ -427,11 +472,11 @@ class CommonLogicTranslator:
         if tokenType == Token.BRACKET:
             return self.parse_bracket(tokens, expressions, is_boolean=is_boolean)
         elif tokenType == Token.RESERVED_WORD:
-            if beginToken.value in ['true', 'false']:
+            if Token.reserved_type(beginToken, [OperatorExpression.TRUE, OperatorExpression.FALSE]):
                 expressions.append(OperatorExpression(beginToken.value, []))
                 return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
         ## failure
-        if is_boolean:
+        if is_boolean is True:
             self.syntax_exception("Found illegal term '%s' where boolean expression expected" % beginToken.value, beginToken)
         else:
             self.syntax_exception("Found illegal term '%s'" % str(beginToken), beginToken)
@@ -458,8 +503,8 @@ class CommonLogicTranslator:
         tokenType = beginToken.token_type
         if needs_another_argument:
             ## the next argument must be a term (not a connective)
-            if tokenType in set([Token.STRING, Token.QNAME, Token.URI, Token.NUMBER]):
-                if is_boolean:
+            if tokenType in ATOMIC_TERM_TOKEN_TYPES:
+                if is_boolean is True:
                     self.syntax_exception("Value term found where boolean expression expected '%s'" % beginToken.value, beginToken)
                 arguments.append(self.token_to_term(beginToken))
                 return self.parse_infix_expression(tokens[1:], arguments, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
@@ -468,28 +513,35 @@ class CommonLogicTranslator:
                 return self.parse_infix_expression(tokens[1:], arguments, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
             if tokenType == Token.BRACKET:
                 return self.parse_bracket(tokens, arguments, connective=connective, is_boolean=is_boolean)
-            elif tokenType == Token.RESERVED_WORD and beginToken.value in ['true', 'false'] and is_boolean:
+            elif Token.reserved_type(beginToken, OperatorExpression.NOT) and is_boolean:
+                return self.parse_not(tokens, arguments, connective=connective)
+            elif Token.reserved_type(beginToken, [OperatorExpression.TRUE, OperatorExpression.FALSE]) and is_boolean:
                     arguments.append(OperatorExpression(beginToken.value, []))
                     return self.parse_expressions(tokens[1:], arguments, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
             else: # failure
-                if is_boolean:
+                if is_boolean is True:
                     self.syntax_exception("Found illegal term '%s' where boolean expression expected" % beginToken.value, beginToken)
                 else:
                     self.syntax_exception("Found illegal term '%s'" % str(beginToken), beginToken)
         ## we have an argument; the next token MUST be a connective:
         nextConnective = beginToken.value        
-        if is_boolean:
-            if not (nextConnective in BOOLEAN_OPERATORS and tokenType == Token.RESERVED_WORD):
+        if is_boolean is True:
+            if not Token.reserved_type(beginToken, BOOLEAN_OPERATORS):
                 self.syntax_exception("Found '%s' where one of %s expected" % (beginToken.value, BOOLEAN_OPERATORS), beginToken)
-        else:
-            if not (nextConnective in VALUE_OPERATORS and tokenType == Token.RESERVED_WORD):
+        elif is_boolean is False:
+            if not Token.reserved_type(beginToken, VALUE_OPERATORS):
                 self.syntax_exception("Found '%s' where one of %s expected" % (beginToken.value, VALUE_OPERATORS), beginToken)
+        else:
+            if not Token.reserved_type(beginToken, CONNECTIVE_OPERATORS):
+                self.syntax_exception("Found '%s' where one of %s expected" % (beginToken.value, CONNECTIVE_OPERATORS), beginToken)
+
         if connective and not connective == nextConnective:
             ## the next connective is different than the previous one; coalesce the
             ## previous arguments into a single argument:
             ## NOTE: THIS IS WHERE OPERATOR PRECEDENCE WOULD HAPPEN IF WE HAD IT. BUT WE DON'T HAVE IT:
             arguments = [OperatorExpression(connective, arguments)]
-        return self.parse_infix_expression(tokens[1:], arguments, connective=nextConnective, is_boolean=is_boolean)
+        isBoolean = nextConnective in BOOLEAN_OPERATORS and not nextConnective in COMPARISON_OPERATORS
+        return self.parse_infix_expression(tokens[1:], arguments, connective=nextConnective, is_boolean=isBoolean)
    
     def parse_where_clause(self, string):
         """
@@ -553,6 +605,7 @@ class StringsBuffer:
     def __init__(self, include_newlines=False):
         self.buffer = []
         self.include_newlines = include_newlines
+        self.running_indent = 0
     
     def append(self, item):
         if item is None:
@@ -580,7 +633,24 @@ class StringsBuffer:
         self.append(delimiter)
         return self
     
+    def indent(self, indent):
+        self.append(indent)
+        self.running_indent = indent
+        return self
+    
+    def process_embedded_indents(self):
+        strings = []
+        indent = 0
+        for s in self.buffer:
+            if isinstance(s, int):
+                indent = s
+            else:
+                s = s.replace('\n', '\n' + ' ' * indent)
+                strings.append(s)
+        self.buffer = strings            
+    
     def stringify(self):
+        self.process_embedded_indents()        
         return ''.join(self.buffer)
     
     def __str__(self):
@@ -601,16 +671,16 @@ class StringsBuffer:
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
             self.append('select ')         
-            self.append('(').common_logify(term.select_terms, delimiter=' ').append(')').newline()
+            self.append('(').common_logify(term.select_terms, delimiter=' ').append(')\n')
             self.append('where ')
-            self.common_logify(term.where_clause)
+            self.indent(6).common_logify(term.where_clause)
         elif isinstance(term, OperatorExpression):
             if term.operator == OperatorExpression.ENUMERATION:
                 self.common_logify(term.arguments, brackets=('[', ']'), delimiter=', ')
             elif term.operator in [OperatorExpression.AND, OperatorExpression.OR]:
                 self.append('(')
                 self.append(term.operator.lower()).append(' ')
-                self.common_logify(term.arguments, delimiter=StringsBuffer.NEWLINE)
+                self.common_logify(term.arguments, delimiter='\n')
                 self.append(')')  
             else:
                 self.append('(')
@@ -637,7 +707,7 @@ class StringsBuffer:
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
             self.append('(select ')         
-            self.prologify(term.select_terms, brackets=('(', ')'), delimiter=' ').newline()   
+            self.indent(8).prologify(term.select_terms, brackets=('(', ')'), delimiter=' ').newline()   
             self.prologify(term.where_clause, suppress_parentheses=True)
             self.append(')')
         elif isinstance(term, OperatorExpression):
@@ -660,7 +730,7 @@ class StringsBuffer:
                 self.append(')')  
         return self
 
-    def infix_common_logify(self, term, brackets=None, delimiter=' '):
+    def infix_common_logify(self, term, brackets=None, delimiter=' ', suppress_parentheses=False):
         if isinstance(term, Term):
             self.append(str(term))
         elif isinstance(term, str):
@@ -677,12 +747,17 @@ class StringsBuffer:
             self.append('select ')         
             self.infix_common_logify(term.select_terms, delimiter=' ').newline()
             self.append('where ')
-            self.infix_common_logify(term.where_clause)
+            self.indent(6).infix_common_logify(term.where_clause, suppress_parentheses=True)
         elif isinstance(term, OperatorExpression):
             if term.operator == OperatorExpression.ENUMERATION:
                 self.infix_common_logify(term.arguments, brackets=('[', ']'), delimiter=', ')
             elif term.operator in [OperatorExpression.AND, OperatorExpression.OR]:                
-                self.infix_common_logify(term.arguments, delimiter='\n%s ' % term.operator.lower())
+                brackets = ('(', ')') if not suppress_parentheses else None
+                self.infix_common_logify(term.arguments, delimiter='\n%s ' % term.operator.lower(), brackets=brackets)
+            elif term.operator == OperatorExpression.NOT:
+                if not suppress_parentheses: self.append('(')              
+                self.append('not ').infix_common_logify(term.arguments[0])
+                if not suppress_parentheses: self.append(')')                              
             elif term.operator in CONNECTIVE_OPERATORS:
                 self.append('(')                
                 self.infix_common_logify(term.arguments, delimiter=' %s ' % term.operator.lower())
@@ -694,7 +769,7 @@ class StringsBuffer:
                 self.append(')')     
         return self
 
-    def sparqlify(self, term, brackets=None, delimiter=' ', suppress_curlies=False):
+    def sparqlify(self, term, brackets=None, delimiter=' ', suppress_curlies=False, suppress_filter=False):
         if isinstance(term, Term):
             self.append(str(term))
         elif isinstance(term, str):
@@ -702,7 +777,7 @@ class StringsBuffer:
         elif isinstance(term, list):        
             if brackets: self.append(brackets[0])
             for arg in term:
-                self.sparqlify(arg)
+                self.sparqlify(arg, suppress_filter=suppress_filter)
                 self.delimiter(delimiter)
             if term:
                 self.pop()  ## pop trailing delimiter
@@ -711,17 +786,37 @@ class StringsBuffer:
             self.append('select ')         
             self.sparqlify(term.select_terms, delimiter=' ').newline()   
             self.append('where ').append('{ ')
-            self.sparqlify(term.where_clause, suppress_curlies=True)
+            self.indent(6).sparqlify(term.where_clause, suppress_curlies=True)
             self.append(' }')
         elif isinstance(term, OperatorExpression):
-            if term.operator == OperatorExpression.AND:
-                if suppress_curlies:
-                    self.sparqlify(term.arguments, delimiter='.\n')
+            if term.operator in [OperatorExpression.AND, OperatorExpression.OR]:
+                ## are we joining triples or filters? look at first non-connective in descendants
+                ## to find out:
+                sampleArg = term.arguments[0]
+                while sampleArg.operator in [OperatorExpression.AND, OperatorExpression.OR]:
+                    sampleArg = sampleArg.arguments[0]
+                if sampleArg.predicate:
+                    brackets = ('{ ', ' }') if not suppress_curlies else None
+                    delimiter = ' .\n' if term.operator == OperatorExpression.AND else '\nunion '
+                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter)     
                 else:
-                    self.sparqlify(term.arguments, brackets=('{ ', ' }'), delimiter='.\n')
+                    if not suppress_filter: self.append('filter ')
+                    brackets = ('(', ')')
+                    delimiter = ' && ' if term.operator == OperatorExpression.AND else ' || '
+                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter, suppress_filter=True)
+            elif term.operator == OperatorExpression.NOT:
+                self.sparqlify("NOT!!!")
             elif term.predicate:
+                if not suppress_curlies: self.append('{')
                 self.sparqlify(term.arguments[0]).sparqlify(' ').sparqlify(term.predicate).sparqlify(' ')
                 self.sparqlify(term.arguments[1]).sparqlify(' ')
+                if not suppress_curlies: self.append('}')                
+            elif term.operator in COMPARISON_OPERATORS:
+                if not suppress_filter: self.append('filter ')
+                self.append('(')
+                self.sparqlify(term.arguments[0]).sparqlify(' ').sparqlify(term.operator).sparqlify(' ')
+                self.sparqlify(term.arguments[1]).sparqlify(' ')
+                self.append(')')
         return self
 
 
@@ -749,21 +844,30 @@ query2 = """select (?s ?o) where (and (ex:name ?s ?o) (rdf:type ?s <http://www.f
 query2i = """select ?s ?o where (ex:name ?s ?o) and (rdf:type ?s <http://www.franz.com/example#Person>)"""
 query3 = """select (?s ?o) where (and (ex:name ?s ?o) (= ?o "Fred"))"""
 query3i = """select ?s ?o where (ex:name ?s ?o) and (?o = "Fred")"""
-
+query4 = """select (?s ?o) where (and (or (ex:name ?s ?o) (ex:title ?s ?o)) (= ?o "Fred"))"""
+query4i = """select ?s ?o where ((ex:name ?s ?o) or (ex:title ?s ?o))and (?o = "Fred")"""
+query5 = """select (?s) where (and (ex:name ?s ?o) (or (= ?o "Fred") (= ?o "Joe")))"""
+query5i = """select ?s where (ex:name ?s ?o) and ((?o = "Fred") or (?o = "Joe"))"""
+query6 = """select (?s ?o) where (and (ex:name ?s ?o) (not (rdf:type ?s <http://www.franz.com/example#Person>)))"""
+query6i = """select ?s ?o where (ex:name ?s ?o) and not (rdf:type ?s <http://www.franz.com/example#Person>)"""
 
 
     
 if __name__ == '__main__':
-    switch = 3
+    switch = 5.1
     print "Running test", switch
-    if switch == 1: translate(query1, all_quads=True)
-    elif switch == 1.1: translate(query1i, all_quads=True)    
-    elif switch == 2: translate(query2, all_quads=True)
+    if switch == 1: translate(query1, all_quads=True)  # IMPLICIT AND
+    elif switch == 1.1: translate(query1i, all_quads=True)
+    elif switch == 2: translate(query2, all_quads=True) # EXPLICIT AND
     elif switch == 2.1: translate(query2i, infix=True, all_quads=True)
-    elif switch == 3: translate(query3, infix=False, all_quads=True)
+    elif switch == 3: translate(query3, infix=False, all_quads=True) # EQUALITY
     elif switch == 3.1: translate(query3i, infix=True, all_quads=True)        
-    elif switch == 4: test4()
-    elif switch == 5: test5()  
-    elif switch == 6: test6()      
-    elif switch == 7: test7()          
+    elif switch == 4: translate(query4, infix=False, all_quads=True) # TRIPLE DISJUNCTION
+    elif switch == 4.1: translate(query4i, infix=True, all_quads=True)        
+    elif switch == 5: translate(query5, infix=False, all_quads=True) # FILTER DISJUNCTION
+    elif switch == 5.1: translate(query5i, infix=True, all_quads=True)        
+    elif switch == 6: translate(query5, infix=False, all_quads=True) # NEGATION.  SPARQL BREAKS
+    elif switch == 6.1: translate(query5i, infix=True, all_quads=True)        
+    else:
+        print "There is no test number %s" % switch
 
