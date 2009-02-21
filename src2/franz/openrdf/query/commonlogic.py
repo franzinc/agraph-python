@@ -39,7 +39,7 @@ class Token:
     RESERVED_WORD = 'RESERVED_WORD'
     NUMBER = 'NUMBER'
     BRACKET_SET = set(['(', ')', '[', ']',])
-    RESERVED_WORD_SET = set(['and', 'or', 'not', 'true', 'false', '=', '<', '>', '<=', '>=', '!=', '+', '-'])
+    RESERVED_WORD_SET = set(['and', 'or', 'not', 'true', 'false', '=', '<', '>', '<=', '>=', '!=', '+', '-', 'triple', 'quad'])
     
     def __init__(self, token_type, value, offset=None):
         if token_type == Token.RESERVED_WORD:
@@ -58,6 +58,7 @@ class Token:
         
     @staticmethod
     def reserved_type(token, token_types):
+        if not token: return False
         if not token.token_type == Token.RESERVED_WORD: return False
         token_types = token_types if isinstance(token_types, (list, tuple, set)) else [token_types]
         for t in token_types:
@@ -235,7 +236,7 @@ COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
 BOOLEAN_OPERATORS = set(['AND', 'OR', 'NOT', 'IN']).union(COMPARISON_OPERATORS)
 VALUE_OPERATORS = set(['PLUS', 'MINUS'])
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
-OPERATOR_EXPRESSIONS = CONNECTIVE_OPERATORS.union(set(['ENUMERATION', 'TRUE', 'FALSE'])) # omits 'PREDICATION'
+OPERATOR_EXPRESSIONS = CONNECTIVE_OPERATORS.union(set(['ENUMERATION', 'TRUE', 'FALSE', 'TRIPLE', 'QUAD'])) # omits 'PREDICATION'
 
 class OperatorExpression:
     AND = 'AND'
@@ -247,6 +248,8 @@ class OperatorExpression:
     TRUE = 'TRUE'
     FALSE = 'FALSE'
     EQUALITY = '='
+    TRIPLE = 'TRIPLE'
+    QUAD = 'QUAD'
     ## MAY NOT NEED TO BE EXPLICIT ABOUT THESE:
     PLUS = '+'
     MINUS = '-'
@@ -255,7 +258,7 @@ class OperatorExpression:
         self.operator = operator
         self.arguments = arguments
         self.predicate = None
-        self.is_quad = False
+        self.is_ground = False
     
     @staticmethod
     def parse_operator(value):
@@ -263,6 +266,8 @@ class OperatorExpression:
         
     def __str__(self):
         return str(StringsBuffer().common_logify(self))
+
+INFIX_WITH_PREFIX_TRIPLES = True
 
 class CommonLogicTranslator:
     """
@@ -274,8 +279,9 @@ class CommonLogicTranslator:
         self.source_query = None
         self.parse_tree = None
         self.infix_parse = infix
+        self.infix_with_prefix_triples = infix and INFIX_WITH_PREFIX_TRIPLES
         ## TEMPORARY PROLOG HACK
-        self.all_quads = False        
+        self.all_ground = False        
         
     def syntax_exception(self, message, token=None):
         if isinstance(token, list):
@@ -283,7 +289,8 @@ class CommonLogicTranslator:
         supplement = ''
         if token:
             supplement = "Error occurred at offset %i in the string \n    %s" % (token.offset, self.source_query)
-            pointer = '    ' + ' ' * (token.offset + 1) + '^' 
+            SHIM = 3
+            pointer = '    ' + ' ' * (token.offset + 1 + SHIM) + '^' 
             message = "%s\n%s\n%s" % (message, supplement, pointer) 
         raise QuerySyntaxException(message)
         
@@ -304,6 +311,8 @@ class CommonLogicTranslator:
                 return Term(Term.LITERAL, token.value, XSD.NUMBER)        
         elif token.token_type == Token.QNAME:
             return Term(Term.RESOURCE, token.value, qname=token.value)
+        else:
+            raise Exception("Can't convert token %s to a term" % token)
         
     def parse_select_clause(self, select_string):
         """
@@ -336,22 +345,31 @@ class CommonLogicTranslator:
         arguments = self.parse_expressions(tokens, [])
         return OperatorExpression(OperatorExpression.ENUMERATION, arguments)
     
-    def parse_predication(self, tokens):
+    def parse_predication(self, tokens, predicate=None):
         """
         'tokens' represent a predicate applied to arguments
         """
-        arguments = self.parse_expressions(tokens[1:], [])
+        if Token.reserved_type(predicate, [OperatorExpression.TRIPLE, OperatorExpression.QUAD]):
+            predicate = predicate.value.lower()
+            isGround = True
+        elif self.all_ground: ## HACK FOR TESTING PROLOG
+            isGround = True
+            predicate = OperatorExpression.TRIPLE.lower()
+        else:
+            isGround = False
+        if predicate:
+            arguments = self.parse_expressions(tokens, [])
+        else:
+            predicate = self.token_to_term(tokens[0])            
+            arguments = self.parse_expressions(tokens[1:], [])        
         op = OperatorExpression(OperatorExpression.PREDICATION, arguments)
-        predicate = self.token_to_term(tokens[0])
-        if not predicate.term_type in [Term.RESOURCE, Term.VARIABLE]:
+        if not isGround and not predicate.term_type in [Term.RESOURCE, Term.VARIABLE]:
             self.syntax_exception("Found illegal term '%s' where resource expected" % predicate.value, tokens[0])
         op.predicate = predicate
-        ## HACK FOR TESTING PROLOG:
-        if self.all_quads:
-            op.is_quad = True
+        op.is_ground = isGround
         return op
                    
-    def parse_bracketed_expression(self, tokens, bracket, is_boolean):
+    def parse_bracketed_expression(self, tokens, bracket, predicate=None, is_boolean=None):
         """
         'tokens' are encoded in a bracket beginning with 'bracket'.
         Figure out what kind of expression we have, and parse it.
@@ -368,7 +386,11 @@ class CommonLogicTranslator:
                 allAtomicArguments = False
                 break                
         if allAtomicArguments:
-            return self.parse_predication(tokens)
+            return self.parse_predication(tokens, predicate=predicate)
+        elif  Token.reserved_type(tokens[0], [OperatorExpression.TRIPLE, OperatorExpression.QUAD]):
+            return self.parse_predication(tokens[1:], predicate=tokens[0])
+        elif predicate:
+            self.syntax_exception("MAYBE A FUNCTION, BUT NOT LEGAL PREDICATION", tokens)
         ## we don't know yet what we have here:
         beginToken = tokens[0]
         tokenType = beginToken.token_type
@@ -377,7 +399,7 @@ class CommonLogicTranslator:
             ## see if last token is closing bracket; otherwise, its illegal:
             endToken = tokens[len(tokens) - 1]
             if endToken.token_type == Token.BRACKET and endToken.value == ')':
-                return self.parse_bracketed_expression(tokens[1:-1], beginToken, is_boolean)
+                return self.parse_bracketed_expression(tokens[1:-1], beginToken, is_boolean=is_boolean)
             else:
                 self.syntax_exception("Found parenthesized expression where term expected: '%s'" % tokens_to_string(tokens), beginToken) 
         elif tokenType == Token.RESERVED_WORD:
@@ -390,9 +412,7 @@ class CommonLogicTranslator:
                     self.syntax_exception("Found value expression where boolean expression expected '%s'" % tokens_to_string(tokens), beginToken)
                 ## NOT SURE ABOUT THIS (ESPECIALLY FOR INFIX):
                 isBoolean = (value in BOOLEAN_OPERATORS and not value in COMPARISON_OPERATORS)
-                print "PARSING OR ARGS", [str(t) for t in tokens]
                 arguments = self.parse_expressions(tokens[1:], [], is_boolean=isBoolean)
-                print "   RETURNS ", arguments
                 return OperatorExpression(value, arguments)
             elif value in [OperatorExpression.TRUE, OperatorExpression.FALSE]:
                 if not is_boolean:
@@ -420,7 +440,6 @@ class CommonLogicTranslator:
         if len(tokens) < 2:
             self.syntax_exception("Insufficient arguments to negation operator", tokens)
         beginToken = tokens[1]
-        tokenType = beginToken.token_type
         beginVal = beginToken.value
         if beginVal == '(':
             return self.parse_bracket(tokens[1:], expressions, connective=connective, 
@@ -428,7 +447,7 @@ class CommonLogicTranslator:
         else:
             self.syntax_exception("NOT operator expects a parenthesized argument", tokens)        
     
-    def parse_bracket(self, tokens, expressions, is_boolean=False, connective=None, unary_operator=None):
+    def parse_bracket(self, tokens, expressions, is_boolean=False, connective=None, unary_operator=None, predicate=None):
         """
         'tokens' begins with a bracket.  Find the end bracket, and convert the tokens
         in between into an expression.  Recursively parse the remaining expressions.
@@ -444,7 +463,7 @@ class CommonLogicTranslator:
                 if tok.value == beginVal: nestingCounter += 1
                 elif tok.value == endVal: nestingCounter -= 1
             if nestingCounter == 0:
-                exp = self.parse_bracketed_expression(tokens[1:i], beginBracket, is_boolean)
+                exp = self.parse_bracketed_expression(tokens[1:i], beginBracket, is_boolean=is_boolean, predicate=predicate)
                 if unary_operator:
                     exp = OperatorExpression(unary_operator, [exp])
                 expressions.append(exp)
@@ -503,6 +522,11 @@ class CommonLogicTranslator:
         tokenType = beginToken.token_type
         if needs_another_argument:
             ## the next argument must be a term (not a connective)
+            if self.infix_with_prefix_triples:
+                if tokenType in [Token.URI, Token.QNAME] and len(tokens) > 1 and tokens[1].value == '(':
+                    return self.parse_bracket(tokens[1:], arguments, connective=connective, predicate=beginToken, is_boolean=is_boolean)
+                elif Token.reserved_type(beginToken, [OperatorExpression.TRIPLE, OperatorExpression.QUAD]):
+                    return self.parse_bracket(tokens[1:], arguments, connective=connective, predicate=beginToken, is_boolean=is_boolean)
             if tokenType in ATOMIC_TERM_TOKEN_TYPES:
                 if is_boolean is True:
                     self.syntax_exception("Value term found where boolean expression expected '%s'" % beginToken.value, beginToken)
@@ -579,6 +603,7 @@ class CommonLogicTranslator:
         fromString = self.source_query[fromPos + len('from'):wherePos] if fromPos > 0 else ''
         whereString = self.source_query[wherePos + len('where'):]
         qb = QueryBlock()
+        qb.infix_with_prefix_triples = self.infix_with_prefix_triples # hack to communicate with StringsBuffer
         self.parse_tree = qb
         qb.select_terms = self.parse_select_clause(selectString)
         qb.from_list = self.parse_from_clause(fromString)
@@ -606,6 +631,7 @@ class StringsBuffer:
         self.buffer = []
         self.include_newlines = include_newlines
         self.running_indent = 0
+        self.infix_with_prefix_triples = False
     
     def append(self, item):
         if item is None:
@@ -681,12 +707,12 @@ class StringsBuffer:
                 self.append('(')
                 self.append(term.operator.lower()).append(' ')
                 self.common_logify(term.arguments, delimiter='\n')
-                self.append(')')  
+                self.append(')')
             else:
                 self.append('(')
                 self.common_logify(term.predicate or term.operator.lower()).append(' ')
                 self.common_logify(term.arguments)
-                self.append(')')     
+                self.append(')') 
         return self
 
     def prologify(self, term, brackets=None, delimiter=' ', suppress_parentheses=False):
@@ -715,18 +741,17 @@ class StringsBuffer:
                 self.prologify(term.arguments, brackets=('[', ']'), delimiter=', ')
             elif term.operator == OperatorExpression.AND:
                 if suppress_parentheses:
-                    self.prologify(term.arguments, delimiter=StringsBuffer.NEWLINE)
+                    self.prologify(term.arguments, delimiter='\n')
                 else:
-                    self.append('(and ').prologify(term.arguments, delimiter=StringsBuffer.NEWLINE).append(')')
-            elif term.is_quad:
+                    self.append('(and ').prologify(term.arguments, delimiter='\n').append(')')
+            elif term.is_ground:
                 self.append('(q ')
-                self.prologify(term.arguments[0]).prologify(' ').prologify(term.predicate).prologify(' ')
-                self.prologify(term.arguments[1]).prologify(' ')
+                self.prologify(term.arguments, delimiter=' ')
                 self.append(')')
             else:
                 self.append('(')
                 self.prologify(term.predicate or term.operator.lower()).append(' ')
-                self.prologify(term.arguments, brackets=('', ''), delimiter=' ')
+                self.prologify(term.arguments, delimiter=' ')
                 self.append(')')  
         return self
 
@@ -744,6 +769,7 @@ class StringsBuffer:
                 self.pop()  ## pop trailing delimiter
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
+            self.infix_with_prefix_triples = term.infix_with_prefix_triples
             self.append('select ')         
             self.infix_common_logify(term.select_terms, delimiter=' ').newline()
             self.append('where ')
@@ -762,6 +788,9 @@ class StringsBuffer:
                 self.append('(')                
                 self.infix_common_logify(term.arguments, delimiter=' %s ' % term.operator.lower())
                 self.append(')')
+            elif term.predicate and self.infix_with_prefix_triples:
+                self.infix_common_logify(term.predicate)
+                self.infix_common_logify(term.arguments, brackets=('(', ')'))
             else:
                 self.append('(')
                 self.infix_common_logify(term.predicate or term.operator.lower()).append(' ')
@@ -806,6 +835,9 @@ class StringsBuffer:
                     self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter, suppress_filter=True)
             elif term.operator == OperatorExpression.NOT:
                 self.sparqlify("NOT!!!")
+            elif term.is_ground:
+                brackets = ('{ ', ' }') if not suppress_curlies else None
+                self.sparqlify(term.arguments, brackets=brackets, delimiter=' ')
             elif term.predicate:
                 if not suppress_curlies: self.append('{')
                 self.sparqlify(term.arguments[0]).sparqlify(' ').sparqlify(term.predicate).sparqlify(' ')
@@ -824,7 +856,7 @@ class StringsBuffer:
 def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, all_quads=False, infix=False):
     trans = CommonLogicTranslator(infix=infix)
     trans.source_query = cl_select_query
-    trans.all_quads = all_quads
+    trans.all_ground = all_quads
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True).common_logify(trans.parse_tree))    
     print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True).infix_common_logify(trans.parse_tree))        
@@ -841,7 +873,7 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, all_
 query1 = """select (?s ?o) where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>)"""
 query1i = """select ?s ?o where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>)"""
 query2 = """select (?s ?o) where (and (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>))"""
-query2i = """select ?s ?o where (ex:name ?s ?o) and (rdf:type ?s <http://www.franz.com/example#Person>)"""
+query2i = """select ?s ?o where ex:name(?s ?o) and rdf:type(?s <http://www.franz.com/example#Person>)"""
 query3 = """select (?s ?o) where (and (ex:name ?s ?o) (= ?o "Fred"))"""
 query3i = """select ?s ?o where (ex:name ?s ?o) and (?o = "Fred")"""
 query4 = """select (?s ?o) where (and (or (ex:name ?s ?o) (ex:title ?s ?o)) (= ?o "Fred"))"""
@@ -850,14 +882,21 @@ query5 = """select (?s) where (and (ex:name ?s ?o) (or (= ?o "Fred") (= ?o "Joe"
 query5i = """select ?s where (ex:name ?s ?o) and ((?o = "Fred") or (?o = "Joe"))"""
 query6 = """select (?s ?o) where (and (ex:name ?s ?o) (not (rdf:type ?s <http://www.franz.com/example#Person>)))"""
 query6i = """select ?s ?o where (ex:name ?s ?o) and not (rdf:type ?s <http://www.franz.com/example#Person>)"""
+query7 = """select (?s ?o) where (and (triple ?s ex:name ?o) (triple ?s rdf:type <http://www.franz.com/example#Person>))"""
+query7i = """select ?s ?o where triple(?s ex:name ?o) and triple(?s rdf:type <http://www.franz.com/example#Person>)"""
+
+query7 = """select (?s ?o) where (triple ?s ex:name ?o) """
+query7i = """select ?s ?o where triple(?s ex:name ?o) """
+
+
 
 
     
 if __name__ == '__main__':
-    switch = 5.1
+    switch = 7
     print "Running test", switch
     if switch == 1: translate(query1, all_quads=True)  # IMPLICIT AND
-    elif switch == 1.1: translate(query1i, all_quads=True)
+    elif switch == 1.1: translate(query1i, infix=True, all_quads=True)
     elif switch == 2: translate(query2, all_quads=True) # EXPLICIT AND
     elif switch == 2.1: translate(query2i, infix=True, all_quads=True)
     elif switch == 3: translate(query3, infix=False, all_quads=True) # EQUALITY
@@ -866,8 +905,10 @@ if __name__ == '__main__':
     elif switch == 4.1: translate(query4i, infix=True, all_quads=True)        
     elif switch == 5: translate(query5, infix=False, all_quads=True) # FILTER DISJUNCTION
     elif switch == 5.1: translate(query5i, infix=True, all_quads=True)        
-    elif switch == 6: translate(query5, infix=False, all_quads=True) # NEGATION.  SPARQL BREAKS
-    elif switch == 6.1: translate(query5i, infix=True, all_quads=True)        
+    elif switch == 6: translate(query6, infix=False, all_quads=True) # NEGATION.  SPARQL BREAKS
+    elif switch == 6.1: translate(query6i, infix=True, all_quads=True)        
+    elif switch == 7: translate(query7, infix=False, all_quads=True) # TRIPLE PREDICATE
+    elif switch == 7.1: translate(query7i, infix=True, all_quads=True)        
     else:
         print "There is no test number %s" % switch
 
