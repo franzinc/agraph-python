@@ -27,11 +27,13 @@ from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.query.queryresult import TupleQueryResult
 from franz.openrdf.query.queryresult import GraphQueryResult
 from franz.openrdf.query.dataset import ALL_CONTEXTS
+from franz.openrdf.query import commonlogic
 
 class QueryLanguage:
     registered_languages = []
     SPARQL = None
     PROLOG = None
+    COMMON_LOGIC = None
     def __init__(self, name):
         self.name = name
         QueryLanguage.registered_languages.append(self)
@@ -52,6 +54,7 @@ class QueryLanguage:
     
 QueryLanguage.SPARQL = QueryLanguage('SPARQL')
 QueryLanguage.PROLOG = QueryLanguage('PROLOG')
+QueryLanguage.COMMON_LOGIC = QueryLanguage('COMMON_LOGIC')
 
 #############################################################################
 ##
@@ -129,7 +132,7 @@ class Query(object):
     
     def evaluate_generic_query(self):
         """
-        Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
+        Evaluate a SPARQL or PROLOG or COMMON_LOGIC query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
         """
         ##if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
@@ -151,6 +154,17 @@ class Query(object):
         elif self.queryLanguage == QueryLanguage.PROLOG:
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
+        elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
+            query, lang, exception = commonlogic.translate_common_logic_query(query)
+            if lang == 'SPARQL':
+                query = splicePrefixesIntoQuery(self.queryString, self.connection)
+                response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
+                                                infer=self.includeInferred, bindings=bindings)            
+            elif lang == 'PROLOG':
+                query = expandPrologQueryPrefixes(self.queryString, self.connection)
+                response = mini.evalPrologQuery(query, infer=self.includeInferred)
+            else:
+                raise exception
         return response
 
     @staticmethod

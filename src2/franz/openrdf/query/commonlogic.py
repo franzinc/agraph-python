@@ -1,31 +1,33 @@
 #!/usr/bin/env python
 
+from franz.openrdf.exceptions import *
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
+
+XSD = XMLSchema
+
 ###########################################################################################################
 ## RDF Constants
 ###########################################################################################################
 
-class XSD:
-    NS = "http://www.w3.org/2001/XMLSchema#"
-    STRING = NS + "string"
-    BOOLEAN = NS + "boolean"
-    INTEGER = NS + "integer"
-    INT = NS + "int"
-    LONG = NS + "long"    
-    FLOAT = NS + "float"        
-    DOUBLE = NS + "double"
-    DATE = NS + "date"
-    DATETIME = NS + "datetime"
-    TIME = NS + "time"
-    NUMBER = NS + 'number' ## NOT SURE ABOUT THIS
-    URL = NS + 'anyURI'
+#class XSD:
+#    NS = "http://www.w3.org/2001/XMLSchema#"
+#    STRING = NS + "string"
+#    BOOLEAN = NS + "boolean"
+#    INTEGER = NS + "integer"
+#    INT = NS + "int"
+#    LONG = NS + "long"    
+#    FLOAT = NS + "float"        
+#    DOUBLE = NS + "double"
+#    DATE = NS + "date"
+#    DATETIME = NS + "datetime"
+#    TIME = NS + "time"
+#    NUMBER = NS + 'number' ## NOT SURE ABOUT THIS
+#    URL = NS + 'anyURI'
     
 ###########################################################################################################
 ## Exceptions
 ###########################################################################################################
 
-class QuerySyntaxException(Exception):
-    "Illegal Common Logic syntax"
-    
 ###########################################################################################################
 ## Tokenizer
 ###########################################################################################################
@@ -298,14 +300,17 @@ class CommonLogicTranslator:
     SPARQL = 'SPARQL'
     PROLOG = 'PROLOG'
     
-    def __init__(self, infix=False):
-        self.source_query = None
+    def __init__(self, query=None):
+        self.set_source_query(query)
         self.parse_tree = None
-        self.infix_parse = infix
-        self.infix_with_prefix_triples = infix and INFIX_WITH_PREFIX_TRIPLES
         ## TEMPORARY PROLOG HACK
         self.groundify_all = False        
     
+    def set_source_query(self, query):        
+        self.source_query = query
+        self.infix_parse = query and not query[0] == '('
+        self.infix_with_prefix_triples = self.infix_parse and INFIX_WITH_PREFIX_TRIPLES
+        
     SHIM = 3 ## hack until we figure out why offsets are not quite right
     
     def syntax_exception(self, message, token=None):
@@ -634,6 +639,17 @@ class CommonLogicTranslator:
         """
         self.clean_source()
         query = self.source_query.lower()
+        if not query:
+            raise QuerySyntaxException("Empty CommonLogic query passed to translator")
+        ## is it prefix or infix:
+        if query[0] == '(':
+            if not query[len(query) - 1] == ')':
+                raise QuerySyntaxException("Missing right parenthesis at the end of query:\n" + query)
+            beginPos = 1
+            endPos = len(query) - 1
+        else:
+            beginPos = 0
+            endPos = len(query)
         fromPos = query.find('from')
         wherePos = query.find('where')
         if wherePos < 0:
@@ -641,9 +657,9 @@ class CommonLogicTranslator:
         if fromPos and fromPos > wherePos:
             self.syntax_exception("FROM clause must precede WHERE clause" % self.source_query)
         selectEndPos = fromPos if fromPos > 0 else wherePos
-        selectString = self.source_query[len('select'):selectEndPos]
+        selectString = self.source_query[beginPos + len('select'):selectEndPos]
         fromString = self.source_query[fromPos + len('from'):wherePos] if fromPos > 0 else ''
-        whereString = self.source_query[wherePos + len('where'):]
+        whereString = self.source_query[wherePos + len('where'):endPos]
         qb = QueryBlock()
         self.parse_tree = qb
         qb.select_terms = self.parse_select_clause(selectString)
@@ -946,10 +962,10 @@ class StringsBuffer:
                 self.pop()  ## pop trailing delimiter
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
-            self.append('select ')         
+            self.append('(select ')         
             self.append('(').common_logify(term.select_terms, delimiter=' ').append(')\n')
-            self.append('where ')
-            self.indent(6).common_logify(term.where_clause)
+            self.append(' where ')
+            self.indent(7).common_logify(term.where_clause).append(')')
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
                 self.common_logify(term.arguments, brackets=('[', ']'), delimiter=', ')
@@ -1123,10 +1139,47 @@ class StringsBuffer:
         return self
 
 
+###########################################################################################################
+## 
+###########################################################################################################
+
+def translate_common_logic_query(query, preferred_language='PROLOG'):
+    """
+    Translate a Common Logic query into either SPARQL or PROLOG syntax.  If 'preferred_language,
+    choose that one (first).  Return three
+    values, the query, either 'SPARQL' or 'PROLOG', and an error message if the
+    translation fails.  It may fail either because the syntax is illegal, or because
+    the combination of expressions in the query is not implementable in either SPARQL
+    or PROLOG
+    """
+    def help_translate(language):
+        trans = CommonLogicTranslator(query)
+        trans.parse()
+        Normalizer(trans.parse_tree, language).normalize()
+        if language == CommonLogicTranslator.PROLOG:
+            translation = str(StringsBuffer(groundify_all=True).prologify(trans.parse_tree))
+        elif language == CommonLogicTranslator.SPARQL:
+            translation = str(StringsBuffer().sparqlify(trans.parse_tree))
+        return translation
+    
+    try:
+        translation = help_translate(preferred_language)
+    except QuerySyntaxException, e1:
+        try:
+            otherLanguage = 'SPARQL' if preferred_language == 'PROLOG' else 'PROLOG'
+            translation = help_translate(otherLanguage)
+        except QuerySyntaxException:
+            return None, None, e1
+    return translation
+    
+
+###########################################################################################################
+## Testing
+###########################################################################################################
+
 
 def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, infix=False):
-    trans = CommonLogicTranslator(infix=infix)
-    trans.source_query = cl_select_query
+    trans = CommonLogicTranslator(cl_select_query)
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True).common_logify(trans.parse_tree))    
     print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, infix_with_prefix_triples=trans.infix_with_prefix_triples).infix_common_logify(trans.parse_tree))        
@@ -1135,19 +1188,13 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, infi
     print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, groundify_all=True).prologify(trans.parse_tree))    
 
 
-
-###########################################################################################################
-## Testing
-###########################################################################################################
-
-
-query1 = """select (?s ?o) where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>)"""
+query1 = """(select (?s ?o) where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>))"""
 query1i = """select ?s ?o where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>)"""
-query2 = """select (?s ?o) where (and (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>))"""
+query2 = """(select (?s ?o) where (and (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>)))"""
 query2i = """select ?s ?o where ex:name(?s ?o) and rdf:type(?s <http://www.franz.com/example#Person>)"""
-query3 = """select (?s ?o) where (and (ex:name ?s ?o) (= ?o "Fred"))"""
+query3 = """(select (?s ?o) where (and (ex:name ?s ?o) (= ?o "Fred")))"""
 query3i = """select ?s ?o where (ex:name ?s ?o) and (?o = "Fred")"""
-query4 = """select (?s ?o) where (and (or (ex:name ?s ?o) (ex:title ?s ?o)) (= ?o "Fred"))"""
+query4 = """(select (?s ?o) where (and (or (ex:name ?s ?o) (ex:title ?s ?o)) (= ?o "Fred")))"""
 query4i = """select ?s ?o where ((ex:name ?s ?o) or (ex:title ?s ?o))and (?o = "Fred")"""
 query5 = """select (?s) where (and (ex:name ?s ?o) (or (= ?o "Fred") (= ?o "Joe")))"""
 query5i = """select ?s where (ex:name ?s ?o) and ((?o = "Fred") or (?o = "Joe"))"""
@@ -1172,32 +1219,32 @@ query12i = """select ?name where rdf:type(?c ex:Company) and ex:gross(?c ?gross)
 
     
 if __name__ == '__main__':
-    switch = 12.1
+    switch = 4.1
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
-    elif switch == 1.1: translate(query1i, infix=True)
+    elif switch == 1.1: translate(query1i)
     elif switch == 2: translate(query2) # EXPLICIT AND
-    elif switch == 2.1: translate(query2i, infix=True)
-    elif switch == 3: translate(query3, infix=False) # EQUALITY
-    elif switch == 3.1: translate(query3i, infix=True)        
-    elif switch == 4: translate(query4, infix=False) # TRIPLE DISJUNCTION
-    elif switch == 4.1: translate(query4i, infix=True)        
-    elif switch == 5: translate(query5, infix=False) # FILTER DISJUNCTION
-    elif switch == 5.1: translate(query5i, infix=True)        
-    elif switch == 6: translate(query6, infix=False) # NEGATION.  SPARQL BREAKS
-    elif switch == 6.1: translate(query6i, infix=True)        
-    elif switch == 7: translate(query7, infix=False) # TRIPLE PREDICATE
-    elif switch == 7.1: translate(query7i, infix=True)        
-    elif switch == 8: translate(query8, infix=False) # CONTEXT.   SPARQL BREAKS; PROLOG QUESTIONABLE
-    elif switch == 8.1: translate(query8i, infix=True)        
-    elif switch == 9: translate(query9, infix=False) # COMPARISON
-    elif switch == 9.1: translate(query9i, infix=True)        
-    elif switch == 10: translate(query10, infix=False)  # OPTIONAL
-    elif switch == 10.1: translate(query10i, infix=True)        
-    elif switch == 11: translate(query11, infix=False)  # NESTED PARENS
-    elif switch == 11.1: translate(query11i, infix=True)        
-    elif switch == 12: translate(query12, infix=False)  # NESTED PARENS
-    elif switch == 12.1: translate(query12i, infix=True)        
+    elif switch == 2.1: translate(query2i)
+    elif switch == 3: translate(query3) # EQUALITY
+    elif switch == 3.1: translate(query3i)        
+    elif switch == 4: translate(query4) # TRIPLE DISJUNCTION
+    elif switch == 4.1: translate(query4i)        
+    elif switch == 5: translate(query5) # FILTER DISJUNCTION
+    elif switch == 5.1: translate(query5i)        
+    elif switch == 6: translate(query6) # NEGATION.  SPARQL BREAKS
+    elif switch == 6.1: translate(query6i)        
+    elif switch == 7: translate(query7) # TRIPLE PREDICATE
+    elif switch == 7.1: translate(query7i)        
+    elif switch == 8: translate(query8) # CONTEXT.   SPARQL BREAKS; PROLOG QUESTIONABLE
+    elif switch == 8.1: translate(query8i)        
+    elif switch == 9: translate(query9) # COMPARISON
+    elif switch == 9.1: translate(query9i)        
+    elif switch == 10: translate(query10)  # OPTIONAL
+    elif switch == 10.1: translate(query10i)        
+    elif switch == 11: translate(query11)  # NESTED PARENS
+    elif switch == 11.1: translate(query11i)        
+    elif switch == 12: translate(query12)  # NESTED PARENS
+    elif switch == 12.1: translate(query12i)        
     else:
         print "There is no test number %s" % switch
 
