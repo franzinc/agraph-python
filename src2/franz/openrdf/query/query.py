@@ -155,13 +155,13 @@ class Query(object):
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
-            query, lang, exception = commonlogic.translate_common_logic_query(query)
+            query, lang, exception = commonlogic.translate_common_logic_query(self.queryString)
             if lang == 'SPARQL':
-                query = splicePrefixesIntoQuery(self.queryString, self.connection)
+                query = splicePrefixesIntoQuery(query, self.connection)
                 response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                                 infer=self.includeInferred, bindings=bindings)            
             elif lang == 'PROLOG':
-                query = expandPrologQueryPrefixes(self.queryString, self.connection)
+                query = expandPrologQueryPrefixes(query, self.connection)
                 response = mini.evalPrologQuery(query, infer=self.includeInferred)
             else:
                 raise exception
@@ -169,8 +169,8 @@ class Query(object):
 
     @staticmethod
     def _check_language(queryLanguage):
-        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
-            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
+        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG, QueryLanguage.COMMON_LOGIC]:
+            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL, PROLOG, and COMMON_LOGIC."
                                          % queryLanguage)
             
   

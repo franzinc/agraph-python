@@ -695,7 +695,7 @@ class CommonLogicTranslator:
         qb.select_terms = self.parse_select_clause(selectString)
         qb.from_list = self.parse_from_clause(fromString)
         qb.where_clause = self.parse_where_clause(whereString)
-        qb.limit = self.parse_limit_clause(limitString)
+        qb.limit = self.parse_limit_clause(limitString) if limitString else -1
 
 
 ###########################################################################################################
@@ -1235,13 +1235,15 @@ def translate_common_logic_query(query, preferred_language='PROLOG'):
     
     try:
         translation = help_translate(preferred_language)
+        successfulLanguage = preferred_language
     except QuerySyntaxException, e1:
         try:
             otherLanguage = 'SPARQL' if preferred_language == 'PROLOG' else 'PROLOG'
             translation = help_translate(otherLanguage)
+            successfulLanguage = otherLanguage
         except QuerySyntaxException:
             return None, None, e1
-    return translation
+    return translation, successfulLanguage, None
     
 
 ###########################################################################################################
