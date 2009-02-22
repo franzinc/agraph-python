@@ -41,8 +41,9 @@ class Token:
     RESERVED_WORD = 'RESERVED_WORD'
     NUMBER = 'NUMBER'
     BRACKET_SET = set(['(', ')', '[', ']',])
-    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'IN', 'TRUE', 'FALSE', 
-                             '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD'])
+    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'IN', 'TRUE', 'FALSE', 'LIST',
+                             '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD',
+                             'DISTINCT'])
     
     def __init__(self, token_type, value, offset=None):
         if token_type == Token.RESERVED_WORD:
@@ -147,7 +148,11 @@ def grab_delimited_word(string, tokens):
         tokens.append(Token(Token.QNAME, word))
     else:
         raise QuerySyntaxException("Unrecognized term '%s'" % word)
-    return string[endPos:]
+    if endPos == -1:
+        ## ran off the end of the string:
+        return ''
+    else:
+        return string[endPos:]
 
 def super_strip(string):
     """
@@ -200,8 +205,10 @@ def tokens_to_string(tokens, comma_delimited=False):
 ###########################################################################################################
     
 SELECT = 'select'
+DISTINCT = 'distinct'
 FROM = 'from'
 WHERE = 'where'
+LIMIT = 'limit'
 
 class QueryBlock:
     def __init__(self, query_type=SELECT):
@@ -209,6 +216,8 @@ class QueryBlock:
         self.select_terms = None
         self.from_list = None
         self.where_clause = None
+        self.distinct = False
+        self.limit = -1
         
     def stringify(self, newlines=False): 
         newline = '\n' if newlines else ''
@@ -255,7 +264,7 @@ COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
 BOOLEAN_OPERATORS = set(['AND', 'OR', 'NOT', 'IN', 'OPTIONAL',]).union(COMPARISON_OPERATORS)
 VALUE_OPERATORS = ARITHMETIC_OPERATORS
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
-OPERATOR_EXPRESSIONS = CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(set(['ENUMERATION', 'TRUE', 'FALSE', 'TRIPLE', 'QUAD'])) # omits 'PREDICATION'
+OPERATOR_EXPRESSIONS = CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(set(['ENUMERATION', 'TRUE', 'FALSE', 'LIST', 'TRIPLE', 'QUAD'])) # omits 'PREDICATION'
 
 class OpExpression:
     AND = 'AND'
@@ -285,7 +294,7 @@ class OpExpression:
     @staticmethod
     def parse_operator(value):
         value = value.upper()
-        if not value in OPERATOR_EXPRESSIONS:
+        if not value in OPERATOR_EXPRESSIONS and not value in ['DISTINCT']:
             raise Exception("Need to add '%s' to list of OPERATOR_EXPRESSIONS" % value)
         return value
         
@@ -349,6 +358,9 @@ class CommonLogicTranslator:
         TODO: UPGRADE TO ALLOW ARBITRARY EXPRESSIONS HERE
         """
         tokens = tokenize(select_string, [], len('select') - CommonLogicTranslator.SHIM)
+        if tokens and Token.reserved_type(tokens[0], 'DISTINCT'):
+            self.parse_tree.distinct = True
+            tokens = tokens[1:]
         if not self.infix_parse:
             if len(tokens) >= 2 and tokens[0].value == '(' and tokens[len(tokens) - 1].value == ')':
                 tokens = tokens[1:-1]
@@ -368,11 +380,11 @@ class CommonLogicTranslator:
         """
         return None        
     
-    def parse_enumeration(self, tokens, is_boolean):
-        if is_boolean is True:
-            self.syntax_exception("Enumeration found where boolean expected:  [%s]" % tokens_to_string(tokens, comma_delimited=True), tokens)
+    def parse_enumeration(self, value, tokens):
         arguments = self.parse_expressions(tokens, [])
-        return OpExpression(OpExpression.ENUMERATION, arguments)
+        op = OpExpression(OpExpression.ENUMERATION, arguments)
+        op.predicate = value
+        return op
     
     def parse_predication(self, tokens, predicate=None):
         """
@@ -405,7 +417,7 @@ class CommonLogicTranslator:
         Figure out what kind of expression we have, and parse it.
         """
         if bracket.value == '[':
-            return self.parse_enumeration(tokens, is_boolean)
+            return self.parse_enumeration('LIST', tokens)
         ## must be parenthesized expression
         if not tokens:
             self.syntax_exception("Found empty set of parentheses", tokens)
@@ -450,6 +462,8 @@ class CommonLogicTranslator:
                 elif len(tokens) > 1:
                     self.syntax_exception("Found bizarre expression '%s'" % tokens_to_string(tokens), beginToken)
                 return OpExpression(value, [])
+            elif value in ['LIST', 'SET', 'BAG']:
+                return self.parse_enumeration(value, tokens[1:])
             else:
                 raise Exception("Unimplemented reserved word '%s'" % value)
         if self.infix_parse:
@@ -560,8 +574,8 @@ class CommonLogicTranslator:
                 elif Token.reserved_type(beginToken, [OpExpression.TRIPLE, OpExpression.QUAD]):
                     return self.parse_bracket(tokens[1:], arguments, connective=connective, predicate=beginToken, is_boolean=is_boolean)
             if tokenType in ATOMIC_TERM_TOKEN_TYPES:
-                if is_boolean is True:
-                    self.syntax_exception("Value term found where boolean expression expected '%s'" % beginToken.value, beginToken)
+#                if is_boolean is True:
+#                    self.syntax_exception("Value term found where boolean expression expected '%s'" % beginToken.value, beginToken)
                 arguments.append(self.token_to_term(beginToken))
                 return self.parse_infix_expression(tokens[1:], arguments, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
             if tokenType in set([Token.VARIABLE]):
@@ -631,7 +645,18 @@ class CommonLogicTranslator:
             return expressions[0]
         else:
             return OpExpression(OpExpression.AND, expressions)
-
+        
+    def parse_limit_clause(self, string):
+        offset = self.source_query.find(string)
+        tokens = tokenize(string, [], offset=offset)
+        if not len(tokens) == 1:
+            self.syntax_exception("Expected one argument to 'limit' operator", tokens)
+        token = tokens[0]
+        if token.token_type == Token.NUMBER:
+            return int(token.value)
+        else:
+            self.syntax_exception("'limit' operator expects an integer argument", token)
+            
     def parse(self):
         """
         Parse 'source_query' into a parse tree.
@@ -650,8 +675,11 @@ class CommonLogicTranslator:
         else:
             beginPos = 0
             endPos = len(query)
+        ## THIS IS ALL A CROCK, SINCE THESE WORDS COULD OCCUR WITHIN STRINGS.
+        ## NEED TO TOKENIZE THE ENTIRE STRING:
         fromPos = query.find('from')
         wherePos = query.find('where')
+        limitPos = query.find('limit')
         if wherePos < 0:
             self.syntax_exception("Missing WHERE clause in query '%s'" % self.source_query)
         if fromPos and fromPos > wherePos:
@@ -659,12 +687,15 @@ class CommonLogicTranslator:
         selectEndPos = fromPos if fromPos > 0 else wherePos
         selectString = self.source_query[beginPos + len('select'):selectEndPos]
         fromString = self.source_query[fromPos + len('from'):wherePos] if fromPos > 0 else ''
-        whereString = self.source_query[wherePos + len('where'):endPos]
+        endWherePos = limitPos if limitPos >0 else endPos
+        whereString = self.source_query[wherePos + len('where'):endWherePos]
+        limitString = self.source_query[limitPos + len('limit'):endPos] if limitPos > 0 else ''        
         qb = QueryBlock()
         self.parse_tree = qb
         qb.select_terms = self.parse_select_clause(selectString)
         qb.from_list = self.parse_from_clause(fromString)
         qb.where_clause = self.parse_where_clause(whereString)
+        qb.limit = self.parse_limit_clause(limitString)
 
 
 ###########################################################################################################
@@ -792,11 +823,6 @@ class Normalizer:
             andNode = OpExpression(OpExpression.AND, [whereClause, node])
             self.parse_tree.where_clause = andNode
                                                                   
-        
-    ###########################################################################################################
-    ## Specialized conversions
-    ###########################################################################################################
-
     def flatten_nested_ands(self):
         flattenedSomething = False
         def flatten(node, parent):
@@ -813,7 +839,11 @@ class Normalizer:
         self.walk(flatten, types=OpExpression, bottom_up=True)
         if flattenedSomething:
             self.recompute_backlinks(where_clause_only=True)
-            
+ 
+    ###########################################################################################################
+    ## Specialized conversions
+    ###########################################################################################################
+           
     def find_value_computation_roots(self, node):
         """
         Return a list of nodes representing non-boolean computations
@@ -866,24 +896,38 @@ class Normalizer:
         for ne in newEqualities:            
             self.conjoin_to_where_clause(ne)
         self.recompute_backlinks()
+        
+    def translate_in_enumerate_into_disjunction_of_equalities(self):
+        didIt = False
+        def doit(node, parent):
+            if node.operator == OpExpression.IN:
+                ## assumes that the second arg is an enumeration:
+                vbl = node.arguments[0]
+                enumeration = node.arguments[1]
+                equalities = [OpExpression(OpExpression.EQUALITY, [vbl, item]) for item in enumeration.arguments]
+                orOp = OpExpression(OpExpression.OR, equalities)
+                self.substitute_node(node, orOp)
+                didIt = True
+        self.walk(doit, types=OpExpression)
+        if didIt:
+            self.recompute_backlinks()
 
     ###########################################################################################################
-    ## PROLOG Normalization
+    ## Language-specific Normalization Scripts
     ###########################################################################################################
     
     def normalize_for_prolog(self):
         self.flatten_select_terms()
         self.flatten_value_computations()
+        ## TEMPORARY TO SEE WHAT IT LOOKS LIKE:
+        self.translate_in_enumerate_into_disjunction_of_equalities()
+        ## END TEMPORARY
 
-    ###########################################################################################################
-    ## SPARQL Translation
-    ###########################################################################################################
-    
     def normalize_for_sparql(self):
         """
         Reorganize the parse tree to be compatible with SPARQL's bizarre syntax.
         """
-        "SO FAR NOT NEEDED"
+        self.translate_in_enumerate_into_disjunction_of_equalities()
     
 
 ###########################################################################################################
@@ -948,6 +992,15 @@ class StringsBuffer:
     def __str__(self):
         return self.stringify()
     
+    def complain(self, term, operator):
+        """
+        'term' represents an operator not implemented in the target language.
+        Raise an exception, or append highly visible syntax indicating the problem.
+        TODO: RAISE EXCEPTION
+        """
+        self.append(operator + "!!! ")
+        return self            
+    
     def common_logify(self, term, brackets=None, delimiter=' '):
         if isinstance(term, Term):
             self.append(str(term))
@@ -962,13 +1015,20 @@ class StringsBuffer:
                 self.pop()  ## pop trailing delimiter
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
-            self.append('(select ')         
+            self.append('(select ')
+            if term.distinct: self.append('distinct ')
             self.append('(').common_logify(term.select_terms, delimiter=' ').append(')\n')
             self.append(' where ')
-            self.indent(7).common_logify(term.where_clause).append(')')
+            self.indent(7).common_logify(term.where_clause)
+            if term.limit >= 0:
+                self.indent(1).append('\nlimit ' + str(term.limit))
+            self.append(')')
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
-                self.common_logify(term.arguments, brackets=('[', ']'), delimiter=', ')
+                self.append('(')
+                self.common_logify(term.predicate.lower()).append(' ')
+                self.common_logify(term.arguments)
+                self.append(')') 
             elif term.operator in [OpExpression.AND, OpExpression.OR]:
                 self.append('(')
                 self.append(term.operator.lower()).append(' ')
@@ -999,13 +1059,18 @@ class StringsBuffer:
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
             self.groundify_all = groundify_all
-            self.append('(select ')         
+            self.append('(select ')    
+            if term.distinct: self.complain(term, 'DISTINCT')     
             self.indent(8).prologify(term.select_terms, brackets=('(', ')'), delimiter=' ').newline()   
             self.prologify(term.where_clause, suppress_parentheses=True)
+            if term.limit >= 0: self.complain(term, 'LIMIT')
             self.append(')')
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
-                self.prologify(term.arguments, brackets=('[', ']'), delimiter=', ')
+                self.append('(')
+                self.prologify(term.predicate.lower()).append(' ')
+                self.prologify(term.arguments, delimiter=' ')
+                self.append(')')  
             elif term.operator == OpExpression.AND:
                 if suppress_parentheses:
                     self.prologify(term.arguments, delimiter='\n')
@@ -1050,10 +1115,13 @@ class StringsBuffer:
                 self.pop()  ## pop trailing delimiter
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
-            self.append('select ')         
+            self.append('select ')
+            if term.distinct: self.append('distinct ')            
             self.infix_common_logify(term.select_terms, delimiter=' ').newline()
             self.append('where ')
             self.indent(6).infix_common_logify(term.where_clause, suppress_parentheses=True)
+            if term.limit >= 0:
+                self.indent(0).append('\nlimit ' + str(term.limit))                
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
                 self.infix_common_logify(term.arguments, brackets=('[', ']'), delimiter=', ')
@@ -1095,11 +1163,14 @@ class StringsBuffer:
                 self.pop()  ## pop trailing delimiter
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
-            self.append('select ')         
+            self.append('select ')    
+            if term.distinct: self.append('distinct ')                 
             self.sparqlify(term.select_terms, delimiter=' ').newline()   
             self.append('where ').append('{ ')
             self.indent(6).sparqlify(term.where_clause, suppress_curlies=True)
             self.append(' }')
+            if term.limit >= 0:
+                self.indent(0).append('\nlimit ' + str(term.limit))                                
         elif isinstance(term, OpExpression):
             if term.operator in [OpExpression.AND, OpExpression.OR]:
                 ## are we joining triples or filters? look at first non-connective in descendants
@@ -1121,7 +1192,7 @@ class StringsBuffer:
                 self.append('optional ').sparqlify(term.arguments[0])
                 if not suppress_curlies: self.append('}')      
             elif term.operator == OpExpression.NOT:
-                self.sparqlify("NOT!!!")
+                self.complain(term, "NOT")
             elif term.is_ground:
                 brackets = ('{ ', ' }') if not suppress_curlies else None
                 self.sparqlify(term.arguments, brackets=brackets, delimiter=' ')
@@ -1182,8 +1253,11 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, infi
     trans = CommonLogicTranslator(cl_select_query)
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True).common_logify(trans.parse_tree))    
-    print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, infix_with_prefix_triples=trans.infix_with_prefix_triples).infix_common_logify(trans.parse_tree))        
+    print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, infix_with_prefix_triples=trans.infix_with_prefix_triples).infix_common_logify(trans.parse_tree))
+    Normalizer(trans.parse_tree, CommonLogicTranslator.SPARQL).normalize()        
     print "\nSPARQL \n" + str(StringsBuffer(include_newlines=True).sparqlify(trans.parse_tree))
+    trans = CommonLogicTranslator(cl_select_query)
+    trans.parse()    
     Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG).normalize()
     print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, groundify_all=True).prologify(trans.parse_tree))    
 
@@ -1216,10 +1290,14 @@ query12 = """select (?name) where (and (rdf:type ?c ex:Company) (ex:gross ?c ?gr
                                                 (> (- ?gross ?expenses) 50000) (ex:name ?c ?name))"""
 query12i = """select ?name where rdf:type(?c ex:Company) and ex:gross(?c ?gross) and ex:expenses(?c ?expenses)
                                                 and ((?gross - ?expenses) > 5000) and ex:name(?c ?name)"""
+query13 = """(select (?s ?p ?o) where (triple ?s ?p ?o) (in ?s (list <http://foo> <http://bar>)))"""
+query13i = """select ?s ?p ?o where triple(?s ?p ?o) and ?s in [<http://foo> <http://bar>]"""   
+query14 = """(select distinct (?s ?p ?o) where (triple ?s ?p ?o) limit 5)"""                                            
+query14i = """select distinct (?s ?p ?o) where triple(?s ?p ?o) limit 5"""                                            
 
     
 if __name__ == '__main__':
-    switch = 4.1
+    switch = 14
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -1243,8 +1321,12 @@ if __name__ == '__main__':
     elif switch == 10.1: translate(query10i)        
     elif switch == 11: translate(query11)  # NESTED PARENS
     elif switch == 11.1: translate(query11i)        
-    elif switch == 12: translate(query12)  # NESTED PARENS
+    elif switch == 12: translate(query12)  # ARITHMETIC EXPRESSIONS
     elif switch == 12.1: translate(query12i)        
+    elif switch == 13: translate(query13)  # IN ENUMERATION
+    elif switch == 13.1: translate(query13i)        
+    elif switch == 14: translate(query14)  # DISTINCT AND LIMIT
+    elif switch == 14.1: translate(query14i)        
     else:
         print "There is no test number %s" % switch
 
