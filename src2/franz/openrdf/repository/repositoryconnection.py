@@ -393,27 +393,40 @@ class RepositoryConnection(object):
         elif isinstance(term, str): return term
         else: return term.toNTriples()
         
-    def addTriples(self, triples_or_quads, context=ALL_CONTEXTS):
+    def addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False):
         """
         Add the supplied triples or quads to this repository.  Each triple can
         be a list or a tuple of Values.   If 'context' is set, then 
-        the first argument must contain only triples, and each is inserted into
-        the designated context.
+        the context is substituted in for each triple.  If 'ntriples' is True,
+        then the triples or quads are assumed to contain valid ntriples strings,
+        and they are passed to the server with no conversion.        
         """
         ntripleContexts = self._contexts_to_ntriple_contexts(context, none_is_mini_null=True)
         quads = []
         for q in triples_or_quads:
+            isQuad = len(q) == 4
             quad = [None] * 4
-            if isinstance(quad, (list, tuple)):
+            if ntriples:
+                quad[0] = q[0]
+                quad[1] = q[1]
+                quad[2] = q[2]
+                quad[3] = q[3] if isQuad and q[3] else ntripleContexts
+            elif isinstance(quad, (list, tuple)):
+                predicate = q[1]
+                obj = self.getValueFactory().object_position_term_to_openrdf_term(q[2], predicate=predicate)
                 quad[0] = self._to_ntriples(q[0])
-                quad[1] = self._to_ntriples(q[1])
-                quad[2] = self._to_ntriples(q[2])
-                quad[3] = self._to_ntriples(q[3]) if q[3] else ntripleContexts
-            else:
+                quad[1] = self._to_ntriples(predicate)
+                quad[2] = self._to_ntriples(obj)
+                quad[3] = self._to_ntriples(q[3]) if isQuad and q[3] else ntripleContexts
+            else: # must be a statement
+                predicate = q.getPredicate()
+                obj = self.getValueFactory().object_position_term_to_openrdf_term(q.getObject(), predicate=predicate)
                 quad[0] = self._to_ntriples(q.getSubject())
-                quad[1] = self._to_ntriples(q.getPredicate())
-                quad[2] = self._to_ntriples(q.getObject())
-                quad[3] = self._to_ntriples(q.getContext()) if q.getContext() else ntripleContexts
+                quad[1] = self._to_ntriples(predicate)
+                quad[2] = self._to_ntriples(obj)
+                quad[3] = self._to_ntriples(q.getContext()) if isQuad and q.getContext() else ntripleContexts
+            quads.append(quad)
+        self.mini_repository.addStatements(quads)
                 
 #     * Adds the supplied statement to this repository, optionally to one or more
 #     * named contexts.
