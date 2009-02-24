@@ -23,11 +23,10 @@
 
 
 from franz.openrdf.exceptions import *
-from franz.openrdf.repository.jdbcresultset import JDBCResultSet
-from franz.openrdf.query.queryresult import TupleQueryResult
-from franz.openrdf.query.queryresult import GraphQueryResult
-from franz.openrdf.query.dataset import ALL_CONTEXTS
 from franz.openrdf.query import commonlogic
+from franz.openrdf.query.dataset import ALL_CONTEXTS, Dataset
+from franz.openrdf.query.queryresult import GraphQueryResult, TupleQueryResult
+from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 
 class QueryLanguage:
     registered_languages = []
@@ -74,6 +73,7 @@ class Query(object):
         self.dataset = None
         self.includeInferred = False
         self.bindings = {}
+        self.preferred_execution_language = None ## used by the CommonLogic evaluator
 
     def setBinding(self, name, value):
         """
@@ -105,7 +105,7 @@ class Query(object):
      
     def getDataset(self):
         """
-        Gets the dataset that has been set using {@link #setDataset(Dataset)}, if  any. 
+        Gets the dataset that has been set.
         """ 
         return self.dataset
      
@@ -152,16 +152,26 @@ class Query(object):
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
+            if namedContexts:
+                raise QueryMissingFeatureException("Prolog queries do not the datasets (named graphs) option.")
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
-            query, lang, exception = commonlogic.translate_common_logic_query(self.queryString)
+            query, contexts, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
+                                    preferred_language=self.preferred_execution_language)
+            if contexts and not namedContexts:
+                namedContexts = [uri.getURI() for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
+            self.execution_language = lang ## for debugging
             if lang == 'SPARQL':
+                print "         SPARQL QUERY", query
                 query = splicePrefixesIntoQuery(query, self.connection)
                 response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                                 infer=self.includeInferred, bindings=bindings)            
             elif lang == 'PROLOG':
+                if namedContexts:
+                    raise QueryMissingFeatureException("Prolog queries do not the datasets (named graphs) option.")
                 query = expandPrologQueryPrefixes(query, self.connection)
+                print "         PROLOG QUERY", query
                 response = mini.evalPrologQuery(query, infer=self.includeInferred)
             else:
                 raise exception

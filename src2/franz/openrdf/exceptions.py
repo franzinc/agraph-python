@@ -69,6 +69,17 @@ class BadFormatException(Exception):
 class ServerException(Exception):
     pass
 
+class QuerySyntaxException(Exception):
+    """
+    Illegal Common Logic syntax
+    """
+
+class QueryMissingFeatureException(Exception):
+    """
+    Source language evokes a feature not supported by the execution language
+    """
+    
+
 #class NiceException(Exception):
 #    pass
 #
