@@ -485,6 +485,38 @@ class RepositoryConnection(object):
             for cxt in ntripleContexts:
                 self.mini_repository.deleteMatchingStatements(subj, pred, obj, cxt)
 
+    def removeQuads(self, quads, ntriples=False):
+        """
+        Remove enumerated quads from this repository.  Each quad can
+        be a list or a tuple of Values.   If 'ntriples' is True,
+        then the  quads are assumed to contain valid ntriples strings,
+        and they are passed to the server with no conversion.        
+        """
+        quads = []
+        for q in quads:
+            quad = [None] * 4
+            if ntriples:
+                quad[0] = q[0]
+                quad[1] = q[1]
+                quad[2] = q[2]
+                quad[3] = q[3]
+            elif isinstance(quad, (list, tuple)):
+                predicate = q[1]
+                obj = self.getValueFactory().object_position_term_to_openrdf_term(q[2], predicate=predicate)
+                quad[0] = self._to_ntriples(q[0])
+                quad[1] = self._to_ntriples(predicate)
+                quad[2] = self._to_ntriples(obj)
+                quad[3] = self._to_ntriples(q[3])
+            else: # must be a statement
+                predicate = q.getPredicate()
+                obj = self.getValueFactory().object_position_term_to_openrdf_term(q.getObject(), predicate=predicate)
+                quad[0] = self._to_ntriples(q.getSubject())
+                quad[1] = self._to_ntriples(predicate)
+                quad[2] = self._to_ntriples(obj)
+                quad[3] = self._to_ntriples(q.getContext())
+            quads.append(quad)
+        self.mini_repository.deleteStatements(quads)
+
    
 #     * Removes the supplied statement from the specified contexts in the
 #     * repository.
@@ -549,6 +581,9 @@ class RepositoryConnection(object):
     ## Added here because its dumb to have to dispatch from three different objects
     ## (connection, repository, and value factory) when one will do
     #############################################################################################
+    
+    def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
+        return self.repository.registerFreeTextPredicate(uri=uri, namespace=namespace, localname=localname)
     
     def indexTriples(self, all=False, asynchronous=False):
         return self.repository.indexTriples(all=all, asynchronous=asynchronous)

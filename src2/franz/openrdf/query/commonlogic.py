@@ -258,11 +258,19 @@ class Term:
     RESOURCE = 'RESOURCE'
     LITERAL = 'LITERAL'
     VARIABLE = 'VARIABLE'
+    ARTIFICIAL = 'ARTIFICIAL'
     def __init__(self, term_type, value, datatype=None, qname=None):
         self.term_type = term_type
         self.value = value
         self.datatype = datatype
         self.qname = qname
+        
+    def clone(self):
+        """
+        Shallow copy of 'self'.
+        """
+        term = Term(self.term_type, self.value, self.datatype, self.qname)
+        return term
     
     def __str__(self): 
         if self.term_type == Term.RESOURCE:
@@ -281,13 +289,17 @@ class Term:
                 return self.value
             else:
                 return '"%s"<%s>' % (self.value, self.datatype)
+        elif self.term_type == Term.ARTIFICIAL:
+            return self.value
 
+ARTIFICIAL_TERMS = set(['TRIPLE', 'QUAD'])
 ARITHMETIC_OPERATORS = set(['+', '-'])
 COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
 BOOLEAN_OPERATORS = set(['AND', 'OR', 'NOT', 'IN', 'OPTIONAL',]).union(COMPARISON_OPERATORS)
 VALUE_OPERATORS = ARITHMETIC_OPERATORS
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
-OPERATOR_EXPRESSIONS = CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(set(['ENUMERATION', 'TRUE', 'FALSE', 'LIST', 'TRIPLE', 'QUAD'])) # omits 'PREDICATION'
+OPERATOR_EXPRESSIONS = (CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(ARTIFICIAL_TERMS)
+                        .union(set(['ENUMERATION', 'TRUE', 'FALSE', 'LIST', ]))) # omits 'PREDICATION'
 
 class OpExpression:
     AND = 'AND'
@@ -314,6 +326,7 @@ class OpExpression:
         self.predicate = None
         self.is_spo = False
         self.context = None
+        self.parent = None
     
     @staticmethod
     def parse_operator(value):
@@ -321,6 +334,16 @@ class OpExpression:
         if not value in OPERATOR_EXPRESSIONS and not value in ['DISTINCT']:
             raise Exception("Need to add '%s' to list of OPERATOR_EXPRESSIONS" % value)
         return value
+    
+    def clone(self):
+        """
+        Shallow copy of 'self'
+        """
+        op = OpExpression(self.operator, self.arguments)
+        op.predicate = self.predicate
+        op.is_spo = self.is_spo
+        op.context = self.context
+        return op
         
     def __str__(self):
         return str(StringsBuffer(complain='SILENT').common_logify(self))
@@ -333,11 +356,14 @@ class CommonLogicTranslator:
     SPARQL = 'SPARQL'
     PROLOG = 'PROLOG'
     
-    def __init__(self, query=None):
+    def __init__(self, query=None, subject_comes_first=False, context_comes_first=False):
         self.set_source_query(query)
         self.parse_tree = None
-        ## TEMPORARY PROLOG HACK
-        self.spoify_all = False        
+        ## if 'subject_comes_first' is 'True', it says that all predications are in SPO order,
+        ## whether prefixed by 'TRIPLE' or not:       
+        self.subject_comes_first = subject_comes_first or context_comes_first
+        ## 'context_comes_first' specifies CSPO order instead of SPOC:
+        self.context_comes_first = context_comes_first
     
     def set_source_query(self, query):        
         self.source_query = query
@@ -373,6 +399,8 @@ class CommonLogicTranslator:
                 return Term(Term.LITERAL, token.value, XSD.NUMBER)        
         elif token.token_type == Token.QNAME:
             return Term(Term.RESOURCE, token.value, qname=token.value)
+        elif token.token_type == Token.RESERVED_WORD and token.value in ARTIFICIAL_TERMS:
+            return Term(Term.ARTIFICIAL, token.value)            
         else:
             raise Exception("Can't convert token %s to a term" % token)
         
@@ -408,23 +436,34 @@ class CommonLogicTranslator:
         """
         'tokens' represent a predicate applied to arguments
         """
-        if Token.reserved_type(predicate, [OpExpression.TRIPLE, OpExpression.QUAD]):
-            predicate = predicate.value.lower()
-            isSPO = True
-        ## I DON'T THINK WE DO THIS ANYMORE:
-#        elif self.spoify_all:
-#            isSPO = True
-#            predicate = OpExpression.TRIPLE.lower()
-        else:
-            isSPO = False
         if predicate:
-            arguments = self.parse_expressions(tokens, [])
+            ## fold 'predicate' into arguments
+            temp = [predicate]
+            temp.extend(tokens)
+            tokens = temp
+        arguments = self.parse_expressions(tokens, [])
+        #print "PARSE PREDICATION", [str(arg) for arg in arguments], self.context_comes_first
+        predicate = arguments[0]
+        isSPO = Token.reserved_type(tokens[0], [OpExpression.TRIPLE, OpExpression.QUAD])
+        if isSPO:
+            del arguments[0]
+        elif self.context_comes_first and len(arguments) == 4:
+            ## move context to the end:
+            context = arguments[0]
+            del arguments[0]
+            arguments.append(context)
+            isSPO = True
+        elif self.subject_comes_first:
+            isSPO = True
         else:
-            predicate = self.token_to_term(tokens[0])            
-            arguments = self.parse_expressions(tokens[1:], [])        
+            predicate = arguments[0]     
+            if not predicate.term_type in [Term.RESOURCE, Term.VARIABLE]:
+                self.syntax_exception("Found illegal term '%s' where resource expected" % predicate.value, tokens[0])
+            del arguments[0]
+            isSPO = False
+        if isSPO:
+            predicate = OpExpression.QUAD if len(arguments) == 4 else OpExpression.TRIPLE
         op = OpExpression(OpExpression.PREDICATION, arguments)
-        if not isSPO and not predicate.term_type in [Term.RESOURCE, Term.VARIABLE]:
-            self.syntax_exception("Found illegal term '%s' where resource expected" % predicate.value, tokens[0])
         op.predicate = predicate
         op.is_spo = isSPO
         return op
@@ -448,7 +487,8 @@ class CommonLogicTranslator:
         if allAtomicArguments:
             return self.parse_predication(tokens, predicate=predicate)
         elif  Token.reserved_type(tokens[0], [OpExpression.TRIPLE, OpExpression.QUAD]):
-            return self.parse_predication(tokens[1:], predicate=tokens[0])
+            #return self.parse_predication(tokens[1:], predicate=tokens[0])
+            return self.parse_predication(tokens)
         elif predicate:
             self.syntax_exception("MAYBE A FUNCTION, BUT NOT LEGAL PREDICATION", tokens)
         ## we don't know yet what we have here:
@@ -556,6 +596,9 @@ class CommonLogicTranslator:
         elif tokenType == Token.RESERVED_WORD:
             if Token.reserved_type(beginToken, [OpExpression.TRUE, OpExpression.FALSE]):
                 expressions.append(OpExpression(beginToken.value, []))
+                return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
+            elif Token.reserved_type(beginToken, [OpExpression.TRIPLE, OpExpression.QUAD]):
+                expressions.append(self.token_to_term(beginToken))
                 return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
         ## failure
         if is_boolean is True:
@@ -778,6 +821,7 @@ class Normalizer:
         self.help_walk(self.parse_tree.where_clause, self.parse_tree, processor, types, bottom_up)
     
     def recompute_backlinks(self, where_clause_only=False):
+        #print "RECOMPUTE BACKLINKS"
         def add_backlinks(node, parent):
             node.parent = parent        
         self.walk(add_backlinks, start_node=(self.parse_tree.where_clause if where_clause_only else None))
@@ -879,6 +923,35 @@ class Normalizer:
         self.walk(flatten, types=OpExpression, bottom_up=True)
         if flattenedSomething:
             self.recompute_backlinks(where_clause_only=True)
+            
+    def copy_node(self, node):
+        """
+        Deep copy of 'node'.
+        Caution: Does not call 'recompute_backlinks', but something needs to.
+        """
+        if isinstance(node, Term):
+            return node.clone()
+        else:
+            op = node.clone()
+            op.arguments = [self.copy_node(arg) for arg in node.arguments]
+            return op
+        
+    def distribute_disjunction(self, or_node):
+        """
+        Apply deMorgan's transform to the OR node 'or_node' and its AND parent.
+        """
+        andParent = or_node.parent
+        if (not or_node.operator == OpExpression.OR or
+            not andParent.operator == OpExpression.AND):
+            raise Exception("Illegal node structure in 'bubble_up_disjunction'")
+        newAndNodes = []
+        for disjunct in or_node.arguments:
+            otherConjuncts = [self.copy_node(arg) for arg in andParent.arguments if not arg == or_node]
+            otherConjuncts.append(self.copy_node(disjunct))
+            newAndNodes.append(OpExpression(OpExpression.AND, otherConjuncts))
+        newOrNode = OpExpression(OpExpression.OR, newAndNodes)
+        self.substitute_node(andParent, newOrNode)
+        self.recompute_backlinks(where_clause_only=True)
  
     ###########################################################################################################
     ## Specialized conversions
@@ -956,6 +1029,23 @@ class Normalizer:
     ## SPARQL-specific
     ###########################################################################################################
     
+    def color_filter_nodes(self):
+        """
+        Color operator node as a filter if it is a comparison, or if all of its
+        children are filters.
+        """
+        def colorIt(node, parent):
+            node.color = None
+            if isinstance(node, Term): return
+            if node.operator in COMPARISON_OPERATORS:
+                node.color = 'FILTER'
+            else:
+                for arg in node.arguments:
+                    if not arg.color == 'FILTER': return
+                node.color = 'FILTER'
+        ## color some filter nodes:
+        self.walk(colorIt, bottom_up=True)
+    
     def convert_predications_to_spo_nodes(self):
         """
         Convert all predications to SPO nodes.
@@ -1024,6 +1114,84 @@ class Normalizer:
         for node in uncontextified:
             node.context = self.get_fresh_variable()
         
+    def fix_heterogeneous_disjunctions(self):
+        """
+        A query that disjoins a triple clause with a filter clause cannot produce SPARQL
+        output.  Apply deMorgan's to distribute the disjunction, so that a more complex,
+        less performant query is created that CAN produce SPARQL code.
+        """
+        self.color_filter_nodes()
+        heteroDisjuncts = []
+        def collect_hetero_disjuncts(node, parent):
+            if not node.operator == OpExpression.OR: return
+            if not isinstance(parent, OpExpression) or not parent.operator == OpExpression.AND: return
+            filter = False
+            triple = False
+            for arg in node.arguments:
+                if arg.color == 'FILTER': filter = True
+                else: triple = True
+            if filter and triple: heteroDisjuncts.append(node)
+        self.walk(collect_hetero_disjuncts, types=OpExpression)
+        #print "FOUND HETEROS", heteroDisjuncts
+        if heteroDisjuncts:
+            self.distribute_disjunction(heteroDisjuncts[0])
+            ## to be safe, we fix only one hetero disjunct at a time, and then recurse:
+            self.fix_heterogeneous_disjunctions()
+            
+    def denormalize_leading_filter(self, leader):
+        """
+        Called by 'denormalize_filter_ands' to denormalize
+        the filters beginning with 'leader'
+        """
+        parent = leader.parent
+        predecessors = []
+        filters = []
+        successors = []
+        for arg in parent.arguments:
+            if arg == leader: filters.append(arg)
+            elif successors: successors.append(arg)
+            elif filters:
+                if arg.color == 'FILTER': filters.append(arg)
+                else: successors.append(arg)
+            else: predecessors.append(arg)
+        ## we now have consecutive filters:
+        if len(filters) < 2: raise Exception("Bug in 'denormalize_filter_ands'")
+        newAnd = OpExpression(OpExpression.AND, filters)
+        predecessors.append(newAnd)
+        predecessors.extend(successors)
+        parent.arguments = predecessors
+        self.recompute_backlinks(where_clause_only=True)
+    
+    def denormalize_filter_ands(self):
+        """
+        Filter and triple nodes get AND'ed together.  Separate out consecutive AND'ed filter nodes
+        into their own AND node, so that the filter can be printed easily.
+        """
+        self.color_filter_nodes()
+        leaders = []
+        def collect_some_leading_filter_ands(node, parent):
+            """
+            If we find two consecutive AND'd filter nodes, collect the first. 
+            """
+            if not node.operator == OpExpression.AND: return
+            siblingFilters = []
+            for arg in node.arguments:
+                if arg.color == 'FILTER':
+                    siblingFilters.append(arg)
+                elif siblingFilters:
+                    ## found non filter, time to exit
+                    if len(siblingFilters) > 1: leaders.append(siblingFilters[0])
+                    return
+            ## guard against case when ALL of the children are filters:
+            if len(siblingFilters) > 1 and len(siblingFilters) < len(node.arguments): leaders.append(siblingFilters[0])                    
+        ## collect some of the leading filters
+        self.walk(collect_some_leading_filter_ands, types=OpExpression)
+        if leaders:
+            print "LEADERS", leaders[0]
+            self.denormalize_leading_filter(leaders[0])
+            ## recurse
+            self.denormalize_filter_ands()
+        
 
     ###########################################################################################################
     ## Language-specific Normalization Scripts
@@ -1041,9 +1209,13 @@ class Normalizer:
         Reorganize the parse tree to be compatible with SPARQL's bizarre syntax.
         """
         self.convert_predications_to_spo_nodes()
+        self.fix_heterogeneous_disjunctions()
         self.translate_in_enumerate_into_disjunction_of_equalities()
         self.bubble_up_contexts()
         self.contextify_triples()
+        ## finally, create non-normalized structure to assist filters output
+        self.denormalize_filter_ands()
+        self.color_filter_nodes()
     
 
 ###########################################################################################################
@@ -1052,14 +1224,14 @@ class Normalizer:
 
 class StringsBuffer:
     NEWLINE = '\n'
-    def __init__(self, include_newlines=False, complain=None, spoify_all=False, infix_with_prefix_triples=False):
+    def __init__(self, include_newlines=False, complain=None, spoify_output=False, infix_with_prefix_triples=False):
         self.buffer = []
         self.include_newlines = include_newlines
         self.running_indent = 0
         self.complain_flag = complain
         self.execution_language = None
         self.infix_with_prefix_triples = infix_with_prefix_triples  # infix CommonLogic hack
-        self.spoify_all = spoify_all  # Prolog hack
+        self.spoify_output = spoify_output  # Prolog hack
     
     def append(self, item):
         if item is None:
@@ -1160,6 +1332,7 @@ class StringsBuffer:
                 self.append(')')
             else:
                 self.append('(')
+                if term.is_spo: term.predicate = term.predicate.lower()
                 self.common_logify(term.predicate or term.operator.lower()).append(' ')
                 self.common_logify(term.arguments)
                 self.append(')') 
@@ -1206,16 +1379,18 @@ class StringsBuffer:
                 self.infix_common_logify(term.arguments, delimiter=' %s ' % term.operator.lower())
                 self.append(')')
             elif term.predicate and self.infix_with_prefix_triples:
+                if term.is_spo: term.predicate = term.predicate.lower()
                 self.infix_common_logify(term.predicate)
                 self.infix_common_logify(term.arguments, brackets=('(', ')'))
             else:
                 self.append('(')
+                if term.is_spo: term.predicate = term.predicate.lower()
                 self.infix_common_logify(term.predicate or term.operator.lower()).append(' ')
                 self.infix_common_logify(term.arguments)
                 self.append(')')     
         return self
 
-    def prologify(self, term, brackets=None, delimiter=' ', suppress_parentheses=False, spoify_all=True):
+    def prologify(self, term, brackets=None, delimiter=' ', suppress_parentheses=False, spoify_output=True):
         if isinstance(term, Term):
             if term.term_type == Term.RESOURCE:
                 self.append('!').append(str(term))
@@ -1233,7 +1408,7 @@ class StringsBuffer:
             if brackets: self.append(brackets[1])
         elif isinstance(term, QueryBlock):
             self.execution_language = CommonLogicTranslator.PROLOG
-            self.spoify_all = spoify_all
+            self.spoify_output = spoify_output
             self.append('(select ')    
             if term.distinct: self.complain(term, 'DISTINCT')     
             self.indent(8).prologify(term.select_terms, brackets=('(', ')'), delimiter=' ').newline()   
@@ -1266,7 +1441,7 @@ class StringsBuffer:
                 self.append('(q ')
                 self.prologify(term.arguments, delimiter=' ')
                 self.append(')')
-            elif term.predicate and self.spoify_all:
+            elif term.predicate and self.spoify_output:
                 if len(term.arguments) >= 4:
                     self.complain(term, 'QUAD')
                 self.append('(q')
@@ -1314,18 +1489,27 @@ class StringsBuffer:
             if term.operator in [OpExpression.AND, OpExpression.OR]:
                 ## are we joining triples or filters? look at first non-connective in descendants
                 ## to find out:
-                sampleArg = term.arguments[0]
-                while sampleArg.operator in [OpExpression.AND, OpExpression.OR]:
-                    sampleArg = sampleArg.arguments[0]
-                if sampleArg.predicate:
-                    brackets = ('{ ', ' }') if not suppress_curlies else None
-                    delimiter = ' .\n' if term.operator == OpExpression.AND else '\nunion '
-                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter)     
-                else:
+#                sampleArg = term.arguments[0]
+#                while sampleArg.operator in [OpExpression.AND, OpExpression.OR]:
+#                    sampleArg = sampleArg.arguments[0]
+#                if sampleArg.predicate:
+#                    brackets = ('{ ', ' }') if not suppress_curlies else None
+#                    delimiter = ' .\n' if term.operator == OpExpression.AND else '\nunion '
+#                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter)     
+#                else:
+#                    if not suppress_filter: self.append('filter ')
+#                    brackets = ('(', ')')
+#                    delimiter = ' && ' if term.operator == OpExpression.AND else ' || '
+#                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter, suppress_filter=True)
+                if term.color == 'FILTER':
                     if not suppress_filter: self.append('filter ')
                     brackets = ('(', ')')
                     delimiter = ' && ' if term.operator == OpExpression.AND else ' || '
-                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter, suppress_filter=True)
+                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter, suppress_filter=True)                
+                else:
+                    brackets = ('{ ', ' }') if not suppress_curlies else None
+                    delimiter = ' .\n' if term.operator == OpExpression.AND else '\nunion '
+                    self.sparqlify(term.arguments, brackets=brackets, delimiter=delimiter)     
             elif term.operator == OpExpression.OPTIONAL:
                 #if not suppress_curlies: self.append('{')              
                 self.append('optional ').sparqlify(term.arguments[0])
@@ -1361,7 +1545,8 @@ class StringsBuffer:
 ## 
 ###########################################################################################################
 
-def translate_common_logic_query(query, preferred_language='PROLOG', complain='EXCEPTION'):
+def translate_common_logic_query(query, preferred_language='PROLOG', complain='EXCEPTION',
+                                 subject_comes_first=False, context_comes_first=False):
     """
     Translate a Common Logic query into either SPARQL or PROLOG syntax.  If 'preferred_language,
     choose that one (first).  Return three
@@ -1371,11 +1556,12 @@ def translate_common_logic_query(query, preferred_language='PROLOG', complain='E
     or PROLOG
     """
     def help_translate(language):
-        trans = CommonLogicTranslator(query)
+        trans = CommonLogicTranslator(query, subject_comes_first=subject_comes_first,
+                                      context_comes_first=context_comes_first)
         trans.parse()
         Normalizer(trans.parse_tree, language).normalize()
         if language == CommonLogicTranslator.PROLOG:
-            translation = str(StringsBuffer(complain=complain, spoify_all=True).prologify(trans.parse_tree))
+            translation = str(StringsBuffer(complain=complain, spoify_output=True).prologify(trans.parse_tree))
         elif language == CommonLogicTranslator.SPARQL:
             translation = str(StringsBuffer(complain=complain).sparqlify(trans.parse_tree))
         return translation, trans.parse_tree.dataset_clause
@@ -1416,8 +1602,8 @@ def contexts_to_uris(context_terms, repository_connection):
 ###########################################################################################################
 
 
-def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, infix=False):
-    trans = CommonLogicTranslator(cl_select_query)
+def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, context_comes_first=False):
+    trans = CommonLogicTranslator(cl_select_query, context_comes_first=context_comes_first)
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').common_logify(trans.parse_tree))    
     print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', infix_with_prefix_triples=trans.infix_with_prefix_triples).infix_common_logify(trans.parse_tree))
@@ -1426,7 +1612,7 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, infi
     trans = CommonLogicTranslator(cl_select_query)
     trans.parse()    
     Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG).normalize()
-    print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_all=True).prologify(trans.parse_tree))    
+    print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_output=True).prologify(trans.parse_tree))    
 
 
 query1 = """(select (?s ?o) where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>))"""
@@ -1464,9 +1650,58 @@ query14i = """select distinct ?s ?p ?o where triple(?s ?p ?o) contexts ex:contex
 query15 = """(select (?s) where (and (or (ex:p1 ?s1 ?o1 ?c1) (ex:p2 ?s2 ?o2 ?c1)  (ex:p3 ?s3 ?o3 ?c2))
                                      (or (ex:p4 ?s4 ?o4 ?c1) (ex:p5 ?s5 ?o5 ?c1))))"""
 
-    
+
+query16i = """select ?s ?p ?o ?c ?lac ?c2
+where (?c ?s ?p ?o) 
+  and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
+  and ((?s = ?wall)
+    or ((?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
+      and ((?s = ?widget1)
+        or (?widget1 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
+        or (?widget1 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))
+    or ((?wall <http://www.wildsemantics.com/systemworld#freeWidgets> ?widget2)
+      and ((?s = ?widget2)
+        or (?widget2 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
+        or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
+"""
+
+#query16i = """select ?s ?p ?o ?c ?lac ?c2
+#where (?c ?s ?p ?o) 
+#  and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
+#  and ((?s = ?wall)
+#    or ((?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
+#      and ((?s = ?widget1)
+#        or (?widget1 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
+#        or (?widget1 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))
+#    or ((?wall <http://www.wildsemantics.com/systemworld#freeWidgets> ?widget2)
+#      and ((?s = ?widget2)
+#        or (?widget2 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
+#        or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
+#"""
+#
+#query16i = """select ?s ?p ?o ?c ?lac ?c2
+#where (?c ?s ?p ?o) 
+#  and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
+#  and (?wall = <http://wall5>)
+#  and ((?s = ?wall)
+#    or ((?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
+#      and ((?s = ?widget1)
+#        or (?widget1 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
+#        or (?widget1 <http://www.wildsemantics.com/systemworld#filterSet> ?s))))    
+#"""
+#
+#query16i = """select ?s ?p ?o ?c ?lac ?c2
+#where (?c ?s ?p ?o) 
+#  and (?wall = <http://wall5>)
+#  and ((?s = ?wall)
+#    or ((?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
+#      and (?s = ?widget1)))   
+#"""
+
+
+
 if __name__ == '__main__':
-    switch = 5.1
+    switch = 16.1
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -1497,7 +1732,9 @@ if __name__ == '__main__':
     elif switch == 14: translate(query14)  # DISTINCT, CONTEXTS, AND LIMIT
     elif switch == 14.1: translate(query14i)        
     elif switch == 15: translate(query15)  # SPARQL GRAPH NODES
-    elif switch == 15.1: translate(query15i)        
+    #elif switch == 15.1: translate(query15i)    
+    
+    elif switch == 16.1: translate(query16i, context_comes_first=True)    
     else:
         print "There is no test number %s" % switch
 

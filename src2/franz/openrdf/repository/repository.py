@@ -149,7 +149,7 @@ class Repository:
         """
         self.mini_repository.indexStatements(all=all)
 
-    def registerFreeTextPredicate(self,uri=None, namespace=None, localname=None):
+    def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
         """
         Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index
         text keywords belonging to strings in object position in the corresponding

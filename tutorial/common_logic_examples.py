@@ -28,19 +28,21 @@ def verify(expressionValue, targetValue, quotedExpression, testNum):
         else:
             print "BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP \n   ", message
 
-def doQuery(conn, query, prefer='SPARQL'):
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.COMMON_LOGIC, query)
+def doQuery(conn, query, prefer='SPARQL', input_language=QueryLanguage.COMMON_LOGIC, bindings=None):
+    tupleQuery = conn.prepareTupleQuery(input_language, query)
     tupleQuery.preferred_execution_language = prefer
+    if bindings:
+        tupleQuery.setBindings(bindings)
     result = tupleQuery.evaluate(); 
     print "Query: " + query   
-    print "Executing using " + tupleQuery.execution_language
+    print "Executing using " + (tupleQuery.actual_execution_language or '')
     print "Found %i query results" % result.tupleCount    
     count = 0
     for bindingSet in result:
         print bindingSet
         count += 1
         if count > 5: break
-    return tupleQuery.execution_language
+    return tupleQuery.actual_execution_language or ''
 
 def loadBobCarolTedAlice(repositoryConnection):
     c = repositoryConnection
@@ -107,18 +109,16 @@ def test202():
 
 def test203():
     """
-    Dataset queries
+    Contexts filter queries
     """
     conn = test201(verbose=False);
     loadBobCarolTedAlice(conn)
-    if False:
-        doDualQuery(conn, """(select (?s ?p ?o ?c) where (quad ?s ?p ?o ?c))""")
-        return
     doDualQuery(conn, """(select (?s ?p ?o ?c) where (quad ?s ?p ?o ?c) contexts (ex:cxt1))""")
-    #BUG: SPARQL REQUIRES ARTIFICIAL CONTEXT VARIABLE FOR DATASET TO APPLY:
     doDualQuery(conn, """(select (?s ?p ?o) where (?p ?s ?o) contexts (ex:cxt1))""")
-    return                               
-    doDualQuery(conn, """(select (?s ?p ?o) where (?p ?s ?o) contexts ex:cxt1 ex:cxt2)""")                    
+    doDualQuery(conn, """(select (?s ?p ?o) where (?p ?s ?o) contexts (ex:cxt1 ex:cxt2))""")    
+    
+    #doQuery(conn, """select ?s ?name where { ?s ?p ?name . filter (?name = "Alice") }""", input_language='SPARQL')
+    doQuery(conn, """select ?s ?name where { ?s ?p ?name }""", input_language='SPARQL', bindings={'name': "Alice"})    
       
 
 def test204():

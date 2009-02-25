@@ -73,14 +73,26 @@ class Query(object):
         self.dataset = None
         self.includeInferred = False
         self.bindings = {}
-        self.preferred_execution_language = None ## used by the CommonLogic evaluator
+        self.connection = None
+        ## CommonLogic parameters:
+        self.preferred_execution_language = None
+        self.actual_execution_language = None
+        self.subject_comes_first = False
+        self.context_comes_first = False
 
     def setBinding(self, name, value):
         """
         Binds the specified variable to the supplied value. Any value that was
         previously bound to the specified value will be overwritten.
         """
+        if isinstance(value, str):
+            value = self.connection.createLiteral(value)
         self.bindings[name] = value
+        
+    def setBindings(self, dict):
+        if not dict: return
+        for key, value in dict.iteritems():
+            self.setBinding(key, value)
 
     def removeBinding(self, name):
         """ 
@@ -158,10 +170,11 @@ class Query(object):
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
             query, contexts, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
-                                    preferred_language=self.preferred_execution_language)
+                                    preferred_language=self.preferred_execution_language,
+                                    context_comes_first=self.context_comes_first)
             if contexts and not namedContexts:
                 namedContexts = [uri.getURI() for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
-            self.execution_language = lang ## for debugging
+            self.actual_execution_language = lang ## for debugging
             if lang == 'SPARQL':
                 print "         SPARQL QUERY", query
                 query = splicePrefixesIntoQuery(query, self.connection)
@@ -179,9 +192,13 @@ class Query(object):
 
     @staticmethod
     def _check_language(queryLanguage):
+        if queryLanguage == 'SPARQL': return QueryLanguage.SPARQL
+        elif queryLanguage == 'PROLOG': return QueryLanguage.PROLOG
+        elif queryLanguage == 'COMMON_LOGIC': return QueryLanguage.COMMON_LOGIC        
         if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG, QueryLanguage.COMMON_LOGIC]:
             raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL, PROLOG, and COMMON_LOGIC."
                                          % queryLanguage)
+        return queryLanguage
             
   
 
@@ -242,7 +259,7 @@ def expandPrologQueryPrefixes(query, connection):
 
 class TupleQuery(Query):
     def __init__(self, queryLanguage, queryString, baseURI=None):
-        Query._check_language(queryLanguage)
+        queryLanguage = Query._check_language(queryLanguage)
         super(TupleQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
         self.connection = None
         
