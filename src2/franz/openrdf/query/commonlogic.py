@@ -295,7 +295,8 @@ class Term:
 ARTIFICIAL_TERMS = set(['TRIPLE', 'QUAD'])
 ARITHMETIC_OPERATORS = set(['+', '-'])
 COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
-BOOLEAN_OPERATORS = set(['AND', 'OR', 'NOT', 'IN', 'OPTIONAL',]).union(COMPARISON_OPERATORS)
+UNARY_BOOLEAN_OPERATORS = set(['NOT', 'OPTIONAL'])
+BOOLEAN_OPERATORS = set(['AND', 'OR', 'IN']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS)
 VALUE_OPERATORS = ARITHMETIC_OPERATORS
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
 OPERATOR_EXPRESSIONS = (CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(ARTIFICIAL_TERMS)
@@ -327,6 +328,8 @@ class OpExpression:
         self.is_spo = False
         self.context = None
         self.parent = None
+        if not isinstance(arguments, list):
+            print "BREAK HERE"
     
     @staticmethod
     def parse_operator(value):
@@ -504,7 +507,7 @@ class CommonLogicTranslator:
                 self.syntax_exception("Found parenthesized expression where term expected: '%s'" % tokens_to_string(tokens), beginToken) 
         elif tokenType == Token.RESERVED_WORD:
             if value in CONNECTIVE_OPERATORS:
-                if self.infix_parse:
+                if self.infix_parse and not value in UNARY_BOOLEAN_OPERATORS:
                     self.syntax_exception("Found operator '%s' where term expected" % tokens_to_string(tokens), beginToken)
                 if value in BOOLEAN_OPERATORS and not is_boolean:
                     self.syntax_exception("Found boolean expression where value expression expected '%s'" % tokens_to_string(tokens), beginToken)
@@ -572,7 +575,7 @@ class CommonLogicTranslator:
                 expressions.append(exp)
                 if self.infix_parse:
                     return self.parse_infix_expression(tokens[i + 1:], expressions, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
-                else:                
+                else:
                     return self.parse_expressions(tokens[i + 1:], expressions, is_boolean=is_boolean)   
                      
     def parse_expressions(self, tokens, expressions, is_boolean=False):
@@ -592,14 +595,22 @@ class CommonLogicTranslator:
             expressions.append(self.token_to_term(beginToken))
             return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
         if tokenType == Token.BRACKET:
-            return self.parse_bracket(tokens, expressions, is_boolean=is_boolean)
+            exps = self.parse_bracket(tokens, expressions, is_boolean=is_boolean)
+            ## hack: in infix mode, 'parse_bracket' returns a singleton, which all callers except this one prefer:
+            return [exps] if self.infix_parse else exps
         elif tokenType == Token.RESERVED_WORD:
             if Token.reserved_type(beginToken, [OpExpression.TRUE, OpExpression.FALSE]):
                 expressions.append(OpExpression(beginToken.value, []))
                 return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
             elif Token.reserved_type(beginToken, [OpExpression.TRIPLE, OpExpression.QUAD]):
-                expressions.append(self.token_to_term(beginToken))
-                return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
+                ## this is a hack that insures that 'parse_predication' gets applied to this expression
+                ## for an infix QUAD, it should be an error if the parenthesis is missing
+                if self.infix_parse and tokens[1].value == '(':
+                    return [self.parse_bracket(tokens[1:], [], predicate=beginToken, is_boolean=is_boolean)]
+                else:
+                    ## this handles recursion triggered just above for infix; not sure if prefix hits this
+                    expressions.append(self.token_to_term(beginToken))
+                    return self.parse_expressions(tokens[1:], expressions, is_boolean=is_boolean)
         ## failure
         if is_boolean is True:
             self.syntax_exception("Found illegal term '%s' where boolean expression expected" % beginToken.value, beginToken)
@@ -1187,7 +1198,6 @@ class Normalizer:
         ## collect some of the leading filters
         self.walk(collect_some_leading_filter_ands, types=OpExpression)
         if leaders:
-            print "LEADERS", leaders[0]
             self.denormalize_leading_filter(leaders[0])
             ## recurse
             self.denormalize_filter_ands()
@@ -1371,7 +1381,7 @@ class StringsBuffer:
                 if self.infix_with_prefix_triples:
                     self.append(term.operator.lower()).append('(').infix_common_logify(term.arguments[0]).append(')')
                 else:
-                    if not suppress_parentheses: self.append('(')              
+                    if not suppress_parentheses: self.append('(')
                     self.append(term.operator.lower() + ' ').infix_common_logify(term.arguments[0])
                     if not suppress_parentheses: self.append(')')                              
             elif term.operator in CONNECTIVE_OPERATORS:
@@ -1649,9 +1659,12 @@ query14 = """(select distinct (?s ?p ?o) where (triple ?s ?p ?o) contexts (ex:co
 query14i = """select distinct ?s ?p ?o where triple(?s ?p ?o) contexts ex:context1, ex:context2 limit 5"""    
 query15 = """(select (?s) where (and (or (ex:p1 ?s1 ?o1 ?c1) (ex:p2 ?s2 ?o2 ?c1)  (ex:p3 ?s3 ?o3 ?c2))
                                      (or (ex:p4 ?s4 ?o4 ?c1) (ex:p5 ?s5 ?o5 ?c1))))"""
+query16 = """(select (?s ?p ?o ?c ?p2 ?o2 ?c2)  where (and (quad ?s ?p ?o ?c) (optional (quad ?p2 ?o2 ?c2 ?o))))"""
+query16i = """select ?s ?o ?c ?o2 ?c2 where quad(?s ex:p ?o ?c)  and optional(quad(?o ex:p2 ?o2 ?c2))"""
 
 
-query16i = """select ?s ?p ?o ?c ?lac ?c2
+
+query17i = """select ?s ?p ?o ?c ?lac ?c2
 where (?c ?s ?p ?o) 
   and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
   and ((?s = ?wall)
@@ -1665,7 +1678,8 @@ where (?c ?s ?p ?o)
         or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
 """
 
-#query16i = """select ?s ?p ?o ?c ?lac ?c2
+
+#query17i = """select ?s ?p ?o ?c ?lac ?c2
 #where (?c ?s ?p ?o) 
 #  and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
 #  and ((?s = ?wall)
@@ -1679,7 +1693,7 @@ where (?c ?s ?p ?o)
 #        or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
 #"""
 #
-#query16i = """select ?s ?p ?o ?c ?lac ?c2
+#query17i = """select ?s ?p ?o ?c ?lac ?c2
 #where (?c ?s ?p ?o) 
 #  and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
 #  and (?wall = <http://wall5>)
@@ -1690,7 +1704,7 @@ where (?c ?s ?p ?o)
 #        or (?widget1 <http://www.wildsemantics.com/systemworld#filterSet> ?s))))    
 #"""
 #
-#query16i = """select ?s ?p ?o ?c ?lac ?c2
+#query17i = """select ?s ?p ?o ?c ?lac ?c2
 #where (?c ?s ?p ?o) 
 #  and (?wall = <http://wall5>)
 #  and ((?s = ?wall)
@@ -1733,8 +1747,9 @@ if __name__ == '__main__':
     elif switch == 14.1: translate(query14i)        
     elif switch == 15: translate(query15)  # SPARQL GRAPH NODES
     #elif switch == 15.1: translate(query15i)    
-    
-    elif switch == 16.1: translate(query16i, context_comes_first=True)    
+    elif switch == 16: translate(query16)  # BRACKETED OPTIONAL WITH QUAD (HARD FOR SOME REASON)
+    elif switch == 16.1: translate(query16i)  
+    elif switch == 17.1: translate(query17i)    
     else:
         print "There is no test number %s" % switch
 
