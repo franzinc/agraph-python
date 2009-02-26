@@ -27,6 +27,7 @@ from franz.openrdf.query import commonlogic
 from franz.openrdf.query.dataset import ALL_CONTEXTS, Dataset
 from franz.openrdf.query.queryresult import GraphQueryResult, TupleQueryResult
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
+import datetime
 
 class QueryLanguage:
     registered_languages = []
@@ -127,7 +128,7 @@ class Query(object):
         if not contexts: return
         ds = Dataset()
         for cxt in contexts:
-            if str(cxt): cxt = self.connection.createURI(cxt)
+            if isinstance(cxt, str): cxt = self.connection.createURI(cxt)
             ds.addNamedGraph(cxt)
         self.setDataset(ds)
      
@@ -209,8 +210,10 @@ class Query(object):
                 print "         SPARQL QUERY", query
                 query = splicePrefixesIntoQuery(query, self.connection)
                 self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
+                MINITIMER = datetime.datetime.now()
                 response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                                 infer=self.includeInferred, bindings=bindings)
+                print "mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER)                
                 self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
             elif lang == 'PROLOG':
                 if namedContexts:

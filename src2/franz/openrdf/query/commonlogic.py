@@ -440,7 +440,7 @@ class CommonLogicTranslator:
         """
         'tokens' represent a predicate applied to arguments
         """
-        print "PARSE PREDICATION", predicate, [str(t) for t in tokens]       
+        #print "PARSE PREDICATION", predicate, [str(t) for t in tokens]       
         if not predicate:
             predicate = tokens[0]
             tokens = tokens[1:]
