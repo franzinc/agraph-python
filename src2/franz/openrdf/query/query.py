@@ -142,6 +142,27 @@ class Query(object):
         """
         self.connection = connection
     
+    TEMPORARY_ENUMERATION_RESOURCE = 'http://www.franz.com#TeMpOrArYeNuMeRaTiOn'
+    
+    def insert_temporary_enumerations(self, temporary_enumerations, insert_or_retract, contexts):
+        """
+        Enormous hack to circumvent AG's (SPARQL's) lack of a membership operator.
+        """
+        if not temporary_enumerations: return
+        conn = self.connection
+        context = conn.createURI(contexts[0]) if contexts else None
+        print "insert_temporary_enumerations", context
+        for tempRelationURI, enumeratedValues in temporary_enumerations.iteritems():
+            quads = []
+            for v in enumeratedValues:
+                val = conn.createURI(v) if v and v[0] == '<' else conn.createLiteral(v)
+                quads.append((conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), conn.createURI(tempRelationURI), val, context))
+        if insert_or_retract == 'INSERT':
+            #print "INSERTING TEMPORARY ENUMERATION TRIPLES", [(str(t[0]), str(t[1]), str(t[2])) for t in quads]
+            conn.addTriples(quads)
+        else:
+            conn.removeQuads(quads)
+    
     def evaluate_generic_query(self):
         """
         Evaluate a SPARQL or PROLOG or COMMON_LOGIC query, which may be a 'select', 'construct', 'describe'
@@ -169,8 +190,8 @@ class Query(object):
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
-            query, contexts, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
-                                    preferred_language=self.preferred_execution_language,
+            query, contexts, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
+                                    preferred_language=self.preferred_execution_language, contexts=namedContexts,
                                     context_comes_first=self.context_comes_first)
             if contexts and not namedContexts:
                 namedContexts = [uri.getURI() for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
@@ -178,8 +199,10 @@ class Query(object):
             if lang == 'SPARQL':
                 print "         SPARQL QUERY", query
                 query = splicePrefixesIntoQuery(query, self.connection)
+                self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
                 response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                                infer=self.includeInferred, bindings=bindings)            
+                                                infer=self.includeInferred, bindings=bindings)
+                self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
             elif lang == 'PROLOG':
                 if namedContexts:
                     raise QueryMissingFeatureException("Prolog queries do not the datasets (named graphs) option.")

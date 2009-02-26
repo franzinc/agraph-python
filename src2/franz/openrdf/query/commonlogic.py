@@ -23,6 +23,8 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
+import datetime
+import time
 
 XSD = XMLSchema
 
@@ -241,6 +243,7 @@ class QueryBlock:
         self.dataset_clause = None
         self.distinct = False
         self.limit = -1
+        self.temporary_enumerations = {}
         
     def stringify(self, newlines=False): 
         newline = '\n' if newlines else ''
@@ -797,11 +800,12 @@ class CommonLogicTranslator:
 ###########################################################################################################
 
 class Normalizer:
-    def __init__(self, parse_tree, language):
+    def __init__(self, parse_tree, language, contexts=None):
         self.parse_tree = parse_tree
         self.language = language
         self.variable_counter = -1
         self.recompute_backlinks()
+        self.contexts = contexts
         
     def normalize(self):
         if self.language == CommonLogicTranslator.PROLOG:
@@ -809,48 +813,48 @@ class Normalizer:
         elif self.language == CommonLogicTranslator.SPARQL:
             self.normalize_for_sparql()
     
-    def help_walk(self, node, parent, processor, types, bottom_up):
+    def help_walk(self, node, parent, processor, types, bottom_up, external_value):
         if type(node) == str: return
         if not bottom_up and (not types or isinstance(node, types)):
-            processor(node, parent)
+            processor(node, parent, external_value)
         if isinstance(node, OpExpression):
             if node.predicate and (not types or isinstance(node.predicate, types)):
-                self.help_walk(node.predicate, node, processor, types, bottom_up)
+                self.help_walk(node.predicate, node, processor, types, bottom_up, external_value)
             for arg in node.arguments:
-                self.help_walk(arg, node, processor, types, bottom_up)
+                self.help_walk(arg, node, processor, types, bottom_up, external_value)
         if bottom_up and (not types or isinstance(node, types)):
-            processor(node, parent)
+            processor(node, parent, external_value)
     
-    def walk(self, processor, types=None, start_node=None, bottom_up=False):
+    def walk(self, processor, types=None, start_node=None, bottom_up=False, external_value=None):
         """
         Walk the parse tree an apply 'processor' to each node whose type is in 'types'.
         """
         if start_node and not start_node == self.parse_tree:
-            self.help_walk(start_node, start_node.parent, processor, types, bottom_up)
+            self.help_walk(start_node, start_node.parent, processor, types, bottom_up, external_value)
         for arg in self.parse_tree.select_terms:
-            self.help_walk(arg, self.parse_tree.select_terms, processor, types, bottom_up)
-        self.help_walk(self.parse_tree.where_clause, self.parse_tree, processor, types, bottom_up)
+            self.help_walk(arg, self.parse_tree.select_terms, processor, types, bottom_up, external_value)
+        self.help_walk(self.parse_tree.where_clause, self.parse_tree, processor, types, bottom_up, external_value)
     
     def recompute_backlinks(self, where_clause_only=False):
         #print "RECOMPUTE BACKLINKS"
-        def add_backlinks(node, parent):
+        def add_backlinks(node, parent, external_value):
             node.parent = parent        
         self.walk(add_backlinks, start_node=(self.parse_tree.where_clause if where_clause_only else None))
     
-    def bump_variable_counter(self, node, parent):
-        if not node.term_type == Term.VARIABLE: return
-        value = node.value
-        if len(value) < 2: return
-        if not value.startswith('v') or not value[1:].isdigit(): return
-        intVal = int(value[1:])
-        self.parse_tree.variable_counter = max(self.parse_tree.variable_counter, intVal)
-    
     def get_fresh_variable(self):
+        def bump_variable_counter(node, parent, sseellff):
+            if not node.term_type == Term.VARIABLE: return
+            value = node.value
+            if len(value) < 2: return
+            if not value.startswith('v') or not value[1:].isdigit(): return
+            intVal = int(value[1:])
+            sseellff.parse_tree.variable_counter = max(self.parse_tree.variable_counter, intVal)
         if self.variable_counter == -1:
             self.variable_counter = 0
-            self.walk(self.bump_variable_counter, types=Term)
+            self.walk(bump_variable_counter, types=Term, external_value=self)
         self.variable_counter += 1
-        return "?v{0}".format(self.variable_counter)
+        freshVbl = "v{0}".format(self.variable_counter)
+        return Term(Term.VARIABLE, freshVbl)
     
 #    def add_backlinks(self, expression, parent):
 #        expression.parent = parent
@@ -872,12 +876,6 @@ class Normalizer:
                     node.operator in [OpExpression.TRUE, OpExpression.FALSE])
         else:
             return False
-
-#    @staticmethod    
-#    def is_atomic(node):
-#        if isinstance(node, Term): return True
-#        elif isinstance(node, OpExpression): 
-#            return node.operator in [OpExpression.TRUE, OpExpression.FALSE]
         
     def substitute_node(self, out_node, in_node):
         """
@@ -920,7 +918,7 @@ class Normalizer:
                                                                   
     def flatten_nested_ands(self):
         flattenedSomething = False
-        def flatten(node, parent):
+        def flatten(node, parent, external_value):
             if not node.operator == OpExpression.AND: return
             conjuncts = []
             for arg in node.arguments:
@@ -930,7 +928,7 @@ class Normalizer:
                 else:
                     conjuncts.append(arg)
             node.arguments = conjuncts
-                                    
+        ## flatten each nested AND we find:                           
         self.walk(flatten, types=OpExpression, bottom_up=True)
         if flattenedSomething:
             self.recompute_backlinks(where_clause_only=True)
@@ -1023,7 +1021,7 @@ class Normalizer:
         
     def translate_in_enumerate_into_disjunction_of_equalities(self):
         didIt = False
-        def doit(node, parent):
+        def doit(node, parent, external_value):
             if node.operator == OpExpression.IN:
                 ## assumes that the second arg is an enumeration:
                 vbl = node.arguments[0]
@@ -1035,6 +1033,32 @@ class Normalizer:
         self.walk(doit, types=OpExpression)
         if didIt:
             self.recompute_backlinks()
+    
+    def translate_in_enumerate_into_temporary_join(self):
+        """
+        If the parse tree contains enumeration tests,
+        record the needed temporary relations in 'parse_tree.temporary_enumerations'
+        and 
+        """
+        didIt = False
+        def doit( node, parent, sseellff):
+            if not node.operator == OpExpression.IN: return
+            ## assumes that the second arg is an enumeration:
+            vbl = node.arguments[0]
+            enumeration = node.arguments[1]
+            tempRelation = "<http://enumerationhack#t{0:f}>".format(time.time())
+            freshVbl = sseellff.get_fresh_variable()
+            joinNode = OpExpression(OpExpression.PREDICATION, [freshVbl, Term(Term.RESOURCE, tempRelation[1:-1]), vbl])
+            joinNode.predicate = OpExpression.TRIPLE
+            joinNode.is_spo = True
+            self.substitute_node(node, joinNode)
+            ## BUG: DOESN'T WORK FOR QNAMES:
+            self.parse_tree.temporary_enumerations[tempRelation] = ["<{0}>".format(item.value) for item in enumeration.arguments]            
+            didIt = True
+        self.walk(doit, types=OpExpression, external_value=self)
+        if didIt:
+            self.recompute_backlinks()
+
 
     ###########################################################################################################
     ## SPARQL-specific
@@ -1045,7 +1069,7 @@ class Normalizer:
         Color operator node as a filter if it is a comparison, or if all of its
         children are filters.
         """
-        def colorIt(node, parent):
+        def colorIt(node, parent, external_value):
             node.color = None
             if isinstance(node, Term): return
             if node.operator in COMPARISON_OPERATORS:
@@ -1062,8 +1086,8 @@ class Normalizer:
         Convert all predications to SPO nodes.
         Extract contexts from arguments an insert them into the 'context' attribute
         """
-        def doit(node, parent):
-            if node.predicate and not node.is_spo:
+        def doit(node, parent, external_value):
+            if node.operator == OpExpression.PREDICATION and node.predicate and not node.is_spo:
                 predicate = node.predicate
                 subject = node.arguments[0]
                 object = node.arguments[1]
@@ -1076,21 +1100,13 @@ class Normalizer:
                 node.arguments.remove(node.context)
         self.walk(doit, types=OpExpression)
  
-    def create_graph_node(self, node, parent):
-        """
-        Called by 'bubble_up'.
-        """
-        if node.context and not node.is_spo:
-            graphNode = OpExpression('GRAPH', [node])
-            self.substitute_node(node, graphNode)
-                
     def bubble_up_contexts(self):
         """
         Locate quad nodes, trim their length from 4 to 3, and propagate the contexts
         they reference to their ancestors.        
         """
         ## migrate contexts out of triple nodes, and inherit them up where possible
-        def bubble_up(node, parent):
+        def bubble_up(node, parent, external_value):
             if not node.arguments: return
             context = None
             for arg in node.arguments:
@@ -1102,8 +1118,18 @@ class Normalizer:
             for arg in node.arguments:
                 arg.context = None
         self.walk(bubble_up, types=OpExpression, bottom_up=True)
+        def bubble_back_down(node, parent, external_value):
+            if node.context and node.operator == OpExpression.OPTIONAL:
+                node.arguments[0].context = node.context
+                node.context = None
+        ## some nodes (optionals) shouldn't have context attached:
+        self.walk(bubble_back_down, types=OpExpression)
+        def create_graph_node(node, parent, sseellff):
+            if node.context and not node.is_spo:
+                graphNode = OpExpression('GRAPH', [node])
+                sseellff.substitute_node(node, graphNode)                
         ## create a graph node for each node that has a context but is not a triple node
-        self.walk(self.create_graph_node, types=OpExpression, bottom_up=True)
+        self.walk(create_graph_node, types=OpExpression, bottom_up=True, external_value=self)
 
     def contextify_triples(self):
         """
@@ -1112,9 +1138,9 @@ class Normalizer:
         """
         contextified = set([])
         uncontextified = set([])
-        def mark_contextified_nodes(node, parent):
+        def mark_contextified_nodes(node, parent, external_value):
             if node.context or parent in contextified: contextified.add(node)
-        def collect_uncontextified(node, parent):
+        def collect_uncontextified(node, parent, external_value):
             if not node.context and not node in contextified:
                 uncontextified.add(node)
         ## 'mark' all variables at or below a context
@@ -1133,7 +1159,7 @@ class Normalizer:
         """
         self.color_filter_nodes()
         heteroDisjuncts = []
-        def collect_hetero_disjuncts(node, parent):
+        def collect_hetero_disjuncts(node, parent, external_value):
             if not node.operator == OpExpression.OR: return
             if not isinstance(parent, OpExpression) or not parent.operator == OpExpression.AND: return
             filter = False
@@ -1180,7 +1206,7 @@ class Normalizer:
         """
         self.color_filter_nodes()
         leaders = []
-        def collect_some_leading_filter_ands(node, parent):
+        def collect_some_leading_filter_ands(node, parent, external_value):
             """
             If we find two consecutive AND'd filter nodes, collect the first. 
             """
@@ -1220,13 +1246,21 @@ class Normalizer:
         """
         self.convert_predications_to_spo_nodes()
         self.fix_heterogeneous_disjunctions()
-        self.translate_in_enumerate_into_disjunction_of_equalities()
+        if False:
+            self.translate_in_enumerate_into_disjunction_of_equalities()
+        else:
+            self.translate_in_enumerate_into_temporary_join()
+        #ps("CCC", self.parse_tree)                
         self.bubble_up_contexts()
-        self.contextify_triples()
+        #ps("DDD", self.parse_tree)
+        if self.contexts:                        
+            self.contextify_triples()
         ## finally, create non-normalized structure to assist filters output
         self.denormalize_filter_ands()
         self.color_filter_nodes()
-    
+
+def ps(msg, parse_tree):
+    print msg, str(StringsBuffer(complain='SILENT').sparqlify(parse_tree))
 
 ###########################################################################################################
 ##
@@ -1555,7 +1589,7 @@ class StringsBuffer:
 ## 
 ###########################################################################################################
 
-def translate_common_logic_query(query, preferred_language='PROLOG', complain='EXCEPTION',
+def translate_common_logic_query(query, preferred_language='PROLOG', contexts=None, complain='EXCEPTION',
                                  subject_comes_first=False, context_comes_first=False):
     """
     Translate a Common Logic query into either SPARQL or PROLOG syntax.  If 'preferred_language,
@@ -1569,24 +1603,24 @@ def translate_common_logic_query(query, preferred_language='PROLOG', complain='E
         trans = CommonLogicTranslator(query, subject_comes_first=subject_comes_first,
                                       context_comes_first=context_comes_first)
         trans.parse()
-        Normalizer(trans.parse_tree, language).normalize()
+        Normalizer(trans.parse_tree, language, contexts).normalize()
         if language == CommonLogicTranslator.PROLOG:
             translation = str(StringsBuffer(complain=complain, spoify_output=True).prologify(trans.parse_tree))
         elif language == CommonLogicTranslator.SPARQL:
             translation = str(StringsBuffer(complain=complain).sparqlify(trans.parse_tree))
-        return translation, trans.parse_tree.dataset_clause
+        return translation, trans.parse_tree.dataset_clause, trans.parse_tree.temporary_enumerations
     
     try:
-        translation, dataset = help_translate(preferred_language)
+        translation, dataset, temporary_enumerations = help_translate(preferred_language)
         successfulLanguage = preferred_language
     except QueryMissingFeatureException, e1:
         try:
             otherLanguage = 'SPARQL' if preferred_language == 'PROLOG' else 'PROLOG'
-            translation, dataset = help_translate(otherLanguage)
+            translation, dataset, temporary_enumerations = help_translate(otherLanguage)
             successfulLanguage = otherLanguage
         except QueryMissingFeatureException:
             return None, None, None, e1
-    return translation, dataset, successfulLanguage, None
+    return translation, dataset, temporary_enumerations, successfulLanguage, None
 
 def contexts_to_uris(context_terms, repository_connection):
     """
@@ -1678,44 +1712,20 @@ where (?c ?s ?p ?o)
         or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
 """
 
-
-#query17i = """select ?s ?p ?o ?c ?lac ?c2
-#where (?c ?s ?p ?o) 
-#  and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
-#  and ((?s = ?wall)
-#    or ((?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
-#      and ((?s = ?widget1)
-#        or (?widget1 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
-#        or (?widget1 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))
-#    or ((?wall <http://www.wildsemantics.com/systemworld#freeWidgets> ?widget2)
-#      and ((?s = ?widget2)
-#        or (?widget2 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
-#        or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
-#"""
-#
-#query17i = """select ?s ?p ?o ?c ?lac ?c2
-#where (?c ?s ?p ?o) 
-#  and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
-#  and (?wall = <http://wall5>)
-#  and ((?s = ?wall)
-#    or ((?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
-#      and ((?s = ?widget1)
-#        or (?widget1 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
-#        or (?widget1 <http://www.wildsemantics.com/systemworld#filterSet> ?s))))    
-#"""
-#
-#query17i = """select ?s ?p ?o ?c ?lac ?c2
-#where (?c ?s ?p ?o) 
-#  and (?wall = <http://wall5>)
-#  and ((?s = ?wall)
-#    or ((?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
-#      and (?s = ?widget1)))   
-#"""
+query17i = """select ?s ?p ?o ?c ?lac ?otype ?c2  
+where quad(?s ?p ?o ?c)  and 
+      (optional quad(?o <http://fiz> ?lac ?c2)) """
+      
+query17i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
+      (?s in [<http://www.wildsemantics.com/worldworld#SystemWorld_World>, <http://www.wildsemantics.com/worldworld#WorldWorld_World>, <http://www.wildsemantics.com/worldworld#AuthWorld_World>, <http://www.wildsemantics.com/worldworld#GardenWorld_World>, <http://www.wildsemantics.com/worldworld#VocabWorld_World>, <http://www.wildsemantics.com/worldworld#PermissionsWorld_World>, <http://www.wildsemantics.com/worldworld#PublicWorld_World>])  and
+      (optional quad(?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)) and
+      (optional quad(?c2 ?o rdf:type ?otype))"""
 
 
 
 if __name__ == '__main__':
-    switch = 16.1
+    switch = 17.1
+    #switch = 13
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)

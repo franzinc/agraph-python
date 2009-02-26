@@ -57,6 +57,9 @@ class URI(Resource):
             raise IllegalArgumentException("Object of type %s passed to URI constructor where string expected: %s"
                                            % (type(uri), uri))
         if uri:
+            if uri[0] == '<' and uri[len(uri) - 1] == '>':
+                ## be kind and trim the uri:
+                uri = uri[1:-1]
             self.uri = uri
         elif namespace and localname:
             self.uri = namespace + localname
