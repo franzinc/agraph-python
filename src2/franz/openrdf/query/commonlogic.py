@@ -963,6 +963,42 @@ class Normalizer:
         self.recompute_backlinks(where_clause_only=True)
  
     ###########################################################################################################
+    ## Constant folding
+    ###########################################################################################################
+    
+    ## implicit variable scoping makes this difficult
+    ## we assume rather narrow scoping at first pass:
+    def propagate_constants_to_predications(self, skip_context_variables=None):
+        constantEqualities = []
+        def collect_constant_equalities(node, parent, external_value):
+            if node.operator == OpExpression.EQUALITY and isinstance(parent, OpExpression) and parent.operator == OpExpression.AND:
+                variable = None
+                constant = None
+                for arg in node.arguments:
+                    if isinstance(arg, Term):
+                        if arg.term_type == Term.VARIABLE: variable = arg
+                        elif arg.term_type in [Term.RESOURCE, Term.LITERAL]: constant = arg
+                if variable and constant:
+                    constantEqualities.append((parent, variable, constant))
+        ## collect AND nodes containing variables set to constants:                                      
+        self.walk(collect_constant_equalities, types=OpExpression)
+        def substitute_constant_for_variable(node, parent, external_value):
+            if node.operator == OpExpression.PREDICATION:
+                vbl = external_value[1]
+                constant = external_value[2]
+                for i, arg in enumerate(node.arguments):
+                    ## SPARQL can't handle constants in context position:
+                    if node.is_spo and i == 3 and skip_context_variables: continue
+                    if not isinstance(arg, Term): continue
+                    if arg.value == vbl.value:
+                        node.arguments[i] = constant
+        ## search for predications AND'ed to the constant equalities,
+        ## and subtitute in the corresponding constants:
+        for triple in constantEqualities:
+            self.walk(substitute_constant_for_variable, types=OpExpression, start_node=triple[0], external_value=triple)
+            
+
+    ###########################################################################################################
     ## Specialized conversions
     ###########################################################################################################
            
@@ -1234,6 +1270,7 @@ class Normalizer:
     ###########################################################################################################
     
     def normalize_for_prolog(self):
+        self.propagate_constants_to_predications()
         self.flatten_select_terms()
         self.flatten_value_computations()
         ## TEMPORARY TO SEE WHAT IT LOOKS LIKE:
@@ -1244,9 +1281,10 @@ class Normalizer:
         """
         Reorganize the parse tree to be compatible with SPARQL's bizarre syntax.
         """
+        self.propagate_constants_to_predications(skip_context_variables=True)
         self.convert_predications_to_spo_nodes()
         self.fix_heterogeneous_disjunctions()
-        if False:
+        if False: ## too slot:
             self.translate_in_enumerate_into_disjunction_of_equalities()
         else:
             self.translate_in_enumerate_into_temporary_join()
@@ -1695,10 +1733,10 @@ query15 = """(select (?s) where (and (or (ex:p1 ?s1 ?o1 ?c1) (ex:p2 ?s2 ?o2 ?c1)
                                      (or (ex:p4 ?s4 ?o4 ?c1) (ex:p5 ?s5 ?o5 ?c1))))"""
 query16 = """(select (?s ?p ?o ?c ?p2 ?o2 ?c2)  where (and (quad ?s ?p ?o ?c) (optional (quad ?p2 ?o2 ?c2 ?o))))"""
 query16i = """select ?s ?o ?c ?o2 ?c2 where quad(?s ex:p ?o ?c)  and optional(quad(?o ex:p2 ?o2 ?c2))"""
+query17 = """(select (?s) where (triple ?s ?p ?o) (= ?s ex:Bill))"""
 
 
-
-query17i = """select ?s ?p ?o ?c ?lac ?c2
+query18i = """select ?s ?p ?o ?c ?lac ?c2
 where (?c ?s ?p ?o) 
   and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
   and ((?s = ?wall)
@@ -1712,11 +1750,11 @@ where (?c ?s ?p ?o)
         or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
 """
 
-query17i = """select ?s ?p ?o ?c ?lac ?otype ?c2  
+query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2  
 where quad(?s ?p ?o ?c)  and 
       (optional quad(?o <http://fiz> ?lac ?c2)) """
       
-query17i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
+query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
       (?s in [<http://www.wildsemantics.com/worldworld#SystemWorld_World>, <http://www.wildsemantics.com/worldworld#WorldWorld_World>, <http://www.wildsemantics.com/worldworld#AuthWorld_World>, <http://www.wildsemantics.com/worldworld#GardenWorld_World>, <http://www.wildsemantics.com/worldworld#VocabWorld_World>, <http://www.wildsemantics.com/worldworld#PermissionsWorld_World>, <http://www.wildsemantics.com/worldworld#PublicWorld_World>])  and
       (optional quad(?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)) and
       (optional quad(?c2 ?o rdf:type ?otype))"""
@@ -1724,8 +1762,7 @@ query17i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and
 
 
 if __name__ == '__main__':
-    switch = 17.1
-    #switch = 13
+    switch = 17
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -1759,7 +1796,8 @@ if __name__ == '__main__':
     #elif switch == 15.1: translate(query15i)    
     elif switch == 16: translate(query16)  # BRACKETED OPTIONAL WITH QUAD (HARD FOR SOME REASON)
     elif switch == 16.1: translate(query16i)  
-    elif switch == 17.1: translate(query17i)    
+    elif switch == 17: translate(query17)    
+    elif switch == 18.1: translate(query18i)        
     else:
         print "There is no test number %s" % switch
 
