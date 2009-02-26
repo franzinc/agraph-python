@@ -362,14 +362,12 @@ class CommonLogicTranslator:
     SPARQL = 'SPARQL'
     PROLOG = 'PROLOG'
     
-    def __init__(self, query=None, subject_comes_first=False, context_comes_first=False):
+    def __init__(self, query=None, subject_comes_first=False):
         self.set_source_query(query)
         self.parse_tree = None
         ## if 'subject_comes_first' is 'True', it says that all predications are in SPO order,
         ## whether prefixed by 'TRIPLE' or not:       
-        self.subject_comes_first = subject_comes_first or context_comes_first
-        ## 'context_comes_first' specifies CSPO order instead of SPOC:
-        self.context_comes_first = context_comes_first
+        self.subject_comes_first = subject_comes_first
     
     def set_source_query(self, query):        
         self.source_query = query
@@ -442,30 +440,28 @@ class CommonLogicTranslator:
         """
         'tokens' represent a predicate applied to arguments
         """
-        if predicate:
-            ## fold 'predicate' into arguments
-            temp = [predicate]
-            temp.extend(tokens)
-            tokens = temp
+        print "PARSE PREDICATION", predicate, [str(t) for t in tokens]       
+        if not predicate:
+            predicate = tokens[0]
+            tokens = tokens[1:]
+        if self.infix_parse and tokens[0].value == '(':
+            return self.parse_bracket(tokens, [], predicate=predicate) 
+        isSPO = Token.reserved_type(predicate, [OpExpression.TRIPLE, OpExpression.QUAD])
+        predicate = self.token_to_term(predicate)
         arguments = self.parse_expressions(tokens, [])
-        #print "PARSE PREDICATION", [str(arg) for arg in arguments], self.context_comes_first
-        predicate = arguments[0]
-        isSPO = Token.reserved_type(tokens[0], [OpExpression.TRIPLE, OpExpression.QUAD])
         if isSPO:
-            del arguments[0]
-        elif self.context_comes_first and len(arguments) == 4:
-            ## move context to the end:
-            context = arguments[0]
-            del arguments[0]
-            arguments.append(context)
-            isSPO = True
-        elif self.subject_comes_first:
+            pass
+        elif self.subject_comes_first and len(arguments) in [2,3]:
+            ## this is probably a bad idea; we aren't debugging it:
+            temp = [predicate]
+            temp.extend(arguments)
+            arguments = temp
+            toq = 'TRIPLE' if len(arguments) == 3 else 'QUAD'
+            predicate = self.token_to_term(Token(Token.RESERVED_WORD, toq))
             isSPO = True
         else:
-            predicate = arguments[0]     
             if not predicate.term_type in [Term.RESOURCE, Term.VARIABLE]:
                 self.syntax_exception("Found illegal term '%s' where resource expected" % predicate.value, tokens[0])
-            del arguments[0]
             isSPO = False
         if isSPO:
             predicate = OpExpression.QUAD if len(arguments) == 4 else OpExpression.TRIPLE
@@ -1628,7 +1624,7 @@ class StringsBuffer:
 ###########################################################################################################
 
 def translate_common_logic_query(query, preferred_language='PROLOG', contexts=None, complain='EXCEPTION',
-                                 subject_comes_first=False, context_comes_first=False):
+                                 subject_comes_first=False):
     """
     Translate a Common Logic query into either SPARQL or PROLOG syntax.  If 'preferred_language,
     choose that one (first).  Return three
@@ -1638,8 +1634,7 @@ def translate_common_logic_query(query, preferred_language='PROLOG', contexts=No
     or PROLOG
     """
     def help_translate(language):
-        trans = CommonLogicTranslator(query, subject_comes_first=subject_comes_first,
-                                      context_comes_first=context_comes_first)
+        trans = CommonLogicTranslator(query, subject_comes_first=subject_comes_first)
         trans.parse()
         Normalizer(trans.parse_tree, language, contexts).normalize()
         if language == CommonLogicTranslator.PROLOG:
@@ -1684,8 +1679,8 @@ def contexts_to_uris(context_terms, repository_connection):
 ###########################################################################################################
 
 
-def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, context_comes_first=False):
-    trans = CommonLogicTranslator(cl_select_query, context_comes_first=context_comes_first)
+def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG):
+    trans = CommonLogicTranslator(cl_select_query)
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').common_logify(trans.parse_tree))    
     print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', infix_with_prefix_triples=trans.infix_with_prefix_triples).infix_common_logify(trans.parse_tree))
@@ -1750,19 +1745,29 @@ where (?c ?s ?p ?o)
         or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
 """
 
-query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2  
-where quad(?s ?p ?o ?c)  and 
+query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2  where quad(?s ?p ?o ?c)  and 
       (optional quad(?o <http://fiz> ?lac ?c2)) """
       
 query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
       (?s in [<http://www.wildsemantics.com/worldworld#SystemWorld_World>, <http://www.wildsemantics.com/worldworld#WorldWorld_World>, <http://www.wildsemantics.com/worldworld#AuthWorld_World>, <http://www.wildsemantics.com/worldworld#GardenWorld_World>, <http://www.wildsemantics.com/worldworld#VocabWorld_World>, <http://www.wildsemantics.com/worldworld#PermissionsWorld_World>, <http://www.wildsemantics.com/worldworld#PublicWorld_World>])  and
-      (optional quad(?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)) and
-      (optional quad(?c2 ?o rdf:type ?otype))"""
+      (optional quad(?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac ?c2)) and
+      (optional quad(?o rdf:type ?otype ?c2))"""
 
+query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2 
+where  ((?cls = ?s)
+       or (?cls <http://www.wildsemantics.com/systemworld#fields> ?s))  
+  and quad(?s ?p ?o ?c) 
+  and optional (quad(?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac ?c2))
+  and optional (quad(?o rdf:type ?otype ?c2))
+"""
+
+query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2
+where  optional (quad(?o rdf:type ?otype ?c2))
+"""
 
 
 if __name__ == '__main__':
-    switch = 17
+    switch = 4.1
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)

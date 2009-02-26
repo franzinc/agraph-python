@@ -134,7 +134,8 @@ class Literal(Value):
         dt = self.getDatatype()
         if dt is None: return self.getLabel()
         else:
-            conversion = Literal.XSDToPython.get(dt.getURI())
+            dtURI = dt if isinstance(dt, str) else dt.getURI()
+            conversion = Literal.XSDToPython.get(dtURI)
             if conversion:
                 if conversion == int:
                     return self.intValue()

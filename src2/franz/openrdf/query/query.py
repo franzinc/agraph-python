@@ -78,7 +78,6 @@ class Query(object):
         self.preferred_execution_language = None
         self.actual_execution_language = None
         self.subject_comes_first = False
-        self.context_comes_first = False
 
     def setBinding(self, name, value):
         """
@@ -120,6 +119,17 @@ class Query(object):
         Gets the dataset that has been set.
         """ 
         return self.dataset
+    
+    def setContexts(self, contexts):
+        """
+        Assert a set of contexts (named graphs) that filter all triples.
+        """
+        if not contexts: return
+        ds = Dataset()
+        for cxt in contexts:
+            if str(cxt): cxt = self.connection.createURI(cxt)
+            ds.addNamedGraph(cxt)
+        self.setDataset(ds)
      
     def setIncludeInferred(self, includeInferred):
         """
@@ -191,8 +201,7 @@ class Query(object):
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
             query, contexts, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
-                                    preferred_language=self.preferred_execution_language, contexts=namedContexts,
-                                    context_comes_first=self.context_comes_first)
+                                    preferred_language=self.preferred_execution_language, contexts=namedContexts)
             if contexts and not namedContexts:
                 namedContexts = [uri.getURI() for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
             self.actual_execution_language = lang ## for debugging
