@@ -823,12 +823,15 @@ class Normalizer:
     
     def walk(self, processor, types=None, start_node=None, bottom_up=False, external_value=None):
         """
-        Walk the parse tree an apply 'processor' to each node whose type is in 'types'.
+        Walk the parse tree; apply 'processor' to each node whose type is in 'types'.
         """
         if start_node and not start_node == self.parse_tree:
             self.help_walk(start_node, start_node.parent, processor, types, bottom_up, external_value)
+            return
+        ## walk select clause
         for arg in self.parse_tree.select_terms:
             self.help_walk(arg, self.parse_tree.select_terms, processor, types, bottom_up, external_value)
+        ## walk where clause
         self.help_walk(self.parse_tree.where_clause, self.parse_tree, processor, types, bottom_up, external_value)
     
     def recompute_backlinks(self, where_clause_only=False):
@@ -993,6 +996,18 @@ class Normalizer:
         for triple in constantEqualities:
             self.walk(substitute_constant_for_variable, types=OpExpression, start_node=triple[0], external_value=triple)
             
+    def is_unique_variable_within_where_clause(self, variable):
+        """
+        Return 'True' if the variable 'variable' occurs at most once in the
+        where clause of the current parse tree.
+        """      
+        appearancesCounter = [0]
+        def doit(node, parent, external_value):
+            if node.term_type == Term.VARIABLE and node.value == variable.value:                
+                appearancesCounter[0] = appearancesCounter[0] + 1
+        self.walk(doit, types=Term, start_node=self.parse_tree.where_clause)
+        return appearancesCounter[0] <= 1 
+    
 
     ###########################################################################################################
     ## Specialized conversions
@@ -1052,7 +1067,7 @@ class Normalizer:
         self.recompute_backlinks()
         
     def translate_in_enumerate_into_disjunction_of_equalities(self):
-        didIt = False
+        didIt = [False]
         def doit(node, parent, external_value):
             if node.operator == OpExpression.IN:
                 ## assumes that the second arg is an enumeration:
@@ -1061,9 +1076,9 @@ class Normalizer:
                 equalities = [OpExpression(OpExpression.EQUALITY, [vbl, item]) for item in enumeration.arguments]
                 orOp = OpExpression(OpExpression.OR, equalities)
                 self.substitute_node(node, orOp)
-                didIt = True
+                didIt[0] = True
         self.walk(doit, types=OpExpression)
-        if didIt:
+        if didIt[0]:
             self.recompute_backlinks()
     
     def translate_in_enumerate_into_temporary_join(self):
@@ -1072,7 +1087,7 @@ class Normalizer:
         record the needed temporary relations in 'parse_tree.temporary_enumerations'
         and 
         """
-        didIt = False
+        didIt = [False]
         def doit( node, parent, sseellff):
             if not node.operator == OpExpression.IN: return
             ## assumes that the second arg is an enumeration:
@@ -1086,9 +1101,9 @@ class Normalizer:
             self.substitute_node(node, joinNode)
             ## BUG: DOESN'T WORK FOR QNAMES:
             self.parse_tree.temporary_enumerations[tempRelation] = ["<{0}>".format(item.value) for item in enumeration.arguments]            
-            didIt = True
+            didIt[0] = True
         self.walk(doit, types=OpExpression, external_value=self)
-        if didIt:
+        if didIt[0]:
             self.recompute_backlinks()
 
 
@@ -1100,11 +1115,15 @@ class Normalizer:
         """
         Color operator node as a filter if it is a comparison, or if all of its
         children are filters.
+        Hack: Or if its a 'bound' predicate.
+        TODO: CONVERT bound HACK INTO GENERIC TEST
         """
         def colorIt(node, parent, external_value):
             node.color = None
             if isinstance(node, Term): return
             if node.operator in COMPARISON_OPERATORS:
+                node.color = 'FILTER'
+            elif node.predicate == 'bound' and len(node.arguments) == 1:
                 node.color = 'FILTER'
             else:
                 for arg in node.arguments:
@@ -1259,7 +1278,47 @@ class Normalizer:
             self.denormalize_leading_filter(leaders[0])
             ## recurse
             self.denormalize_filter_ands()
-        
+            
+    def translate_negations(self):
+        """
+        Translate negation into optional and unbound.
+        Assumes that normalization guarantees that the argument
+        to a negation is always a predication (not yet implemented).
+        (not (triple S P O)) ::=
+             (and (optional (and (triple S P ?v1) (= ?v1 O)))
+                  (not (bound ?v1)))
+        Optimization:  If the 'O' argument is a variable that appears nowhere else
+        in the WHERE clause, then we can omit the extra variable and the equality clause.
+        """
+        didIt = [False]
+        def doit(node, parent, sseellff):
+            if not node.operator == OpExpression.NOT: return
+            tripleNode = node.arguments[0]
+            if not (tripleNode.operator == OpExpression.PREDICATION and tripleNode.is_spo): return
+            objArg = tripleNode.arguments[2]
+            isSimple = (objArg.term_type == Term.VARIABLE and 
+                        True) #sseellff.is_unique_variable_within_where_clause(objArg))
+            if isSimple:
+                optionalNode = OpExpression(OpExpression.OPTIONAL, [tripleNode])
+                boundNode =  OpExpression(OpExpression.PREDICATION, [objArg])
+                boundNode.predicate = 'bound'
+            else:
+                freshVar = sseellff.get_fresh_variable()
+                tripleNode.arguments[2] = freshVar
+                equalityNode = OpExpression(OpExpression.EQUALITY, [freshVar, objArg])
+                innerAndNode = OpExpression(OpExpression.AND, [tripleNode, equalityNode])
+                optionalNode = OpExpression(OpExpression.OPTIONAL, [innerAndNode])
+                boundNode =  OpExpression(OpExpression.PREDICATION, [freshVar])
+                boundNode.predicate = 'bound'
+            notNode = OpExpression(OpExpression.NOT, [boundNode])
+            outerAndNode = OpExpression(OpExpression.AND, [optionalNode, notNode])
+            sseellff.substitute_node(node, outerAndNode)
+            sseellff.recompute_backlinks()
+            didIt[0] = True
+        self.walk(doit, types=OpExpression, external_value=self)
+        if didIt[0]:
+            self.flatten_nested_ands()
+     
 
     ###########################################################################################################
     ## Language-specific Normalization Scripts
@@ -1289,9 +1348,13 @@ class Normalizer:
         #ps("DDD", self.parse_tree)
         if self.contexts:                        
             self.contextify_triples()
+        self.translate_negations()
         ## finally, create non-normalized structure to assist filters output
         self.denormalize_filter_ands()
         self.color_filter_nodes()
+
+def pc(msg, parse_tree):
+    print msg, str(StringsBuffer(complain='SILENT').common_logify(parse_tree))
 
 def ps(msg, parse_tree):
     print msg, str(StringsBuffer(complain='SILENT').sparqlify(parse_tree))
@@ -1593,7 +1656,11 @@ class StringsBuffer:
                 self.append('optional ').sparqlify(term.arguments[0])
                 #if not suppress_curlies: self.append('}')      
             elif term.operator == OpExpression.NOT:
-                self.complain(term, "NOT")
+                if not term.color == 'FILTER': self.complain(term, "NOT") ## eventually shouldn't occur
+                if not suppress_filter: self.append('filter ')
+                self.append('(')
+                self.append('!').sparqlify(term.arguments[0])
+                self.append(')')
             elif term.is_spo:
                 if not suppress_curlies: self.append('{')                
                 if term.context: self.append('graph ').sparqlify(term.context).append(' { ')
@@ -1601,11 +1668,16 @@ class StringsBuffer:
                 if term.context: self.append(' } ')
                 if not suppress_curlies: self.append('}') 
             elif term.predicate:
-                raise Exception("SPARQL normalization failed to eliminate non-spo predication")
-                if not suppress_curlies: self.append('{')
-                self.sparqlify(term.arguments[0]).sparqlify(' ').sparqlify(term.predicate).sparqlify(' ')
-                self.sparqlify(term.arguments[1]).sparqlify(' ')
-                if not suppress_curlies: self.append('}')                
+                ## TEMPORARY HACK.  TODO: MAKE IT GENERIC:
+                if term.predicate == 'bound':
+                    self.append(term.predicate + '(').sparqlify(term.arguments[0]).append(')')                    
+                elif True:
+                    raise Exception("SPARQL normalization failed to eliminate non-spo predication")
+                else:
+                    if not suppress_curlies: self.append('{')
+                    self.sparqlify(term.arguments[0]).sparqlify(' ').sparqlify(term.predicate).sparqlify(' ')
+                    self.sparqlify(term.arguments[1]).sparqlify(' ')
+                    if not suppress_curlies: self.append('}')                
             elif term.operator in COMPARISON_OPERATORS:
                 if not suppress_filter: self.append('filter ')
                 self.append('(')
@@ -1702,7 +1774,7 @@ query4 = """(select (?s ?o) where (and (or (ex:name ?s ?o) (ex:title ?s ?o)) (= 
 query4i = """select ?s ?o where ((ex:name ?s ?o) or (ex:title ?s ?o))and (?o = "Fred")"""
 query5 = """(select (?s) where (and (ex:name ?s ?o) (or (= ?o "Fred") (= ?o "Joe"))))"""
 query5i = """select ?s where (ex:name ?s ?o) and ((?o = "Fred") or (?o = "Joe"))"""
-query6 = """select (?s ?o) where (and (ex:name ?s ?o) (not (rdf:type ?s <http://www.franz.com/example#Person>)))"""
+query6 = """(select (?s ?o) where (and (ex:name ?s ?o) (not (rdf:type ?s <http://www.franz.com/example#Person>))))"""
 query6i = """select ?s ?o where (ex:name ?s ?o) and not (rdf:type ?s <http://www.franz.com/example#Person>)"""
 query7 = """select (?s ?o) where (and (triple ?s ex:name ?o) (triple ?s rdf:type <http://www.franz.com/example#Person>))"""
 query7i = """select ?s ?o where triple(?s ex:name ?o) and triple(?s rdf:type <http://www.franz.com/example#Person>)"""
@@ -1730,8 +1802,19 @@ query16 = """(select (?s ?p ?o ?c ?p2 ?o2 ?c2)  where (and (quad ?s ?p ?o ?c) (o
 query16i = """select ?s ?o ?c ?o2 ?c2 where quad(?s ex:p ?o ?c)  and optional(quad(?o ex:p2 ?o2 ?c2))"""
 query17 = """(select (?s) where (triple ?s ?p ?o) (= ?s ex:Bill))"""
 
+query18 = """(select (?s ?o) where (or (triple ?s foaf:name ?o)
+                        (and (not (triple ?s foaf:name ?o1))
+                             (or (triple ?s foaf:mbox ?o)
+                                 (not (triple ?s foaf:mbox ?o2))))))"""
+                                 
+query181 = """(select (?s ?o) where (or (triple ?s foaf:name ?o)
+                                       (not (triple ?s foaf:name ?o))))"""
+                                       
+query182 = """(select (?s ?o) where (not (triple ?s foaf:name ?o)))"""                                       
+                            
 
-query18i = """select ?s ?p ?o ?c ?lac ?c2
+
+query19i = """select ?s ?p ?o ?c ?lac ?c2
 where (?c ?s ?p ?o) 
   and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
   and ((?s = ?wall)
@@ -1745,15 +1828,15 @@ where (?c ?s ?p ?o)
         or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
 """
 
-query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2  where quad(?s ?p ?o ?c)  and 
+query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2  where quad(?s ?p ?o ?c)  and 
       (optional quad(?o <http://fiz> ?lac ?c2)) """
       
-query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
+query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
       (?s in [<http://www.wildsemantics.com/worldworld#SystemWorld_World>, <http://www.wildsemantics.com/worldworld#WorldWorld_World>, <http://www.wildsemantics.com/worldworld#AuthWorld_World>, <http://www.wildsemantics.com/worldworld#GardenWorld_World>, <http://www.wildsemantics.com/worldworld#VocabWorld_World>, <http://www.wildsemantics.com/worldworld#PermissionsWorld_World>, <http://www.wildsemantics.com/worldworld#PublicWorld_World>])  and
       (optional quad(?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac ?c2)) and
       (optional quad(?o rdf:type ?otype ?c2))"""
 
-query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2 
+query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2 
 where  ((?cls = ?s)
        or (?cls <http://www.wildsemantics.com/systemworld#fields> ?s))  
   and quad(?s ?p ?o ?c) 
@@ -1761,13 +1844,13 @@ where  ((?cls = ?s)
   and optional (quad(?o rdf:type ?otype ?c2))
 """
 
-query18i = """select ?s ?p ?o ?c ?lac ?otype ?c2
+query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2
 where  optional (quad(?o rdf:type ?otype ?c2))
 """
 
 
 if __name__ == '__main__':
-    switch = 4.1
+    switch = 18
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -1779,7 +1862,7 @@ if __name__ == '__main__':
     elif switch == 4.1: translate(query4i)        
     elif switch == 5: translate(query5) # FILTER DISJUNCTION
     elif switch == 5.1: translate(query5i)        
-    elif switch == 6: translate(query6) # NEGATION.  SPARQL BREAKS
+    elif switch == 6: translate(query6) # NEGATION
     elif switch == 6.1: translate(query6i)        
     elif switch == 7: translate(query7) # TRIPLE PREDICATE
     elif switch == 7.1: translate(query7i)        
@@ -1802,7 +1885,8 @@ if __name__ == '__main__':
     elif switch == 16: translate(query16)  # BRACKETED OPTIONAL WITH QUAD (HARD FOR SOME REASON)
     elif switch == 16.1: translate(query16i)  
     elif switch == 17: translate(query17)    
-    elif switch == 18.1: translate(query18i)        
+    elif switch == 18: translate(query18) # NEGATION    
+    elif switch == 19.1: translate(query19i)        
     else:
         print "There is no test number %s" % switch
 

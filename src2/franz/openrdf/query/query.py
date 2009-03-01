@@ -204,10 +204,11 @@ class Query(object):
             query, contexts, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
                                     preferred_language=self.preferred_execution_language, contexts=namedContexts)
             if contexts and not namedContexts:
-                namedContexts = [uri.getURI() for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
+                namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
             self.actual_execution_language = lang ## for debugging
             if lang == 'SPARQL':
                 print "         SPARQL QUERY", query
+                print "  NAMED CONTEXTS", namedContexts
                 query = splicePrefixesIntoQuery(query, self.connection)
                 self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
                 MINITIMER = datetime.datetime.now()
