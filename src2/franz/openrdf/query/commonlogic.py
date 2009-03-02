@@ -646,7 +646,10 @@ class CommonLogicTranslator:
                     predicate = self.token_to_term(beginToken)
                     return self.parse_bracket(tokens[1:], arguments, connective=connective, predicate=predicate, is_boolean=is_boolean)
                 elif Token.reserved_type(beginToken, [OpExpression.TRIPLE, OpExpression.QUAD]):
-                    return self.parse_bracket(tokens[1:], arguments, connective=connective, predicate=beginToken, is_boolean=is_boolean)
+                    if tokens[1].value == '(':
+                        return self.parse_bracket(tokens[1:], arguments, connective=connective, predicate=beginToken, is_boolean=is_boolean)
+                    else:
+                        self.syntax_exception("Expected '(' but found '{0}'".format(tokens[1]), tokens)
             if tokenType in ATOMIC_TERM_TOKEN_TYPES:
 #                if is_boolean is True:
 #                    self.syntax_exception("Value term found where boolean expression expected '%s'" % beginToken.value, beginToken)
@@ -1342,7 +1345,7 @@ class Normalizer:
         self.propagate_constants_to_predications(skip_context_variables=True)
         self.convert_predications_to_spo_nodes()
         self.fix_heterogeneous_disjunctions()
-        if False: ## too slot:
+        if False: ## too slow:
             self.translate_in_enumerate_into_disjunction_of_equalities()
         else:
             self.translate_in_enumerate_into_temporary_join()
@@ -1354,6 +1357,7 @@ class Normalizer:
         self.translate_negations()
         ## finally, create non-normalized structure to assist filters output
         self.denormalize_filter_ands()
+        self.flatten_nested_ands()
         self.color_filter_nodes()
 
 def pc(msg, parse_tree):
@@ -1814,6 +1818,10 @@ query19i = """select ?o ?lac ?otype ?c2
 where (?o in [ex:foo, ex:bar]) and
        ( triple(?o <%s> ?lac) or
         quad(?o rdf:type ?otype ?c2) )"""
+        
+query19i = """select distinct ?s ?p ?o ?c 
+      where   quad(?s ?p ?o ?c) 
+    """
                                        
 
 

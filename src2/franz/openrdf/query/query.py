@@ -161,7 +161,7 @@ class Query(object):
         """
         if not temporary_enumerations: return
         conn = self.connection
-        context = conn.createURI(contexts[0]) if contexts else None
+        context = conn.createURI(contexts[0]) if contexts else conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE)
         print "insert_temporary_enumerations", context
         for tempRelationURI, enumeratedValues in temporary_enumerations.iteritems():
             quads = []
@@ -169,7 +169,7 @@ class Query(object):
                 val = conn.createURI(v) if v and v[0] == '<' else conn.createLiteral(v)
                 quads.append((conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), conn.createURI(tempRelationURI), val, context))
         if insert_or_retract == 'INSERT':
-            #print "INSERTING TEMPORARY ENUMERATION TRIPLES", [(str(t[0]), str(t[1]), str(t[2])) for t in quads]
+            #print "INSERTING TEMPORARY ENUMERATION TRIPLES", [(str(t[0]), str(t[1]), str(t[2]), str(t[3])) for t in quads]
             conn.addTriples(quads)
         else:
             conn.removeQuads(quads)
@@ -207,8 +207,8 @@ class Query(object):
                 namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
             self.actual_execution_language = lang ## for debugging
             if lang == 'SPARQL':
-                print "         SPARQL QUERY", query
-                print "  NAMED CONTEXTS", namedContexts
+                print "         SPARQL QUERY", query                
+                print "   BINDINGS ", bindings, "  NAMED CONTEXTS", namedContexts
                 query = splicePrefixesIntoQuery(query, self.connection)
                 self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
                 MINITIMER = datetime.datetime.now()
