@@ -489,8 +489,11 @@ class CommonLogicTranslator:
         if allAtomicArguments:
             return self.parse_predication(tokens, predicate=predicate)
         elif  Token.reserved_type(tokens[0], [OpExpression.TRIPLE, OpExpression.QUAD]):
-            #return self.parse_predication(tokens[1:], predicate=tokens[0])
-            return self.parse_predication(tokens)
+            if self.infix_parse:
+                ## EXPERIMENT:                
+                return self.parse_infix_expression(tokens, [], connective=None, needs_another_argument=True, is_boolean=True)
+            else:
+                return self.parse_predication(tokens)
         elif predicate:
             self.syntax_exception("MAYBE A FUNCTION, BUT NOT LEGAL PREDICATION", tokens)
         ## we don't know yet what we have here:
@@ -1807,14 +1810,15 @@ query18 = """(select (?s ?o) where (or (triple ?s foaf:name ?o)
                              (or (triple ?s foaf:mbox ?o)
                                  (not (triple ?s foaf:mbox ?o2))))))"""
                                  
-query181 = """(select (?s ?o) where (or (triple ?s foaf:name ?o)
-                                       (not (triple ?s foaf:name ?o))))"""
+query19i = """select ?o ?lac ?otype ?c2
+where (?o in [ex:foo, ex:bar]) and
+       ( triple(?o <%s> ?lac) or
+        quad(?o rdf:type ?otype ?c2) )"""
                                        
-query182 = """(select (?s ?o) where (not (triple ?s foaf:name ?o)))"""                                       
-                            
 
 
-query19i = """select ?s ?p ?o ?c ?lac ?c2
+
+query20i = """select ?s ?p ?o ?c ?lac ?c2
 where (?c ?s ?p ?o) 
   and optional (?c2 ?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)
   and ((?s = ?wall)
@@ -1828,15 +1832,15 @@ where (?c ?s ?p ?o)
         or (?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))) 
 """
 
-query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2  where quad(?s ?p ?o ?c)  and 
+query20i = """select ?s ?p ?o ?c ?lac ?otype ?c2  where quad(?s ?p ?o ?c)  and 
       (optional quad(?o <http://fiz> ?lac ?c2)) """
       
-query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
+query20i = """select ?s ?p ?o ?c ?lac ?otype ?c2 where (?c ?s ?p ?o)  and 
       (?s in [<http://www.wildsemantics.com/worldworld#SystemWorld_World>, <http://www.wildsemantics.com/worldworld#WorldWorld_World>, <http://www.wildsemantics.com/worldworld#AuthWorld_World>, <http://www.wildsemantics.com/worldworld#GardenWorld_World>, <http://www.wildsemantics.com/worldworld#VocabWorld_World>, <http://www.wildsemantics.com/worldworld#PermissionsWorld_World>, <http://www.wildsemantics.com/worldworld#PublicWorld_World>])  and
       (optional quad(?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac ?c2)) and
       (optional quad(?o rdf:type ?otype ?c2))"""
 
-query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2 
+query20i = """select ?s ?p ?o ?c ?lac ?otype ?c2 
 where  ((?cls = ?s)
        or (?cls <http://www.wildsemantics.com/systemworld#fields> ?s))  
   and quad(?s ?p ?o ?c) 
@@ -1844,13 +1848,13 @@ where  ((?cls = ?s)
   and optional (quad(?o rdf:type ?otype ?c2))
 """
 
-query19i = """select ?s ?p ?o ?c ?lac ?otype ?c2
+query20i = """select ?s ?p ?o ?c ?lac ?otype ?c2
 where  optional (quad(?o rdf:type ?otype ?c2))
 """
 
 
 if __name__ == '__main__':
-    switch = 18
+    switch = 19.1
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -1887,6 +1891,7 @@ if __name__ == '__main__':
     elif switch == 17: translate(query17)    
     elif switch == 18: translate(query18) # NEGATION    
     elif switch == 19.1: translate(query19i)        
+    elif switch == 20.1: translate(query20i)            
     else:
         print "There is no test number %s" % switch
 
