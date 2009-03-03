@@ -363,6 +363,7 @@ class CommonLogicTranslator:
     PROLOG = 'PROLOG'
     
     def __init__(self, query=None, subject_comes_first=False):
+        query = query.strip()
         self.set_source_query(query)
         self.parse_tree = None
         ## if 'subject_comes_first' is 'True', it says that all predications are in SPO order,
@@ -765,7 +766,6 @@ class CommonLogicTranslator:
         query = self.source_query.lower()
         if not query:
             raise QuerySyntaxException("Empty CommonLogic query passed to translator")
-        ## is it prefix or infix:
         if query[0] == '(':
             if not query[len(query) - 1] == ')':
                 raise QuerySyntaxException("Missing right parenthesis at the end of query:\n" + query)
@@ -1819,8 +1819,15 @@ where (?o in [ex:foo, ex:bar]) and
        ( triple(?o <%s> ?lac) or
         quad(?o rdf:type ?otype ?c2) )"""
         
-query19i = """select distinct ?s ?p ?o ?c 
-      where   quad(?s ?p ?o ?c) 
+query19i = """(select (?s)
+where (or (triple ?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?s)
+          (and (triple ?wall <http://www.wildsemantics.com/systemworld#gridWidgets> ?widget1)
+               (or (triple ?widget1 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
+                   (triple ?widget1 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))
+          (and (triple ?wall <http://www.wildsemantics.com/systemworld#freeWidgets> ?widget2)
+               (or (triple ?widget2 <http://www.wildsemantics.com/systemworld#backingTopic> ?s)
+                   (triple ?widget2 <http://www.wildsemantics.com/systemworld#filterSet> ?s)))))
+
     """
                                        
 
