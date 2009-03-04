@@ -1203,6 +1203,7 @@ class Normalizer:
         def create_graph_node(node, parent, sseellff):
             if node.context and not node.is_spo:
                 graphNode = OpExpression('GRAPH', [node])
+                graphNode.context = node.context
                 sseellff.substitute_node(node, graphNode)                
         ## create a graph node for each node that has a context but is not a triple node
         self.walk(create_graph_node, types=OpExpression, bottom_up=True, external_value=self)
@@ -1584,7 +1585,7 @@ class StringsBuffer:
             self.indent(8).prologify(term.select_terms, brackets=('(', ')'), delimiter=' ').newline()   
             self.prologify(term.where_clause, suppress_parentheses=True)
             if term.limit >= 0:
-                self.append('\n:limit ' + str(term.limit))
+                self.append('\n(:limit ' + str(term.limit) + ')')
             if term.dataset_clause:
                 self.complain(term, CONTEXTS_OR_DATASET)
             self.append(')')
@@ -1892,9 +1893,12 @@ query20i = """select ?s ?p ?o ?c ?lac ?otype ?c2
 where  optional (quad(?o rdf:type ?otype ?c2))
 """
 
+query20 = """(select distinct (?s ?p ?o ?c) where (and (quad ?s ?p ?o ?c) (quad ?s ?p2 ?o2 ?c)) limit 3)
+"""
+
 
 if __name__ == '__main__':
-    switch = 14
+    switch = 20
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -1931,6 +1935,7 @@ if __name__ == '__main__':
     elif switch == 17: translate(query17)    
     elif switch == 18: translate(query18) # NEGATION    
     elif switch == 19.1: translate(query19i)        
+    elif switch == 20: translate(query20)                
     elif switch == 20.1: translate(query20i)            
     else:
         print "There is no test number %s" % switch
