@@ -1072,6 +1072,25 @@ class Normalizer:
             self.conjoin_to_where_clause(ne)
         self.recompute_backlinks()
         
+    def get_null_term(self):
+        return Term(Term.LITERAL, "Null")
+        
+    def translate_optionals(self):
+        def doit(node, parent, sseellff):
+            if not node.operator == OpExpression.OPTIONAL: return
+            arg = node.arguments[0]
+            argCopy = sseellff.copy_node(arg)
+            notP = OpExpression(OpExpression.NOT, [argCopy])
+#            nullBinders = []
+#            for arg in argCopy.arguments:
+#                if isinstance(arg, Term) and arg.term_type == Term.VARIABLE:
+#                    nullBinders.append(OpExpression(OpExpression.EQUALITY, [arg, sseellff.get_null_term()]))
+#            if nullBinders:
+#                notP = OpExpression(OpExpression.AND, [)
+            pOrNotP = OpExpression(OpExpression.OR, [arg, notP])
+            self.substitute_node(node, pOrNotP)
+        self.walk(doit, types=OpExpression, external_value=self)
+        
     def translate_in_enumerate_into_disjunction_of_equalities(self):
         didIt = [False]
         def doit(node, parent, external_value):
@@ -1332,6 +1351,7 @@ class Normalizer:
     
     def normalize_for_prolog(self):
         self.propagate_constants_to_predications()
+        self.translate_optionals()
         self.flatten_select_terms()
         self.flatten_value_computations()
         ## TEMPORARY TO SEE WHAT IT LOOKS LIKE:
@@ -1557,13 +1577,16 @@ class StringsBuffer:
         elif isinstance(term, QueryBlock):
             self.execution_language = CommonLogicTranslator.PROLOG
             self.spoify_output = spoify_output
-            self.append('(select ')    
-            if term.distinct: self.complain(term, 'DISTINCT')     
+            if term.distinct:
+                self.append('(select-distinct ')
+            else:
+                self.append('(select ')        
             self.indent(8).prologify(term.select_terms, brackets=('(', ')'), delimiter=' ').newline()   
             self.prologify(term.where_clause, suppress_parentheses=True)
+            if term.limit >= 0:
+                self.append('\n:limit ' + str(term.limit))
             if term.dataset_clause:
                 self.complain(term, CONTEXTS_OR_DATASET)
-            if term.limit >= 0: self.complain(term, 'LIMIT')
             self.append(')')
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
@@ -1720,6 +1743,8 @@ def translate_common_logic_query(query, preferred_language='PROLOG', contexts=No
             translation = str(StringsBuffer(complain=complain, spoify_output=True).prologify(trans.parse_tree))
         elif language == CommonLogicTranslator.SPARQL:
             translation = str(StringsBuffer(complain=complain).sparqlify(trans.parse_tree))
+        else:
+            raise IllegalOptionException("No translation available for the execution language '{0}'".format(language))
         return translation, trans.parse_tree.dataset_clause, trans.parse_tree.temporary_enumerations
     
     try:
@@ -1869,7 +1894,7 @@ where  optional (quad(?o rdf:type ?otype ?c2))
 
 
 if __name__ == '__main__':
-    switch = 19.1
+    switch = 14
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)

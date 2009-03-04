@@ -492,7 +492,7 @@ class RepositoryConnection(object):
         then the  quads are assumed to contain valid ntriples strings,
         and they are passed to the server with no conversion.        
         """
-        quads = []
+        removeQuads = []
         for q in quads:
             quad = [None] * 4
             if ntriples:
@@ -514,8 +514,8 @@ class RepositoryConnection(object):
                 quad[1] = self._to_ntriples(predicate)
                 quad[2] = self._to_ntriples(obj)
                 quad[3] = self._to_ntriples(q.getContext())
-            quads.append(quad)
-        self.mini_repository.deleteStatements(quads)
+            removeQuads.append(quad)
+        self.mini_repository.deleteStatements(removeQuads)
 
    
 #     * Removes the supplied statement from the specified contexts in the

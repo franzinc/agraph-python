@@ -155,6 +155,11 @@ class Query(object):
     
     TEMPORARY_ENUMERATION_RESOURCE = 'http://www.franz.com#TeMpOrArYeNuMeRaTiOn'
     
+    def count_temporaries(self, message):
+        conn = self.connection
+        result = conn.getStatements(conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), None, None, None)
+        print message + "^^^^^Found {0} temporary quads".format(len(result.string_tuples))
+    
     def insert_temporary_enumerations(self, temporary_enumerations, insert_or_retract, contexts):
         """
         Enormous hack to circumvent AG's (SPARQL's) lack of a membership operator.
@@ -162,17 +167,23 @@ class Query(object):
         if not temporary_enumerations: return
         conn = self.connection
         context = conn.createURI(contexts[0]) if contexts else conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE)
-        print "insert_temporary_enumerations", context
         for tempRelationURI, enumeratedValues in temporary_enumerations.iteritems():
             quads = []
             for v in enumeratedValues:
                 val = conn.createURI(v) if v and v[0] == '<' else conn.createLiteral(v)
                 quads.append((conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), conn.createURI(tempRelationURI), val, context))
+        self.count_temporaries("BEFORE " + insert_or_retract)
         if insert_or_retract == 'INSERT':
-            #print "INSERTING TEMPORARY ENUMERATION TRIPLES", [(str(t[0]), str(t[1]), str(t[2]), str(t[3])) for t in quads]
+            if quads:
+                t = quads[0]
+                print "INSERT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3]))
             conn.addTriples(quads)
         else:
+            if quads:
+                t = quads[0]
+                print "RETRACT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3]))
             conn.removeQuads(quads)
+        self.count_temporaries("AFTER " + insert_or_retract)
     
     def evaluate_generic_query(self):
         """
