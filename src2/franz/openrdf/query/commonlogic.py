@@ -75,12 +75,12 @@ class Token:
                              '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD',
                              'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT'])
     
-    def __init__(self, token_type, value, offset=None):
+    def __init__(self, token_type, value):
         if token_type == Token.RESERVED_WORD:
             value = OpExpression.parse_operator(value)
         self.value = value
         self.token_type = token_type
-        self.offset = offset
+        self.offset = -1
         
     def __str__(self):
         if self.token_type == Token.VARIABLE:
@@ -112,131 +112,142 @@ ATOMIC_TERM_TOKEN_TYPES = set([Token.VARIABLE, Token.STRING, Token.NUMBER, Token
 
 LEGAL_VARIABLE_CHARS = set(['.', '_', '-',])
 
-def grab_variable(string, tokens):
-    """
-    'string' begins with a question mark, i.e., it begins with a variable.
-    Convert it into a variable token, and return the remainder of the string
-    """
-    endPos = 9999
-    for i in range(1, len(string)):
-        c = string[i]
-        if c.isalnum(): continue
-        if c in LEGAL_VARIABLE_CHARS: continue
-        endPos = i
-        break
-    token = Token(Token.VARIABLE, string[1:endPos])
-    tokens.append(token)
-    return string[endPos:] if endPos < 9999 else ''
-
-def grab_string(string, delimiter, tokens):
-    """
-    'string' begins with a single or double quote.
-    Convert the quoted portions it into a string token, and return the remainder of the string.
-    """
-    endPos = -1
-    for i in range(1, len(string)):
-        c = string[i]
-        if c == delimiter:
+class Tokenizer():
+    def __init__(self, translator, source_string):
+        self.translator = translator
+        self.source_string = source_string
+        self.tokens = []
+        
+    def grab_variable(self, string):
+        """
+        'string' begins with a question mark, i.e., it begins with a variable.
+        Convert it into a variable token, and return the remainder of the string
+        """
+        endPos = 9999
+        for i in range(1, len(string)):
+            c = string[i]
+            if c.isalnum(): continue
+            if c in LEGAL_VARIABLE_CHARS: continue
             endPos = i
             break
-    if endPos == -1:
-        raise QuerySyntaxException("Unterminated string: %s" % string)
-    token = Token(Token.STRING, string[1:endPos])
-    tokens.append(token)
-    return string[endPos + 1:]
-
-def grab_uri(string, tokens):
-    """
-    'string' begins with a '<'.
-    Convert the URI portion into a URI token, and return the remainder of the string.
-    """
-    endPos = -1
-    for i in range(0, len(string)):
-        c = string[i]
-        if c == '>':
-            endPos = i
-            break
-    if endPos == -1:
-        raise QuerySyntaxException("Unterminated URI: %s" % string)
-    token = Token(Token.URI, string[1:endPos])
-    tokens.append(token)
-    return string[endPos + 1:]
-
-DELIMITER_CHARS = set([' ', ',', '(', ')', '[', ']'])
-
-def grab_delimited_word(string, tokens):
-    """
-    The first token in 'string must be delimited by a blank,
-    ## comma, or other delimiter.  Find the end, and convert the
-    prefix in between into a token.  Or convert the entire thing
-    into a token
-    """
-    endPos = -1
-    for i in range(0, len(string)):
-        c = string[i]
-        if c in DELIMITER_CHARS:
-            endPos = i
-            break
-    word = string[:endPos] if endPos >= 0 else string
-    word = ALIASES[word.upper] if ALIASES.get(word.upper()) else word
-    if word.upper() in Token.RESERVED_WORD_SET:
-        tokens.append(Token(Token.RESERVED_WORD, word))
-    elif word[0].isdigit():
-        tokens.append(Token(Token.NUMBER, word))
-    elif word.find(':') >=0:
-        tokens.append(Token(Token.QNAME, word))
-    else:
-        raise QuerySyntaxException("Unrecognized term '%s'" % word)
-    if endPos == -1:
-        ## ran off the end of the string:
-        return ''
-    else:
-        return string[endPos:]
-
-def super_strip(string):
-    """
-    Strip blanks AND leading commas.
-    """
-    string = string.strip()
-    beginPos = 0
-    for i in range(0, len(string)):
-        c = string[i]
-        if c == ' ' or c == ',':
-            beginPos += 1
+        token = Token(Token.VARIABLE, string[1:endPos])
+        self.tokens.append(token)
+        return string[endPos:] if endPos < 9999 else ''
+    
+    def grab_string(self, string, delimiter):
+        """
+        'string' begins with a single or double quote.
+        Convert the quoted portions it into a string token, and return the remainder of the string.
+        """
+        endPos = -1
+        for i in range(1, len(string)):
+            c = string[i]
+            if c == delimiter:
+                endPos = i
+                break
+        if endPos == -1:
+            raise QuerySyntaxException("Unterminated string: %s" % string)
+        token = Token(Token.STRING, string[1:endPos])
+        self.tokens.append(token)
+        return string[endPos + 1:]
+    
+    def grab_uri(self, string):
+        """
+        'string' begins with a '<'.
+        Convert the URI portion into a URI token, and return the remainder of the string.
+        """
+        endPos = -1
+        for i in range(0, len(string)):
+            c = string[i]
+            if c == '>':
+                endPos = i
+                break
+        if endPos == -1:
+            raise QuerySyntaxException("Unterminated URI: %s" % string)
+        token = Token(Token.URI, string[1:endPos])
+        self.tokens.append(token)
+        return string[endPos + 1:]
+    
+    DELIMITER_CHARS = set([' ', ',', '(', ')', '[', ']'])
+    
+    def grab_delimited_word(self, string):
+        """
+        The first token in 'string must be delimited by a blank,
+        ## comma, or other delimiter.  Find the end, and convert the
+        prefix in between into a token.  Or convert the entire thing
+        into a token
+        """
+        endPos = -1
+        for i in range(0, len(string)):
+            c = string[i]
+            if c in Tokenizer.DELIMITER_CHARS:
+                endPos = i
+                break
+        word = string[:endPos] if endPos >= 0 else string
+        word = ALIASES[word.upper] if ALIASES.get(word.upper()) else word
+        if word.upper() in Token.RESERVED_WORD_SET:
+            self.tokens.append(Token(Token.RESERVED_WORD, word))
+        elif word[0].isdigit():
+            self.tokens.append(Token(Token.NUMBER, word))
+        elif word.find(':') >=0:
+            self.tokens.append(Token(Token.QNAME, word))
         else:
-            break
-    return string[beginPos:]
+            self.translator.syntax_exception("Unrecognized term '%s'" % word, self.tokens[len(self.tokens) - 1])
+        if endPos == -1:
+            ## ran off the end of the string:
+            return ''
+        else:
+            return string[endPos:]
+    
+    def super_strip(self, string):
+        """
+        Strip blanks AND leading commas.
+        """
+        string = string.strip()
+        beginPos = 0
+        for i in range(0, len(string)):
+            c = string[i]
+            if c == ' ' or c == ',':
+                beginPos += 1
+            else:
+                break
+        return string[beginPos:]
+    
+    def tokenize_next(self, string):
+        """
+        Parse 'string' into tokens.  Push tokens into 'tokens' during recursion,
+        and return 'tokens'.
+        """
+        string = self.super_strip(string)
+        if not string or string == ' ': return
+        c = string[0]
+        if c == '?':
+            suffix = self.grab_variable(string)
+        elif c in Token.BRACKET_SET:
+            self.tokens.append(Token(Token.BRACKET, c))
+            suffix = string[1:]
+        elif c in ['"', "'"]:
+            suffix = self.grab_string(string, c)
+        elif c == '<':
+            suffix = self.grab_uri(string)
+        ## at this point, the first token must be delimited by a blank,
+        ## comma, or delimiter.  Find the end:
+        else:
+            #print "GRAB DELIMITED", string
+            suffix = self.grab_delimited_word(string)
+            #print "   SUFFIX '%s'" % suffix, "TOKEN", tokens[len(tokens) - 1]
+        newToken = self.tokens[len(self.tokens) - 1]
+        newToken.offset = len(self.source_string) - len(suffix) - len(newToken.value)
+        return self.tokenize_next(suffix)
 
-def tokenize(string, tokens, offset=0):
-    """
-    Parse 'string' into tokens.  Push tokens into 'tokens' during recursion,
-    and return 'tokens'.
-    """
-    string = super_strip(string)
-    if not string or string == ' ': return tokens
-    c = string[0]
-    if c == '?':
-        suffix = grab_variable(string, tokens)
-    elif c in Token.BRACKET_SET:
-        tokens.append(Token(Token.BRACKET, c))
-        suffix = string[1:]
-    elif c in ['"', "'"]:
-        suffix = grab_string(string, c, tokens)
-    elif c == '<':
-        suffix = grab_uri(string, tokens)
-    ## at this point, the first token must be delimited by a blank,
-    ## comma, or delimiter.  Find the end:
-    else:
-        #print "GRAB DELIMITED", string
-        suffix = grab_delimited_word(string, tokens)
-        #print "   SUFFIX '%s'" % suffix, "TOKEN", tokens[len(tokens) - 1]
-    newToken = tokens[len(tokens) - 1]
-    newToken.offset = offset
-    return tokenize(suffix, tokens, offset=offset + len(string) - len(suffix))                   
-
-def tokens_to_string(tokens, comma_delimited=False):
-    strings = [str(tok) for tok in tokens]
-    return ', '.join(strings) if comma_delimited else ' '.join(strings)
+    def tokenize(self):
+        self.tokenize_next(self.source_string)
+        return self.tokens
+    
+    @staticmethod
+    def tokens_to_string(self, tokens, comma_delimited=False):
+        strings = [str(tok) for tok in tokens]
+        return ', '.join(strings) if comma_delimited else ' '.join(strings)
     
 
 ###########################################################################################################
@@ -389,7 +400,7 @@ class CommonLogicTranslator:
         self.infix_parse = query and not query[0] == '('
         self.infix_with_prefix_triples = self.infix_parse and INFIX_WITH_PREFIX_TRIPLES
         
-    SHIM = 3 ## hack until we figure out why offsets are not quite right
+    SHIM = 0 ## hack until we figure out why offsets are not quite right
     
     def syntax_exception(self, message, token=None):
         if isinstance(token, list):
@@ -518,24 +529,24 @@ class CommonLogicTranslator:
             if endToken.token_type == Token.BRACKET and endToken.value == ')':
                 return self.parse_bracketed_expression(tokens[1:-1], beginToken, is_boolean=is_boolean)
             else:
-                self.syntax_exception("Found parenthesized expression where term expected: '%s'" % tokens_to_string(tokens), beginToken) 
+                self.syntax_exception("Found parenthesized expression where term expected: '%s'" % Tokenizer.tokens_to_string(tokens), beginToken) 
         elif tokenType == Token.RESERVED_WORD:
             if value in CONNECTIVE_OPERATORS:
                 if self.infix_parse and not value in UNARY_BOOLEAN_OPERATORS:
-                    self.syntax_exception("Found operator '%s' where term expected" % tokens_to_string(tokens), beginToken)
+                    self.syntax_exception("Found operator '%s' where term expected" % Tokenizer.tokens_to_string(tokens), beginToken)
                 if value in BOOLEAN_OPERATORS and not is_boolean:
-                    self.syntax_exception("Found boolean expression where value expression expected '%s'" % tokens_to_string(tokens), beginToken)
+                    self.syntax_exception("Found boolean expression where value expression expected '%s'" % Tokenizer.tokens_to_string(tokens), beginToken)
                 if value in VALUE_OPERATORS and is_boolean:
-                    self.syntax_exception("Found value expression where boolean expression expected '%s'" % tokens_to_string(tokens), beginToken)
+                    self.syntax_exception("Found value expression where boolean expression expected '%s'" % Tokenizer.tokens_to_string(tokens), beginToken)
                 ## NOT SURE ABOUT THIS (ESPECIALLY FOR INFIX):
                 isBoolean = (value in BOOLEAN_OPERATORS and not value in COMPARISON_OPERATORS)
                 arguments = self.parse_expressions(tokens[1:], [], is_boolean=isBoolean)
                 return OpExpression(value, arguments)
             elif value in [OpExpression.TRUE, OpExpression.FALSE]:
                 if not is_boolean:
-                    self.syntax_exception("Found boolean expression where term expected '%s'" % tokens_to_string(tokens), beginToken)
+                    self.syntax_exception("Found boolean expression where term expected '%s'" % Tokenizer.tokens_to_string(tokens), beginToken)
                 elif len(tokens) > 1:
-                    self.syntax_exception("Found bizarre expression '%s'" % tokens_to_string(tokens), beginToken)
+                    self.syntax_exception("Found bizarre expression '%s'" % Tokenizer.tokens_to_string(tokens), beginToken)
                 return OpExpression(value, [])
             elif value in ['LIST', 'SET', 'BAG']:
                 return self.parse_enumeration(value, tokens[1:])
@@ -545,7 +556,7 @@ class CommonLogicTranslator:
             return self.parse_infix_expression(tokens, [], connective=None, needs_another_argument=True, is_boolean='UNKNOWN')
         elif is_boolean is True:
                 ## THIS ERROR MESSAGE WORKED ONCE.  NEED TO FIND OUT IF IT'S TOO SPECIFIC:
-                self.syntax_exception("Illegal expression %s where prefix expression expected"  % tokens_to_string(tokens), tokens)
+                self.syntax_exception("Illegal expression %s where prefix expression expected"  % Tokenizer.tokens_to_string(tokens), tokens)
         else:
             ## THIS IS BOGUS SO FAR.  
             return self.parse_function_expression(tokens)    
@@ -810,7 +821,7 @@ class CommonLogicTranslator:
         query = self.source_query.lower()
         if not query:
             raise QuerySyntaxException("Empty CommonLogic query passed to translator")
-        tokens = tokenize(self.source_query, [])
+        tokens = Tokenizer(self, self.source_query).tokenize()
         self.validate_parentheses(tokens)
         if tokens[0].token_is('('):
             if not tokens[len(tokens) - 1].token_is(')'):
@@ -1968,7 +1979,7 @@ query20 = """(select distinct (?s ?p ?o ?c) where (and (quad ?s ?p ?o ?c) (quad 
 
 
 if __name__ == '__main__':
-    switch = 18
+    switch = 12
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
