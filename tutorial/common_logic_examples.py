@@ -47,6 +47,8 @@ def doQuery(conn, query, prefer='SPARQL', input_language=QueryLanguage.COMMON_LO
 def loadBobCarolTedAlice(repositoryConnection):
     c = repositoryConnection
     c.clear()
+    foafns = "http://xmlns.com/foaf/0.1/"
+    c.setNamespace('foaf', foafns)
     exns = "http://example.org/people#"
     c.setNamespace('ex', exns)
     context1 = c.createURI(namespace=exns, localname="cxt1")      
@@ -58,10 +60,12 @@ def loadBobCarolTedAlice(repositoryConnection):
     person = c.createURI(exns, "Person")
     name = c.createURI(exns, "name")      
     age = c.createURI(exns, "age") 
+    mbox = c.createURI(foafns, "mbox")
     c.addTriples([
         (alice, RDF.TYPE, person, context1),
         (alice, name, "Alice", context1),
         (alice, age, 42, context1),
+        (alice, mbox, "alice@gmail.com"),
         (carol, RDF.TYPE, person, context1),
         (carol, name, "Carol", context1),
         (carol, age, "39"),
@@ -154,31 +158,77 @@ def test205():
     alice = conn.createURI("http://foo#alice")
     query = """(select (?s ?o)
                  where (or (triple ?s foaf:name ?o)
-                       (and (not (triple ?s foaf:name ?o1))
-                       (or (triple ?s foaf:mbox ?o)
-                       (not (triple ?s foaf:mbox ?o2))))))"""
+                           (and (not (triple ?s foaf:name ?o1))
+                                (or (triple ?s foaf:mbox ?o)
+                                    (not (triple ?s foaf:mbox ?o2))))))"""
+    query = """(select (?s ?o) where
+            (and (optional (triple ?s foaf:name ?o))
+                 (optional (triple ?s foaf:mbox ?o))))"""                
+
     print "ZERO TRIPLES"
-    doQuery(conn, query, prefer='PROLOG')
+    doQuery(conn, query, prefer='SPARQL')
     conn.addTriples([(alice, conn.createURI(foafns, "mbox"), "alice@gmail.com")])
-    doQuery(conn, query, prefer='PROLOG')
-    print "AFTER"
+    print "MBOX TRIPLE"
+    doQuery(conn, query, prefer='SPARQL')
+    print "NAME AND MBOX TRIPLEs"
     conn.addTriples([(alice, conn.createURI(foafns, "name"), "Alice")])
-    doQuery(conn, query, prefer='PROLOG')                     
+    doQuery(conn, query, prefer='SPARQL')                     
 
 from datetime import datetime
 
 def test206():
     """
-    Temporal Reasoning
-    See 'http://seehuhn.de/pages/pdate' for good discussion of Python date classes.
-    """
-    pass
 
+    """
+    conn = test201(verbose=True);
+    foafns = "http://xmlns.com/foaf/0.1/"
+    conn.setNamespace('foaf', foafns)
+    conn.setNamespace('ex', "http://foo#")
+    alice = conn.createURI("http://foo#alice")
+    bob = conn.createURI("http://foo#bob")    
+    conn.addTriples([(alice, conn.createURI(foafns, "mbox"), "alice@gmail.com"),
+                     (alice, conn.createURI(foafns, "name"), "Alice"),
+                     (bob, conn.createURI(foafns, "name"), "Bob"),
+                     ])
+
+    query = """(select (?access)
+                 where (and (or (triple ?a ?access "alice@gmail.com")
+                                (triple ?b ?access "Bob"))
+                            (or (= ?access foaf:name) (= ?access foaf:mbox))
+                            ))                                                   
+    """  
+    query1 = """(select (?z) where (and (triple ?x ex:foo ?c)
+                                      (triple ?x ex:bar ?y)
+                                      (or (= ?z ?x) (= ?z ?y))))
+    """
+    query = """(select (?z) where (or (triple ?z ex:foo ?c)
+                               (and (triple ?x ex:foo ?c)
+                                    (triple ?x ex:bar ?z))))
+    """
+    doQuery(conn, query, prefer='SPARQL')
+
+def test207():
+    conn = test201(verbose=True);
+    loadBobCarolTedAlice(conn)
+    query = """(select (?s ?o) where 
+                  (and (or (triple ?s foaf:mbox ?o)
+                           (not (triple ?s foaf:mbox ?o)))
+                       (or (triple ?s ex:name ?o)
+                           (not (triple ?s ex:name ?o)))))"""
+    query = """(select (?s ?o) where
+                (and (triple ?s ex:age ?age)
+                     (optional (triple ?s foaf:mbox ?o))
+                     (optional (triple ?s ex:name ?o))
+                     ))"""                
+    query2 = """(select (?s ?o) where
+                (and (optional (triple ?s ex:name ?o))
+                     (optional (triple ?s foaf:mbox ?o))))"""                
+    doQuery(conn, query, prefer='SPARQL')
     
    
 if __name__ == '__main__':
     choices = [i for i in range(1,3)]
-    choices = [5]
+    choices = [7]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number 20%i\n" % choice
@@ -189,7 +239,7 @@ if __name__ == '__main__':
         elif choice == 4: test204()    
         elif choice == 5: test205()        
         elif choice == 6: test206()            
-        elif choice == 7: test7()                
+        elif choice == 7: test207()                
         elif choice == 8: test8()                
         elif choice == 9: test9()                        
         elif choice == 10: test10()                            
