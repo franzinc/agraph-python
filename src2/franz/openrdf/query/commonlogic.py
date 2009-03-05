@@ -57,6 +57,11 @@ XSD = XMLSchema
 
 CONTEXTS_OR_DATASET = 'CONTEXTS'
 
+ALIASES = {
+    'CONTEXT': 'CONTEXTS',
+    'TPL': 'TRIPLE',
+    }
+
 class Token:
     VARIABLE = 'VARIABLE'
     STRING = 'STRING'
@@ -85,6 +90,9 @@ class Token:
         else:
             return self.value
         
+    def token_is(self, value):
+        return self.value.upper() == value.upper()
+        
     @staticmethod
     def reserved_type(token, token_types):
         if not token: return False
@@ -94,6 +102,11 @@ class Token:
         for t in token_types:
             if token.value == t: return True
         return False
+    
+    @staticmethod
+    def printem(message, tokens):
+        them = [str(tok) for tok in tokens]
+        print message + str(them)
 
 ATOMIC_TERM_TOKEN_TYPES = set([Token.VARIABLE, Token.STRING, Token.NUMBER, Token.URI, Token.QNAME])
 
@@ -165,6 +178,7 @@ def grab_delimited_word(string, tokens):
             endPos = i
             break
     word = string[:endPos] if endPos >= 0 else string
+    word = ALIASES[word.upper] if ALIASES.get(word.upper()) else word
     if word.upper() in Token.RESERVED_WORD_SET:
         tokens.append(Token(Token.RESERVED_WORD, word))
     elif word[0].isdigit():
@@ -337,7 +351,7 @@ class OpExpression:
     @staticmethod
     def parse_operator(value):
         value = value.upper()
-        if not value in OPERATOR_EXPRESSIONS and not value in ['DISTINCT']:
+        if not value in OPERATOR_EXPRESSIONS and not value in ['SELECT', 'DISTINCT', 'WHERE', 'CONTEXTS', 'LIMIT']:
             raise Exception("Need to add '%s' to list of OPERATOR_EXPRESSIONS" % value)
         return value
     
@@ -409,15 +423,12 @@ class CommonLogicTranslator:
         else:
             raise Exception("Can't convert token %s to a term" % token)
         
-    def parse_select_clause(self, select_string):
+    def parse_select_clause(self, tokens):
         """
         Parse 'select_string' and return a list of terms.
         TODO: UPGRADE TO ALLOW ARBITRARY EXPRESSIONS HERE
         """
-        tokens = tokenize(select_string, [], len('select') - CommonLogicTranslator.SHIM)
-        if tokens and Token.reserved_type(tokens[0], 'DISTINCT'):
-            self.parse_tree.distinct = True
-            tokens = tokens[1:]
+        Token.printem("SELECT", tokens)
         isWrappedWithParens =  len(tokens) >= 2 and tokens[0].value == '(' and tokens[len(tokens) - 1].value == ')' 
         if not self.infix_parse and not isWrappedWithParens:
             self.syntax_exception("Missing parentheses around select clause arguments")
@@ -705,13 +716,11 @@ class CommonLogicTranslator:
         if balance > 0:
             self.syntax_exception("Unmatched left parentheses", unmatchedLeft)
             
-    def parse_where_clause(self, string):
+    def parse_where_clause(self, tokens):
         """
         Parse string into a single expression, or a list of expressions.
         If the latter, convert the list into an AND expression.
         """
-        offset = self.source_query.find(string)
-        tokens = tokenize(string, [], offset=offset)
         self.validate_parentheses(tokens)
         if self.infix_parse:
             expressions = [self.parse_infix_expression(tokens, [], connective=None, is_boolean=True)]
@@ -724,12 +733,10 @@ class CommonLogicTranslator:
         else:
             return OpExpression(OpExpression.AND, expressions)
 
-    def parse_dataset_clause(self, dataset_string):
+    def parse_dataset_clause(self, tokens):
         """
         Read in a list of context URIs.
         """
-        offset = self.source_query.find(dataset_string)
-        tokens = tokenize(dataset_string, [], offset=offset)
         if not tokens:
             self.syntax_exception("Contexts clause is empty", tokens)
         if not self.infix_parse or tokens[0].value == '(':
@@ -746,9 +753,7 @@ class CommonLogicTranslator:
                 self.syntax_exception("Found term '%s' where URI or qname expected" % token.value, token)
         return contexts
             
-    def parse_limit_clause(self, limit_string):
-        offset = self.source_query.find(limit_string)
-        tokens = tokenize(limit_string, [], offset=offset)
+    def parse_limit_clause(self, tokens):
         if not len(tokens) == 1:
             self.syntax_exception("Expected one argument to 'limit' operator", tokens)
         token = tokens[0]
@@ -757,6 +762,45 @@ class CommonLogicTranslator:
         else:
             self.syntax_exception("'limit' operator expects an integer argument", token)
             
+#    def old_parse(self):
+#        """
+#        Parse 'source_query' into a parse tree.
+#        FOR NOW, ASSUME ITS A 'select' QUERY
+#        """
+#        self.clean_source()
+#        query = self.source_query.lower()
+#        if not query:
+#            raise QuerySyntaxException("Empty CommonLogic query passed to translator")
+#        if query[0] == '(':
+#            if not query[len(query) - 1] == ')':
+#                raise QuerySyntaxException("Missing right parenthesis at the end of query:\n" + query)
+#            beginPos = 1
+#            endPos = len(query) - 1
+#        else:
+#            beginPos = 0
+#            endPos = len(query)
+#        ## THIS IS ALL A CROCK, SINCE THESE WORDS COULD OCCUR WITHIN STRINGS.
+#        ## NEED TO TOKENIZE THE ENTIRE STRING:
+#        wherePos = query.find('where')
+#        datasetPos = query.rfind(CONTEXTS_OR_DATASET.lower())
+#        limitPos = query.rfind('limit')
+#        if wherePos < 0:
+#            self.syntax_exception("Missing WHERE clause in query '{0}'".format(self.source_query))
+#        if datasetPos > 0 and datasetPos < wherePos:
+#            self.syntax_exception("{0} clause must follow WHERE clause in query {1}".format(self.source_query))
+#        selectString = self.source_query[beginPos + len('select'):wherePos]
+#        endWherePos = datasetPos if datasetPos > 0 else limitPos if limitPos > 0 else endPos
+#        whereString = self.source_query[wherePos + len('where'):endWherePos]
+#        endDatasetPos = limitPos if limitPos > 0 else endPos
+#        datasetString = self.source_query[datasetPos + len(CONTEXTS_OR_DATASET):endDatasetPos] if datasetPos > 0 else ''
+#        limitString = self.source_query[limitPos + len('limit'):endPos] if limitPos > 0 else ''        
+#        qb = QueryBlock()
+#        self.parse_tree = qb
+#        qb.select_terms = self.parse_select_clause(tokenize(selectString, [], len('select') - CommonLogicTranslator.SHIM))
+#        qb.where_clause = self.parse_where_clause( tokenize(whereString, [], offset=42))
+#        qb.dataset_clause = self.parse_dataset_clause(datasetString) if datasetString else None
+#        qb.limit = self.parse_limit_clause(limitString) if limitString else -1
+
     def parse(self):
         """
         Parse 'source_query' into a parse tree.
@@ -766,36 +810,62 @@ class CommonLogicTranslator:
         query = self.source_query.lower()
         if not query:
             raise QuerySyntaxException("Empty CommonLogic query passed to translator")
-        if query[0] == '(':
-            if not query[len(query) - 1] == ')':
+        tokens = tokenize(self.source_query, [])
+        self.validate_parentheses(tokens)
+        if tokens[0].token_is('('):
+            if not tokens[len(tokens) - 1].token_is(')'):
                 raise QuerySyntaxException("Missing right parenthesis at the end of query:\n" + query)
-            beginPos = 1
-            endPos = len(query) - 1
-        else:
-            beginPos = 0
-            endPos = len(query)
-        ## THIS IS ALL A CROCK, SINCE THESE WORDS COULD OCCUR WITHIN STRINGS.
-        ## NEED TO TOKENIZE THE ENTIRE STRING:
-        wherePos = query.find('where')
-        datasetPos = query.rfind(CONTEXTS_OR_DATASET.lower())
-        limitPos = query.rfind('limit')
-        if wherePos < 0:
-            self.syntax_exception("Missing WHERE clause in query '{0}'".format(self.source_query))
-        if datasetPos > 0 and datasetPos < wherePos:
-            self.syntax_exception("{0} clause must follow WHERE clause in query {1}".format(self.source_query))
-        selectString = self.source_query[beginPos + len('select'):wherePos]
-        endWherePos = datasetPos if datasetPos > 0 else limitPos if limitPos > 0 else endPos
-        whereString = self.source_query[wherePos + len('where'):endWherePos]
-        endDatasetPos = limitPos if limitPos > 0 else endPos
-        datasetString = self.source_query[datasetPos + len(CONTEXTS_OR_DATASET):endDatasetPos] if datasetPos > 0 else ''
-        limitString = self.source_query[limitPos + len('limit'):endPos] if limitPos > 0 else ''        
+            tokens = tokens[1:-1]
+        selectToken = tokens[0]
+        if not selectToken.token_is('select'):
+            self.syntax_exception("Found {0} where 'select' expected".format(selectToken.value), tokens)
         qb = QueryBlock()
         self.parse_tree = qb
-        qb.select_terms = self.parse_select_clause(selectString)
-        qb.where_clause = self.parse_where_clause(whereString)
-        qb.dataset_clause = self.parse_dataset_clause(datasetString) if datasetString else None
-        qb.limit = self.parse_limit_clause(limitString) if limitString else -1
-
+        ## find the reserved word tokens that subdivide the query:
+        def found_one(nextToken, word, existingToken):
+            if not nextToken.token_is(word): return 
+            if existingToken:
+                self.syntax_exception("Multiple {0} tokens in the same query".format(nextToken.value), nextToken)
+            return True
+        distinctToken = None
+        whereToken = None
+        contextsToken = None
+        limitToken = None
+        for tok in tokens:
+            if found_one(tok, 'where', whereToken): whereToken = tok
+            if found_one(tok, 'distinct', distinctToken): distinctToken = tok
+            if found_one(tok, 'limit', limitToken): limitToken = tok                        
+            if found_one(tok, 'contexts', contextsToken): contextsToken = tok    
+        if distinctToken:
+            if not distinctToken == tokens[1]:
+                self.syntax_exception("Distinct is out of place; it should appear directly after {0}".format(selectToken.value), distinctToken)
+            qb.distinct = True
+            tokens.remove(distinctToken)
+        if not whereToken:
+            self.syntax_exception("Missing where clause in {0} query".format(selectToken.value), tokens)
+        if contextsToken and contextsToken.offset < whereToken.offset:
+            self.syntax_exception("Contexts clause must occur after the where clause", contextsToken)
+        if limitToken and limitToken.offset < whereToken.offset:
+            self.syntax_exception("Limit clause must occur after the where clause", limitToken)
+        for i, t in enumerate(tokens): t.index = i
+        qb.select_terms = self.parse_select_clause(tokens[1:whereToken.index])
+        lastWhereTokenIndex = len(tokens)
+        if contextsToken:
+            lastWhereTokenIndex = min(lastWhereTokenIndex, contextsToken.index)
+        if limitToken: 
+            lastWhereTokenIndex = min(lastWhereTokenIndex, limitToken.index)
+        qb.where_clause = self.parse_where_clause(tokens[whereToken.index + 1:lastWhereTokenIndex])
+        if contextsToken:
+            lastContextsTokenIndex = len(tokens)
+            if limitToken and limitToken.index > contextsToken.index:  
+                lastContextsTokenIndex = min(lastContextsTokenIndex, limitToken.index)
+            qb.dataset_clause = self.parse_dataset_clause(tokens[contextsToken.index + 1:lastContextsTokenIndex])
+        if limitToken:
+            lastLimitTokenIndex = len(tokens)
+            if contextsToken and contextsToken.index > limitToken.index:  
+                lastLimitTokenIndex = min(lastLimitTokenIndex, contextsToken.index)
+            qb.limit = self.parse_limit_clause(tokens[limitToken.index + 1:lastLimitTokenIndex])
+       
 
 ###########################################################################################################
 ## Normalization
@@ -1484,7 +1554,7 @@ class StringsBuffer:
             self.append(' where ')
             self.indent(7).common_logify(term.where_clause)
             if term.dataset_clause:
-                self.indent(1).append('\ndataset (').common_logify(term.dataset_clause, delimiter=' ').append(')')
+                self.indent(1).append('\ncontexts (').common_logify(term.dataset_clause, delimiter=' ').append(')')
             if term.limit >= 0:
                 self.indent(1).append('\nlimit ' + str(term.limit))
             self.append(')')
@@ -1527,7 +1597,7 @@ class StringsBuffer:
             self.append('where ')
             self.indent(6).infix_common_logify(term.where_clause, suppress_parentheses=True)
             if term.dataset_clause:
-                self.indent(0).append('\ndataset ').common_logify(term.dataset_clause, delimiter=' ')
+                self.indent(0).append('\ncontexts ').common_logify(term.dataset_clause, delimiter=' ')
             if term.limit >= 0:
                 self.indent(0).append('\nlimit ' + str(term.limit))                
         elif isinstance(term, OpExpression):
@@ -1809,17 +1879,17 @@ query5 = """(select (?s) where (and (ex:name ?s ?o) (or (= ?o "Fred") (= ?o "Joe
 query5i = """select ?s where (ex:name ?s ?o) and ((?o = "Fred") or (?o = "Joe"))"""
 query6 = """(select (?s ?o) where (and (ex:name ?s ?o) (not (rdf:type ?s <http://www.franz.com/example#Person>))))"""
 query6i = """select ?s ?o where (ex:name ?s ?o) and not (rdf:type ?s <http://www.franz.com/example#Person>)"""
-query7 = """select (?s ?o) where (and (triple ?s ex:name ?o) (triple ?s rdf:type <http://www.franz.com/example#Person>))"""
+query7 = """(select (?s ?o) where (and (triple ?s ex:name ?o) (triple ?s rdf:type <http://www.franz.com/example#Person>)))"""
 query7i = """select ?s ?o where triple(?s ex:name ?o) and triple(?s rdf:type <http://www.franz.com/example#Person>)"""
-query8 = """select (?s ?o) where (and (quad ?s ex:name ?o ?c) (= ?c ex:cxt))"""
+query8 = """(select (?s ?o) where (and (quad ?s ex:name ?o ?c) (= ?c ex:cxt)))"""
 query8i = """select ?s ?o where quad(?s ex:name ?o ?c) and (?c = ex:cxt)"""
-query9 = """select (?s ?age) where (and (ex:age ?s ?age) (>= ?age 21))"""
+query9 = """(select (?s ?age) where (and (ex:age ?s ?age) (>= ?age 21)))"""
 query9i = """select ?s ?age where ex:age(?s ?age) and (?age >= 21)"""
-query10 = """select (?name ?age) where (and (triple ?s rdf:type ex:Person) (optional (triple ?s ex:name ?name)) 
-                                             (optional (and (ex:age ?s ?age) (> ?age 21))))"""
+query10 = """(select (?name ?age) where (and (triple ?s rdf:type ex:Person) (optional (triple ?s ex:name ?name)) 
+                                             (optional (and (ex:age ?s ?age) (> ?age 21)))))"""
 query10i = """select ?name ?age where triple(?s rdf:type ex:Person) and optional (triple ?s ex:name ?name) 
                                        and optional (and ex:age(?s ?age) (?age > 21))"""
-query11 = """select (?s ?o) where (and (((ex:name ?s ?o))) (((triple ?s rdfs:label ?o))))"""
+query11 = """(select (?s ?o) where (and (((ex:name ?s ?o))) (((triple ?s rdfs:label ?o)))))"""
 query11i = """select ?s ?o where ((ex:name(?s ?o))) and ((triple(?s rdfs:label ?o)))"""  ## triple part screws up
 query12 = """(select (?name) where (and (rdf:type ?c ex:Company) (ex:gross ?c ?gross) (ex:expenses ?c ?expenses)
                                                 (> (- ?gross ?expenses) 50000) (ex:name ?c ?name)))"""
@@ -1898,7 +1968,7 @@ query20 = """(select distinct (?s ?p ?o ?c) where (and (quad ?s ?p ?o ?c) (quad 
 
 
 if __name__ == '__main__':
-    switch = 20
+    switch = 18
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
