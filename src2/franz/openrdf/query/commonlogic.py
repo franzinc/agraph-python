@@ -265,7 +265,7 @@ class QueryBlock:
         query_type = query_type
         self.select_terms = None
         self.where_clause = None
-        self.dataset_clause = None
+        self.contexts_clause = None
         self.distinct = False
         self.limit = -1
         self.temporary_enumerations = {}
@@ -744,7 +744,7 @@ class CommonLogicTranslator:
         else:
             return OpExpression(OpExpression.AND, expressions)
 
-    def parse_dataset_clause(self, tokens):
+    def parse_contexts_clause(self, tokens):
         """
         Read in a list of context URIs.
         """
@@ -754,7 +754,7 @@ class CommonLogicTranslator:
             beginToken = tokens[0]
             endToken = tokens[len(tokens) - 1]
             if not (beginToken.value == '(' and endToken.value == ')'):
-                self.syntax_exception("Begin and end parentheses needed to bracket contents of DATASET clause", tokens)
+                self.syntax_exception("Begin and end parentheses needed to bracket contents of CONTEXTS clause", tokens)
             tokens = tokens[1:-1]
         contexts = []
         for token in tokens:
@@ -773,45 +773,6 @@ class CommonLogicTranslator:
         else:
             self.syntax_exception("'limit' operator expects an integer argument", token)
             
-#    def old_parse(self):
-#        """
-#        Parse 'source_query' into a parse tree.
-#        FOR NOW, ASSUME ITS A 'select' QUERY
-#        """
-#        self.clean_source()
-#        query = self.source_query.lower()
-#        if not query:
-#            raise QuerySyntaxException("Empty CommonLogic query passed to translator")
-#        if query[0] == '(':
-#            if not query[len(query) - 1] == ')':
-#                raise QuerySyntaxException("Missing right parenthesis at the end of query:\n" + query)
-#            beginPos = 1
-#            endPos = len(query) - 1
-#        else:
-#            beginPos = 0
-#            endPos = len(query)
-#        ## THIS IS ALL A CROCK, SINCE THESE WORDS COULD OCCUR WITHIN STRINGS.
-#        ## NEED TO TOKENIZE THE ENTIRE STRING:
-#        wherePos = query.find('where')
-#        datasetPos = query.rfind(CONTEXTS_OR_DATASET.lower())
-#        limitPos = query.rfind('limit')
-#        if wherePos < 0:
-#            self.syntax_exception("Missing WHERE clause in query '{0}'".format(self.source_query))
-#        if datasetPos > 0 and datasetPos < wherePos:
-#            self.syntax_exception("{0} clause must follow WHERE clause in query {1}".format(self.source_query))
-#        selectString = self.source_query[beginPos + len('select'):wherePos]
-#        endWherePos = datasetPos if datasetPos > 0 else limitPos if limitPos > 0 else endPos
-#        whereString = self.source_query[wherePos + len('where'):endWherePos]
-#        endDatasetPos = limitPos if limitPos > 0 else endPos
-#        datasetString = self.source_query[datasetPos + len(CONTEXTS_OR_DATASET):endDatasetPos] if datasetPos > 0 else ''
-#        limitString = self.source_query[limitPos + len('limit'):endPos] if limitPos > 0 else ''        
-#        qb = QueryBlock()
-#        self.parse_tree = qb
-#        qb.select_terms = self.parse_select_clause(tokenize(selectString, [], len('select') - CommonLogicTranslator.SHIM))
-#        qb.where_clause = self.parse_where_clause( tokenize(whereString, [], offset=42))
-#        qb.dataset_clause = self.parse_dataset_clause(datasetString) if datasetString else None
-#        qb.limit = self.parse_limit_clause(limitString) if limitString else -1
-
     def parse(self):
         """
         Parse 'source_query' into a parse tree.
@@ -870,7 +831,7 @@ class CommonLogicTranslator:
             lastContextsTokenIndex = len(tokens)
             if limitToken and limitToken.index > contextsToken.index:  
                 lastContextsTokenIndex = min(lastContextsTokenIndex, limitToken.index)
-            qb.dataset_clause = self.parse_dataset_clause(tokens[contextsToken.index + 1:lastContextsTokenIndex])
+            qb.contexts_clause = self.parse_contexts_clause(tokens[contextsToken.index + 1:lastContextsTokenIndex])
         if limitToken:
             lastLimitTokenIndex = len(tokens)
             if contextsToken and contextsToken.index > limitToken.index:  
@@ -888,7 +849,9 @@ class Normalizer:
         self.language = language
         self.variable_counter = -1
         self.recompute_backlinks()
-        self.contexts = contexts
+        def deanglify(context):
+            return context[1:-1] if context[0] == '<' else context
+        self.contexts = [deanglify(cxt) for cxt in contexts] if contexts else None
         
     def normalize(self):
         if self.language == CommonLogicTranslator.PROLOG:
@@ -1156,18 +1119,15 @@ class Normalizer:
     def get_null_term(self):
         return Term(Term.LITERAL, "Null")
         
-    def translate_optionals(self):
+    def translate_optionals(self, p_or_true=False):
         def doit(node, parent, sseellff):
             if not node.operator == OpExpression.OPTIONAL: return
             arg = node.arguments[0]
             argCopy = sseellff.copy_node(arg)
-            notP = OpExpression(OpExpression.NOT, [argCopy])
-#            nullBinders = []
-#            for arg in argCopy.arguments:
-#                if isinstance(arg, Term) and arg.term_type == Term.VARIABLE:
-#                    nullBinders.append(OpExpression(OpExpression.EQUALITY, [arg, sseellff.get_null_term()]))
-#            if nullBinders:
-#                notP = OpExpression(OpExpression.AND, [)
+            if p_or_true:
+                notP = OpExpression(OpExpression.TRUE, [])
+            else:
+                notP = OpExpression(OpExpression.NOT, [argCopy])
             pOrNotP = OpExpression(OpExpression.OR, [arg, notP])
             self.substitute_node(node, pOrNotP)
         self.walk(doit, types=OpExpression, external_value=self)
@@ -1212,6 +1172,41 @@ class Normalizer:
         if didIt[0]:
             self.recompute_backlinks()
 
+    ###########################################################################################################
+    ## PROLOG-specific
+    ###########################################################################################################
+    
+    def filter_quad_contexts(self):
+        """
+        Visit each spo quad containing a variable context argument, and wrap a filter 
+        clause around it that restricts the context argument to only contexts in the 
+        explicitly-specified contexts.
+        """
+        def doIt(node, parent, sseellff):
+            if node.is_spo and len(node.arguments) == 4:
+                cxt = node.arguments[3]
+                if not isinstance(cxt, Term) or not cxt.term_type == Term.VARIABLE: return
+                contexts = sseellff.contexts
+                print "CONTEXTS", [item for item in contexts]
+                equalities = [OpExpression(OpExpression.EQUALITY, [cxt, Term(Term.RESOURCE, item)]) for item in contexts]
+                orOp = OpExpression(OpExpression.OR, equalities) if len(contexts) > 1 else equalities[0]
+                andOp = OpExpression(OpExpression.AND, [node, orOp])
+                self.substitute_node(node, andOp)
+        self.walk(doIt, OpExpression, external_value=self)
+    
+    def quadify_triples(self):
+        """
+        Convert triples to quads everywhere, inserting either a context
+        variable of a context URI.
+        """
+        def doIt(node, parent, sseellff):
+            if node.is_spo and len(node.arguments) == 3:
+                contexts = sseellff.contexts
+                if len(contexts) > 1:
+                    node.arguments.append(self.get_fresh_variable())
+                else:
+                    node.arguments.append(Term(Term.RESOURCE, contexts[0]))
+        self.walk(doIt, types=OpExpression, external_value=self)
 
     ###########################################################################################################
     ## SPARQL-specific
@@ -1289,7 +1284,7 @@ class Normalizer:
         ## create a graph node for each node that has a context but is not a triple node
         self.walk(create_graph_node, types=OpExpression, bottom_up=True, external_value=self)
 
-    def contextify_triples(self):
+    def contextify_sparql_triples(self):
         """
         Insure that a GRAPH declaration is wrapped around each triple,
         so that a CONTEXTS filter can apply everywhere.
@@ -1433,11 +1428,14 @@ class Normalizer:
     
     def normalize_for_prolog(self):
         self.propagate_constants_to_predications()
-        self.translate_optionals()
+        if self.contexts:
+            self.quadify_triples()            
+            self.filter_quad_contexts()
+        self.translate_optionals(p_or_true=True)
         self.flatten_select_terms()
         self.flatten_value_computations()
         ## TEMPORARY TO SEE WHAT IT LOOKS LIKE:
-        self.translate_in_enumerate_into_disjunction_of_equalities()
+        #self.translate_in_enumerate_into_disjunction_of_equalities()
         ## END TEMPORARY
 
     def normalize_for_sparql(self):
@@ -1455,7 +1453,7 @@ class Normalizer:
         self.bubble_up_contexts()
         #ps("DDD", self.parse_tree)
         if self.contexts:                        
-            self.contextify_triples()
+            self.contextify_sparql_triples()
         self.translate_negations()
         ## finally, create non-normalized structure to assist filters output
         self.denormalize_filter_ands()
@@ -1564,8 +1562,8 @@ class StringsBuffer:
             self.append('(').common_logify(term.select_terms, delimiter=' ').append(')\n')
             self.append(' where ')
             self.indent(7).common_logify(term.where_clause)
-            if term.dataset_clause:
-                self.indent(1).append('\ncontexts (').common_logify(term.dataset_clause, delimiter=' ').append(')')
+            if term.contexts_clause:
+                self.indent(1).append('\ncontexts (').common_logify(term.contexts_clause, delimiter=' ').append(')')
             if term.limit >= 0:
                 self.indent(1).append('\nlimit ' + str(term.limit))
             self.append(')')
@@ -1607,8 +1605,8 @@ class StringsBuffer:
             self.infix_common_logify(term.select_terms, delimiter=' ').newline()
             self.append('where ')
             self.indent(6).infix_common_logify(term.where_clause, suppress_parentheses=True)
-            if term.dataset_clause:
-                self.indent(0).append('\ncontexts ').common_logify(term.dataset_clause, delimiter=' ')
+            if term.contexts_clause:
+                self.indent(0).append('\ncontexts ').common_logify(term.contexts_clause, delimiter=' ')
             if term.limit >= 0:
                 self.indent(0).append('\nlimit ' + str(term.limit))                
         elif isinstance(term, OpExpression):
@@ -1639,8 +1637,13 @@ class StringsBuffer:
                 self.infix_common_logify(term.arguments)
                 self.append(')')     
         return self
-
+    
+    LISPP_HACK_COUNTER = [0]
+    
     def prologify(self, term, brackets=None, delimiter=' ', suppress_parentheses=False, spoify_output=True):
+        def hack_variable():
+            StringsBuffer.LISPP_HACK_COUNTER[0] = StringsBuffer.LISPP_HACK_COUNTER[0] + 1
+            return '?hack' + str(StringsBuffer.LISPP_HACK_COUNTER[0])
         if isinstance(term, Term):
             if term.term_type == Term.RESOURCE:
                 self.append('!').append(str(term))
@@ -1667,15 +1670,17 @@ class StringsBuffer:
             self.prologify(term.where_clause, suppress_parentheses=True)
             if term.limit >= 0:
                 self.append('\n(:limit ' + str(term.limit) + ')')
-            if term.dataset_clause:
-                self.complain(term, CONTEXTS_OR_DATASET)
             self.append(')')
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
-                self.append('(')
-                self.prologify(term.predicate.lower()).append(' ')
+                self.append('(?? (list ')
                 self.prologify(term.arguments, delimiter=' ')
-                self.append(')')  
+                self.append('))')  
+            elif term.operator == OpExpression.IN:
+                self.append('(member ').prologify(term.arguments, delimiter=' ').append(')')
+            elif term.operator == OpExpression.EQUALITY:
+                ## TEMPORARY UNTIL PROLOG IS FIXED
+                self.append('(lisp {0} (upi= '.format(hack_variable())).prologify(term.arguments, delimiter=' ').append('))')
             elif term.operator == OpExpression.AND:
                 if suppress_parentheses:
                     self.prologify(term.arguments, delimiter='\n')
@@ -1686,17 +1691,15 @@ class StringsBuffer:
                 ## EXPERIMENT
                 op = 'cl:' + op
                 ## END EXPERIMENT
-                self.append('(lispp (').append(op).append(' ').prologify(term.arguments[0]).append(' ')
+                self.append('(lisp {0} ('.format(hack_variable())).append(op).append(' ').prologify(term.arguments[0]).append(' ')
                 self.prologify(term.arguments[1]).append('))')
+            elif term.operator == OpExpression.TRUE:
+                self.append('(lisp {0} t)'.format(hack_variable()))
             elif term.is_spo:
-                if len(term.arguments) >= 4:
-                    self.complain(term, 'QUAD')
                 self.append('(q ')
                 self.prologify(term.arguments, delimiter=' ')
                 self.append(')')
             elif term.predicate and self.spoify_output:
-                if len(term.arguments) >= 4:
-                    self.complain(term, 'QUAD')
                 self.append('(q')
                 self.append(' ').prologify(term.arguments[0]).append(' ').prologify(term.predicate)
                 self.append(' ').prologify(term.arguments[1])
@@ -1827,19 +1830,19 @@ def translate_common_logic_query(query, preferred_language='PROLOG', contexts=No
             translation = str(StringsBuffer(complain=complain).sparqlify(trans.parse_tree))
         else:
             raise IllegalOptionException("No translation available for the execution language '{0}'".format(language))
-        return translation, trans.parse_tree.dataset_clause, trans.parse_tree.temporary_enumerations
+        return translation, trans.parse_tree.contexts_clause, trans.parse_tree.temporary_enumerations
     
     try:
-        translation, dataset, temporary_enumerations = help_translate(preferred_language)
+        translation, contexts, temporary_enumerations = help_translate(preferred_language)
         successfulLanguage = preferred_language
     except QueryMissingFeatureException, e1:
         try:
             otherLanguage = 'SPARQL' if preferred_language == 'PROLOG' else 'PROLOG'
-            translation, dataset, temporary_enumerations = help_translate(otherLanguage)
+            translation, contexts, temporary_enumerations = help_translate(otherLanguage)
             successfulLanguage = otherLanguage
         except QueryMissingFeatureException:
             return None, None, None, e1
-    return translation, dataset, temporary_enumerations, successfulLanguage, None
+    return translation, contexts, temporary_enumerations, successfulLanguage, None
 
 def contexts_to_uris(context_terms, repository_connection):
     """
@@ -1853,7 +1856,7 @@ def contexts_to_uris(context_terms, repository_connection):
             prefix, localName = cxt.qname.split(':')
             ns = repository_connection.getNamespace(prefix)
             if not ns:
-                raise Exception("Can't find a namespace for the prefix '%s' in the dataset reference '%s'" % (prefix, cxt))
+                raise Exception("Can't find a namespace for the prefix '%s' in the contexts reference '%s'" % (prefix, cxt))
             contexts.append("<{0}>".format(ns + localName))
         else:
             contexts.append(str(cxt))
@@ -1865,7 +1868,7 @@ def contexts_to_uris(context_terms, repository_connection):
 ###########################################################################################################
 
 
-def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG):
+def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, contexts=None):
     trans = CommonLogicTranslator(cl_select_query)
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').common_logify(trans.parse_tree))    
@@ -1874,7 +1877,7 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG):
     print "\nSPARQL \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').sparqlify(trans.parse_tree))
     trans = CommonLogicTranslator(cl_select_query)
     trans.parse()    
-    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG).normalize()
+    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG).normalize(contexts=contexts)
     print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_output=True).prologify(trans.parse_tree))    
 
 
@@ -1906,13 +1909,13 @@ query12 = """(select (?name) where (and (rdf:type ?c ex:Company) (ex:gross ?c ?g
                                                 (> (- ?gross ?expenses) 50000) (ex:name ?c ?name)))"""
 query12i = """select ?name where rdf:type(?c ex:Company) and ex:gross(?c ?gross) and ex:expenses(?c ?expenses)
                                                 and ((?gross - ?expenses) > 5000) and ex:name(?c ?name)"""
-query13 = """(select (?s ?p ?o) where (triple ?s ?p ?o) (in ?s (list <http://foo> <http://bar>)))"""
+query13 = """(select (?s ?p ?o) where (in ?s (list <http://foo> <http://bar>)) (triple ?s ?p ?o))"""
 query13i = """select ?s ?p ?o where triple(?s ?p ?o) and ?s in [<http://foo> <http://bar>]"""   
 query14 = """(select distinct (?s ?p ?o) where (triple ?s ?p ?o) contexts (ex:context1 ex:context2) limit 5)"""                                            
 query14i = """select distinct ?s ?p ?o where triple(?s ?p ?o) contexts ex:context1, ex:context2 limit 5"""    
 query15 = """(select (?s) where (and (or (ex:p1 ?s1 ?o1 ?c1) (ex:p2 ?s2 ?o2 ?c1)  (ex:p3 ?s3 ?o3 ?c2))
                                      (or (ex:p4 ?s4 ?o4 ?c1) (ex:p5 ?s5 ?o5 ?c1))))"""
-query16 = """(select (?s ?p ?o ?c ?p2 ?o2 ?c2)  where (and (quad ?s ?p ?o ?c) (optional (quad ?p2 ?o2 ?c2 ?o))))"""
+query16 = """(select (?s ?p ?o ?c ?p2 ?o2 )  where (and (quad ?s ?p ?o ?c) (optional (quad ?o ?p2 ?o2 )))"""
 query16i = """select ?s ?o ?c ?o2 ?c2 where quad(?s ex:p ?o ?c)  and optional(quad(?o ex:p2 ?o2 ?c2))"""
 query17 = """(select (?s) where (triple ?s ?p ?o) (= ?s ex:Bill))"""
 
@@ -1974,12 +1977,15 @@ query20i = """select ?s ?p ?o ?c ?lac ?otype ?c2
 where  optional (quad(?o rdf:type ?otype ?c2))
 """
 
-query20 = """(select distinct (?s ?p ?o ?c) where (and (quad ?s ?p ?o ?c) (quad ?s ?p2 ?o2 ?c)) limit 3)
+query20 = """select ?s ?p ?o ?c ?lac ?otype ?c2
+    where quad(?s ?p ?o ?c) and
+      (optional triple(?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)) and      
+      quad(?o rdf:type ?otype ?c2)
 """
 
 
 if __name__ == '__main__':
-    switch = 12
+    switch = 20
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -2005,13 +2011,13 @@ if __name__ == '__main__':
     elif switch == 11.1: translate(query11i)        
     elif switch == 12: translate(query12)  # ARITHMETIC EXPRESSIONS
     elif switch == 12.1: translate(query12i)        
-    elif switch == 13: translate(query13)  # IN ENUMERATION
+    elif switch == 13: translate(query13, contexts=["http:ex#cxt1", "http:ex#cxt2"])  # IN ENUMERATION
     elif switch == 13.1: translate(query13i)        
     elif switch == 14: translate(query14)  # DISTINCT, CONTEXTS, AND LIMIT
     elif switch == 14.1: translate(query14i)        
     elif switch == 15: translate(query15)  # SPARQL GRAPH NODES
     #elif switch == 15.1: translate(query15i)    
-    elif switch == 16: translate(query16)  # BRACKETED OPTIONAL WITH QUAD (HARD FOR SOME REASON)
+    elif switch == 16: translate(query16, contexts=["http:ex#cxt1", "http:ex#cxt2"])  # BRACKETED OPTIONAL WITH QUAD (HARD FOR SOME REASON)
     elif switch == 16.1: translate(query16i)  
     elif switch == 17: translate(query17)    
     elif switch == 18: translate(query18) # NEGATION    

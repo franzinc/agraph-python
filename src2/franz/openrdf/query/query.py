@@ -201,13 +201,16 @@ class Query(object):
             bindings = {}
             for vbl, val in self.bindings.items():
                 bindings[vbl] = self.connection._convert_term_to_mini_term(val)
+        print "NAMED CONTEXTS", namedContexts, "BINDINGS", bindings                          
         mini = self.connection.mini_repository
-        if self.queryLanguage == QueryLanguage.SPARQL:            
+        if self.queryLanguage == QueryLanguage.SPARQL:  
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
+                print ">>>>>>>>>TEMPORARILY IGNORING CONTEXTS OPTION, WHICH PROLOG DOES NOT SUPORT"
+            elif namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not the datasets (named graphs) option.")
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
@@ -229,6 +232,8 @@ class Query(object):
                 self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
             elif lang == 'PROLOG':
                 if namedContexts:
+                    print ">>>>>>>>>TEMPORARILY IGNORING CONTEXTS OPTION, WHICH PROLOG DOES NOT SUPORT"
+                elif namedContexts:
                     raise QueryMissingFeatureException("Prolog queries do not the datasets (named graphs) option.")
                 query = expandPrologQueryPrefixes(query, self.connection)
                 print "         PROLOG QUERY", query
