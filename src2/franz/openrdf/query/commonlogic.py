@@ -1431,7 +1431,7 @@ class Normalizer:
         if self.contexts:
             self.quadify_triples()            
             self.filter_quad_contexts()
-        self.translate_optionals(p_or_true=True)
+        self.translate_optionals(p_or_true=False)
         self.flatten_select_terms()
         self.flatten_value_computations()
         ## TEMPORARY TO SEE WHAT IT LOOKS LIKE:
@@ -1638,12 +1638,12 @@ class StringsBuffer:
                 self.append(')')     
         return self
     
-    LISPP_HACK_COUNTER = [0]
+#    LISPP_HACK_COUNTER = [0]
     
     def prologify(self, term, brackets=None, delimiter=' ', suppress_parentheses=False, spoify_output=True):
-        def hack_variable():
-            StringsBuffer.LISPP_HACK_COUNTER[0] = StringsBuffer.LISPP_HACK_COUNTER[0] + 1
-            return '?hack' + str(StringsBuffer.LISPP_HACK_COUNTER[0])
+#        def hack_variable():
+#            StringsBuffer.LISPP_HACK_COUNTER[0] = StringsBuffer.LISPP_HACK_COUNTER[0] + 1
+#            return '?hack' + str(StringsBuffer.LISPP_HACK_COUNTER[0])
         if isinstance(term, Term):
             if term.term_type == Term.RESOURCE:
                 self.append('!').append(str(term))
@@ -1680,7 +1680,7 @@ class StringsBuffer:
                 self.append('(member ').prologify(term.arguments, delimiter=' ').append(')')
             elif term.operator == OpExpression.EQUALITY:
                 ## TEMPORARY UNTIL PROLOG IS FIXED
-                self.append('(lisp {0} (upi= '.format(hack_variable())).prologify(term.arguments, delimiter=' ').append('))')
+                self.append('(lispp (upi= ').prologify(term.arguments, delimiter=' ').append('))')
             elif term.operator == OpExpression.AND:
                 if suppress_parentheses:
                     self.prologify(term.arguments, delimiter='\n')
@@ -1691,10 +1691,10 @@ class StringsBuffer:
                 ## EXPERIMENT
                 op = 'cl:' + op
                 ## END EXPERIMENT
-                self.append('(lisp {0} ('.format(hack_variable())).append(op).append(' ').prologify(term.arguments[0]).append(' ')
+                self.append('(lispp (').append(op).append(' ').prologify(term.arguments[0]).append(' ')
                 self.prologify(term.arguments[1]).append('))')
             elif term.operator == OpExpression.TRUE:
-                self.append('(lisp {0} t)'.format(hack_variable()))
+                self.append('(lispp t)')
             elif term.is_spo:
                 self.append('(q ')
                 self.prologify(term.arguments, delimiter=' ')

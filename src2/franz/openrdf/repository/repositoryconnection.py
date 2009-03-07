@@ -276,11 +276,11 @@ class RepositoryConnection(object):
         obj = self._convert_term_to_mini_term(object, predicate)
         cxt = self._contexts_to_ntriple_contexts(contexts)
         if isinstance(object, GeoSpatialRegion):
-            return self._getStatementsInRegion(subj, pred, obj, cxt)
+            return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit)
         else:
             stringTuples = self.mini_repository.getStatements(subj, pred, obj, cxt,
-                 infer=includeInferred)
-            return RepositoryResult(stringTuples, limit=limit)
+                 infer=includeInferred, limit=limit)
+            return RepositoryResult(stringTuples)
     
     def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None):
         geoType = region.geoType
@@ -288,23 +288,27 @@ class RepositoryConnection(object):
         if isinstance(region, GeoBox):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
-                                        region.xMin, region.xMax, region.yMin, region.yMax)
+                                        region.xMin, region.xMax, region.yMin, region.yMax,
+                                        limit=limit)
             elif geoType.system == GeoType.Spherical:
                 stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
-                                        region.yMin, region.yMax, region.xMin, region.xMax)
+                                        region.yMin, region.yMax, region.xMin, region.xMax,
+                                        limit=limit)
         elif isinstance(region, GeoCircle):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self.mini_repository.getStatementsInsideCircle(miniGeoType, predicate,
-                                        region.x, region.y, region.radius)
+                                        region.x, region.y, region.radius, limit=limit)
             elif geoType.system == GeoType.Spherical:
                 stringTuples = self.mini_repository.getStatementsHaversine(miniGeoType, predicate,
-                                        region.x, region.y, region.radius, unit=region.unit)
+                                        region.x, region.y, region.radius, unit=region.unit,
+                                        limit=limit)
             else: pass ## can't happen
         elif isinstance(region, GeoPolygon):
             stringTuples = self.mini_repository.getStatementsInsidePolygon(miniGeoType, predicate,
-                                        self._convert_term_to_mini_term(region.getResource()))
+                                        self._convert_term_to_mini_term(region.getResource()),
+                                        limit=limit)
         else: pass ## can't happen
-        return RepositoryResult(stringTuples, limit=limit, subjectFilter=subject)            
+        return RepositoryResult(stringTuples, subjectFilter=subject)            
     
     COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
        

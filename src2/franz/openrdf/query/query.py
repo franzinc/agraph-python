@@ -206,12 +206,10 @@ class Query(object):
         if self.queryLanguage == QueryLanguage.SPARQL:  
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred, bindings=bindings)            
+                                            infer=self.includeInferred, bindings=bindings, planner='identity')            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
-                print ">>>>>>>>>TEMPORARILY IGNORING CONTEXTS OPTION, WHICH PROLOG DOES NOT SUPORT"
-            elif namedContexts:
-                raise QueryMissingFeatureException("Prolog queries do not the datasets (named graphs) option.")
+                raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
@@ -227,14 +225,10 @@ class Query(object):
                 self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
                 MINITIMER = datetime.datetime.now()
                 response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                                infer=self.includeInferred, bindings=bindings)
+                                                infer=self.includeInferred, bindings=bindings, planner='identity')
                 print "mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER)                
                 self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
             elif lang == 'PROLOG':
-                if namedContexts:
-                    print ">>>>>>>>>TEMPORARILY IGNORING CONTEXTS OPTION, WHICH PROLOG DOES NOT SUPORT"
-                elif namedContexts:
-                    raise QueryMissingFeatureException("Prolog queries do not the datasets (named graphs) option.")
                 query = expandPrologQueryPrefixes(query, self.connection)
                 print "         PROLOG QUERY", query
                 response = mini.evalPrologQuery(query, infer=self.includeInferred)

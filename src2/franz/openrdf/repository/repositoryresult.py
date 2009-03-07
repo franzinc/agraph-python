@@ -49,11 +49,11 @@ from franz.openrdf.model.statement import Statement
 # * @see RepositoryConnection#getContextIDs()
 
 class RepositoryResult(object):  ## inherits IterationWrapper
-    def __init__(self, string_tuples, limit=None, subjectFilter=None):
+    def __init__(self, string_tuples, subjectFilter=None):
         self.string_tuples = string_tuples
         self.cursor = 0
         self.nonDuplicateSet = None
-        self.limit = limit
+        #self.limit = limit
         self.subjectFilter = subjectFilter
         
     def _createStatement(self, string_tuple):
@@ -89,8 +89,8 @@ class RepositoryResult(object):  ## inherits IterationWrapper
                         return stmt                        
             finally:
                 self.nonDuplicateSet = savedNonDuplicateSet
-        elif self.limit and self.cursor >= self.limit:
-            raise StopIteration
+#        elif self.limit and self.cursor >= self.limit:
+#            raise StopIteration
         elif self.cursor < len(self.string_tuples):
             stringTuple = self.string_tuples[self.cursor]
             self.cursor += 1
