@@ -60,6 +60,12 @@ QueryLanguage.COMMON_LOGIC = QueryLanguage('COMMON_LOGIC')
 ##
 #############################################################################
 
+TRACE_QUERY = False
+
+def trace_it(*messages):
+    if TRACE_QUERY:
+        print(' '.join([str(m) for m in messages]))
+
 class Query(object):
     """
     A query on a {@link Repository} that can be formulated in one of the
@@ -79,6 +85,11 @@ class Query(object):
         self.preferred_execution_language = None
         self.actual_execution_language = None
         self.subject_comes_first = False
+
+    @staticmethod
+    def set_trace_query(setting):
+        global TRACE_QUERY
+        TRACE_QUERY = setting
 
     def setBinding(self, name, value):
         """
@@ -158,7 +169,7 @@ class Query(object):
     def count_temporaries(self, message):
         conn = self.connection
         result = conn.getStatements(conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), None, None, None)
-        print message + "^^^^^Found {0} temporary quads".format(len(result.string_tuples))
+        trace_it(message + "^^^^^Found {0} temporary quads".format(len(result.string_tuples)))
     
     def insert_temporary_enumerations(self, temporary_enumerations, insert_or_retract, contexts):
         """
@@ -176,12 +187,12 @@ class Query(object):
         if insert_or_retract == 'INSERT':
             if quads:
                 t = quads[0]
-                print "INSERT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3]))
+                trace_it("INSERT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3])))
             conn.addTriples(quads)
         else:
             if quads:
                 t = quads[0]
-                print "RETRACT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3]))
+                trace_it("RETRACT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3])))
             conn.removeQuads(quads)
         self.count_temporaries("AFTER " + insert_or_retract)
     
@@ -201,7 +212,7 @@ class Query(object):
             bindings = {}
             for vbl, val in self.bindings.items():
                 bindings[vbl] = self.connection._convert_term_to_mini_term(val)
-        print "NAMED CONTEXTS", namedContexts, "BINDINGS", bindings                          
+        trace_it("NAMED CONTEXTS", namedContexts, "BINDINGS", bindings)                          
         mini = self.connection.mini_repository
         if self.queryLanguage == QueryLanguage.SPARQL:  
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
@@ -219,18 +230,18 @@ class Query(object):
                 namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
             self.actual_execution_language = lang ## for debugging
             if lang == 'SPARQL':
-                print "         SPARQL QUERY", query                
-                print "   BINDINGS ", bindings, "  NAMED CONTEXTS", namedContexts
+                trace_it("         SPARQL QUERY", query)                
+                trace_it("   BINDINGS ", bindings, "  NAMED CONTEXTS", namedContexts)
                 query = splicePrefixesIntoQuery(query, self.connection)
                 self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
                 MINITIMER = datetime.datetime.now()
                 response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                                 infer=self.includeInferred, bindings=bindings, planner='identity')
-                print "mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER)                
+                trace_it("mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER))                
                 self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
             elif lang == 'PROLOG':
                 query = expandPrologQueryPrefixes(query, self.connection)
-                print "         PROLOG QUERY", query
+                trace_it("         PROLOG QUERY", query)
                 response = mini.evalPrologQuery(query, infer=self.includeInferred)
             else:
                 raise exception

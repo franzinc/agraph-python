@@ -245,7 +245,7 @@ class Tokenizer():
         return self.tokens
     
     @staticmethod
-    def tokens_to_string(self, tokens, comma_delimited=False):
+    def tokens_to_string(tokens, comma_delimited=False):
         strings = [str(tok) for tok in tokens]
         return ', '.join(strings) if comma_delimited else ' '.join(strings)
     
@@ -433,13 +433,29 @@ class CommonLogicTranslator:
             return Term(Term.ARTIFICIAL, token.value)            
         else:
             raise Exception("Can't convert token %s to a term" % token)
-        
+ 
+    def resourcify(self, term, tokens):
+        """
+        Convert string term to resource term.
+        TODO: Check that the string really is a URI or qname
+        """
+        if (term.term_type == Term.LITERAL or
+            term.term_type == Term.RESOURCE):
+            term.term_type = Term.RESOURCE
+            if not term.value:
+                self.syntax_exception("Empty string found where resource expected.", tokens)
+            if term.value[0] == '<' and self.value[len(self) - 1] == '>':
+                term.value = term.value[1:-1]
+            if term.value.lower().startswith("http:") or term.value.lower().startswith("ftp:"):
+                term.qname = None
+            else:
+                term.qname = term.value
+           
     def parse_select_clause(self, tokens):
         """
         Parse 'select_string' and return a list of terms.
         TODO: UPGRADE TO ALLOW ARBITRARY EXPRESSIONS HERE
         """
-        Token.printem("SELECT", tokens)
         isWrappedWithParens =  len(tokens) >= 2 and tokens[0].value == '(' and tokens[len(tokens) - 1].value == ')' 
         if not self.infix_parse and not isWrappedWithParens:
             self.syntax_exception("Missing parentheses around select clause arguments")
@@ -455,6 +471,8 @@ class CommonLogicTranslator:
         
     def parse_enumeration(self, value, tokens):
         arguments = self.parse_expressions(tokens, [])
+        for arg in arguments:
+            self.resourcify(arg, tokens)
         op = OpExpression(OpExpression.ENUMERATION, arguments)
         op.predicate = value
         return op
@@ -1647,7 +1665,9 @@ class StringsBuffer:
         if isinstance(term, Term):
             if term.term_type == Term.RESOURCE:
                 self.append('!').append(str(term))
-            else:
+            elif term.term_type == Term.LITERAL:
+                self.append('!').append(str(term))
+            else: ## variable, I guess
                 self.append(str(term))
         elif isinstance(term, str):
             self.append(term)
@@ -1877,7 +1897,7 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, cont
     print "\nSPARQL \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').sparqlify(trans.parse_tree))
     trans = CommonLogicTranslator(cl_select_query)
     trans.parse()    
-    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG).normalize(contexts=contexts)
+    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG, contexts=contexts).normalize()
     print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_output=True).prologify(trans.parse_tree))    
 
 
@@ -1973,19 +1993,19 @@ where  ((?cls = ?s)
   and optional (quad(?o rdf:type ?otype ?c2))
 """
 
-query20i = """select ?s ?p ?o ?c ?lac ?otype ?c2
-where  optional (quad(?o rdf:type ?otype ?c2))
+query20i = """select ?o ?lac ?otype ?c2
+where (?o in [http://www.wildsemantics.com/systemworld#World]) and
+       ( triple(?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac) or
+        quad(?o rdf:type ?otype ?c2) )
+
 """
 
-query20 = """select ?s ?p ?o ?c ?lac ?otype ?c2
-    where quad(?s ?p ?o ?c) and
-      (optional triple(?o <http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac)) and      
-      quad(?o rdf:type ?otype ?c2)
+query20 = """
 """
 
 
 if __name__ == '__main__':
-    switch = 20
+    switch = 20.1
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
