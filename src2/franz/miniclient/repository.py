@@ -159,6 +159,9 @@ class Repository:
         """Delete a collection of statements from the repository."""
         nullRequest(self.curl, "POST", self.url + "/statements/delete", cjson.encode(quads), contentType="application/json")
 
+    def deleteStatementsById(self, ids):
+        nullRequest(self.curl, "POST", self.url + "/statements/delete?ids=true", cjson.encode(ids), contentType="application/json")
+
     def listIndices(self):
         """List the SPOGI-indices that are active in the repository."""
         return jsonRequest(self.curl, "GET", self.url + "/indices")
