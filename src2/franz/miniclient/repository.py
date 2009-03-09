@@ -96,7 +96,7 @@ class Repository:
         """Evaluate Common Lisp code in the server."""
         return jsonRequest(self.curl, "POST", self.url + "/eval?" + urlenc(environment=self.environment), code)
 
-    def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None, limit=None):
+    def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None, limit=None, tripleIDs=False):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
@@ -107,7 +107,8 @@ class Repository:
         return jsonRequest(self.curl, "GET", self.url + "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                                   obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit),
-                           rowreader=callback and RowReader(callback))
+                           rowreader=callback and RowReader(callback),
+                           accept=(tripleIDs and "application/x-quints+json") or "application/json")
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""

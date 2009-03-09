@@ -68,14 +68,14 @@ def makeRequest(curl, method, url, body=None, accept="*/*", contentType=None, ca
         buf.close()
         return (curl.getinfo(pycurl.RESPONSE_CODE), response)
 
-def jsonRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None):
+def jsonRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json"):
     if rowreader is None:
-        status, body = makeRequest(curl, method, url, body, "application/json", contentType)
+        status, body = makeRequest(curl, method, url, body, accept, contentType)
         if (status == 200): return cjson.decode(body)
         else: raise RequestError(status, body)
     else:
         def raiseErr(status, message): raise RequestError(status, message)
-        makeRequest(curl, method, url, body, "application/json", contentType, callback=rowreader.process, errCallback=raiseErr)
+        makeRequest(curl, method, url, body, accept, contentType, callback=rowreader.process, errCallback=raiseErr)
 
 def nullRequest(curl, method, url, body=None, contentType="application/x-www-form-urlencoded"):
     status, body = makeRequest(curl, method, url, body, "application/json", contentType)
