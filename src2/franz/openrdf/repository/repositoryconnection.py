@@ -264,7 +264,8 @@ class RepositoryConnection(object):
         else:
             return self._to_ntriples(term)
     
-    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False, limit=None):
+    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,
+                       limit=None, tripleIDs=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -279,8 +280,8 @@ class RepositoryConnection(object):
             return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit)
         else:
             stringTuples = self.mini_repository.getStatements(subj, pred, obj, cxt,
-                 infer=includeInferred, limit=limit)
-            return RepositoryResult(stringTuples)
+                 infer=includeInferred, limit=limit, tripleIDs=tripleIDs)
+            return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
     
     def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None):
         geoType = region.geoType
@@ -311,8 +312,9 @@ class RepositoryConnection(object):
         return RepositoryResult(stringTuples, subjectFilter=subject)            
     
     COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
-       
-    def getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False):        
+    
+    def getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False, 
+                          limit=None, tripleIDs=False):        
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -322,8 +324,9 @@ class RepositoryConnection(object):
         """
         object = self.repository.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         stringTuples = self.mini_repository.getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
-                 self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred)
-        return JDBCResultSet(stringTuples, column_names = RepositoryConnection.COLUMN_NAMES)
+                 self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred, 
+                 limit=limit, tripleIDs=tripleIDs)
+        return JDBCResultSet(stringTuples, column_names = RepositoryConnection.COLUMN_NAMES, tripleIDs=tripleIDs)
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
         """
@@ -521,6 +524,12 @@ class RepositoryConnection(object):
             removeQuads.append(quad)
         self.mini_repository.deleteStatements(removeQuads)
 
+    def removeQuadsByID(self, tids):
+        """
+        'tids' contains a list of triple/tuple IDs (integers).
+        Remove all quads with matching IDs.
+        """
+        self.mini_repository.deleteStatementsById(tids)
    
 #     * Removes the supplied statement from the specified contexts in the
 #     * repository.

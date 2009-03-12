@@ -49,12 +49,13 @@ from franz.openrdf.model.statement import Statement
 # * @see RepositoryConnection#getContextIDs()
 
 class RepositoryResult(object):  ## inherits IterationWrapper
-    def __init__(self, string_tuples, subjectFilter=None):
+    def __init__(self, string_tuples, subjectFilter=None, tripleIDs=False):
         self.string_tuples = string_tuples
         self.cursor = 0
         self.nonDuplicateSet = None
         #self.limit = limit
         self.subjectFilter = subjectFilter
+        self.triple_ids = tripleIDs  
         
     def _createStatement(self, string_tuple):
         """
@@ -93,6 +94,8 @@ class RepositoryResult(object):  ## inherits IterationWrapper
 #            raise StopIteration
         elif self.cursor < len(self.string_tuples):
             stringTuple = self.string_tuples[self.cursor]
+            if self.triple_ids:
+                stringTuple = RepositoryResult.normalize_quint(stringTuple)
             self.cursor += 1
             if self.subjectFilter and not stringTuple[0] == self.subjectFilter:
                 return self.next()
@@ -130,3 +133,12 @@ class RepositoryResult(object):  ## inherits IterationWrapper
             else: collection.add(stmt)        
 
     def rowCount(self): return len(self.string_tuples)
+    
+    @staticmethod
+    def normalize_quint(stringTuple):
+        st = stringTuple
+        tid = '"{0}"'.format(st[0])
+        if len(stringTuple) == 4:
+            return (st[1], st[2], st[3], None, tid)
+        else:
+            return (st[1], st[2], st[3], st[4], tid)
