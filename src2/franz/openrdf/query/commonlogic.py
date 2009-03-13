@@ -73,7 +73,8 @@ class Token:
     BRACKET_SET = set(['(', ')', '[', ']',])
     RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'IN', 'TRUE', 'FALSE', 'LIST',
                              '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD',
-                             'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT'])
+                             'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT',
+                             'REGEX',])
     
     def __init__(self, token_type, value):
         if token_type == Token.RESERVED_WORD:
@@ -219,7 +220,7 @@ class Tokenizer():
         and return 'tokens'.
         """
         string = self.super_strip(string)
-        if not string or string == ' ': return
+        if not string or string == ' ': return ''
         c = string[0]
         if c == '?':
             suffix = self.grab_variable(string)
@@ -238,10 +239,12 @@ class Tokenizer():
             #print "   SUFFIX '%s'" % suffix, "TOKEN", tokens[len(tokens) - 1]
         newToken = self.tokens[len(self.tokens) - 1]
         newToken.offset = len(self.source_string) - len(suffix) - len(newToken.value)
-        return self.tokenize_next(suffix)
+        return suffix
 
     def tokenize(self):
-        self.tokenize_next(self.source_string)
+        suffix = self.source_string
+        while suffix:
+            suffix = self.tokenize_next(suffix)
         return self.tokens
     
     @staticmethod
@@ -323,8 +326,9 @@ class Term:
 ARTIFICIAL_TERMS = set(['TRIPLE', 'QUAD'])
 ARITHMETIC_OPERATORS = set(['+', '-'])
 COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
+PREFIX_OPERATORS = set(['REGEX'])
 UNARY_BOOLEAN_OPERATORS = set(['NOT', 'OPTIONAL'])
-BOOLEAN_OPERATORS = set(['AND', 'OR', 'IN']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS)
+BOOLEAN_OPERATORS = set(['AND', 'OR', 'IN']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS).union(PREFIX_OPERATORS)
 VALUE_OPERATORS = ARITHMETIC_OPERATORS
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
 OPERATOR_EXPRESSIONS = (CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(ARTIFICIAL_TERMS)
@@ -557,7 +561,7 @@ class CommonLogicTranslator:
                 if value in VALUE_OPERATORS and is_boolean:
                     self.syntax_exception("Found value expression where boolean expression expected '%s'" % Tokenizer.tokens_to_string(tokens), beginToken)
                 ## NOT SURE ABOUT THIS (ESPECIALLY FOR INFIX):
-                isBoolean = (value in BOOLEAN_OPERATORS and not value in COMPARISON_OPERATORS)
+                isBoolean = (value in BOOLEAN_OPERATORS and not value in COMPARISON_OPERATORS and not value in PREFIX_OPERATORS)
                 arguments = self.parse_expressions(tokens[1:], [], is_boolean=isBoolean)
                 return OpExpression(value, arguments)
             elif value in [OpExpression.TRUE, OpExpression.FALSE]:
@@ -1805,7 +1809,7 @@ class StringsBuffer:
             elif term.predicate:
                 ## TEMPORARY HACK.  TODO: MAKE IT GENERIC:
                 if term.predicate == 'bound':
-                    self.append(term.predicate + '(').sparqlify(term.arguments[0]).append(')')                    
+                    self.append(term.predicate + '(').sparqlify(term.arguments[0]).append(')')
                 elif True:
                     raise Exception("SPARQL normalization failed to eliminate non-spo predication")
                 else:
@@ -1819,6 +1823,11 @@ class StringsBuffer:
                 self.sparqlify(term.arguments[0]).sparqlify(' ').sparqlify(term.operator).sparqlify(' ')
                 self.sparqlify(term.arguments[1]).sparqlify(' ')
                 self.append(')')
+            elif term.operator in PREFIX_OPERATORS:
+                ## TODO: ADD TRANSLATION HERE FROM CL FUNCTORS TO SPARQL FUNCTORS
+                ## RIGHT NOW 'REGEX' IS THE ONLY ONE:
+                functor = term.operator
+                self.append('filter ' + functor + '(').sparqlify(term.arguments, delimiter=', ').append(')')                  
             elif term.operator == 'GRAPH':
                 if not suppress_curlies: self.append('{')                
                 self.append('graph ').sparqlify(term.context).append(' { ').sparqlify(term.arguments[0], suppress_curlies=True).append(' } ')

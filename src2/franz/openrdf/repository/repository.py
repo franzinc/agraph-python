@@ -156,6 +156,7 @@ class Repository:
         triples/statements.  This is needed to make the  fti:match  operator
         work properly.
         """
+        print ">>>>>>>>>>>>>>>>>>REGISTER FREE TEXT PREDICATE", uri
         uri = uri or (namespace + localname)
         self.mini_repository.registerFreeTextPredicate("<%s>" % uri)
         
