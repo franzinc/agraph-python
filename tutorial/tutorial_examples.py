@@ -421,14 +421,13 @@ def test15():
     bob = f.createURI(namespace=exns, localname="bob")
     carol = f.createURI(namespace=exns, localname="carol")    
     age = f.createURI(namespace=exns, localname="age")    
-    range = f.createRange(20, 40)
-    if True: myRepository.registerDatatypeMapping(predicate=age, nativeType="int")
-    if False: myRepository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")    
+    range = f.createRange(30, 50)
+    if False: myRepository.registerDatatypeMapping(predicate=age, nativeType="int")
+    if True: myRepository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="float")    
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
-    #rows = conn.getStatements(None, age, range)    
-    rows = conn.getStatements(None, age, (30,50))
+    rows = conn.getStatements(None, age, range)
     for r in rows:
         print r 
 
@@ -466,44 +465,54 @@ def test16():
 
 def test17():
     """
-    Prolog
+    Prolog queries
     """
     conn = test6().getConnection()
-    f = conn.getValueFactory()
-    #conn.createEnvironment("ronnie")
-    conn.setEnvironment("ronnie") 
-    #conn.deleteEnvironment("ronnie")    
-    conn.setNamespace("ken", "http://www.franz.com/simple#")
-
-#    queryString = """
-#    (select (?person ?name)
-#            (q ?person !rdf:type !ken:person)
-#            (q ?person !ken:sex !ken:female)
-#            (q ?person !ken:first-name ?name)
-#            )
-#    """
-#    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-#    result = tupleQuery.evaluate();     
-#    for row in result:
-#        print row
+    conn.deleteEnvironment("kennedys") ## start fresh        
+    conn.setEnvironment("kennedys") 
+    conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setRuleLanguage(QueryLanguage.PROLOG)   
-    rule1 = """
+    rules2 = """
     (<-- (female ?x) ;; IF
-         (q ?x !ken:sex !ken:male))
+         (q ?x !kdy:sex !kdy:female))
+    (<-- (male ?x) ;; IF
+         (q ?x !kdy:sex !kdy:male))
     """
-    conn.addRule(rule1)
+    conn.addRules(rules2)
+    ## This causes a failure(correctly):
+    #conn.deleteRule('male')
     queryString2 = """
     (select (?person ?name)
-            (q ?person !rdf:type !ken:person)
-            (female ?person)
-            (q ?person !ken:first-name ?name)
+            (q ?person !rdf:type !kdy:person)
+            (male ?person)
+            (q ?person !kdy:first-name ?name)
             )
     """
     tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)
     result = tupleQuery2.evaluate();     
     for row in result:
         print row
-    
+
+def test18():
+    """
+    Loading Prolog rules
+    """
+    def pq(queryString):
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();     
+        for row in result:
+            print row
+            
+    conn = test6().getConnection()
+    conn.deleteEnvironment("kennedys") ## start fresh        
+    conn.setEnvironment("kennedys") 
+    conn.setNamespace("kdy", "http://www.franz.com/simple#")
+    conn.setNamespace("rltv", "http://www.franz.com/simple#")  
+    conn.setRuleLanguage(QueryLanguage.PROLOG)
+    path = "./relative_rules.txt"
+    conn.loadRules(path)
+    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
+    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
 
 def test26():
     """
@@ -575,7 +584,7 @@ def test27 ():
     
 if __name__ == '__main__':
     choices = [i for i in range(1,15)]
-    choices = [17]
+    choices = [18]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -597,6 +606,7 @@ if __name__ == '__main__':
         elif choice == 15: test15()    
         elif choice == 16: test16()            
         elif choice == 17: test17()                    
+        elif choice == 18: test18()                            
          
         elif choice == 26: test26()                                                                                              
         elif choice == 27: test27()                                                                                                      

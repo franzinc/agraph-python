@@ -23,15 +23,17 @@
 
 
 from franz.openrdf.exceptions import *
+from franz.openrdf.query import commonlogic
+from franz.openrdf.query.dataset import ALL_CONTEXTS, Dataset
+from franz.openrdf.query.queryresult import GraphQueryResult, TupleQueryResult
 from franz.openrdf.repository.jdbcresultset import JDBCResultSet
-from franz.openrdf.query.queryresult import TupleQueryResult
-from franz.openrdf.query.queryresult import GraphQueryResult
-from franz.openrdf.query.dataset import ALL_CONTEXTS
+import datetime
 
 class QueryLanguage:
     registered_languages = []
     SPARQL = None
     PROLOG = None
+    COMMON_LOGIC = None
     def __init__(self, name):
         self.name = name
         QueryLanguage.registered_languages.append(self)
@@ -52,10 +54,17 @@ class QueryLanguage:
     
 QueryLanguage.SPARQL = QueryLanguage('SPARQL')
 QueryLanguage.PROLOG = QueryLanguage('PROLOG')
+QueryLanguage.COMMON_LOGIC = QueryLanguage('COMMON_LOGIC')
 
 #############################################################################
 ##
 #############################################################################
+
+TRACE_QUERY = False
+
+def trace_it(*messages):
+    if TRACE_QUERY:
+        print(' '.join([str(m) for m in messages]))
 
 class Query(object):
     """
@@ -71,13 +80,30 @@ class Query(object):
         self.dataset = None
         self.includeInferred = False
         self.bindings = {}
+        self.connection = None
+        ## CommonLogic parameters:
+        self.preferred_execution_language = None
+        self.actual_execution_language = None
+        self.subject_comes_first = False
+
+    @staticmethod
+    def set_trace_query(setting):
+        global TRACE_QUERY
+        TRACE_QUERY = setting
 
     def setBinding(self, name, value):
         """
         Binds the specified variable to the supplied value. Any value that was
         previously bound to the specified value will be overwritten.
         """
+        if isinstance(value, str):
+            value = self.connection.createLiteral(value)
         self.bindings[name] = value
+        
+    def setBindings(self, dict):
+        if not dict: return
+        for key, value in dict.iteritems():
+            self.setBinding(key, value)
 
     def removeBinding(self, name):
         """ 
@@ -102,9 +128,20 @@ class Query(object):
      
     def getDataset(self):
         """
-        Gets the dataset that has been set using {@link #setDataset(Dataset)}, if  any. 
+        Gets the dataset that has been set.
         """ 
         return self.dataset
+    
+    def setContexts(self, contexts):
+        """
+        Assert a set of contexts (named graphs) that filter all triples.
+        """
+        if not contexts: return
+        ds = Dataset()
+        for cxt in contexts:
+            if isinstance(cxt, str): cxt = self.connection.createURI(cxt)
+            ds.addNamedGraph(cxt)
+        self.setDataset(ds)
      
     def setIncludeInferred(self, includeInferred):
         """
@@ -127,9 +164,41 @@ class Query(object):
         """
         self.connection = connection
     
+    TEMPORARY_ENUMERATION_RESOURCE = 'http://www.franz.com#TeMpOrArYeNuMeRaTiOn'
+    
+    def count_temporaries(self, message):
+        conn = self.connection
+        result = conn.getStatements(conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), None, None, None)
+        trace_it(message + "^^^^^Found {0} temporary quads".format(len(result.string_tuples)))
+    
+    def insert_temporary_enumerations(self, temporary_enumerations, insert_or_retract, contexts):
+        """
+        Enormous hack to circumvent AG's (SPARQL's) lack of a membership operator.
+        """
+        if not temporary_enumerations: return
+        conn = self.connection
+        context = conn.createURI(contexts[0]) if contexts else conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE)
+        for tempRelationURI, enumeratedValues in temporary_enumerations.iteritems():
+            quads = []
+            for v in enumeratedValues:
+                val = conn.createURI(v) if v and v[0] == '<' else conn.createLiteral(v)
+                quads.append((conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), conn.createURI(tempRelationURI), val, context))
+        self.count_temporaries("BEFORE " + insert_or_retract)
+        if insert_or_retract == 'INSERT':
+            if quads:
+                t = quads[0]
+                trace_it("INSERT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3])))
+            conn.addTriples(quads)
+        else:
+            if quads:
+                t = quads[0]
+                trace_it("RETRACT QUAD", (str(t[0]), str(t[1]), str(t[2]), str(t[3])))
+            conn.removeQuads(quads)
+        self.count_temporaries("AFTER " + insert_or_retract)
+    
     def evaluate_generic_query(self):
         """
-        Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
+        Evaluate a SPARQL or PROLOG or COMMON_LOGIC query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
         """
         ##if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
@@ -143,22 +212,50 @@ class Query(object):
             bindings = {}
             for vbl, val in self.bindings.items():
                 bindings[vbl] = self.connection._convert_term_to_mini_term(val)
+        trace_it("NAMED CONTEXTS", namedContexts, "BINDINGS", bindings)                          
         mini = self.connection.mini_repository
-        if self.queryLanguage == QueryLanguage.SPARQL:            
+        if self.queryLanguage == QueryLanguage.SPARQL:  
             query = splicePrefixesIntoQuery(self.queryString, self.connection)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred, bindings=bindings)            
+                                            infer=self.includeInferred, bindings=bindings, planner='identity')            
         elif self.queryLanguage == QueryLanguage.PROLOG:
+            if namedContexts:
+                raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
             query = expandPrologQueryPrefixes(self.queryString, self.connection)
-            print "QUERY", query
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
+        elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
+            query, contexts, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
+                                    preferred_language=self.preferred_execution_language, contexts=namedContexts)
+            if contexts and not namedContexts:
+                namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
+            self.actual_execution_language = lang ## for debugging
+            if lang == 'SPARQL':
+                trace_it("         SPARQL QUERY", query)                
+                trace_it("   BINDINGS ", bindings, "  NAMED CONTEXTS", namedContexts)
+                query = splicePrefixesIntoQuery(query, self.connection)
+                self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
+                MINITIMER = datetime.datetime.now()
+                response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
+                                                infer=self.includeInferred, bindings=bindings, planner='identity')
+                trace_it("mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER))                
+                self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
+            elif lang == 'PROLOG':
+                query = expandPrologQueryPrefixes(query, self.connection)
+                trace_it("         PROLOG QUERY", query)
+                response = mini.evalPrologQuery(query, infer=self.includeInferred)
+            else:
+                raise exception
         return response
 
     @staticmethod
     def _check_language(queryLanguage):
-        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
-            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
+        if queryLanguage == 'SPARQL': return QueryLanguage.SPARQL
+        elif queryLanguage == 'PROLOG': return QueryLanguage.PROLOG
+        elif queryLanguage == 'COMMON_LOGIC': return QueryLanguage.COMMON_LOGIC        
+        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG, QueryLanguage.COMMON_LOGIC]:
+            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL, PROLOG, and COMMON_LOGIC."
                                          % queryLanguage)
+        return queryLanguage
             
   
 
@@ -183,21 +280,28 @@ def helpExpandPrologQueryPrefixes(query, connection, startPos):
     """
     Convert qnames in 'query' that match prefixes with declared namespaces into full URIs.
     """
+    if startPos >= len(query): return query
     lcQuery = query.lower()
-    bang = lcQuery[startPos:].find('!')
-    if bang >= 0:
-        bang = bang + startPos
-        colon = lcQuery[bang:].find(':')
-        if colon >= 0:
-            colon = bang + colon
-            prefix = lcQuery[bang + 1:colon]
+    bangPos = lcQuery[startPos:].find('!')
+    if bangPos >= 0:
+        bangPos = bangPos + startPos
+        startingAtBang = lcQuery[bangPos:]
+        if len(startingAtBang) > 1 and startingAtBang[1] == '<':
+            ## found a fully-qualified namespace; skip past it
+            endPos = startingAtBang.find('>')
+            if endPos < 0: return query ## query is illegal, but that's not our problem
+            return helpExpandPrologQueryPrefixes(query, connection, bangPos + endPos + 1)
+        colonPos = startingAtBang.find(':')
+        if colonPos >= 0:
+            colonPos = bangPos + colonPos
+            prefix = lcQuery[bangPos + 1:colonPos]
             ns = connection.getNamespace(prefix)
             if ns:
-                for i, c in enumerate(lcQuery[colon + 1:]):
+                for i, c in enumerate(lcQuery[colonPos + 1:]):
                     if not (c.isalnum() or c in ['_', '.', '-']): break
-                endPos = colon + i + 1 if i else len(query) + 1
-                localName = query[colon + 1: endPos]
-                query = query.replace(query[bang + 1:endPos], "<%s%s>" % (ns, localName))
+                endPos = colonPos + i + 1 if i else len(query) + 1
+                localName = query[colonPos + 1: endPos]
+                query = query.replace(query[bangPos + 1:endPos], "<%s%s>" % (ns, localName))
                 return helpExpandPrologQueryPrefixes(query, connection, endPos)
     return query
 
@@ -206,11 +310,13 @@ def expandPrologQueryPrefixes(query, connection):
     Convert qnames in 'query' that match prefixes with declared namespaces into full URIs.
     This assumes that legal chars in local names are alphanumerics and underscore and period.
     """
-    return helpExpandPrologQueryPrefixes(query, connection, 0)
+    query = helpExpandPrologQueryPrefixes(query, connection, 0)
+    #print "AFTER EXPANSION", query
+    return query
 
 class TupleQuery(Query):
     def __init__(self, queryLanguage, queryString, baseURI=None):
-        Query._check_language(queryLanguage)
+        queryLanguage = Query._check_language(queryLanguage)
         super(TupleQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
         self.connection = None
         

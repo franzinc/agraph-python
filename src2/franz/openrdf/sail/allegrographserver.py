@@ -59,6 +59,7 @@ class AllegroGraphServer(object):
         self.open_catalogs = []
         self.options = options
         self.translated_options = None
+        print "Defining connnection to AllegroGraph server -- host:'%s'  port:%s" % (host, port)
     
     def _get_address(self):
         return "%s:%s" % (self.host, self.port)

@@ -65,7 +65,12 @@ class Statement:
             cxt = self.string_tuple[3]
             if cxt:
                 sb.append(", ")        
-                sb.append(self.string_tuple[3])        
+                sb.append(self.string_tuple[3])
+            elif len(self.string_tuple) > 4:
+                sb.append(", None")
+        if len(self.string_tuple) > 4:
+            sb.append(", ")        
+            sb.append(self.string_tuple[4])       
         sb.append(")")
         return ''.join(sb)
 
@@ -113,6 +118,10 @@ class Statement:
         return self.context
     
     def setContext(self, context): self.context = context
+
+    def getTripleID(self): 
+        if len(self.string_tuple) < 5: return -1
+        else: return self.string_tuple[4]
     
     @staticmethod
     def stringTermToTerm(string_term):
@@ -144,6 +153,9 @@ class Statement:
         elif string_term[0] == '_' and string_term[1] == ':':
             return BNode(string_term[2:])
         else:
+            ## EXPERIMENT:
+            return Literal(str(string_term))
+            ## END EXPERIMENT
             raise BadFormatException("Cannot translate '%s' into an OpenRDF term." % string_term)
         
     @staticmethod

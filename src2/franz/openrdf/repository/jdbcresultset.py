@@ -23,8 +23,9 @@
 
 
 from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value
 from franz.openrdf.model.statement import Statement
+from franz.openrdf.model.value import Value
+from franz.openrdf.repository.repositoryresult import RepositoryResult
 
 
 ## A JDBSResultSet is a JDBC ResultSet iterator over a collection of tuple results
@@ -40,7 +41,7 @@ class JDBCResultSet(object):
     """
     """
     COUNTING_STARTS_AT = 0   # real JDBC starts at one; we could change this to 1 if users want
-    def __init__(self, string_tuples, column_names=None):
+    def __init__(self, string_tuples, column_names=None, tripleIDs=False):
         ## NOT SURE WHY WE CALL 'lower' HERE:
         self.column_names = [v.lower() for v in column_names]
         self.string_tuples = string_tuples
@@ -49,7 +50,8 @@ class JDBCResultSet(object):
         self.low_index = -1
         self.high_index = -1
         self.current_strings_row = None
-        self.current_terms_row = None        
+        self.current_terms_row = None 
+        self.triple_ids = tripleIDs       
     
     def initialize_tuple_width(self):
         self.tuple_width = len(self.current_strings_row)
@@ -178,7 +180,10 @@ class JDBCResultSet(object):
         if self.string_tuples is None:
             raise JDBCException("Failed to properly initialize JDBC ResultSet")
         if self.cursor < len(self.string_tuples):
-            self.current_strings_row = self.string_tuples[self.cursor]
+            stringTuple = self.string_tuples[self.cursor]
+            if self.triple_ids:
+                stringTuple = RepositoryResult.normalize_quint(stringTuple)
+            self.current_strings_row = stringTuple
             self.current_terms_row = None
             self.cursor += 1
             return True

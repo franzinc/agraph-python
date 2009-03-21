@@ -134,7 +134,8 @@ class Literal(Value):
         dt = self.getDatatype()
         if dt is None: return self.getLabel()
         else:
-            conversion = Literal.XSDToPython.get(dt.getURI())
+            dtURI = dt if isinstance(dt, str) else dt.getURI()
+            conversion = Literal.XSDToPython.get(dtURI)
             if conversion:
                 if conversion == int:
                     return self.intValue()
@@ -180,5 +181,70 @@ class CompoundLiteral(Literal):
     def getUpperBound(self):
         return self.upperBound
     
+class RangeLiteral(CompoundLiteral):
+    """
+    A range represents an interval between to scalar values.
+    """
+    def __init__(self, lowerBound=None, upperBound=None):
+        self.lowerBound = lowerBound # should be a LiteralImpl
+        self.upperBound = upperBound # should be a LiteralImpl
+    
+    def getLowerBound(self):
+        return self.lowerBound
+    
+    def getUpperBound(self):
+        return self.upperBound
 
+    
+class GeoCoordinate(CompoundLiteral):
+    """
+    Define either a cartesian coordinate or a spherical coordinate.  For the
+    latter, nit can be 'km', 'mile', 'radian', or 'degree'
+    """
+    def __init__(self, x, y, unit=None, geoType=None):
+        self.xcoor = x
+        self.ycoor = y
+        self.unit = unit
+        self.geoType = geoType
+    
+    def __str__(self): return "|COOR|(%i, %i)" % (self.xcoor, self.ycoor)
+    
+class GeoSpatialRegion(CompoundLiteral):
+    pass
+
+class GeoBox(GeoSpatialRegion):
+    def __init__(self, xMin, xMax, yMin, yMax, unit=None, geoType=None):
+        self.xMin = xMin
+        self.xMax = xMax
+        self.yMin = yMin
+        self.yMax = yMax
+        self.unit = unit
+        self.geoType = geoType
+    
+    def __str__(self): return "|Box|%s,%s %s,%s" % (self.xMin, self.xMax, self.yMin, self.yMax)
+        
+class GeoCircle(GeoSpatialRegion):
+    def __init__(self, x, y, radius, unit=None, geoType=None):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.unit = unit
+        self.geoType=geoType
+        
+    def __str__(self): return "|Circle|%i,%i, radius=%i" % (self.x, self.y, self.radius)
+
+class GeoPolygon(GeoSpatialRegion):
+    def __init__(self, vertices, uri=None, geoType=None):
+        self.vertices = vertices
+        self.geoType = geoType
+        self.uri = uri
+        self.resource = None
+        self.miniPolygon = None
+        
+    def getVertices(self): return self.vertices
+    
+    def getResource(self): return self.resource
+    
+    def __str__(self): return "|Polygon|%s" % self.vertices
+        
         

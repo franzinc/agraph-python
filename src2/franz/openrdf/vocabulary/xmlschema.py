@@ -60,7 +60,8 @@ class XMLSchema:
     INTEGER = None 
     LONG = None 
     INT = None 
-    SHORT = None 
+    SHORT = None
+    NUMBER = None 
     BYTE = None 
     NON_POSITIVE_INTEGER = None 
     NEGATIVE_INTEGER = None 
@@ -114,6 +115,7 @@ class XMLSchema:
         XMLSchema.LONG = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="long")
         XMLSchema.INT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="int")
         XMLSchema.SHORT = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="short")
+        XMLSchema.NUMBER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="number")        
         XMLSchema.BYTE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="byte")
         XMLSchema.NON_POSITIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="nonPositiveInteger")
         XMLSchema.NEGATIVE_INTEGER = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="negativeInteger")

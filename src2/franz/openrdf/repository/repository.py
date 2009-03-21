@@ -149,20 +149,21 @@ class Repository:
         """
         self.mini_repository.indexStatements(all=all)
 
-    def registerFreeTextPredicate(self,uri=None, namespace=None, localname=None):
+    def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
         """
         Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index
         text keywords belonging to strings in object position in the corresponding
         triples/statements.  This is needed to make the  fti:match  operator
         work properly.
         """
+        print ">>>>>>>>>>>>>>>>>>REGISTER FREE TEXT PREDICATE", uri
         uri = uri or (namespace + localname)
         self.mini_repository.registerFreeTextPredicate("<%s>" % uri)
         
     def _translate_inlined_type(self, type):
         if type == "int": return "int"
         elif type == "datetime": return "date-time"
-        elif type == "float": return "float"
+        elif type == "float": return "double-float"
         else:
             raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
                     "'int', 'float', and 'datetime'")

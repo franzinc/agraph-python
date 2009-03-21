@@ -32,9 +32,11 @@ class Dataset:
     Records a set of default and named graphs that can restrict 
     the scope of a query.    
     """
-    def __init__(self):
+    def __init__(self, contexts=None):
         self.defaultGraphs = set([])
         self.namedGraphs = set([])
+        if contexts:
+            self.namedGraphs = set([cxt for cxt in contexts])
 
     def getDefaultGraphs(self):
         if not self.defaultGraphs: return ALL_CONTEXTS 
@@ -43,7 +45,7 @@ class Dataset:
     def addDefaultGraph(self, uri): self.defaultGraphs.add(uri)
     
     def removeDefaultGraph(self, uri): self.defaultGraphs.remove(uri) 
- 
+    
     def getNamedGraphs(self): 
         if not self.namedGraphs: return ALL_CONTEXTS
         else: return [g for g in self.namedGraphs]

@@ -1,0 +1,113 @@
+;; Prolog rules that define relative relations
+;; Assumes that the prefix 'rltv' is bound to a namespace
+;; of your choice
+
+(<-- (string-concat ?result ?string1 ?string2 ?string3)
+     (lisp ?result (string+ ?string1 ?string2 ?string3)))
+
+(<-- (name ?person (?first ?last))
+     (q ?person !rltv:first-name ?first)
+     (q ?person !rltv:last-name ?last))  
+     
+(<-- (name ?person ?fullname)
+     (q ?person !rltv:first-name ?first)
+     (q ?person !rltv:last-name ?last)
+     (string-concat ?fullname ?first " " ?last))
+
+(<-- (female ?x)
+    (q ?x !rltv:sex !rltv:female))
+
+(<-- (male ?x)
+    (q ?x !rltv:sex !rltv:male))
+
+(<-- (father ?x ?y)
+    (male ?x)
+    (q ?x !rltv:has-child ?y))
+
+(<-- (mother ?x ?y)
+    (female ?x)
+    (q ?x !rltv:has-child ?y))
+
+(<-- (parent ?x ?y)
+    (father ?x ?y))
+
+(<- (parent ?x ?y)
+   (mother ?x ?y))
+  
+(<-- (grandparent ?x ?y)
+    (parent ?x ?z)
+    (parent ?z ?y))
+
+(<-- (grandchild ?x ?y)
+    (grandparent ?y ?x))
+
+(<-- (ancestor ?x ?y)
+    (parent ?x ?y))
+
+(<-  (ancestor ?x ?y)     
+    (parent ?x ?z)
+    (ancestor ?z ?y))
+
+(<-- (descendent ?x ?y)
+    (ancestor ?y ?x))
+
+(<-- (aunt ?x ?y) 
+    (father ?z ?x)
+    (female ?x)
+    (father ?z ?w)
+    (not (= ?x ?w))
+    (parent ?w ?y))
+
+(<-- (uncle ?x ?y) 
+    (father ?z ?x)
+    (male ?x)
+    (father ?z ?w)
+    (not (= ?x ?w))
+    (parent ?w ?y))
+
+(<-- (nephew ?x ?y)
+    (aunt ?y ?x)
+    (male ?x))
+
+(<- (nephew ?x ?y)
+   (uncle ?y ?x)
+   (male ?x))
+
+(<-- (niece ?x ?y)
+    (aunt ?y ?x)
+    (female ?x))
+
+(<- (niece ?x ?y)
+   (uncle ?y ?x)
+   (female ?x))
+
+(<-- (parent-child-have-same-name ?x ?y)     
+    (q- ?x !rltv:first-name ?n1)
+    (parent ?x ?y)
+    (q- ?y !rltv:first-name ?n2)
+    (= ?n1 ?n2))
+
+(<-- (parent-child-went-to-ivy-league-school ?x ?y)     
+    (q- ?x !rltv:alma-mater ?am)
+    (q- ?am !rltv:ivy-league !rltv:true)
+    (parent ?x ?y)
+    (q- ?y !rltv:alma-mater ?am2)
+    (q- ?am2 !rltv:ivy-league !rltv:true))
+
+(<-- (parent-child-went-to-same-ivy-league-school ?x ?y)     
+    (q- ?x !rltv:alma-mater ?am)
+    (q- ?am !rltv:ivy-league !rltv:true)
+    (parent ?x ?y)
+    (q- ?y !rltv:alma-mater ?am))
+
+(<-- (spouse ?x ?y)
+    (q ?x !rltv:spouse ?y))
+
+;; ?x has a spouse and children
+
+(<-- (family ?x ?fam)
+    (q ?x !rltv:spouse ?sp)
+    (bagof ?ch (parent ?x ?ch) ?bag)
+    (append ?bag (?sp) ?fam)
+    ;#!
+    )
