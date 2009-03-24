@@ -45,23 +45,21 @@ def test1(accessMode=Repository.RENEW):
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
     myRepository = catalog.getRepository("agraph_test", accessMode)
     myRepository.initialize()
+    connection = myRepository.getConnection()
     print "Repository %s is up!  It contains %i statements." % (
-                myRepository.getDatabaseName(), myRepository.getConnection().size())
-    return myRepository
+                myRepository.getDatabaseName(), connection.size())
+    return connection
     
 def test2():
-    myRepository = test1()
-    f = myRepository.getValueFactory()
+    conn = test1()
     ## create some resources and literals to make statements out of
-    alice = f.createURI("http://example.org/people/alice")
-    bob = f.createURI("http://example.org/people/bob")
-    #bob = f.createBNode()
-    name = f.createURI("http://example.org/ontology/name")
-    person = f.createURI("http://example.org/ontology/Person")
-    bobsName = f.createLiteral("Bob")
-    alicesName = f.createLiteral("Alice")
-
-    conn = myRepository.getConnection()
+    alice = conn.createURI("http://example.org/people/alice")
+    bob = conn.createURI("http://example.org/people/bob")
+    #bob = conn.createBNode()
+    name = conn.createURI("http://example.org/ontology/name")
+    person = conn.createURI("http://example.org/ontology/Person")
+    bobsName = conn.createLiteral("Bob")
+    alicesName = conn.createLiteral("Alice")
     print "Triple count before inserts: ", conn.size()
     for s in conn.getStatements(None, None, None, None): print s    
     ## alice is a person
@@ -71,17 +69,17 @@ def test2():
     ## bob is a person
     conn.add(bob, RDF.TYPE, person)
     ## bob's name is "Bob":
-    conn.add(bob, f.createURI("http://example.org/ontology/name"), bobsName)
+    conn.add(bob, conn.createURI("http://example.org/ontology/name"), bobsName)
     print "Triple count: ", conn.size()
     verify(conn.size(), 4, 'conn.size()', 2)
     conn.remove(bob, name, bobsName)
     print "Triple count: ", conn.size()
     verify(conn.size(), 3, 'conn.size()', 2)
     conn.add(bob, name, bobsName)    
-    return myRepository
+    return conn
 
 def test3():    
-    conn = test2().getConnection()
+    conn = test2()
     try:
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
@@ -99,9 +97,8 @@ def test3():
         conn.close();
         
 def test4():
-    myRepository = test2()
-    conn = myRepository.getConnection()
-    alice = myRepository.getValueFactory().createURI("http://example.org/people/alice")
+    conn = test2()
+    alice = conn.createURI("http://example.org/people/alice")
     statements = conn.getStatements(alice, None, None)
     statements.enableDuplicateFilter() ## there are no duplicates, but this exercises the code that checks
     verify(statements.rowCount(), 2, 'statements.rowCount()', 3)
@@ -110,43 +107,40 @@ def test4():
     print "Same thing using JDBC:"
     resultSet = conn.getJDBCStatements(alice, None, None)
     verify(resultSet.rowCount(), 2, 'resultSet.rowCount()', 3)    
-    while resultSet.next():
-        #print resultSet.getRow()
+    while resultSet.next():        
         print "   ", resultSet.getValue(2), "   ", resultSet.getString(2)  
                
 def test5():
     """
     Typed Literals
     """
-    myRepository = test1()
-    conn = myRepository.getConnection()
-    f = myRepository.getValueFactory()
+    conn = test1()
     conn.clear()
     exns = "http://example.org/people/"
-    alice = f.createURI("http://example.org/people/alice")
-    age = f.createURI(namespace=exns, localname="age")
-    weight = f.createURI(namespace=exns, localname="weight")    
-    favoriteColor = f.createURI(namespace=exns, localname="favoriteColor")
-    birthdate = f.createURI(namespace=exns, localname="birthdate")
-    ted = f.createURI(namespace=exns, localname="Ted")
-    red = f.createLiteral('Red')
-    rouge = f.createLiteral('Rouge', language="fr")
-    fortyTwo = f.createLiteral('42', datatype=XMLSchema.INT)
-    fortyTwoInteger = f.createLiteral('42', datatype=XMLSchema.LONG)    
-    fortyTwoUntyped = f.createLiteral('42')
-    date = f.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
-    time = f.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME)         
-    stmt1 = f.createStatement(alice, age, fortyTwo)
-    stmt2 = f.createStatement(ted, age, fortyTwoUntyped)    
+    alice = conn.createURI("http://example.org/people/alice")
+    age = conn.createURI(namespace=exns, localname="age")
+    weight = conn.createURI(namespace=exns, localname="weight")    
+    favoriteColor = conn.createURI(namespace=exns, localname="favoriteColor")
+    birthdate = conn.createURI(namespace=exns, localname="birthdate")
+    ted = conn.createURI(namespace=exns, localname="Ted")
+    red = conn.createLiteral('Red')
+    rouge = conn.createLiteral('Rouge', language="fr")
+    fortyTwo = conn.createLiteral('42', datatype=XMLSchema.INT)
+    fortyTwoInteger = conn.createLiteral('42', datatype=XMLSchema.LONG)    
+    fortyTwoUntyped = conn.createLiteral('42')
+    date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
+    #time = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME)         
+    stmt1 = conn.createStatement(alice, age, fortyTwo)
+    stmt2 = conn.createStatement(ted, age, fortyTwoUntyped)    
     conn.add(stmt1)
     conn.addStatement(stmt2)
-    conn.addTriple(alice, weight, f.createLiteral('20.5'))
-    conn.addTriple(ted, weight, f.createLiteral('20.5', datatype=XMLSchema.FLOAT))
+    conn.addTriple(alice, weight, conn.createLiteral('20.5'))
+    conn.addTriple(ted, weight, conn.createLiteral('20.5', datatype=XMLSchema.FLOAT))
     conn.add(alice, favoriteColor, red)
     conn.add(ted, favoriteColor, rouge)
     conn.add(alice, birthdate, date)
     conn.add(ted, birthdate, time)    
-    for obj in [None, fortyTwo, fortyTwoUntyped, f.createLiteral('20.5', datatype=XMLSchema.FLOAT), f.createLiteral('20.5'),
+    for obj in [None, fortyTwo, fortyTwoUntyped, conn.createLiteral('20.5', datatype=XMLSchema.FLOAT), conn.createLiteral('20.5'),
                 red, rouge]:
         print "Retrieve triples matching '%s'." % obj
         statements = conn.getStatements(None, None, obj)
@@ -164,31 +158,29 @@ def test5():
             p = bindingSet[1]
             o = bindingSet[2]
             print "%s %s %s" % (s, p, o)
-    fortyTwoInt = f.createLiteral(42)
+    fortyTwoInt = conn.createLiteral(42)
     print fortyTwoInt.toPython()
 
 def test6():
-    myRepository = test1()
-    conn = myRepository.getConnection()
+    conn = test1()
     conn.clear()   
     path1 = "./vc-db-1.rdf"    
     path2 = "./kennedy.ntriples"                
     baseURI = "http://example.org/example/local"
-    context = myRepository.getValueFactory().createURI("http://example.org#vcards")
-    conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
+    context = conn.createURI("http://example.org#vcards")
     ## read kennedy triples into the null context:
     conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
-    myRepository.indexTriples(all=True, asynchronous=False)
+    conn.indexTriples(all=True, asynchronous=False)
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
     verify(conn.size(context), 16, 'conn.size(context)', 6)
     verify(conn.size('null'), 1214, "conn.size('null)", 6)    
-    return myRepository
+    return conn
         
 def test7():    
-    conn = test6().getConnection()
+    conn = test6()
     print "Match all and print subjects and contexts"
     result = conn.getStatements(None, None, None, None, limit=25)
     for row in result: print row.getSubject(), row.getContext()
@@ -203,9 +195,8 @@ def test7():
 import urlparse
 
 def test8():
-    myRepository = test6() 
-    conn = myRepository.getConnection()
-    context = myRepository.getValueFactory().createURI("http://example.org#vcards")
+    conn = test6()
+    context = conn.createURI("http://example.org#vcards")
     outputFile = "/tmp/temp.nt"
     #outputFile = None
     if outputFile == None:
@@ -220,34 +211,31 @@ def test8():
     conn.export(rdfxmlfWriter, context)
 
 def test9():
-    myRepository = test6()
-    conn = myRepository.getConnection()
+    conn = test6()
     conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
 
 def test10():
     """
     Datasets and multiple contexts
     """
-    myRepository = test1();
-    conn = myRepository.getConnection()
-    f = myRepository.getValueFactory()
+    conn = test1()
     exns = "http://example.org/people/"
-    alice = f.createURI(namespace=exns, localname="alice")
-    bob = f.createURI(namespace=exns, localname="bob")
-    ted = f.createURI(namespace=exns, localname="ted")
-    person = f.createURI(namespace=exns, localname="Person")
-    name = f.createURI(namespace=exns, localname="name")    
-    alicesName = f.createLiteral("Alice")    
-    bobsName = f.createLiteral("Bob")
-    tedsName = f.createLiteral("Ted")    
-    context1 = f.createURI(namespace=exns, localname="cxt1")      
-    context2 = f.createURI(namespace=exns, localname="cxt2")          
+    alice = conn.createURI(namespace=exns, localname="alice")
+    bob = conn.createURI(namespace=exns, localname="bob")
+    ted = conn.createURI(namespace=exns, localname="ted")
+    person = conn.createURI(namespace=exns, localname="Person")
+    name = conn.createURI(namespace=exns, localname="name")    
+    alicesName = conn.createLiteral("Alice")    
+    bobsName = conn.createLiteral("Bob")
+    tedsName = conn.createLiteral("Ted")    
+    context1 = conn.createURI(namespace=exns, localname="cxt1")      
+    context2 = conn.createURI(namespace=exns, localname="cxt2")          
     conn.add(alice, RDF.TYPE, person, context1)
     conn.add(alice, name, alicesName, context1)
     conn.add(bob, RDF.TYPE, person, context2)
     conn.add(bob, name, bobsName, context2)
     conn.add(ted, RDF.TYPE, person)
-    conn.add(ted, name, bobsName)
+    conn.add(ted, name, tedsName)
     statements = conn.getStatements(None, None, None)
     verify(statements.rowCount(), 6, 'statements.rowCount()', 10)
     print "All triples in all contexts:"
@@ -297,14 +285,12 @@ def test11():
     """
     Namespaces
     """
-    myRepository = test1();
-    conn = myRepository.getConnection()
-    f = myRepository.getValueFactory()
+    conn = test1()
     exns = "http://example.org/people/"
-    alice = f.createURI(namespace=exns, localname="alice")
-    person = f.createURI(namespace=exns, localname="Person")
+    alice = conn.createURI(namespace=exns, localname="alice")
+    person = conn.createURI(namespace=exns, localname="Person")
     conn.add(alice, RDF.TYPE, person)
-    myRepository.indexTriples(all=True, asynchronous=True)
+    conn.indexTriples(all=True, asynchronous=True)
     conn.setNamespace('ex', exns)
     #conn.removeNamespace('ex')
     queryString = """
@@ -321,21 +307,19 @@ def test12():
     """
     Text search
     """
-    myRepository = test1();
-    conn = myRepository.getConnection()
-    f = myRepository.getValueFactory()
+    conn = test1()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
     #myRepository.registerFreeTextPredicate("http://example.org/people/name")    
-    myRepository.registerFreeTextPredicate(namespace=exns, localname='fullname')
-    alice = f.createURI(namespace=exns, localname="alice1")
-    persontype = f.createURI(namespace=exns, localname="Person")
-    fullname = f.createURI(namespace=exns, localname="fullname")    
-    alicename = f.createLiteral('Alice B. Toklas')
-    book =  f.createURI(namespace=exns, localname="book1")
-    booktype = f.createURI(namespace=exns, localname="Book")
-    booktitle = f.createURI(namespace=exns, localname="title")    
-    wonderland = f.createLiteral('Alice in Wonderland')
+    conn.registerFreeTextPredicate(namespace=exns, localname='fullname')
+    alice = conn.createURI(namespace=exns, localname="alice1")
+    persontype = conn.createURI(namespace=exns, localname="Person")
+    fullname = conn.createURI(namespace=exns, localname="fullname")    
+    alicename = conn.createLiteral('Alice B. Toklas')
+    book =  conn.createURI(namespace=exns, localname="book1")
+    booktype = conn.createURI(namespace=exns, localname="Book")
+    booktitle = conn.createURI(namespace=exns, localname="title")    
+    wonderland = conn.createLiteral('Alice in Wonderland')
     conn.clear()    
     conn.add(alice, RDF.TYPE, persontype)
     conn.add(alice, fullname, alicename)
@@ -367,7 +351,7 @@ def test13():
     """
     Ask, Construct, and Describe queries 
     """
-    conn = test2().getConnection()
+    conn = test2()
     conn.setNamespace('ex', "http://example.org/people/")
     conn.setNamespace('ont', "http://example.org/ontology/")
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
@@ -392,10 +376,9 @@ def test14():
     """
     Parametric queries
     """
-    conn = test2().getConnection()
-    f = conn.getValueFactory()
-    alice = f.createURI("http://example.org/people/alice")
-    bob = f.createURI("http://example.org/people/bob")
+    conn = test2()
+    alice = conn.createURI("http://example.org/people/alice")
+    bob = conn.createURI("http://example.org/people/bob")
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setBinding("s", alice)
@@ -411,19 +394,17 @@ def test15():
     """
     Range matches
     """
-    myRepository = test1();
-    conn = myRepository.getConnection()
+    conn = test1()
     conn.clear()
-    f = myRepository.getValueFactory()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
-    alice = f.createURI(namespace=exns, localname="alice")
-    bob = f.createURI(namespace=exns, localname="bob")
-    carol = f.createURI(namespace=exns, localname="carol")    
-    age = f.createURI(namespace=exns, localname="age")    
-    range = f.createRange(30, 50)
-    if False: myRepository.registerDatatypeMapping(predicate=age, nativeType="int")
-    if True: myRepository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="float")    
+    alice = conn.createURI(namespace=exns, localname="alice")
+    bob = conn.createURI(namespace=exns, localname="bob")
+    carol = conn.createURI(namespace=exns, localname="carol")    
+    age = conn.createURI(namespace=exns, localname="age")    
+    range = conn.createRange(30, 50)
+    if False: conn.registerDatatypeMapping(predicate=age, nativeType="int")
+    if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="float")    
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
@@ -442,18 +423,15 @@ def test16():
     catalog = AllegroGraphServer("localhost", port=8080).openCatalog('scratch') 
     ## create two ordinary stores, and one federated store: 
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
-    rf = redConn.getValueFactory()
     greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
-    gf = greenConn.getValueFactory()    
     rainbowConn = (catalog.getRepository("rainbowthings", Repository.RENEW)
                          .addFederatedTripleStores(["redthings", "greenthings"]).initialize().getConnection())
-    rbf = rainbowConn.getValueFactory()
     ex = "http://www.demo.com/example#"
     ## add a few triples to the red and green stores:
-    redConn.add(rf.createURI(ex+"mcintosh"), RDF.TYPE, rf.createURI(ex+"Apple"))
-    redConn.add(rf.createURI(ex+"reddelicious"), RDF.TYPE, rf.createURI(ex+"Apple"))    
-    greenConn.add(gf.createURI(ex+"pippin"), RDF.TYPE, gf.createURI(ex+"Apple"))
-    greenConn.add(gf.createURI(ex+"kermitthefrog"), RDF.TYPE, gf.createURI(ex+"Frog"))
+    redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
+    redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
+    greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
+    greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
     redConn.setNamespace('ex', ex)
     greenConn.setNamespace('ex', ex)
     rainbowConn.setNamespace('ex', ex)        
@@ -467,7 +445,7 @@ def test17():
     """
     Prolog queries
     """
-    conn = test6().getConnection()
+    conn = test6()
     conn.deleteEnvironment("kennedys") ## start fresh        
     conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
@@ -503,7 +481,7 @@ def test18():
         for row in result:
             print row
             
-    conn = test6().getConnection()
+    conn = test6()
     conn.deleteEnvironment("kennedys") ## start fresh        
     conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
@@ -513,18 +491,18 @@ def test18():
     conn.loadRules(path)
     pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
     pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
-
+        
+    
 def test26():
     """
     Queries per second.
     """
-    myRepository = test6()
-    conn = myRepository.getConnection()
+    conn = test6()
     
     reps = 1 #1000
     
     ##TEMPORARY
-    context = myRepository.getValueFactory().createURI("http://example.org#vcards")
+    context = conn.createURI("http://example.org#vcards")
     ## END TEMPORARY
     
     t = time.time()
@@ -558,15 +536,13 @@ def test26():
 
 def test27 ():
     """ CIA FACTBOOK """
-    myRepository = test1(Repository.ACCESS)
-    conn = myRepository.getConnection()
-    f = myRepository.getValueFactory()
+    conn = test1(Repository.ACCESS)
     if conn.size() == 0:
         print "Reading CIA Fact Book file."
         path1 = "/FRANZ_CONSULTING/data/ciafactbook.nt"    
         baseURI = "http://example.org/example/local"
         conn.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, serverSide=True)
-    myRepository.indexTriples(True);
+    conn.indexTriples(True);
     t = time.time()
     count = 0
     resultSet = conn.getJDBCStatements(None, None, None, None)
@@ -581,10 +557,80 @@ def test27 ():
     print "Did %d-row queries in %f seconds." % (count, time.time() - t)
     
 
+def test28():
+    """
+    Prolog queries
+    """
+    c = test1()
+    qCounter = [0]
+    def pq(query):
+        qCounter[0] = qCounter[0] + 1
+        print "QUERY{0}: ".format(qCounter[0]), query
+        tupleQuery = c.prepareTupleQuery(QueryLanguage.PROLOG, query)
+        try:
+            result = tupleQuery.evaluate();
+            print "   Query returns {0} rows".format(result.tupleCount)     
+            for row in result:
+                print row
+        except Exception, ex:
+            print "Failure ", ex
+#        else:
+#            for row in result:
+#                print row
+
+    exns = "http://example.org/people/"
+    c.setNamespace("ex", exns)    
+    alice = c.createURI(exns, "alice")
+    person = c.createURI(exns, "Person")
+    name = c.createURI(exns, "name")    
+    alicesName = c.createLiteral("Alice")    
+    context1 = c.createURI(exns, "cxt1")      
+    context2 = c.createURI(exns, "cxt2")          
+    c.addTriples([(alice, RDF.TYPE, person, context1),
+                     (alice, name, alicesName, context2),
+                     (alice, c.createURI(exns, "age"), 42, context1),
+                     ])
+    c.setRuleLanguage(QueryLanguage.PROLOG)   
+#    pq("""(select (?s ?p ?o ?c) (q ?s ?p ?o ?c))""")
+#    pq("""(select (?s ?p ?o ?c) 
+#                  (member ?c (?? (list !ex:cxt1))) 
+#                  (q ?s ?p ?o ?c))""")
+#    pq("""(select (?s ?p ?o ?c) 
+#                  (q ?s ?p ?o ?c)
+#                  (member ?c (?? (list !ex:cxt1))))                 
+#                  """)
+#    pq("""(select (?x) (= ?x 42))""")
+#    pq("""(select (?x) (= ?x (literal 42)))""")    
+#    pq("""(select (?x) (member ?x (?? (list 42))))""")
+#    pq("""(select (?x) (member ?x (?? (list (literal "42")))))""")
+    pq("""(select (?x) (member ?x (?? (list (literal "42"))))
+                       (lispp (upi= ?x (literal "4"))) )""")  
+    
+    pq(""" (select (?x) (member ?x (?? (list (literal "42"))))
+                       (and (lispp (upi= ?x (literal "42")))) )   """)  
+    
+    pq(""" (select (?x) (member ?x (?? (list (literal "42"))))
+                        (and (lispp t) ))   """)  
+
+  
+    pq("""(select (?s ?p ?o ?x) (q ?s ?p ?o))""")
+      
+#    pq("""(select (?x) (member ?x (?? (list (literal "42"))))
+#                       (member ?x (?? (list (literal "43")))                      
+#                       )""")    
+#    pq("""   (select (?s ?p ?o ?c ?lac ?otype ?c2) 
+#               (and (q ?s ?p ?o ?c) 
+#                    (lisp* ?v (upi= ?c !<http://www.wildsemantics.com/SystemWorld_context>))) 
+#                    (or (q ?o !<http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac !<http://www.wildsemantics.com/SystemWorld_context>) 
+#                        (not (q ?o !<http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac !<http://www.wildsemantics.com/SystemWorld_context>))) 
+#                        (and (q ?o !<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?otype ?c2) (lispp (upi= ?c2 !<http://www.wildsemantics.com/SystemWorld_context>)))
+#                        )
+# """)
+
     
 if __name__ == '__main__':
-    choices = [i for i in range(1,15)]
-    choices = [18]
+    choices = [i for i in range(1,19)]
+    choices = [5]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -606,10 +652,11 @@ if __name__ == '__main__':
         elif choice == 15: test15()    
         elif choice == 16: test16()            
         elif choice == 17: test17()                    
-        elif choice == 18: test18()                            
+        elif choice == 18: test18()                                                             
          
         elif choice == 26: test26()                                                                                              
         elif choice == 27: test27()                                                                                                      
+        elif choice == 28: test28()                                                                                                              
         else:
             print "No such test exists."
     
