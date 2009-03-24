@@ -27,6 +27,10 @@ class Catalog:
         nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
                     "?" + urlenc(federate=storeNames))
 
+    def openRemoteStore(self, name, host, port, file):
+        nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
+                    "?" + urlenc(host=host, port=port, file=file))
+
     def deleteTripleStore(self, name):
         """Delete a server-side triple store."""
         nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
@@ -190,6 +194,15 @@ class Repository:
     def setIndexingChunkThreshold(self, size=None):
         nullRequest(self.curl, "PUT", self.url + "/indexing/chunkThreshold", "%d" % (size or 0),
                     contentType="text/plain")
+
+    def getTripleCacheSize(self):
+        return jsonRequest(self.curl, "GET", self.url + "/tripleCache") or False
+
+    def disableTripleCache(self):
+        nullRequest(self.curl, "DELETE", self.url + "/tripleCache")
+
+    def enableTripleCache(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/tripleCache?" + urlenc(size=size))
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
         """Use free-text indices to search for the given pattern.
@@ -401,6 +414,7 @@ def test1():
     print("Adding statements ...")
     ns = "http://example.org#"
     stmts = []
+    rep.deleteMatchingStatements();
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts)
@@ -433,7 +447,7 @@ def test2():
     print [x[0] for x in rep.getStatementsInsideBox(typ2, "\"loc\"", 0.08, 0.09, 51.0, 52.0)]
 
 if __name__ == '__main__':
-    choice = 2
+    choice = 1
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()
