@@ -603,21 +603,44 @@ class RepositoryConnection(object):
         List the SPOC indices currently active in the RDF Store.
         """
         indices = self._get_mini_repository().listIndices()
-        return [idx.replace('g', 'c') for idx in indices]
+        return [idx[0:4].replace('g', 'c') for idx in indices]
 
-    def addIndex(self, type):
+    def addIndex(self, letters):
         """
-        Register an SPOC index of type 'type', where type is the concatenation
-        of the letters 'SPOC' in whichever order is preferred. 
+        Register an SPOC index of type 'letters', where 'letters' is the concatenation
+        of the letters 'SPOC' in whichever order is preferred.   An exception
+        will be thrown if the combination is not supported by AllegroGraph.
         """
-        self._get_mini_repository().addIndex(type.replace('c', 'g'))
+        self._get_mini_repository().addIndex(letters.replace('c', 'g') + 'i')
 
-    def remooveIndex(self, type):
+    def removeIndex(self, letters):
         """
         Drop an SPOC index.
         """
-        self._get_mini_repository().deleteIndex(type.replace('c', 'g'))
+        self._get_mini_repository().deleteIndex(letters[0:4].replace('c', 'g') + 'i')
         
+    def getSubjectTriplesCacheSize(self):
+        """
+        Return the current size of the subject triples cache.
+        """
+        return self._get_mini_repository().getTripleCacheSize()
+
+    def disableSubjectTriplesCache(self):
+        """
+        Disable the subject triples cache (see 'enableSubjectTriplesCache').
+        """
+        self.get_mini_repository().disableTripleCache()
+
+    def enableSubjectTriplesCache(self, size=None):
+        """
+        Maintain a cache of size 'size' that caches, for each accessed
+        resource, quads where the resource appears in subject position.
+        This can accelerate the performance of certain types of queries.
+        The size is the maximum number of subjects whose triples will be cached.
+        Default is 100,000.
+        """
+        self.get_mini_repository().enableTripleCache(size=size)
+
 
     #############################################################################################
     ## ValueFactory methods
