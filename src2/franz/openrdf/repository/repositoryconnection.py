@@ -629,7 +629,7 @@ class RepositoryConnection(object):
         """
         Disable the subject triples cache (see 'enableSubjectTriplesCache').
         """
-        self.get_mini_repository().disableTripleCache()
+        self._get_mini_repository().disableTripleCache()
 
     def enableSubjectTriplesCache(self, size=None):
         """
@@ -639,7 +639,7 @@ class RepositoryConnection(object):
         The size is the maximum number of subjects whose triples will be cached.
         Default is 100,000.
         """
-        self.get_mini_repository().enableTripleCache(size=size)
+        self._get_mini_repository().enableTripleCache(size=size)
 
 
     #############################################################################################
