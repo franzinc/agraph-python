@@ -115,8 +115,8 @@ class Catalog(object):
         """
         return self.mini_catalog.listTripleStores()
     
-    def getRepository(self, name, access_verb):
-        return Repository(self, name, access_verb)
+    def getRepository(self, name, access_verb, multi_threaded_mode=False):
+        return Repository(self, name, access_verb, multi_threaded_mode=multi_threaded_mode)
     
     def close(self):
         if self.is_closed: return

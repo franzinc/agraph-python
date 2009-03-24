@@ -60,6 +60,7 @@ CONTEXTS_OR_DATASET = 'CONTEXTS'
 ALIASES = {
     'CONTEXT': 'CONTEXTS',
     'TPL': 'TRIPLE',
+    'IN': 'MEMBER',
     }
 
 class Token:
@@ -71,7 +72,7 @@ class Token:
     RESERVED_WORD = 'RESERVED_WORD'
     NUMBER = 'NUMBER'
     BRACKET_SET = set(['(', ')', '[', ']',])
-    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'IN', 'TRUE', 'FALSE', 'LIST',
+    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'MEMBER', 'TRUE', 'FALSE', 'LIST',
                              '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD',
                              'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT',
                              'REGEX',])
@@ -185,7 +186,7 @@ class Tokenizer():
                 endPos = i
                 break
         word = string[:endPos] if endPos >= 0 else string
-        word = ALIASES[word.upper] if ALIASES.get(word.upper()) else word
+        word = ALIASES[word.upper()] if ALIASES.get(word.upper()) else word
         if word.upper() in Token.RESERVED_WORD_SET:
             self.tokens.append(Token(Token.RESERVED_WORD, word))
         elif word[0].isdigit():
@@ -229,7 +230,7 @@ class Tokenizer():
             suffix = string[1:]
         elif c in ['"', "'"]:
             suffix = self.grab_string(string, c)
-        elif c == '<':
+        elif c == '<' and string[1].isalpha():
             suffix = self.grab_uri(string)
         ## at this point, the first token must be delimited by a blank,
         ## comma, or delimiter.  Find the end:
@@ -245,6 +246,7 @@ class Tokenizer():
         suffix = self.source_string
         while suffix:
             suffix = self.tokenize_next(suffix)
+        #print "TOKENIZED", [str(t) for t in self.tokens]
         return self.tokens
     
     @staticmethod
@@ -328,7 +330,7 @@ ARITHMETIC_OPERATORS = set(['+', '-'])
 COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
 PREFIX_OPERATORS = set(['REGEX'])
 UNARY_BOOLEAN_OPERATORS = set(['NOT', 'OPTIONAL'])
-BOOLEAN_OPERATORS = set(['AND', 'OR', 'IN']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS).union(PREFIX_OPERATORS)
+BOOLEAN_OPERATORS = set(['AND', 'OR', 'MEMBER']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS).union(PREFIX_OPERATORS)
 VALUE_OPERATORS = ARITHMETIC_OPERATORS
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
 OPERATOR_EXPRESSIONS = (CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(ARTIFICIAL_TERMS)
@@ -338,7 +340,7 @@ class OpExpression:
     AND = 'AND'
     OR = 'OR'
     NOT = 'NOT'
-    IN = 'IN'
+    IN = 'MEMBER'
     OPTIONAL = 'OPTIONAL'    
     ENUMERATION = 'ENUMERATION'
     PREDICATION = 'PREDICATION'
@@ -438,14 +440,12 @@ class CommonLogicTranslator:
         else:
             raise Exception("Can't convert token %s to a term" % token)
  
-    def resourcify(self, term, tokens):
+    def normalize_resource(self, term, tokens):
         """
-        Convert string term to resource term.
+        Make sure resource term is legitimate (not sure why tokenizer doesn't do this)
         TODO: Check that the string really is a URI or qname
         """
-        if (term.term_type == Term.LITERAL or
-            term.term_type == Term.RESOURCE):
-            term.term_type = Term.RESOURCE
+        if (term.term_type == Term.RESOURCE):
             if not term.value:
                 self.syntax_exception("Empty string found where resource expected.", tokens)
             if term.value[0] == '<' and self.value[len(self) - 1] == '>':
@@ -474,9 +474,11 @@ class CommonLogicTranslator:
         return terms
         
     def parse_enumeration(self, value, tokens):
+        """
+        """
         arguments = self.parse_expressions(tokens, [])
         for arg in arguments:
-            self.resourcify(arg, tokens)
+            self.normalize_resource(arg, tokens)
         op = OpExpression(OpExpression.ENUMERATION, arguments)
         op.predicate = value
         return op
@@ -587,7 +589,7 @@ class CommonLogicTranslator:
         """
         Infix mode needs special handling for the NOT operator (because its a prefix operator).
         TODO: FIGURE OUT IF 'OPTIONAL' NEEDS SIMILAR HANDLING HERE
-        TODO: GENERALIZE TO ALSO HANDLE 'IN'???
+        TODO: GENERALIZE TO ALSO HANDLE 'MEMBER'???
         """
         opName = tokens[0].value
         if len(tokens) < 2:
@@ -911,15 +913,28 @@ class Normalizer:
         def add_backlinks(node, parent, external_value):
             node.parent = parent        
         self.walk(add_backlinks, start_node=(self.parse_tree.where_clause if where_clause_only else None))
-    
+        
+#    def variable_name_is_referenced(self, variable_name):
+#        """
+#        Return 'True' if a variable named 'variable_name' occurs somewhere in the current parse tree.
+#        """      
+#        foundIt = [False]
+#        def doit(node, parent, external_value):
+#            if node.term_type == Term.VARIABLE and node.value == variable_name:                
+#                foundIt[0] = True
+#        self.walk(doit, types=Term)
+#        return foundIt[0]
+
     def get_fresh_variable(self):
+        """
+        """
         def bump_variable_counter(node, parent, sseellff):
             if not node.term_type == Term.VARIABLE: return
             value = node.value
             if len(value) < 2: return
             if not value.startswith('v') or not value[1:].isdigit(): return
             intVal = int(value[1:])
-            sseellff.parse_tree.variable_counter = max(self.parse_tree.variable_counter, intVal)
+            sseellff.variable_counter = max(self.variable_counter, intVal)
         if self.variable_counter == -1:
             self.variable_counter = 0
             self.walk(bump_variable_counter, types=Term, external_value=self)
@@ -1187,8 +1202,7 @@ class Normalizer:
             joinNode.predicate = OpExpression.TRIPLE
             joinNode.is_spo = True
             self.substitute_node(node, joinNode)
-            ## BUG: DOESN'T WORK FOR QNAMES:
-            self.parse_tree.temporary_enumerations[tempRelation] = ["<{0}>".format(item.value) for item in enumeration.arguments]            
+            self.parse_tree.temporary_enumerations[tempRelation] = [str(item) for item in enumeration.arguments]            
             didIt[0] = True
         self.walk(doit, types=OpExpression, external_value=self)
         if didIt[0]:
@@ -1862,6 +1876,7 @@ def translate_common_logic_query(query, preferred_language='PROLOG', contexts=No
         return translation, trans.parse_tree.contexts_clause, trans.parse_tree.temporary_enumerations
     
     try:
+        preferred_language = preferred_language or 'PROLOG'
         translation, contexts, temporary_enumerations = help_translate(preferred_language)
         successfulLanguage = preferred_language
     except QueryMissingFeatureException, e1:
@@ -2010,11 +2025,12 @@ where (?o in [http://www.wildsemantics.com/systemworld#World]) and
 """
 
 query20 = """
+ 
 """
 
 
 if __name__ == '__main__':
-    switch = 20.1
+    switch = 20
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
