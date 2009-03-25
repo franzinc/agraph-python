@@ -24,8 +24,9 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.query.commonlogic import XSD
 from franz.openrdf.util import strings
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 class Literal(Value):
     """
@@ -36,6 +37,13 @@ class Literal(Value):
     """
     XSDToPython = {}
     def __init__(self, label, datatype=None, language=None):
+        if isinstance(datatype, str):
+            if datatype[0] == '<':
+                datatype = datatype[1:-1]
+            uri = XMLSchema.name2URI(datatype, exception_if_failure=False)
+            datatype = uri or datatype
+            ## TODO: CONVERT NON-XML SCHEMA TYPES (BUT WHICH ONES; WE
+            ## SHOULD CACHE TO AVOID CREATING TOO MANY)
         self.datatype = datatype
         self.language = language.lower() if language else None
         self.label = label
