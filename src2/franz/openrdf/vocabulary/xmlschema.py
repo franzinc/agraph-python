@@ -139,6 +139,17 @@ class XMLSchema:
                 XMLSchema.UNSIGNED_INT, XMLSchema.UNSIGNED_SHORT, XMLSchema.UNSIGNED_BYTE,]:
             XMLSchema.name2URIMap[str(uri)] = uri
 
+    @staticmethod
+    def name2URI (name, exception_if_failure=True):
+        """
+        Given a URI string, return the OpenRDF URI object.
+        """
+        matchingURI = XMLSchema.name2URIMap.get(name)
+        if matchingURI: return matchingURI
+        elif exception_if_failure:
+            raise IllegalArgumentException("Passed a non-XSD URI to 'XMLSchema.name2URI.")
+        else: return None
+
 #    @staticmethod
 #    def reinitialize(factory, store=None):
 #        """
@@ -204,16 +215,6 @@ class XMLSchema:
 #                XMLSchema.UNSIGNED_INT, XMLSchema.UNSIGNED_SHORT, XMLSchema.UNSIGNED_BYTE,]:
 #            XMLSchema.name2URIMap[str(uri)] = uri
     
-#    @staticmethod
-#    def name2URI (name, exception_if_failure=True):
-#        """
-#        Given a URI string, return the OpenRDF URI object.
-#        """
-#        matchingURI = XMLSchema.name2URIMap.get(name)
-#        if matchingURI: return matchingURI
-#        elif exception_if_failure:
-#            raise IllegalArgumentException("Passed a non-XSD URI to 'XMLSchema.name2URI.")
-#        else: return None
     
 
 
