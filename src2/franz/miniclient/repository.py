@@ -114,6 +114,9 @@ class Repository:
                            rowreader=callback and RowReader(callback),
                            accept=(tripleIDs and "application/x-quints+json") or "application/json")
 
+    def getStatementsById(self, ids):
+        return jsonRequest(self.curl, "GET", self.url + "/statements/id", urlenc(id=ids))
+
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
         ##print "ADD STATEMENT CONTEXT '%s' " % context, type(context)
@@ -414,7 +417,6 @@ def test1():
     print("Adding statements ...")
     ns = "http://example.org#"
     stmts = []
-    rep.deleteMatchingStatements();
     stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
     stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
     rep.addStatements(stmts)
