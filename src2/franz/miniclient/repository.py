@@ -114,8 +114,9 @@ class Repository:
                            rowreader=callback and RowReader(callback),
                            accept=(tripleIDs and "application/x-quints+json") or "application/json")
 
-    def getStatementsById(self, ids):
-        return jsonRequest(self.curl, "GET", self.url + "/statements/id", urlenc(id=ids))
+    def getStatementsById(self, ids, returnIDs=True):
+        return jsonRequest(self.curl, "GET", self.url + "/statements/id", urlenc(id=ids),
+                           accept=(returnIDs and "application/x-quints+json") or "application/json")
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
@@ -448,8 +449,14 @@ def test2():
     print [x[0] for x in rep.getStatementsHaversine(typ2, "\"loc\"", 50, 0, 1000)]
     print [x[0] for x in rep.getStatementsInsideBox(typ2, "\"loc\"", 0.08, 0.09, 51.0, 52.0)]
 
+def test3():
+    cat = Catalog("http://localhost:8080/catalogs/ag")
+    cat.federateTripleStores("all2", ["test", "test2", "goober"])
+    rep = cat.getRepository("all2")
+    print rep.getStatements()
+
 if __name__ == '__main__':
-    choice = 1
+    choice = 3
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()
