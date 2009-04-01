@@ -292,6 +292,13 @@ class RepositoryConnection(object):
             stringTuples = self._get_mini_repository().getStatements(subj, pred, obj, cxt,
                  infer=includeInferred, limit=limit, tripleIDs=tripleIDs)
             return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
+
+    def getStatementsById(self, ids):
+        """
+        Return all statements whose triple ID matches an ID in the list 'ids'.
+        """
+        stringTuples = self._get_mini_repository().getStatementsById(ids)
+        return RepositoryResult(stringTuples, tripleIDs=False)
     
     def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None):
         geoType = region.geoType
@@ -400,15 +407,16 @@ class RepositoryConnection(object):
             #print "MINITERM", obj, self._convert_term_to_mini_term(obj)
             self._get_mini_repository().addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
                         self._convert_term_to_mini_term(obj), cxt)
-    
+        
     def _to_ntriples(self, term):
         """
         If 'term' is an OpenRDF term, convert it to a string.  If its already
         a string; assume its in ntriples format, and just pass it through.
         """
         if not term: return term
-        elif isinstance(term, str): return term
-        else: return term.toNTriples()
+        elif isinstance(term, str): 
+            return term
+        else: return term.toNTriples();
         
     def addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False):
         """
@@ -523,6 +531,7 @@ class RepositoryConnection(object):
                 quad[0] = self._to_ntriples(q[0])
                 quad[1] = self._to_ntriples(predicate)
                 quad[2] = self._to_ntriples(obj)
+                print "QQQQQUAD2", obj.__class__, quad[2],
                 quad[3] = self._to_ntriples(q[3])
             else: # must be a statement
                 predicate = q.getPredicate()

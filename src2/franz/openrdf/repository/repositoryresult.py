@@ -72,7 +72,7 @@ class RepositoryResult(object):  ## inherits IterationWrapper
         Shut down the iterator, to insure that resources are free'd up.
         """
         pass
-        
+
     def next(self):
         """
         Return the next Statement in the answer, if there is one.  Otherwise,

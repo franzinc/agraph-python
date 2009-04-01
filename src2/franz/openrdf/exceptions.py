@@ -21,70 +21,70 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-class IllegalOptionException(Exception):
+class IllegalOptionException(object):
     pass
 
-class IllegalArgumentException (Exception):
+class IllegalArgumentException (object):
     pass
 
-class InitializationException(Exception):
+class InitializationException(object):
     pass
 
-class UnimplementedMethodException(Exception):
+class UnimplementedMethodException(object):
     pass
 
-class IllegalStateException (Exception):
+class IllegalStateException (object):
     pass
 
-class AllegroGraphException (Exception):
+class AllegroGraphException (object):
     pass
 
-class IOException (Exception):
+class IOException (object):
     pass
 
-class InterruptedException (Exception):
+class InterruptedException (object):
     pass
 
-class ConnectException(Exception):
+class ConnectException(object):
     pass
 
-class BadnessException(Exception):
+class BadnessException(object):
     """
     General badness with no explanation.
     """
     pass
 
-class JDBCException(Exception):
+class JDBCException(object):
     """
     Exception during iterator over a JDBC ResultSet
     """
     pass
 
-class RDFHandlerException(Exception):
+class RDFHandlerException(object):
     pass
 
-class BadFormatException(Exception):
+class BadFormatException(object):
     pass
 
-class ServerException(Exception):
+class ServerException(object):
     pass
 
-class QuerySyntaxException(Exception):
+class QuerySyntaxException(object):
     """
     Illegal Common Logic syntax
     """
 
-class QueryMissingFeatureException(Exception):
+class QueryMissingFeatureException(object):
     """
     Source language evokes a feature not supported by the execution language
     """
     
 
-#class NiceException(Exception):
+#class NiceException(object):
 #    pass
 #
-#class RuntimeException(Exception):
+#class RuntimeException(object):
 #    pass
 #
-#class FakeException(Exception):
+#class FakeException(object):
 #    pass
