@@ -37,6 +37,7 @@ from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
+import datetime
 import os
 
 
@@ -262,12 +263,16 @@ class RepositoryConnection(object):
             endTerm = term.getUpperBound()
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         elif isinstance(term, (tuple, list)):
+            return [self._convert_term_to_mini_term(t, predicate_for_object=predicate_for_object) for t in term]
+        ## OBSOLETE: CONVERT LIST TO RANGE LITERAL:
+        elif isinstance(term, (tuple, list)):
             factory = self.getValueFactory()
             beginTerm = factory.object_position_term_to_openrdf_term(term[0])
             factory.validateRangeConstant(beginTerm, predicate_for_object)
             endTerm = factory.object_position_term_to_openrdf_term(term[1])
             factory.validateRangeConstant(endTerm, predicate_for_object)            
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
+        ## END OBSOLETE
         elif predicate_for_object:
             term = factory.object_position_term_to_openrdf_term(term, predicate=predicate_for_object)
             return self._to_ntriples(term)
@@ -289,8 +294,10 @@ class RepositoryConnection(object):
         if isinstance(object, GeoSpatialRegion):
             return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit)
         else:
+            #MINITIMER = datetime.datetime.now()
             stringTuples = self._get_mini_repository().getStatements(subj, pred, obj, cxt,
                  infer=includeInferred, limit=limit, tripleIDs=tripleIDs)
+            #print "mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER)
             return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
 
     def getStatementsById(self, ids):
@@ -531,7 +538,6 @@ class RepositoryConnection(object):
                 quad[0] = self._to_ntriples(q[0])
                 quad[1] = self._to_ntriples(predicate)
                 quad[2] = self._to_ntriples(obj)
-                print "QQQQQUAD2", obj.__class__, quad[2],
                 quad[3] = self._to_ntriples(q[3])
             else: # must be a statement
                 predicate = q.getPredicate()
