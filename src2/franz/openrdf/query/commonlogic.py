@@ -273,6 +273,7 @@ class QueryBlock:
         self.contexts_clause = None
         self.distinct = False
         self.limit = -1
+        self.input_bindings = None
         self.temporary_enumerations = {}
         
     def stringify(self, newlines=False): 
@@ -321,7 +322,7 @@ class Term:
             elif self.datatype in [XSD.INTEGER, XSD.NUMBER]:
                 return self.value
             else:
-                return '"%s"<%s>' % (self.value, self.datatype)
+                return '"%s"^^<%s>' % (self.value, self.datatype)
         elif self.term_type == Term.ARTIFICIAL:
             return self.value
 
@@ -1457,7 +1458,21 @@ class Normalizer:
         if didIt[0]:
             self.flatten_nested_ands()
      
-
+    def convert_select_constants_to_input_bindings(self, include_stupid_filter_clauses=True):
+        selectTerms = self.parse_tree.select_terms
+        auxiliaryInputBindings = {}
+        stupidFilterClauses = []
+        for i, arg in enumerate(selectTerms):
+            if not arg.term_type == Term.VARIABLE:
+                freshVbl = self.get_fresh_variable()
+                selectTerms[i] = freshVbl
+                auxiliaryInputBindings[freshVbl.value] = str(arg)
+                if include_stupid_filter_clauses:
+                    stupidFilterClauses.append(OpExpression(OpExpression.EQUALITY, [freshVbl, freshVbl]))
+        self.parse_tree.input_bindings = auxiliaryInputBindings
+        for clause in stupidFilterClauses:
+            self.conjoin_to_where_clause(clause)
+        
     ###########################################################################################################
     ## Language-specific Normalization Scripts
     ###########################################################################################################
@@ -1495,6 +1510,7 @@ class Normalizer:
         self.denormalize_filter_ands()
         self.flatten_nested_ands()
         self.color_filter_nodes()
+        self.convert_select_constants_to_input_bindings()
 
 def pc(msg, parse_tree):
     print msg, str(StringsBuffer(complain='SILENT').common_logify(parse_tree))
@@ -1873,20 +1889,20 @@ def translate_common_logic_query(query, preferred_language='PROLOG', contexts=No
             translation = str(StringsBuffer(complain=complain).sparqlify(trans.parse_tree))
         else:
             raise IllegalOptionException("No translation available for the execution language '{0}'".format(language))
-        return translation, trans.parse_tree.contexts_clause, trans.parse_tree.temporary_enumerations
+        return translation, trans.parse_tree.contexts_clause, trans.parse_tree.input_bindings, trans.parse_tree.temporary_enumerations
     
     try:
         preferred_language = preferred_language or 'PROLOG'
-        translation, contexts, temporary_enumerations = help_translate(preferred_language)
+        translation, contexts, input_bindings, temporary_enumerations = help_translate(preferred_language)
         successfulLanguage = preferred_language
     except QueryMissingFeatureException, e1:
         try:
             otherLanguage = 'SPARQL' if preferred_language == 'PROLOG' else 'PROLOG'
-            translation, contexts, temporary_enumerations = help_translate(otherLanguage)
+            translation, contexts, input_bindings, temporary_enumerations = help_translate(otherLanguage)
             successfulLanguage = otherLanguage
         except QueryMissingFeatureException:
             return None, None, None, e1
-    return translation, contexts, temporary_enumerations, successfulLanguage, None
+    return translation, contexts, input_bindings, temporary_enumerations, successfulLanguage, None
 
 def contexts_to_uris(context_terms, repository_connection):
     """
@@ -2024,7 +2040,7 @@ where (?o in [http://www.wildsemantics.com/systemworld#World]) and
 
 """
 
-query20 = """
+query20 = """(select (?s <http:foo#bar>) where (triple ?s ?p ?o))
  
 """
 
@@ -2067,7 +2083,7 @@ if __name__ == '__main__':
     elif switch == 17: translate(query17)    
     elif switch == 18: translate(query18) # NEGATION    
     elif switch == 19.1: translate(query19i)        
-    elif switch == 20: translate(query20)                
+    elif switch == 20: translate(query20)
     elif switch == 20.1: translate(query20i)            
     else:
         print "There is no test number %s" % switch

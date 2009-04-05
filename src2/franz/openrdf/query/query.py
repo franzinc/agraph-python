@@ -233,10 +233,15 @@ class Query(object):
             query = expandPrologQueryPrefixes(self.queryString, conn)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
-            query, contexts, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
+            query, contexts, auxiliary_input_bindings, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
                                     preferred_language=self.preferred_execution_language, contexts=namedContexts)
             if contexts and not namedContexts:
                 namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, conn)]
+            if auxiliary_input_bindings:
+                bindings = bindings or {}
+                for vbl, val in auxiliary_input_bindings.items():
+                    print "AUX", vbl, " VAL", val
+                    bindings[vbl] = val
             self.actual_execution_language = lang ## for debugging
             if lang == 'SPARQL':
                 trace_it("         SPARQL QUERY", query)                
