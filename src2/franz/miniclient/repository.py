@@ -73,11 +73,11 @@ class Repository:
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
         if (bindings is not None):
-            bindings = [a + " " + b for a, b in bindings.items()]
+            bindings = "".join(["&$" + urllib.quote(a) + "=" + urllib.quote(b.encode("utf-8")) for a, b in bindings.items()])
         return jsonRequest(self.curl, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                                  environment=self.environment, bind=bindings, planner=planner,
-                                  checkVariables=checkVariables),
+                                  environment=self.environment, planner=planner,
+                                  checkVariables=checkVariables) + (bindings or ""),
                            rowreader=callback and RowReader(callback))
 
     def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
