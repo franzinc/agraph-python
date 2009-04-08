@@ -64,7 +64,7 @@ class Repository:
         return jsonRequest(self.curl, "GET", self.url + "/writeable")
 
     def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
-                        bindings=None, planner=None):
+                        bindings=None, planner=None, checkVariables=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -76,7 +76,8 @@ class Repository:
             bindings = [a + " " + b for a, b in bindings.items()]
         return jsonRequest(self.curl, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                                  environment=self.environment, bind=bindings, planner=planner),
+                                  environment=self.environment, bind=bindings, planner=planner,
+                                  checkVariables=checkVariables),
                            rowreader=callback and RowReader(callback))
 
     def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
