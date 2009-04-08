@@ -16,7 +16,7 @@ class Catalog:
     def listTripleStores(self):
         """Returns the names of open stores on the server."""
         repos = jsonRequest(self.curl, "GET", self.url + "/repositories")
-        return [repo["id"][1:-1].replace("\\\"", "\"").replace("\\\\", "\\") for repo in repos]
+        return [repo["id"] for repo in repos]
 
     def createTripleStore(self, name):
         """Ask the server to create a new triple store."""
@@ -449,14 +449,8 @@ def test2():
     print [x[0] for x in rep.getStatementsHaversine(typ2, "\"loc\"", 50, 0, 1000)]
     print [x[0] for x in rep.getStatementsInsideBox(typ2, "\"loc\"", 0.08, 0.09, 51.0, 52.0)]
 
-def test3():
-    cat = Catalog("http://localhost:8080/catalogs/ag")
-    cat.federateTripleStores("all2", ["test", "test2", "goober"])
-    rep = cat.getRepository("all2")
-    print rep.getStatements()
-
 if __name__ == '__main__':
-    choice = 3
+    choice = 1
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()
