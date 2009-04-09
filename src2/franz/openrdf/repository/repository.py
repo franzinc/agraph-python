@@ -86,26 +86,32 @@ class Repository:
         
         TODO: FIGURE OUT WHAT 'REPLACE' DOES
         """
+        def remove_double_quotes(name):
+            if name.startswith('"'):
+                name = name[1:-1]
+            return name
         #clearIt = False
         quotedDbName = urllib.quote_plus(self.database_name)
         miniCat = self.mini_catalog
+        repositoryNames = [remove_double_quotes(name) for name in miniCat.listTripleStores()]
         if self.access_verb == Repository.RENEW:
-            if quotedDbName in miniCat.listTripleStores():
+            print "QUOTED DB NAME", quotedDbName
+            if quotedDbName in repositoryNames:
                 ## not nice, since someone else probably has it open:
                 miniCat.deleteTripleStore(quotedDbName)
             self._create_triple_store(quotedDbName)                    
         elif self.access_verb == Repository.CREATE:
-            if quotedDbName in miniCat.listTripleStores():
+            if quotedDbName in repositoryNames:
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
                     quotedDbName)
             self._create_triple_store(quotedDbName)
         elif self.access_verb == Repository.OPEN:
-            if not quotedDbName in miniCat.listTripleStores():
+            if not quotedDbName in repositoryNames:
                 raise ServerException(
                     "Can't open a triple store named '{0}' because there is none.".format(quotedDbName))
         elif self.access_verb == Repository.ACCESS:
-            if not quotedDbName in miniCat.listTripleStores():
+            if not quotedDbName in repositoryNames:
                 self._create_triple_store(quotedDbName)      
         self.mini_repository = miniCat.getRepository(quotedDbName)
 #        ## we are done unless a RENEW requires us to clear the store

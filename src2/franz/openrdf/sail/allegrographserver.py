@@ -113,7 +113,11 @@ class Catalog(object):
         Return a list of names of repositories (triple stores) managed by
         this catalog.
         """
-        return self.mini_catalog.listTripleStores()
+        def remove_double_quotes(name):
+            if name.startswith('"'):
+                name = name[1:-1]
+            return name
+        return [remove_double_quotes(rep) for rep in self.mini_catalog.listTripleStores()]
     
     def getRepository(self, name, access_verb, multi_threaded_mode=False):
         return Repository(self, name, access_verb, multi_threaded_mode=multi_threaded_mode)

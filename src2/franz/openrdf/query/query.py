@@ -81,6 +81,7 @@ class Query(object):
         self.includeInferred = False
         self.bindings = {}
         self.connection = None
+        self.checkVariables = False
         ## CommonLogic parameters:
         self.preferred_execution_language = None
         self.actual_execution_language = None
@@ -158,6 +159,13 @@ class Query(object):
         """ 
         return self.includeInferred
     
+    def setCheckVariables(self, setting):
+        """
+        If true, the presence of variables in the select clause not referenced in a triple
+        are flagged.
+        """
+        self.checkVariables = setting
+    
     def setConnection(self, connection):
         """
         Internal call to embed the connection into the query.
@@ -226,7 +234,8 @@ class Query(object):
         if self.queryLanguage == QueryLanguage.SPARQL:  
             query = splicePrefixesIntoQuery(self.queryString, conn)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred, bindings=bindings, planner='identity')            
+                                            infer=self.includeInferred, bindings=bindings, planner='identity',
+                                            checkVariables=self.checkVariables)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
