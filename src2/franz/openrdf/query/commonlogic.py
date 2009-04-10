@@ -74,7 +74,7 @@ class Token:
     BRACKET_SET = set(['(', ')', '[', ']',])
     RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'MEMBER', 'TRUE', 'FALSE', 'LIST',
                              '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD',
-                             'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT',
+                             'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT', 'ORDER', 'BY',
                              'REGEX',])
     
     def __init__(self, token_type, value):
@@ -241,11 +241,20 @@ class Tokenizer():
         newToken = self.tokens[len(self.tokens) - 1]
         newToken.offset = len(self.source_string) - len(suffix) - len(newToken.value)
         return suffix
-
+    
     def tokenize(self):
         suffix = self.source_string
         while suffix:
             suffix = self.tokenize_next(suffix)
+        ## combine 'ORDER BY' tokens into one
+        for i, tok in enumerate(self.tokens):
+            if tok.value == 'ORDER' and tok.token_type == Token.RESERVED_WORD:
+                if len(self.tokens) > i:
+                    nextTok = self.tokens[i + 1]
+                    if nextTok.value == 'BY' and nextTok.token_type == Token.RESERVED_WORD:
+                        self.tokens[i] = Token(Token.RESERVED_WORD, 'ORDERBY')
+                        del self.tokens[i + 1]
+                        break
         #print "TOKENIZED", [str(t) for t in self.tokens]
         return self.tokens
     
@@ -264,6 +273,7 @@ DISTINCT = 'distinct'
 FROM = 'from'
 WHERE = 'where'
 LIMIT = 'limit'
+ORDER_BY = 'orderby'
 
 class QueryBlock:
     def __init__(self, query_type=SELECT):
@@ -273,6 +283,7 @@ class QueryBlock:
         self.contexts_clause = None
         self.distinct = False
         self.limit = -1
+        self.order_by = None
         self.input_bindings = None
         self.temporary_enumerations = {}
         
@@ -369,7 +380,8 @@ class OpExpression:
     @staticmethod
     def parse_operator(value):
         value = value.upper()
-        if not value in OPERATOR_EXPRESSIONS and not value in ['SELECT', 'DISTINCT', 'WHERE', 'CONTEXTS', 'LIMIT']:
+        if not value in OPERATOR_EXPRESSIONS and not value in ['SELECT', 'DISTINCT', 'WHERE', 'CONTEXTS', 'LIMIT',
+                                                                'ORDER', 'BY', 'ORDERBY']:
             raise Exception("Need to add '%s' to list of OPERATOR_EXPRESSIONS" % value)
         return value
     
@@ -797,6 +809,23 @@ class CommonLogicTranslator:
             return int(token.value)
         else:
             self.syntax_exception("'limit' operator expects an integer argument", token)
+
+    def parse_order_by_clause(self, tokens):
+        if not tokens:
+            self.syntax_exception("Order by clause is empty", tokens)
+        if tokens[0].value == '(':
+            beginToken = tokens[0]
+            endToken = tokens[len(tokens) - 1]
+            if not (beginToken.value == '(' and endToken.value == ')'):
+                self.syntax_exception("Begin and end parentheses needed to bracket contents of ORDER BY clause", tokens)
+            tokens = tokens[1:-1]
+        variables = []
+        for token in tokens:
+            if token.token_type == Token.VARIABLE:
+                variables.append(self.token_to_term(token))
+            else:
+                self.syntax_exception("Found term '%s' where variable expected" % token.value, token)
+        return variables
             
     def parse(self):
         """
@@ -828,10 +857,12 @@ class CommonLogicTranslator:
         whereToken = None
         contextsToken = None
         limitToken = None
+        orderByToken = None
         for tok in tokens:
             if found_one(tok, 'where', whereToken): whereToken = tok
             if found_one(tok, 'distinct', distinctToken): distinctToken = tok
             if found_one(tok, 'limit', limitToken): limitToken = tok                        
+            if found_one(tok, 'orderby', orderByToken): orderByToken = tok                                    
             if found_one(tok, 'contexts', contextsToken): contextsToken = tok    
         if distinctToken:
             if not distinctToken == tokens[1]:
@@ -851,17 +882,30 @@ class CommonLogicTranslator:
             lastWhereTokenIndex = min(lastWhereTokenIndex, contextsToken.index)
         if limitToken: 
             lastWhereTokenIndex = min(lastWhereTokenIndex, limitToken.index)
+        if orderByToken: 
+            lastWhereTokenIndex = min(lastWhereTokenIndex, orderByToken.index)
         qb.where_clause = self.parse_where_clause(tokens[whereToken.index + 1:lastWhereTokenIndex])
         if contextsToken:
             lastContextsTokenIndex = len(tokens)
             if limitToken and limitToken.index > contextsToken.index:  
                 lastContextsTokenIndex = min(lastContextsTokenIndex, limitToken.index)
+            if orderByToken and orderByToken.index > contextsToken.index: 
+                lastContextsTokenIndex = min(lastContextsTokenIndex, orderByToken.index)
             qb.contexts_clause = self.parse_contexts_clause(tokens[contextsToken.index + 1:lastContextsTokenIndex])
         if limitToken:
             lastLimitTokenIndex = len(tokens)
+            if orderByToken and orderByToken.index > limitToken.index:  
+                lastLimitTokenIndex = min(lastLimitTokenIndex, orderByToken.index)
             if contextsToken and contextsToken.index > limitToken.index:  
                 lastLimitTokenIndex = min(lastLimitTokenIndex, contextsToken.index)
             qb.limit = self.parse_limit_clause(tokens[limitToken.index + 1:lastLimitTokenIndex])
+        if orderByToken:
+            lastOrderByTokenIndex = len(tokens)
+            if limitToken and limitToken.index > orderByToken.index:  
+                lastOrderByTokenIndex = min(lastOrderByTokenIndex, limitToken.index)
+            if contextsToken and contextsToken.index > limitToken.index:  
+                lastOrderByTokenIndex = min(lastOrderByTokenIndex, contextsToken.index)
+            qb.order_by = self.parse_order_by_clause(tokens[orderByToken.index + 1:lastOrderByTokenIndex])
        
 
 ###########################################################################################################
@@ -1618,6 +1662,8 @@ class StringsBuffer:
                 self.indent(1).append('\ncontexts (').common_logify(term.contexts_clause, delimiter=' ').append(')')
             if term.limit >= 0:
                 self.indent(1).append('\nlimit ' + str(term.limit))
+            if term.order_by:
+                self.indent(1).append('\norder by (').common_logify(term.order_by, delimiter=' ').append(')')
             self.append(')')
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
@@ -1793,8 +1839,10 @@ class StringsBuffer:
             self.append('where ').append('{ ')
             self.indent(6).sparqlify(term.where_clause, suppress_curlies=True)
             self.append(' }')
+            if term.order_by:            
+                self.indent(0).append('\norder by ').sparqlify(term.order_by, delimiter=' ')                                                 
             if term.limit >= 0:
-                self.indent(0).append('\nlimit ' + str(term.limit))                                
+                self.indent(0).append('\nlimit '+ str(term.limit))  
         elif isinstance(term, OpExpression):
             if term.operator in [OpExpression.AND, OpExpression.OR]:
                 ## are we joining triples or filters? look at first non-connective in descendants
@@ -2040,7 +2088,11 @@ where (?o in [http://www.wildsemantics.com/systemworld#World]) and
 
 """
 
-query20 = """(select (?s <http:foo#bar>) where (triple ?s ?p ?o))
+query20 = """ (select distinct (?s) where
+     (and  (triple ?s <http://www.wildsemantics.com/systemworld#smartLink> ?lliinnkk)  )
+order by  ?obj0 limit 10  
+)
+
  
 """
 

@@ -73,7 +73,7 @@ class XMLSchema:
     UNSIGNED_BYTE = None 
     
     ## map of uri strings to URI objects:
-    name2URI = {}
+    #name2URI = {}
     
     @staticmethod
     def initialize(factory):
