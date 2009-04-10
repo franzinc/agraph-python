@@ -102,7 +102,7 @@ class Literal(Value):
         return datetime.datetime(self.getLabel())
 
     def timeValue(self):
-        return time.time(self.getLabel())
+        return datetime.time(self.getLabel())
 
     
     ## Returns the {@link XMLGregorianCalendar} value of this literal. A calendar
@@ -147,7 +147,7 @@ class Literal(Value):
             Literal.XSDToPython = {str(XMLSchema.INT): int, str(XMLSchema.FLOAT): float, 
                                    str(XMLSchema.LONG): long, XMLSchema.BOOLEAN: bool,
                                    str(XMLSchema.DATETIME): datetime.datetime,
-                                   str(XMLSchema.TIME): time.time,}
+                                   str(XMLSchema.TIME): datetime.time,}
 
     def toPython(self):
         """
@@ -172,7 +172,7 @@ class Literal(Value):
                     return self.booleanValue()
                 elif conversion == datetime.datetime:
                     return self.datetimeValue()
-                elif conversion == time.time:
+                elif conversion == datetime.time:
                     return self.timeValue()
                 else:
                     return conversion(self.label)

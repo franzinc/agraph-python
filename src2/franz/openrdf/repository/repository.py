@@ -95,7 +95,6 @@ class Repository:
         miniCat = self.mini_catalog
         repositoryNames = [remove_double_quotes(name) for name in miniCat.listTripleStores()]
         if self.access_verb == Repository.RENEW:
-            print "QUOTED DB NAME", quotedDbName
             if quotedDbName in repositoryNames:
                 ## not nice, since someone else probably has it open:
                 miniCat.deleteTripleStore(quotedDbName)
