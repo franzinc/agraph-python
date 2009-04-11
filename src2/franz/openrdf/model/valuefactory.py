@@ -76,14 +76,14 @@ class ValueFactory(object):
         elif isinstance(value, float):
             return str(value), datatype or XMLSchema.FLOAT
         elif isinstance(value, datetime.datetime):
-            ## TODO: NEED TO ADD TIMEZONE:
-            value = value.strftime("%Y-%m-%dT%H:%M:%S") ## truncate microseconds  
-            return str(value), datatype or XMLSchema.DATETIME
+            ## TODO: NEED TO ADD TIMEZONE VALUE??:
+            value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## truncate microseconds  
+            return value, datatype or XMLSchema.DATETIME
         elif isinstance(value, datetime.time):
-            value = value.strftime("%Y-%m-%dT%H:%M:%S") ## UNTESTED
+            value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
             return str(value), datatype or XMLSchema.TIME
         elif isinstance(value, datetime.date):
-            value = value.strftime("%Y-%m-%dT%H:%M:%S") ## UNTESTED
+            value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
             return str(value), datatype or XMLSchema.DATE
         else:
             return str(value), datatype

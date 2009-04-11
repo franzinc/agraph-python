@@ -65,6 +65,9 @@ class Repository:
         self.federated_triple_stores = None
         self.mapped_predicates = {}
         self.mapped_datatypes = {}
+        ## make sure that ValueFactory is initialized:
+        #self.getConnection()
+        #self.getValueFactory()
          
     def getDatabaseName(self):
         """
@@ -154,6 +157,9 @@ class Repository:
 #        print "ENV", self.environment
 #        self.mini_repository.deleteEnvironment(self.environment)
 #        print "ENV AfTER", self.mini_repository.listEnvironments()
+        ## tricky: 'Literal' can be called before ValueFactory is initialized, causing
+        ## it to break.  Here we make sure its up:
+        self.getValueFactory()
         self.is_initialized = True
         return self    
     

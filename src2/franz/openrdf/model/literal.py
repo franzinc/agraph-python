@@ -48,6 +48,7 @@ class Literal(Value):
         self.datatype = datatype
         self.language = language.lower() if language else None
         self.label = label
+    ISO_FORMAT_WITH_T = "%Y-%m-%dT%H:%M:%S"
     XSDToPython = None
      
     def getLabel(self): return self.label
@@ -99,9 +100,10 @@ class Literal(Value):
         return bool(self.getLabel())
     
     def datetimeValue(self):
-        return datetime.datetime(self.getLabel())
+        return datetime.datetime.strptime(self.getLabel(), Literal.ISO_FORMAT_WITH_T)
 
     def timeValue(self):
+        ## THIS IS GOING TO BREAK:
         return datetime.time(self.getLabel())
 
     
