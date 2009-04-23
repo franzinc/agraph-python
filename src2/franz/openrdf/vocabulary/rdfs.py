@@ -25,7 +25,7 @@
 from franz.openrdf.exceptions import *
 
 class RDFS:
-    NAMESPACE = "http://www.w3.org/2000/01/rdf-schema"
+    NAMESPACE = "http://www.w3.org/2000/01/rdf-schema#"
     RESOURCE = None
     LITERAL = None
     CLASS = None
