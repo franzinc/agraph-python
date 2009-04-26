@@ -157,11 +157,10 @@ class RepositoryConnection(object):
         the triple store.  Omit the default context, since no one had the intelligence to
         make it a first-class object.
         """                         
-        print "Executing relatively slow computation to compute the set of contexts."
-        queryString = "select distinct ?c where {graph ?c {?s ?p ?o}}"
-        query = self.prepareTupleQuery(QueryLanguage.SPARQL, queryString, None)
-        result = query.evaluate()
-        return [bs[0] for bs in result]
+        contexts = []
+        for cxt in self._get_mini_repository().listContexts():
+            contexts.append(self.createURI(cxt))
+        return contexts
 
 
 #     * Returns the number of (explicit) statements that are in the specified
