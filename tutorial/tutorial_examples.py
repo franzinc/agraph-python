@@ -160,7 +160,16 @@ def test5():
             print "%s %s %s" % (s, p, o)
     fortyTwoInt = conn.createLiteral(42)
     print fortyTwoInt.toPython()
-
+    print "HERE IS THE DATE"
+    for s in conn.getStatements(None, None, '"1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>'):
+        print s
+        queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>)}"""
+        queryString = """SELECT ?s ?p WHERE {?s ?p  "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""        
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        result = tupleQuery.evaluate();    
+        for bindingSet in result:
+            print bindingSet
+            
 def test6():
     conn = test1()
     conn.clear()   

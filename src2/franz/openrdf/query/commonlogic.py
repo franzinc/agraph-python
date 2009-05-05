@@ -22,6 +22,8 @@
 
 
 from franz.openrdf.exceptions import *
+from franz.openrdf.model.value import Value
+from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 import datetime
 import time
@@ -72,7 +74,8 @@ class Token:
     RESERVED_WORD = 'RESERVED_WORD'
     NUMBER = 'NUMBER'
     BRACKET_SET = set(['(', ')', '[', ']',])
-    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'MEMBER', 'TRUE', 'FALSE', 'LIST',
+    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'NAF', 'OPTIONAL', 'MEMBER', 'IMPLIES', 
+                             'FORALL', 'EXISTS', 'TRUE', 'FALSE', 'LIST',
                              '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD',
                              'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT', 'ORDER', 'BY',
                              'REGEX',])
@@ -341,8 +344,8 @@ ARTIFICIAL_TERMS = set(['TRIPLE', 'QUAD'])
 ARITHMETIC_OPERATORS = set(['+', '-'])
 COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
 PREFIX_OPERATORS = set(['REGEX'])
-UNARY_BOOLEAN_OPERATORS = set(['NOT', 'OPTIONAL'])
-BOOLEAN_OPERATORS = set(['AND', 'OR', 'MEMBER']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS).union(PREFIX_OPERATORS)
+UNARY_BOOLEAN_OPERATORS = set(['NOT', 'NAF', 'OPTIONAL'])
+BOOLEAN_OPERATORS = set(['AND', 'OR', 'MEMBER', 'IMPLIES', 'FORALL', 'EXISTS']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS).union(PREFIX_OPERATORS)
 VALUE_OPERATORS = ARITHMETIC_OPERATORS
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
 OPERATOR_EXPRESSIONS = (CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(ARTIFICIAL_TERMS)
@@ -352,8 +355,12 @@ class OpExpression:
     AND = 'AND'
     OR = 'OR'
     NOT = 'NOT'
+    NAF = 'NAF'
     IN = 'MEMBER'
-    OPTIONAL = 'OPTIONAL'    
+    OPTIONAL = 'OPTIONAL'
+    IMPLIES = 'IMPLIES'
+    FORALL = 'FORALL'
+    EXISTS = 'EXISTS'    
     ENUMERATION = 'ENUMERATION'
     PREDICATION = 'PREDICATION'
     TRUE = 'TRUE'
@@ -720,7 +727,7 @@ class CommonLogicTranslator:
                 return self.parse_infix_expression(tokens[1:], arguments, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
             if tokenType == Token.BRACKET:
                 return self.parse_bracket(tokens, arguments, connective=connective, is_boolean=is_boolean)
-            elif Token.reserved_type(beginToken, [OpExpression.NOT, OpExpression.OPTIONAL]) and is_boolean:
+            elif Token.reserved_type(beginToken, [OpExpression.NOT, OpExpression.NAF, OpExpression.OPTIONAL]) and is_boolean:
                 return self.parse_unary_connective(tokens, arguments, connective=connective)
             elif Token.reserved_type(beginToken, [OpExpression.TRUE, OpExpression.FALSE]) and is_boolean:
                     arguments.append(OpExpression(beginToken.value, []))
@@ -913,9 +920,10 @@ class CommonLogicTranslator:
 ###########################################################################################################
 
 class Normalizer:
-    def __init__(self, parse_tree, language, contexts=None):
+    def __init__(self, parse_tree, language, contexts=None, spoify_output='False'):
         self.parse_tree = parse_tree
         self.language = language
+        self.spoify_output = spoify_output
         self.variable_counter = -1
         self.recompute_backlinks()
         def deanglify(context):
@@ -1209,7 +1217,8 @@ class Normalizer:
             if p_or_true:
                 notP = OpExpression(OpExpression.TRUE, [])
             else:
-                notP = OpExpression(OpExpression.NOT, [argCopy])
+                #notP = OpExpression(OpExpression.NOT, [argCopy])
+                notP = OpExpression(OpExpression.NAF, [argCopy])
             pOrNotP = OpExpression(OpExpression.OR, [arg, notP])
             self.substitute_node(node, pOrNotP)
         self.walk(doit, types=OpExpression, external_value=self)
@@ -1252,10 +1261,98 @@ class Normalizer:
         self.walk(doit, types=OpExpression, external_value=self)
         if didIt[0]:
             self.recompute_backlinks()
-
+            
+    def implies_to_or_nots(self):
+        """
+        Convert (implies P Q) to (or (naf P) Q).
+        """
+        didIt = [False]
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.IMPLIES:
+                notOp = OpExpression(OpExpression.NOT, [node.arguments[0]])
+                orOp = OpExpression(OpExpression.OR, [notOp, node.arguments[1]])
+                sseellff.substitute_node(node, orOp)
+                didIt[0] = True
+        self.walk(doIt, OpExpression, external_value=self)
+        if didIt[0]:
+            self.recompute_backlinks()
+        
+    def foralls_to_not_exist_nots(self):
+        """
+        Convert (forall ?x P) to (not (exists ?x (not P))), i.e., apply
+        deMorgans to eliminate 'forall's
+        """
+        didIt = [False]
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.FORALL:
+                notOp = OpExpression(OpExpression.NOT, [node.arguments[1]])
+                existsOp = OpExpression(OpExpression.EXISTS, [node.arguments[0], notOp])
+                notOpToo = OpExpression(OpExpression.NOT, [existsOp])
+                sseellff.substitute_node(node, notOpToo)
+                didIt[0] = True
+        self.walk(doIt, OpExpression, external_value=self)
+        if didIt[0]:
+            self.recompute_backlinks()
+        
+    def push_nots_inwards(self, start_node=None):
+        """
+        Convert '(not (and P Q))' to (or (not P) (not Q)) and
+        '(not (or P Q))' to '(and (not P) (not Q))'
+        """
+        didIt = [False]
+        def negate(node, sseellff, op):
+            """
+            Wrap a 'not' around 'node', unless that creates double negation,
+            in which case replace 'node' by its argument'
+            """
+            if node.operator == op:
+                ## double negation
+                arg = node.arguments[0]
+                sseellff.substitute_node(node, arg)
+                arg.parent = node.parent
+                return arg
+            else:
+                notOp = OpExpression(op, [node.clone()])
+                sseellff.substitute_node(node, notOp)
+                notOp.arguments[0].parent = notOp
+                notOp.parent = node.parent
+                return notOp
+        def doIt(node, parent, sseellff):             
+            if node.operator in [OpExpression.NOT, OpExpression.NAF]:
+                notArg = node.arguments[0]
+                if notArg.operator == node.operator:
+                    ## eliminate double negation:
+                    arg = notArg.arguments[0]
+                    sseellff.substitute_node(node, arg)
+                    arg.parent = node.parent
+                    return
+                if not notArg.operator in [OpExpression.AND, OpExpression.OR]: return
+                for arg in notArg.arguments[:]:
+                    negate(arg, sseellff, node.operator)
+                if notArg.operator == OpExpression.AND:
+                    notArg.operator = OpExpression.OR
+                elif notArg.operator == OpExpression.OR:
+                    notArg.operator = OpExpression.AND                
+                sseellff.substitute_node(node, notArg)
+                notArg.parent = node.parent             
+                sseellff.push_nots_inwards(start_node=notArg)
+                didIt[0] = True
+        self.walk(doIt, OpExpression, external_value=self, start_node=start_node)
+        if didIt[0]:
+            self.recompute_backlinks()
+            
     ###########################################################################################################
     ## PROLOG-specific
     ###########################################################################################################
+    
+    def nots_to_nafs(self):
+        """
+        Convert all 'not' operators to 'naf', since Prolog has no analog of classical negation.
+        """
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.NOT:
+                node.operator = OpExpression.NAF
+        self.walk(doIt, OpExpression)
     
     def filter_quad_contexts(self):
         """
@@ -1321,9 +1418,14 @@ class Normalizer:
         """
         def doit(node, parent, external_value):
             if node.operator == OpExpression.PREDICATION and node.predicate and not node.is_spo:
-                predicate = node.predicate
-                subject = node.arguments[0]
-                object = node.arguments[1]
+                if len(node.arguments) == 1:
+                    predicate = Term(Term.RESOURCE, None, qname="rdf:type")                    
+                    subject = node.arguments[0]                    
+                    object = node.predicate
+                else:
+                    predicate = node.predicate
+                    subject = node.arguments[0]
+                    object = node.arguments[1]
                 node.context = node.arguments[2] if len(node.arguments) == 3 else None
                 node.predicate = 'QUAD' if node.context else 'TRIPLE'
                 node.arguments = [subject, predicate, object]
@@ -1475,9 +1577,12 @@ class Normalizer:
         """
         didIt = [False]
         def doit(node, parent, sseellff):
-            if not node.operator == OpExpression.NOT: return
+            if not node.operator in [OpExpression.NAF, OpExpression.NOT]: return
             tripleNode = node.arguments[0]
             if not (tripleNode.operator == OpExpression.PREDICATION and tripleNode.is_spo): return
+            if node.operator == OpExpression.NOT:
+                ## convert 'NOT' into 'NAF', since we don't support classical negation
+                node.operator = OpExpression.NAF
             objArg = tripleNode.arguments[2]
             isSimple = (objArg.term_type == Term.VARIABLE and 
                         True) #sseellff.is_unique_variable_within_where_clause(objArg))
@@ -1493,7 +1598,8 @@ class Normalizer:
                 optionalNode = OpExpression(OpExpression.OPTIONAL, [innerAndNode])
                 boundNode =  OpExpression(OpExpression.PREDICATION, [freshVar])
                 boundNode.predicate = 'bound'
-            notNode = OpExpression(OpExpression.NOT, [boundNode])
+            #notNode = OpExpression(OpExpression.NOT, [boundNode])
+            notNode = OpExpression(OpExpression.NAF, [boundNode])
             outerAndNode = OpExpression(OpExpression.AND, [optionalNode, notNode])
             sseellff.substitute_node(node, outerAndNode)
             sseellff.recompute_backlinks()
@@ -1523,6 +1629,13 @@ class Normalizer:
     
     def normalize_for_prolog(self):
         self.propagate_constants_to_predications()
+        self.implies_to_or_nots()
+        self.foralls_to_not_exist_nots()
+        ## do this AFTER converting FORALLs, since that generates more NOTs
+        self.push_nots_inwards()
+        self.nots_to_nafs()
+        if self.spoify_output:
+            self.convert_predications_to_spo_nodes()
         if self.contexts:
             self.quadify_triples()            
             self.filter_quad_contexts()
@@ -1537,6 +1650,7 @@ class Normalizer:
         """
         Reorganize the parse tree to be compatible with SPARQL's bizarre syntax.
         """
+        self.implies_to_or_nots()
         self.propagate_constants_to_predications(skip_context_variables=True)
         self.convert_predications_to_spo_nodes()
         self.fix_heterogeneous_disjunctions()
@@ -1713,13 +1827,18 @@ class StringsBuffer:
             elif term.operator in [OpExpression.AND, OpExpression.OR]:                
                 brackets = ('(', ')') if not suppress_parentheses else None
                 self.infix_common_logify(term.arguments, delimiter='\n%s ' % term.operator.lower(), brackets=brackets)
-            elif term.operator in [OpExpression.NOT, OpExpression.OPTIONAL]:
+            elif term.operator in [OpExpression.NOT, OpExpression.NAF, OpExpression.OPTIONAL]:
                 if self.infix_with_prefix_triples:
                     self.append(term.operator.lower()).append('(').infix_common_logify(term.arguments[0]).append(')')
                 else:
                     if not suppress_parentheses: self.append('(')
                     self.append(term.operator.lower() + ' ').infix_common_logify(term.arguments[0])
                     if not suppress_parentheses: self.append(')')                              
+            elif term.operator in [OpExpression.EXISTS, OpExpression.FORALL]:
+                self.append('(').append(term.operator.lower()).append(' ')
+                for arg in term.arguments:              
+                    self.infix_common_logify(arg).append(' ')
+                self.append(')')
             elif term.operator in CONNECTIVE_OPERATORS:
                 self.append('(')                
                 self.infix_common_logify(term.arguments, delimiter=' %s ' % term.operator.lower())
@@ -1786,6 +1905,10 @@ class StringsBuffer:
                     self.prologify(term.arguments, delimiter='\n')
                 else:
                     self.append('(and ').prologify(term.arguments, delimiter='\n').append(')')
+            elif term.operator == OpExpression.EXISTS:
+                self.prologify(term.arguments[1])
+            elif term.operator == OpExpression.NAF:
+                self.append('(not ').prologify(term.arguments[0]).append(')')  
             elif term.operator in COMPARISON_OPERATORS and not term.operator == '=':
                 op = term.operator.lower()
                 ## EXPERIMENT
@@ -1802,9 +1925,10 @@ class StringsBuffer:
             elif term.predicate and self.spoify_output:
                 self.append('(q')
                 self.append(' ').prologify(term.arguments[0]).append(' ').prologify(term.predicate)
-                self.append(' ').prologify(term.arguments[1])
-                if len(term.arguments) > 3:
-                    self.append(' ').prologify(term.arguments[2])
+                for i in range(1, len(term.arguments)):
+                    self.append(' ').prologify(term.arguments[i])
+                #if len(term.arguments) > 3:
+                #   self.append(' ').prologify(term.arguments[2])
                 self.append(')')
             elif term.operator in [OpExpression.OPTIONAL]:
                 self.complain(term, 'OPTIONAL')
@@ -1981,12 +2105,13 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, cont
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').common_logify(trans.parse_tree))    
     print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', infix_with_prefix_triples=trans.infix_with_prefix_triples).infix_common_logify(trans.parse_tree))
-    Normalizer(trans.parse_tree, CommonLogicTranslator.SPARQL).normalize()        
+    Normalizer(trans.parse_tree, CommonLogicTranslator.SPARQL, contexts=contexts).normalize()        
     print "\nSPARQL \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').sparqlify(trans.parse_tree))
     trans = CommonLogicTranslator(cl_select_query)
     trans.parse()    
-    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG, contexts=contexts).normalize()
-    print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_output=True).prologify(trans.parse_tree))    
+    spoify_output = True
+    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG, contexts=contexts, spoify_output=spoify_output).normalize()
+    print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_output=spoify_output).prologify(trans.parse_tree))    
 
 
 query1 = """(select (?s ?o) where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>))"""
@@ -2031,6 +2156,9 @@ query18 = """(select (?s ?o) where (or (triple ?s foaf:name ?o)
                         (and (not (triple ?s foaf:name ?o1))
                              (or (triple ?s foaf:mbox ?o)
                                  (not (triple ?s foaf:mbox ?o2))))))"""
+query19 = """(select (?p)
+  where (and (ex:Person ?p)
+             (forall ?c (implies (ex:hasChild ?p ?c) (ex:Married ?c)))))"""
                                  
 query19i = """select ?o ?lac ?otype ?c2
 where (?o in [ex:foo, ex:bar]) and
@@ -2098,7 +2226,7 @@ order by  ?obj0 limit 10
 
 
 if __name__ == '__main__':
-    switch = 20
+    switch = 19
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -2134,7 +2262,8 @@ if __name__ == '__main__':
     elif switch == 16.1: translate(query16i)  
     elif switch == 17: translate(query17)    
     elif switch == 18: translate(query18) # NEGATION    
-    elif switch == 19.1: translate(query19i)        
+    elif switch == 19: translate(query19) # UNIVERSAL        
+    elif switch == 19.1: translate(query19i, contexts=['ex:c1', 'ex:c2'])        
     elif switch == 20: translate(query20)
     elif switch == 20.1: translate(query20i)            
     else:
