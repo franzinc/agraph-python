@@ -979,4 +979,54 @@ class GeoType:
             miniVertices = [miniRep.createSphericalGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
         miniRep.createPolygon(miniResource, miniVertices)
         return poly
-        
+
+    #############################################################################################
+    ## SNA   Social Network Analysis Methods
+    #############################################################################################
+    
+    def registerSNAGenerator(self, name, adjacency_map=None, generator_query=None):
+        """
+        Create (and remember) a generator named 'name'.
+        If one already exists with the same name; redefine it.
+        'adjacency_map' is a dictionary with keys 'objectsOf' and 'subjectsOf'.
+        The value for each key is a list of predicate URIs, expressed as 
+        fullURIs or qnames, that define the edges traversed by the generator.
+        Alternatively, instead of an adjacency map, one may provide a 'generator_query',
+        that defines the edges.
+        """
+        pass
+
+    def dropSNAGenerator(self, name):
+        """
+        Destroy the generator named 'name'.
+        """
+        pass
+    
+    def listSNAGenerators(self):
+        """
+        Return a list of the names of registered SNA generators.
+        ALTERNATIVELY, CONSIDER RETURNING A DICT THAT CONTAINS GENERATOR NAMES AS KEYS,
+        AND ADJACENCY MAPS AS VALUES
+        """
+        pass
+    
+    def registerNeighborMatrix(self, name, generator, group_uris, max_depth=2):
+        """
+        Construct a neighbor matrix named name.  The generator named 'generator' is applied
+        to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),
+        computing edges to max depth 'max_depth'.
+        """
+        pass
+    
+    def dropNeighborMatrix(self, name):
+        """
+        Destroy the neighbor matrix named 'name'.
+        """
+        pass
+    
+    def listNeighborMatrices(self):
+        """
+        Return a list of the names of registered neighbor matrices
+        """
+        pass
+      

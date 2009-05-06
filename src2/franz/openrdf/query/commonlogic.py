@@ -1296,8 +1296,8 @@ class Normalizer:
         
     def push_nots_inwards(self, start_node=None):
         """
-        Convert '(not (and P Q))' to (or (not P) (not Q)) and
-        '(not (or P Q))' to '(and (not P) (not Q))'
+        Convert '(not (or P Q))' to '(and (not P) (not Q))'
+        Oops: We CANNOT convert '(not (and P Q))' to (or (not P) (not Q)) safely.
         """
         didIt = [False]
         def negate(node, sseellff, op):
@@ -1326,7 +1326,7 @@ class Normalizer:
                     sseellff.substitute_node(node, arg)
                     arg.parent = node.parent
                     return
-                if not notArg.operator in [OpExpression.AND, OpExpression.OR]: return
+                if not notArg.operator in [OpExpression.OR]: return
                 for arg in notArg.arguments[:]:
                     negate(arg, sseellff, node.operator)
                 if notArg.operator == OpExpression.AND:
@@ -1340,6 +1340,34 @@ class Normalizer:
         self.walk(doIt, OpExpression, external_value=self, start_node=start_node)
         if didIt[0]:
             self.recompute_backlinks()
+
+    def convert_predications_to_spo_nodes(self, divert_context=False):
+        """
+        Convert all predications to SPO nodes.
+        if 'divert_context', extract contexts from arguments an insert them into the 'context' attribute
+        """
+        def doit(node, parent, external_value):
+            if node.operator == OpExpression.PREDICATION and node.predicate and not node.is_spo:
+                if len(node.arguments) == 1:
+                    predicate = Term(Term.RESOURCE, None, qname="rdf:type")                    
+                    subject = node.arguments[0]                    
+                    object = node.predicate
+                else:
+                    predicate = node.predicate
+                    subject = node.arguments[0]
+                    object = node.arguments[1]
+                node.context = node.arguments[2] if len(node.arguments) == 3 else None
+                node.predicate = 'QUAD' if node.context else 'TRIPLE'
+                if divert_context:
+                    node.arguments = [subject, predicate, object]
+                else:
+                    node.arguments = [subject, predicate, object, node.context]
+                node.is_spo = True
+            elif node.is_spo and len(node.arguments) == 4:
+                node.context = node.arguments[3]
+                if divert_context:
+                    node.arguments.remove(node.context)
+        self.walk(doit, types=OpExpression)
             
     ###########################################################################################################
     ## PROLOG-specific
@@ -1410,31 +1438,7 @@ class Normalizer:
                 node.color = 'FILTER'
         ## color some filter nodes:
         self.walk(colorIt, bottom_up=True)
-    
-    def convert_predications_to_spo_nodes(self):
-        """
-        Convert all predications to SPO nodes.
-        Extract contexts from arguments an insert them into the 'context' attribute
-        """
-        def doit(node, parent, external_value):
-            if node.operator == OpExpression.PREDICATION and node.predicate and not node.is_spo:
-                if len(node.arguments) == 1:
-                    predicate = Term(Term.RESOURCE, None, qname="rdf:type")                    
-                    subject = node.arguments[0]                    
-                    object = node.predicate
-                else:
-                    predicate = node.predicate
-                    subject = node.arguments[0]
-                    object = node.arguments[1]
-                node.context = node.arguments[2] if len(node.arguments) == 3 else None
-                node.predicate = 'QUAD' if node.context else 'TRIPLE'
-                node.arguments = [subject, predicate, object]
-                node.is_spo = True
-            elif node.is_spo and len(node.arguments) == 4:
-                node.context = node.arguments[3]
-                node.arguments.remove(node.context)
-        self.walk(doit, types=OpExpression)
- 
+     
     def bubble_up_contexts(self):
         """
         Locate quad nodes, trim their length from 4 to 3, and propagate the contexts
@@ -1564,6 +1568,17 @@ class Normalizer:
             ## recurse
             self.denormalize_filter_ands()
             
+    def disappear_exists(self):
+        """
+        Make 'exists' disappear.  We do this for SPARQL because the NAF-to-optional-and-not-bound
+        translator doesn't know how to handle exists.        
+        """
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.EXISTS:
+                sseellff.substitute_node(node, node.arguments[1])
+                sseellff.recompute_backlinks()
+        self.walk(doIt, OpExpression, external_value=self)
+    
     def translate_negations(self):
         """
         Translate negation into optional and unbound.
@@ -1635,7 +1650,7 @@ class Normalizer:
         self.push_nots_inwards()
         self.nots_to_nafs()
         if self.spoify_output:
-            self.convert_predications_to_spo_nodes()
+            self.convert_predications_to_spo_nodes(divert_context=False)
         if self.contexts:
             self.quadify_triples()            
             self.filter_quad_contexts()
@@ -1650,9 +1665,13 @@ class Normalizer:
         """
         Reorganize the parse tree to be compatible with SPARQL's bizarre syntax.
         """
-        self.implies_to_or_nots()
         self.propagate_constants_to_predications(skip_context_variables=True)
-        self.convert_predications_to_spo_nodes()
+        self.implies_to_or_nots()
+        self.foralls_to_not_exist_nots()
+        ## do this AFTER converting FORALLs, since that generates more NOTs
+        self.push_nots_inwards()
+        self.nots_to_nafs()
+        self.convert_predications_to_spo_nodes(divert_context=True)
         self.fix_heterogeneous_disjunctions()
         if False: ## too slow:
             self.translate_in_enumerate_into_disjunction_of_equalities()
@@ -1663,6 +1682,10 @@ class Normalizer:
         #ps("DDD", self.parse_tree)
         if self.contexts:                        
             self.contextify_sparql_triples()
+        if False:
+            ## THIS GIVES FAULTY SEMANTICS; NOT SURE HOW TO FIX:
+            self.disappear_exists()
+            self.push_nots_inwards()
         self.translate_negations()
         ## finally, create non-normalized structure to assist filters output
         self.denormalize_filter_ands()
@@ -1996,7 +2019,7 @@ class StringsBuffer:
                 #if not suppress_curlies: self.append('{')              
                 self.append('optional ').sparqlify(term.arguments[0])
                 #if not suppress_curlies: self.append('}')      
-            elif term.operator == OpExpression.NOT:
+            elif term.operator in [OpExpression.NOT, OpExpression.NAF]:
                 if not term.color == 'FILTER': self.complain(term, "NOT") ## eventually shouldn't occur
                 if not suppress_filter: self.append('filter ')
                 self.append('(')
@@ -2034,6 +2057,8 @@ class StringsBuffer:
                 if not suppress_curlies: self.append('{')                
                 self.append('graph ').sparqlify(term.context).append(' { ').sparqlify(term.arguments[0], suppress_curlies=True).append(' } ')
                 if not suppress_curlies: self.append('}') 
+            else:
+                print "DROPPED THIS ON THE FLOOR", term
         return self
 
 
@@ -2158,7 +2183,7 @@ query18 = """(select (?s ?o) where (or (triple ?s foaf:name ?o)
                                  (not (triple ?s foaf:mbox ?o2))))))"""
 query19 = """(select (?p)
   where (and (ex:Person ?p)
-             (forall ?c (implies (ex:hasChild ?p ?c) (ex:Married ?c)))))"""
+             (forall ?c (implies (ex:hasChild ?p ?c) (exists ?sp (ex:hasSpouse ?c ?sp))))))"""
                                  
 query19i = """select ?o ?lac ?otype ?c2
 where (?o in [ex:foo, ex:bar]) and
@@ -2216,17 +2241,17 @@ where (?o in [http://www.wildsemantics.com/systemworld#World]) and
 
 """
 
-query20 = """ (select distinct (?s) where
-     (and  (triple ?s <http://www.wildsemantics.com/systemworld#smartLink> ?lliinnkk)  )
-order by  ?obj0 limit 10  
-)
+query20 = """  
+ (select (?s ?p ?o ?c ?lac ?otype ?c2)
+ where (and  
+  (quad ?s ?p ?o ?c)
+            
+            ))    """
 
- 
-"""
 
 
 if __name__ == '__main__':
-    switch = 19
+    switch = 20
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
