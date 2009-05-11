@@ -1017,6 +1017,12 @@ class GeoType:
         computing edges to max depth 'max_depth'.
         """
         pass
+
+    def rebuildNeighborMatrix(self, name):
+        """
+        Recompute the set of edges cached in the neighbor matrix named 'name'.
+        """
+        pass
     
     def dropNeighborMatrix(self, name):
         """

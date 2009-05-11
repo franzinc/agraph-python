@@ -496,7 +496,8 @@ class CommonLogicTranslator:
     def parse_enumeration(self, value, tokens):
         """
         """
-        arguments = self.parse_expressions(tokens, [])
+        arguments = []
+        self.parse_expressions(tokens, arguments)
         for arg in arguments:
             self.normalize_resource(arg, tokens)
         op = OpExpression(OpExpression.ENUMERATION, arguments)
