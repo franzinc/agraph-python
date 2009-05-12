@@ -97,6 +97,33 @@ class Repository:
         them if name is not given."""
         nullRequest(self.curl, "DELETE", self.url + "/functor", urlenc(environment=self.environment, name=name))
 
+    def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, query=None):
+        nullRequest(self.curl, "PUT", self.url + "/snaGenerators/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment, subjectOf=subjectOf, objectOf=objectOf,
+                           undirected=undirected, query=query))
+
+    def deleteSNAGenerator(self, name):
+        nullRequest(self.curl, "DELETE", self.url + "/snaGenerators/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment))
+
+    def listSNAGenerators(self):
+        jsonRequest(self.curl, "GET", self.url + "/snaGenerators", urlenc(environment=self.environment))
+
+    def registerNeighborMatrix(self, name, group, generator, depth):
+        nullRequest(self.curl, "PUT", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment, group=group, depth=depth, generator=generator))
+
+    def rebuildNeighborMatrix(self, name):
+        nullRequest(self.curl, "PUT", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment))
+
+    def deleteNeighborMatrix(self, name):
+        nullRequest(self.curl, "DELETE", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment))
+
+    def listNeighborMatrices(self):
+        jsonRequest(self.curl, "GET", self.url + "/neighborMatrices", urlenc(environment=self.environment))
+
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
         return jsonRequest(self.curl, "POST", self.url + "/eval?" + urlenc(environment=self.environment), code)
