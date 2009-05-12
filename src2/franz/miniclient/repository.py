@@ -98,6 +98,11 @@ class Repository:
         nullRequest(self.curl, "DELETE", self.url + "/functor", urlenc(environment=self.environment, name=name))
 
     def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, query=None):
+        """subjectOf, objectOf, and undirected can be either a single
+        predicate or a list of predicates. query should be a prolog
+        query in the form (select ?x (q- ?node !<mypredicate> ?x)),
+        where ?node always returns to the argument passed to the
+        generator."""
         nullRequest(self.curl, "PUT", self.url + "/snaGenerators/" + urllib.quote(name) + "?" +
                     urlenc(environment=self.environment, subjectOf=subjectOf, objectOf=objectOf,
                            undirected=undirected, query=query))
@@ -110,6 +115,7 @@ class Repository:
         jsonRequest(self.curl, "GET", self.url + "/snaGenerators", urlenc(environment=self.environment))
 
     def registerNeighborMatrix(self, name, group, generator, depth):
+        """group is a list of nodes, generator the name of an SNA generator."""
         nullRequest(self.curl, "PUT", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
                     urlenc(environment=self.environment, group=group, depth=depth, generator=generator))
 
