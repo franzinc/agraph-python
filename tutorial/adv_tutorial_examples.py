@@ -160,10 +160,17 @@ def test105():
     afterAliceRange = conn.createRange(aliceBDay, datetime.now())             
     for r in conn.getStatements(None, None, afterAliceRange): print r
     
-   
+def test106():
+    """
+    SNA
+    """
+    conn = test101();
+    conn.registerSNAGenerator('foo', subjectOf=['http://foo/bar'])
+    print "LIST", conn.listSNAGenerators()
+    
 if __name__ == '__main__':
     choices = [i for i in range(1,3)]
-    choices = [4]
+    choices = [6]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number 10%i\n" % choice
