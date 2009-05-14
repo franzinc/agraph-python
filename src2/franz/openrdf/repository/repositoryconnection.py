@@ -984,23 +984,25 @@ class GeoType:
     ## SNA   Social Network Analysis Methods
     #############################################################################################
     
-    def registerSNAGenerator(self, name, adjacency_map=None, generator_query=None):
+    def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, generator_query=None):
         """
         Create (and remember) a generator named 'name'.
         If one already exists with the same name; redefine it.
-        'adjacency_map' is a dictionary with keys 'objectsOf' and 'subjectsOf'.
-        The value for each key is a list of predicate URIs, expressed as 
+        'subjectOf', 'objectOf' and 'undirected' expect a list of predicate URIs, expressed as 
         fullURIs or qnames, that define the edges traversed by the generator.
         Alternatively, instead of an adjacency map, one may provide a 'generator_query',
         that defines the edges.
         """
-        pass
+        miniRep = self.connection._get_mini_repository()
+        miniRep.registerSNAGenerator(name, subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, 
+                                     query=generator_query)
 
     def dropSNAGenerator(self, name):
         """
         Destroy the generator named 'name'.
         """
-        pass
+        miniRep = self.connection._get_mini_repository()
+        miniRep.deleteSNAGenerator(name)
     
     def listSNAGenerators(self):
         """
@@ -1008,7 +1010,8 @@ class GeoType:
         ALTERNATIVELY, CONSIDER RETURNING A DICT THAT CONTAINS GENERATOR NAMES AS KEYS,
         AND ADJACENCY MAPS AS VALUES
         """
-        pass
+        miniRep = self.connection._get_mini_repository()
+        return miniRep.listSNAGenerators()
     
     def registerNeighborMatrix(self, name, generator, group_uris, max_depth=2):
         """
@@ -1016,23 +1019,27 @@ class GeoType:
         to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),
         computing edges to max depth 'max_depth'.
         """
-        pass
+        miniRep = self.connection._get_mini_repository()
+        miniRep.registerNeighborMatrix(name, group_uris, generator, max_depth)
 
     def rebuildNeighborMatrix(self, name):
         """
         Recompute the set of edges cached in the neighbor matrix named 'name'.
         """
-        pass
+        miniRep = self.connection._get_mini_repository()
+        miniRep.rebuildNeighborMatrix(name)
     
     def dropNeighborMatrix(self, name):
         """
         Destroy the neighbor matrix named 'name'.
         """
-        pass
+        miniRep = self.connection._get_mini_repository()
+        miniRep.dropNeighborMatrix(name)
     
     def listNeighborMatrices(self):
         """
         Return a list of the names of registered neighbor matrices
         """
-        pass
+        miniRep = self.connection._get_mini_repository()
+        return miniRep.listNeighborMatrices()
       

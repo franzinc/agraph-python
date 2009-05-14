@@ -112,7 +112,7 @@ class Repository:
                     urlenc(environment=self.environment))
 
     def listSNAGenerators(self):
-        jsonRequest(self.curl, "GET", self.url + "/snaGenerators", urlenc(environment=self.environment))
+        return jsonRequest(self.curl, "GET", self.url + "/snaGenerators", urlenc(environment=self.environment))
 
     def registerNeighborMatrix(self, name, group, generator, depth):
         """group is a list of nodes, generator the name of an SNA generator."""
@@ -128,7 +128,7 @@ class Repository:
                     urlenc(environment=self.environment))
 
     def listNeighborMatrices(self):
-        jsonRequest(self.curl, "GET", self.url + "/neighborMatrices", urlenc(environment=self.environment))
+        return jsonRequest(self.curl, "GET", self.url + "/neighborMatrices", urlenc(environment=self.environment))
 
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
