@@ -138,6 +138,7 @@ class Repository:
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
+        if subj == [] or pred == [] or obj == [] or context == []: return []
         subjEnd, predEnd, objEnd = None, None, None
         if isinstance(subj, tuple): subj, subjEnd = subj
         if isinstance(pred, tuple): pred, predEnd = pred
