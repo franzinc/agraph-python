@@ -24,8 +24,7 @@ def testBasics():
   rep.addStatement("<a>", "<p>", '"a"', "<c1>")
   rep.addStatement("<b>", "<p>", '"b"', "<c2>")
   check(2, rep.getSize())
-# TODO fix
-#  check(["<c1>", "<c2>"], sorted(rep.listContexts()))
+  check(["<c1>", "<c2>"], sorted(rep.listContexts()))
   check(1, len(rep.getStatements(context="<c1>")))
   check(2, len(rep.getStatements(pred="<p>")))
   check(2, len(rep.getStatements(subj=["<a>", "<b>"])))
