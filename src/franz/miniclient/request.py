@@ -90,7 +90,9 @@ class RowReader:
         self.backlog = None
 
     def process(self, string):
-        if self.hasNames is None: self.hasNames = string[0] == "{"
+        if self.hasNames is None:
+            self.hasNames = string[0] == "{"
+            if not self.hasNames: self.skipNextBracket = True
         ln = len(string)
         if self.backlog: string = self.backlog + string
         pos = [0]

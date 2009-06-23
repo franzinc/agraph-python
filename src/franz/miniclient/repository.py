@@ -1,8 +1,12 @@
 import time, cjson, math
 from request import *
 
-def listCatalogs(serverURL):
-    return jsonRequest(pycurl.Curl(), "GET", serverURL + "/catalogs")
+def listCatalogs(serverURL, user=None, password=None):
+    curl = pycurl.Curl()
+    if user:
+        curl.setopt(pycurl.USERPWD, "%s:%s" % (user, password))
+        curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
+    return jsonRequest(curl, "GET", serverURL + "/catalogs")
 
 def openCatalog(serverURL, catalog, user=None, password=None):
     return Catalog(serverURL + catalog, user, password)
@@ -16,20 +20,20 @@ class Catalog:
     def listTripleStores(self):
         """Returns the names of open stores on the server."""
         repos = jsonRequest(self.curl, "GET", self.url + "/repositories")
-        return [repo["id"][1:-1].replace("\\\"", "\"").replace("\\\\", "\\") for repo in repos]
+        return [repo["id"] for repo in repos]
 
     def createTripleStore(self, name):
         """Ask the server to create a new triple store."""
         nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name))
 
-    def federateTripleStores(self, name, storeNames):
-        """Create a federated store."""
-        nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
-                    "?" + urlenc(federate=storeNames))
+    # def federateTripleStores(self, name, storeNames):
+    #     """Create a federated store."""
+    #     nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
+    #                 "?" + urlenc(federate=storeNames))
 
-    def deleteTripleStore(self, name):
-        """Delete a server-side triple store."""
-        nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
+    # def deleteTripleStore(self, name):
+    #     """Delete a server-side triple store."""
+    #     nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
@@ -46,7 +50,6 @@ class Repository:
         # TODO verify existence of repository at this point?
         self.url = url
         self.curl = curl
-        self.environment = None
 
     def getSize(self, context=None):
         """Returns the amount of triples in the repository."""
@@ -56,11 +59,8 @@ class Repository:
         """Lists the contexts (named graphs) that are present in this repository."""
         return [t["contextID"] for t in jsonRequest(self.curl, "GET", self.url + "/contexts")]
 
-    def isWriteable(self):
-        return jsonRequest(self.curl, "GET", self.url + "/writeable")
-
     def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
-                        bindings=None, planner=None):
+                        bindings=None, planner=None, checkVariables=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -69,37 +69,33 @@ class Repository:
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
         if (bindings is not None):
-            bindings = [a + " " + b for a, b in bindings.items()]
+            bindings = "".join(["&$" + urllib.quote(a) + "=" + urllib.quote(b.encode("utf-8")) for a, b in bindings.items()])
         return jsonRequest(self.curl, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                                  environment=self.environment, bind=bindings, planner=planner),
+                                  planner=planner, checkVariables=checkVariables) + (bindings or ""),
                            rowreader=callback and RowReader(callback))
 
     def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
         """Execute a Prolog query. Returns a {names, values} object."""
         return jsonRequest(self.curl, "POST", self.url,
-                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment, limit=limit),
+                           urlenc(query=query, infer=infer, queryLn="prolog", limit=limit),
                            rowreader=callback and RowReader(callback))
 
     def definePrologFunctors(self, definitions):
         """Add Prolog functors to the environment. Takes a string
         containing Lisp-syntax functor definitions (using the <-- and
         <- operators)."""
-        nullRequest(self.curl, "PUT", self.url + "/functor?" + urlenc(environment=self.environment), definitions)
-
-    def deletePrologFunctor(self, name=None):
-        """Delete a Prolog functor from the environment, or all of
-        them if name is not given."""
-        nullRequest(self.curl, "DELETE", self.url + "/functor", urlenc(environment=self.environment, name=name))
+        nullRequest(self.curl, "PUT", self.url + "/functor", definitions)
 
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
-        return jsonRequest(self.curl, "POST", self.url + "/eval?" + urlenc(environment=self.environment), code)
+        return jsonRequest(self.curl, "POST", self.url + "/eval", code)
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None, limit=None, tripleIDs=False):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
+        if subj == [] or pred == [] or obj == [] or context == []: return []
         subjEnd, predEnd, objEnd = None, None, None
         if isinstance(subj, tuple): subj, subjEnd = subj
         if isinstance(pred, tuple): pred, predEnd = pred
@@ -162,35 +158,6 @@ class Repository:
     def deleteStatementsById(self, ids):
         nullRequest(self.curl, "POST", self.url + "/statements/delete?ids=true", cjson.encode(ids), contentType="application/json")
 
-    def listIndices(self):
-        """List the SPOGI-indices that are active in the repository."""
-        return jsonRequest(self.curl, "GET", self.url + "/indices")
-
-    def addIndex(self, type):
-        """Register a SPOGI index."""
-        nullRequest(self.curl, "PUT", self.url + "/indices/" + type)
-
-    def deleteIndex(self, type):
-        """Drop a SPOGI index."""
-        nullRequest(self.curl, "DELETE", self.url + "/indices/" + type)
-
-    def getIndexCoverage(self):
-        """Returns the proportion (0-1) of the repository that is indexed."""
-        return jsonRequest(self.curl, "GET", self.url + "/indexing")
-
-    def indexStatements(self, all=False):
-        """Index any unindexed statements in the repository. If all is
-        True, the whole repository is re-indexed."""
-        nullRequest(self.curl, "POST", self.url + "/indexing", urlenc(all=all))
-
-    def setIndexingTripleThreshold(self, size=None):
-        nullRequest(self.curl, "PUT", self.url + "/indexing/tripleThreshold", "%d" % (size or 0),
-                    contentType="text/plain")
-
-    def setIndexingChunkThreshold(self, size=None):
-        nullRequest(self.curl, "PUT", self.url + "/indexing/chunkThreshold", "%d" % (size or 0),
-                    contentType="text/plain")
-
     def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
         """Use free-text indices to search for the given pattern.
         Returns an array of statements."""
@@ -205,35 +172,15 @@ class Repository:
         """Add a predicate for free-text indexing."""
         nullRequest(self.curl, "POST", self.url + "/freetextPredicates", urlenc(predicate=predicate))
 
-    def setEnvironment(self, name):
-        """Repositories use a current environment, which are
-        containers for namespaces and Prolog predicates. Every
-        server-side repository has a default environment that is used
-        when no environment is specified."""
-        self.environment = name
-
-    def listEnvironments(self):
-        return jsonRequest(self.curl, "GET", self.url + "/environments")
-
-    def createEnvironment(self, name=None):
-        return jsonRequest(self.curl, "POST", self.url + "/environments", urlenc(name=name))
-
-    def deleteEnvironment(self, name):
-        nullRequest(self.curl, "DELETE", self.url + "/environments", urlenc(name=name))
-
-    def listNamespaces(self):
-        return jsonRequest(self.curl, "GET", self.url + "/namespaces", urlenc(environment=self.environment))
-
     def clearNamespaces(self):
-        nullRequest(self.curl, "DELETE", self.url + "/namespaces?" + urlenc(environment=self.environment))
+        nullRequest(self.curl, "DELETE", self.url + "/namespaces")
 
     def addNamespace(self, prefix, uri):
-        nullRequest(self.curl, "PUT", self.url + "/namespaces/" + urllib.quote(prefix) + "?"
-                    + urlenc(environment=self.environment), uri, contentType="text/plain")
+        nullRequest(self.curl, "PUT", self.url + "/namespaces/" + urllib.quote(prefix),
+                    uri, contentType="text/plain")
 
     def deleteNamespace(self, prefix):
-        nullRequest(self.curl, "DELETE", self.url + "/namespaces/" + urllib.quote(prefix) + "?"
-                    + urlenc(environment=self.environment))
+        nullRequest(self.curl, "DELETE", self.url + "/namespaces/" + urllib.quote(prefix))
 
     def listMappedTypes(self):
         return jsonRequest(self.curl, "GET", self.url + "/typeMapping")
@@ -328,115 +275,3 @@ class Repository:
         should be a list of literals created with createCartesianGeoLiteral."""
         nullRequest(self.curl, "PUT", self.url + "/geo/polygon?" +
                     urlenc(resource=resource, point=points))
-
-
-######################################################
-## TESTING CODE
-######################################################
-
-def timeQuery(rep, n, size):
-    t = time.time()
-    for i in range(n):
-        rep.evalSparqlQuery("select ?x ?y ?z {?x ?y ?z} limit %d" % size)
-    print "Did %d %d-row queries in %f seconds." % (n, size, time.time() - t)
-
-def test0():
-    cats = listCatalogs("http://localhost:8080")
-    print "List of catalogs:", cats
-    cat = openCatalog("http://localhost:8080", cats[0])
-    print "Found cat", cat.url
-    reps = cat.listTripleStores()
-    print "Is 'test' there?: ", reps, "test" in reps
-    try:
-        print "Creating repository 'test'"
-        cat.createTripleStore("test")
-        reps = cat.listTripleStores()
-        print "Now is 'test' there?: ", reps, "test" in reps
-    except: pass
-    rep = cat.getRepository("test")
-    size = rep.getSize()
-    print "Size of 'test' repository", size
-    if size == 0:
-        rep.addStatement('<http://www.franz.com/example#ted>', '<http://www.franz.com/example#age>', '"55"^^<http://www.w3.org/2001/XMLSchema#int>', "<http://foo.com>")
-    query = """select ?x ?y ?z {?x ?y ?z} limit 5"""
-    answer = rep.evalSparqlQuery(query, context="<http://foo.com>")
-    print answer['names']
-    for v in answer['values']:
-        print v
-    timeQuery(rep, 1000, 5)
-
-def openRep (name="test"):
-    server = "http://localhost:8080"
-    cats = listCatalogs(server)
-    print "List of catalogs:", cats
-    cat = openCatalog(server, cats[0])
-    print "Found cat", cat.url
-    reps = cat.listTripleStores()
-    print ("Is '%s' there??:" % name), reps, name in reps
-    try:
-        print "Creating repository '%s'" % name
-        cat.createTripleStore(name)
-        reps = cat.listTripleStores()
-        print ("Now is '%s' there??:" % name), reps, name in reps
-    except: pass
-    rep = cat.getRepository(name)
-    size = rep.getSize()
-    print ("Size of '%s' repository" % name), size
-    return rep
-
-def makeTerm(term, is_literal=False):
-    if is_literal:
-        return "\"" + term.replace("\"", "\\\"") + "\""
-    elif not term == None:
-        return "<" + term + ">"
-    else:
-        return None
-
-def makeStatement(subject, predicate, object, context=None, is_literal=False):
-    return [makeTerm(subject), makeTerm(predicate), makeTerm(object, is_literal=is_literal),
-            makeTerm(context)]
-
-def test1():
-    rep = openRep()
-    print("Adding statements ...")
-    ns = "http://example.org#"
-    stmts = []
-    stmts.append(makeStatement(ns + "alice", ns + "name", "alice", is_literal=True))
-    stmts.append(makeStatement(ns + "bob", ns + "name", "bob", is_literal=True))
-    rep.addStatements(stmts)
-    print rep.listMappedTypes()
-    rep.addMappedType("<http://foo.com/type>", "int")
-    print rep.listMappedTypes()
-    print "Repository size = ", rep.getSize()
-
-def test2():
-    rep = openRep()
-    rep.deleteMatchingStatements()
-    typ = rep.getCartesianGeoType(1, -100, 100, -100, 100)
-    print "Geo type %s" % typ
-    def pt(x, y): return rep.createCartesianGeoLiteral(typ, x, y)
-    rep.addStatement("\"foo\"", "\"at\"", pt(1, 1))
-    rep.addStatement("\"bar\"", "\"at\"", pt(-2.5, 3.4))
-    rep.addStatement("\"baz\"", "\"at\"", pt(-1, 1))
-    rep.addStatement("\"bug\"", "\"at\"", pt(10, -2.421553215))
-    print [x[0] for x in rep.getStatementsInsideBox(typ, "\"at\"", -10, 0, 0, 10)]
-    print [x[0] for x in rep.getStatementsInsideCircle(typ, "\"at\"", 0, 0, 2)]
-    rep.createPolygon("\"right\"", [pt(0, -100), pt(0, 100), pt(100, 100), pt(100, -100)])
-    print [x[0] for x in rep.getStatementsInsidePolygon(typ, "\"at\"", "\"right\"")]
-    typ2 = rep.getSphericalGeoType(5)
-    def pp(lat, lon): return rep.createSphericalGeoLiteral(typ2, lat, lon)
-    rep.addStatement("\"Amsterdam\"", "\"loc\"", pp(52.366665, 4.883333))
-    rep.addStatement("\"London\"", "\"loc\"", pp(51.533333, 0.08333333))
-    rep.addStatement("\"San Francisco\"", "\"loc\"", pp(37.783333, -122.433334))
-    rep.addStatement("\"Salvador\"", "\"loc\"", pp(-13.083333, -38.45))
-    print [x[0] for x in rep.getStatementsHaversine(typ2, "\"loc\"", 50, 0, 1000)]
-    print [x[0] for x in rep.getStatementsInsideBox(typ2, "\"loc\"", 0.08, 0.09, 51.0, 52.0)]
-
-if __name__ == '__main__':
-    choice = 2
-    print "Run test%i" % choice
-    if choice == 0: test0()
-    elif choice == 1: test1()
-    elif choice == 2: test2()
-    elif choice == 3: test3()
-    elif choice == 4: test4()
