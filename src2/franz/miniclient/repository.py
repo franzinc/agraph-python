@@ -80,10 +80,11 @@ class Repository:
                                   checkVariables=checkVariables) + (bindings or ""),
                            rowreader=callback and RowReader(callback))
 
-    def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
+    def evalPrologQuery(self, query, infer=False, callback=None, limit=None, context=None):
         """Execute a Prolog query. Returns a {names, values} object."""
         return jsonRequest(self.curl, "POST", self.url,
-                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment, limit=limit),
+                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment,
+                                  limit=limit, context=context),
                            rowreader=callback and RowReader(callback))
 
     def definePrologFunctors(self, definitions):
