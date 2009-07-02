@@ -121,7 +121,7 @@ class Repository:
                     urlenc(environment=self.environment, group=group, depth=depth, generator=generator))
 
     def rebuildNeighborMatrix(self, name):
-        nullRequest(self.curl, "PUT", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
+        nullRequest(self.curl, "POST", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
                     urlenc(environment=self.environment))
 
     def deleteNeighborMatrix(self, name):
