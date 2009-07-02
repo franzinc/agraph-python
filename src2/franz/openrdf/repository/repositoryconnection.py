@@ -21,24 +21,26 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-import os
 
 from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value
 from franz.openrdf.model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
-from franz.openrdf.repository.repositoryresult import RepositoryResult
-from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.model.statement import Statement
-from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
-from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.model.value import Value
 from franz.openrdf.query import query as query_module
-
+from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
+from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
+from franz.openrdf.repository.jdbcresultset import JDBCResultSet
+from franz.openrdf.repository.repositoryresult import RepositoryResult
+from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.util import uris
+from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
-from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
-from franz.openrdf.util import uris
+import datetime
+import os
+
+
 
 # * Main interface for updating data in and performing queries on a Sesame
 # * repository. By default, a RepositoryConnection is in autoCommit mode, meaning
@@ -82,9 +84,18 @@ from franz.openrdf.util import uris
 class RepositoryConnection(object):
     def __init__(self, repository):
         self.repository = repository 
-        self.mini_repository = repository.mini_repository
+        #self.mini_repository = repository.mini_repository
         self.is_closed = False
         self.ruleLanguage = None
+        
+    def _get_mini_repository(self):
+        """
+        The mini-repository code is not thread-safe.  If in multi-threaded
+        mode, we create a new curl object before every HTTP call.  Here,
+        we call 'get_mini_repository' repeatedly instead of caching the
+        object to insure of the curl hack.
+        """
+        return self.repository._get_mini_repository()
         
     def getValueFactory(self):
         return self.repository.getValueFactory()
@@ -146,11 +157,10 @@ class RepositoryConnection(object):
         the triple store.  Omit the default context, since no one had the intelligence to
         make it a first-class object.
         """                         
-        print "Executing relatively slow computation to compute the set of contexts."
-        queryString = "select distinct ?c where {graph ?c {?s ?p ?o}}"
-        query = self.prepareTupleQuery(QueryLanguage.SPARQL, queryString, None)
-        result = query.evaluate()
-        return [bs[0] for bs in result]
+        contexts = []
+        for cxt in self._get_mini_repository().listContexts():
+            contexts.append(self.createURI(cxt))
+        return contexts
 
 
 #     * Returns the number of (explicit) statements that are in the specified
@@ -169,13 +179,13 @@ class RepositoryConnection(object):
         """
         cxts = self._contexts_to_ntriple_contexts(contexts, False)
         if cxts == ALL_CONTEXTS or not cxts:
-            return self.mini_repository.getSize()
+            return self._get_mini_repository().getSize()
         elif len(cxts) == 1:
-            return self.mini_repository.getSize(cxts[0])
+            return self._get_mini_repository().getSize(cxts[0])
         else:
             total = 0
             for cxt in cxts:
-                total += self.mini_repository.getSize(cxt)
+                total += self._get_mini_repository().getSize(cxt)
             return total
 #        else:
 #            print "Computing the size of a context is currently very expensive"
@@ -241,10 +251,10 @@ class RepositoryConnection(object):
             geoType = term.geoType
             miniGeoType = geoType._getMiniGeoType()
             if geoType.system == GeoType.Cartesian:
-                return self.mini_repository.createCartesianGeoLiteral(miniGeoType, term.xcoor, term.ycoor)
+                return self._get_mini_repository().createCartesianGeoLiteral(miniGeoType, term.xcoor, term.ycoor)
             elif geoType.system == GeoType.Spherical:
                 unit = term.unit or term.geoType.unit
-                return self.mini_repository.createSphericalGeoLiteral(miniGeoType, term.xcoor, term.ycoor, unit=unit)
+                return self._get_mini_repository().createSphericalGeoLiteral(miniGeoType, term.xcoor, term.ycoor, unit=unit)
             else:
                 raise IllegalOptionException("Unsupported geo coordinate system", geoType.system)
         if isinstance(term, RangeLiteral):
@@ -252,12 +262,16 @@ class RepositoryConnection(object):
             endTerm = term.getUpperBound()
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         elif isinstance(term, (tuple, list)):
+            return [self._convert_term_to_mini_term(t, predicate_for_object=predicate_for_object) for t in term]
+        ## OBSOLETE: CONVERT LIST TO RANGE LITERAL:
+        elif isinstance(term, (tuple, list)):
             factory = self.getValueFactory()
             beginTerm = factory.object_position_term_to_openrdf_term(term[0])
             factory.validateRangeConstant(beginTerm, predicate_for_object)
             endTerm = factory.object_position_term_to_openrdf_term(term[1])
             factory.validateRangeConstant(endTerm, predicate_for_object)            
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
+        ## END OBSOLETE
         elif predicate_for_object:
             term = factory.object_position_term_to_openrdf_term(term, predicate=predicate_for_object)
             return self._to_ntriples(term)
@@ -279,33 +293,42 @@ class RepositoryConnection(object):
         if isinstance(object, GeoSpatialRegion):
             return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit)
         else:
-            stringTuples = self.mini_repository.getStatements(subj, pred, obj, cxt,
+            #MINITIMER = datetime.datetime.now()
+            stringTuples = self._get_mini_repository().getStatements(subj, pred, obj, cxt,
                  infer=includeInferred, limit=limit, tripleIDs=tripleIDs)
+            #print "mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER)
             return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
+
+    def getStatementsById(self, ids):
+        """
+        Return all statements whose triple ID matches an ID in the list 'ids'.
+        """
+        stringTuples = self._get_mini_repository().getStatementsById(ids)
+        return RepositoryResult(stringTuples, tripleIDs=False)
     
     def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None):
         geoType = region.geoType
         miniGeoType = geoType._getMiniGeoType()
         if isinstance(region, GeoBox):
             if geoType.system == GeoType.Cartesian:
-                stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
+                stringTuples = self._get_mini_repository().getStatementsInsideBox(miniGeoType, predicate,
                                         region.xMin, region.xMax, region.yMin, region.yMax,
                                         limit=limit)
             elif geoType.system == GeoType.Spherical:
-                stringTuples = self.mini_repository.getStatementsInsideBox(miniGeoType, predicate,
+                stringTuples = self._get_mini_repository().getStatementsInsideBox(miniGeoType, predicate,
                                         region.yMin, region.yMax, region.xMin, region.xMax,
                                         limit=limit)
         elif isinstance(region, GeoCircle):
             if geoType.system == GeoType.Cartesian:
-                stringTuples = self.mini_repository.getStatementsInsideCircle(miniGeoType, predicate,
+                stringTuples = self._get_mini_repository().getStatementsInsideCircle(miniGeoType, predicate,
                                         region.x, region.y, region.radius, limit=limit)
             elif geoType.system == GeoType.Spherical:
-                stringTuples = self.mini_repository.getStatementsHaversine(miniGeoType, predicate,
+                stringTuples = self._get_mini_repository().getStatementsHaversine(miniGeoType, predicate,
                                         region.x, region.y, region.radius, unit=region.unit,
                                         limit=limit)
             else: pass ## can't happen
         elif isinstance(region, GeoPolygon):
-            stringTuples = self.mini_repository.getStatementsInsidePolygon(miniGeoType, predicate,
+            stringTuples = self._get_mini_repository().getStatementsInsidePolygon(miniGeoType, predicate,
                                         self._convert_term_to_mini_term(region.getResource()),
                                         limit=limit)
         else: pass ## can't happen
@@ -323,7 +346,7 @@ class RepositoryConnection(object):
         of the OpenRDF BindingSet protocol.
         """
         object = self.repository.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
-        stringTuples = self.mini_repository.getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
+        stringTuples = self._get_mini_repository().getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
                  self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred, 
                  limit=limit, tripleIDs=tripleIDs)
         return JDBCResultSet(stringTuples, column_names = RepositoryConnection.COLUMN_NAMES, tripleIDs=tripleIDs)
@@ -373,9 +396,9 @@ class RepositoryConnection(object):
             context = context[0] if context else None
         contextString = self._context_to_ntriples(context, none_is_mini_null=True)
         if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
-            self.mini_repository.loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide)
+            self._get_mini_repository().loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide)
         elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):
-            self.mini_repository.loadFile(filePath, 'rdf/xml', context=contextString, baseURI=base, serverSide=serverSide)
+            self._get_mini_repository().loadFile(filePath, 'rdf/xml', context=contextString, baseURI=base, serverSide=serverSide)
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)
         
@@ -388,17 +411,18 @@ class RepositoryConnection(object):
         cxts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
         for cxt in cxts:
             #print "MINITERM", obj, self._convert_term_to_mini_term(obj)
-            self.mini_repository.addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
+            self._get_mini_repository().addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
                         self._convert_term_to_mini_term(obj), cxt)
-    
+        
     def _to_ntriples(self, term):
         """
         If 'term' is an OpenRDF term, convert it to a string.  If its already
         a string; assume its in ntriples format, and just pass it through.
         """
         if not term: return term
-        elif isinstance(term, str): return term
-        else: return term.toNTriples()
+        elif isinstance(term, str): 
+            return term
+        else: return term.toNTriples();
         
     def addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False):
         """
@@ -433,7 +457,7 @@ class RepositoryConnection(object):
                 quad[2] = self._to_ntriples(obj)
                 quad[3] = self._to_ntriples(q.getContext()) if isQuad and q.getContext() else ntripleContexts
             quads.append(quad)
-        self.mini_repository.addStatements(quads)
+        self._get_mini_repository().addStatements(quads)
                 
 #     * Adds the supplied statement to this repository, optionally to one or more
 #     * named contexts.
@@ -487,10 +511,10 @@ class RepositoryConnection(object):
         ## THIS IS BOGUS FOR 'None' CONTEXT???; COMPLETELY AMBIGUOUS:  (NOT SURE IF THIS IS AN OLD STATEMENT)
         ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)   
         if len(ntripleContexts) == 0:
-            self.mini_repository.deleteMatchingStatements(subj, pred, obj, None)
+            self._get_mini_repository().deleteMatchingStatements(subj, pred, obj, None)
         else:
             for cxt in ntripleContexts:
-                self.mini_repository.deleteMatchingStatements(subj, pred, obj, cxt)
+                self._get_mini_repository().deleteMatchingStatements(subj, pred, obj, cxt)
 
     def removeQuads(self, quads, ntriples=False):
         """
@@ -522,14 +546,14 @@ class RepositoryConnection(object):
                 quad[2] = self._to_ntriples(obj)
                 quad[3] = self._to_ntriples(q.getContext())
             removeQuads.append(quad)
-        self.mini_repository.deleteStatements(removeQuads)
+        self._get_mini_repository().deleteStatements(removeQuads)
 
     def removeQuadsByID(self, tids):
         """
         'tids' contains a list of triple/tuple IDs (integers).
         Remove all quads with matching IDs.
         """
-        self.mini_repository.deleteStatementsById(tids)
+        self._get_mini_repository().deleteStatementsById(tids)
    
 #     * Removes the supplied statement from the specified contexts in the
 #     * repository.
@@ -588,6 +612,49 @@ class RepositoryConnection(object):
         statements = self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
         handler.export(statements)
 
+    def listIndices(self):
+        """
+        List the SPOC indices currently active in the RDF Store.
+        """
+        indices = self._get_mini_repository().listIndices()
+        return [idx[0:4].replace('g', 'c') for idx in indices]
+
+    def addIndex(self, letters):
+        """
+        Register an SPOC index of type 'letters', where 'letters' is the concatenation
+        of the letters 'SPOC' in whichever order is preferred.   An exception
+        will be thrown if the combination is not supported by AllegroGraph.
+        """
+        self._get_mini_repository().addIndex(letters.replace('c', 'g') + 'i')
+
+    def removeIndex(self, letters):
+        """
+        Drop an SPOC index.
+        """
+        self._get_mini_repository().deleteIndex(letters[0:4].replace('c', 'g') + 'i')
+        
+    def getSubjectTriplesCacheSize(self):
+        """
+        Return the current size of the subject triples cache.
+        """
+        return self._get_mini_repository().getTripleCacheSize()
+
+    def disableSubjectTriplesCache(self):
+        """
+        Disable the subject triples cache (see 'enableSubjectTriplesCache').
+        """
+        self._get_mini_repository().disableTripleCache()
+
+    def enableSubjectTriplesCache(self, size=None):
+        """
+        Maintain a cache of size 'size' that caches, for each accessed
+        resource, quads where the resource appears in subject position.
+        This can accelerate the performance of certain types of queries.
+        The size is the maximum number of subjects whose triples will be cached.
+        Default is 100,000.
+        """
+        self._get_mini_repository().enableTripleCache(size=size)
+
 
     #############################################################################################
     ## ValueFactory methods
@@ -638,16 +705,16 @@ class RepositoryConnection(object):
     #############################################################################################
     
     def createEnvironment(self, name):
-        if not name in self.mini_repository.listEnvironments():
-            self.mini_repository.createEnvironment(name)
+        if not name in self._get_mini_repository().listEnvironments():
+            self._get_mini_repository().createEnvironment(name)
         
     def deleteEnvironment(self, name):
         """
         Delete an environment.  This causes all rule and namespace definitions for this
         environment to be lost.
         """
-        if name in self.mini_repository.listEnvironments():
-            self.mini_repository.deleteEnvironment(name)
+        if name in self._get_mini_repository().listEnvironments():
+            self._get_mini_repository().deleteEnvironment(name)
     
     def setEnvironment(self, name):
         """
@@ -656,13 +723,13 @@ class RepositoryConnection(object):
         with a fresh (empty) environment.
         """
         self.createEnvironment(name)
-        self.mini_repository.setEnvironment(name)
+        self._get_mini_repository().setEnvironment(name)
     
     def listEnvironments(self):
         """
         List the names of environments currently maintained by the system.
         """
-        return self.mini_repository.listEnvironments()
+        return self._get_mini_repository().listEnvironments()
     
     def setRuleLanguage(self, queryLanguage):
         self.ruleLanguage = queryLanguage
@@ -673,12 +740,12 @@ class RepositoryConnection(object):
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
         former appends a new rule; the latter overwrites any rule with the same predicate.
         """
-        if not self.mini_repository.environment:
+        if not self._get_mini_repository().environment:
             raise Exception("Cannot add a rule because an environment has not been set.")
         language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
             rules = query_module.expandPrologQueryPrefixes(rules, self)
-            self.mini_repository.definePrologFunctors(rules)
+            self._get_mini_repository().definePrologFunctors(rules)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
         
@@ -699,11 +766,11 @@ class RepositoryConnection(object):
         Delete rule(s) with predicate named 'predicate'.  If 'predicate' is None, delete
         all rules.
         """
-        if not self.mini_repository.environment:
+        if not self._get_mini_repository().environment:
             raise Exception("Cannot delete a rule because an environment has not been set.")
         language = language or self.ruleLanguage
         if language == QueryLanguage.PROLOG:
-            self.mini_repository.deletePrologFunctor(predicate)
+            self._get_mini_repository().deletePrologFunctor(predicate)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
 
@@ -714,7 +781,7 @@ class RepositoryConnection(object):
 #    ## Get all declared prefix/namespace pairs
 #    def getNamespaces(self):
 #        dict = {}
-#        for pair in self.mini_repository.listNamespaces():
+#        for pair in self._get_mini_repository().listNamespaces():
 #            dict[pair[0]] = pair[1]
 #        print "GET NAMESPACES", dict
 #        return dict        
@@ -725,12 +792,12 @@ class RepositoryConnection(object):
 #
 #    ## Sets the prefix for a namespace.
 #    def setNamespace(self, prefix, name):
-#        self.mini_repository.addNamespace(prefix, name)
+#        self._get_mini_repository().addNamespace(prefix, name)
 #
 #    ## Removes a namespace declaration by removing the association between a
 #    ## prefix and a namespace name.
 #    def removeNamespace(self, prefix):
-#        self.mini_repository.deleteNamespace(prefix)
+#        self._get_mini_repository().deleteNamespace(prefix)
 #
 #    ## Removes all namespace declarations from the repository.
 #    def clearNamespaces(self):
@@ -777,8 +844,8 @@ class RepositoryConnection(object):
         """
         uris.validateNamespace(namespace, True)
         self._get_namespaces_map()[prefix.lower()] = namespace
-        if self.mini_repository.environment:
-            self.mini_repository.addNamespace(prefix, namespace)
+        if self._get_mini_repository().environment:
+            self._get_mini_repository().addNamespace(prefix, namespace)
 
     def removeNamespace(self, prefix):
         """
@@ -841,6 +908,71 @@ class RepositoryConnection(object):
         """
         return self.geoType.createPolygon(vertices, uri=uri)
 
+    #############################################################################################
+    ## SNA   Social Network Analysis Methods
+    #############################################################################################
+    
+    def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, generator_query=None):
+        """
+        Create (and remember) a generator named 'name'.
+        If one already exists with the same name; redefine it.
+        'subjectOf', 'objectOf' and 'undirected' expect a list of predicate URIs, expressed as 
+        fullURIs or qnames, that define the edges traversed by the generator.
+        Alternatively, instead of an adjacency map, one may provide a 'generator_query',
+        that defines the edges.
+        """
+        miniRep = self._get_mini_repository()
+        print "CALLING MINI registerSNAGenerator"
+        miniRep.registerSNAGenerator(name, subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, 
+                                     query=generator_query)
+
+    def deleteSNAGenerator(self, name):
+        """
+        Destroy the generator named 'name'.
+        """
+        miniRep = self._get_mini_repository()
+        miniRep.deleteSNAGenerator(name)
+    
+    def listSNAGenerators(self):
+        """
+        Return a list of the names of registered SNA generators.
+        ALTERNATIVELY, CONSIDER RETURNING A DICT THAT CONTAINS GENERATOR NAMES AS KEYS,
+        AND ADJACENCY MAPS AS VALUES
+        """
+        miniRep = self._get_mini_repository()
+        return miniRep.listSNAGenerators()
+    
+    def registerNeighborMatrix(self, name, generator, group_uris, max_depth=2):
+        """
+        Construct a neighbor matrix named name.  The generator named 'generator' is applied
+        to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),
+        computing edges to max depth 'max_depth'.
+        """
+        miniRep = self._get_mini_repository()
+        miniRep.registerNeighborMatrix(name, group_uris, generator, max_depth)
+
+    def rebuildNeighborMatrix(self, name):
+        """
+        Recompute the set of edges cached in the neighbor matrix named 'name'.
+        """
+        miniRep = self._get_mini_repository()
+        miniRep.rebuildNeighborMatrix(name)
+    
+    def deleteNeighborMatrix(self, name):
+        """
+        Destroy the neighbor matrix named 'name'.
+        """
+        miniRep = self._get_mini_repository()
+        miniRep.deleteNeighborMatrix(name)
+    
+    def listNeighborMatrices(self):
+        """
+        Return a list of the names of registered neighbor matrices
+        """
+        miniRep = self._get_mini_repository()
+        return miniRep.listNeighborMatrices()
+  
+  
 class GeoType:
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'
@@ -869,10 +1001,10 @@ class GeoType:
         def stringify(term): return str(term) if term is not None else None
         if not self.miniGeoType:
             if self.system == GeoType.Cartesian:
-                self.miniGeoType = self.connection.mini_repository.getCartesianGeoType(stringify(self.scale), stringify(self.xMin), stringify(self.xMax),
+                self.miniGeoType = self.connection._get_mini_repository().getCartesianGeoType(stringify(self.scale), stringify(self.xMin), stringify(self.xMax),
                                                                                 stringify(self.yMin), stringify(self.yMax))
             elif self.system == GeoType.Spherical:
-                self.miniGeoType = self.connection.mini_repository.getSphericalGeoType(stringify(self.scale), unit=stringify(self.unit), 
+                self.miniGeoType = self.connection._get_mini_repository().getSphericalGeoType(stringify(self.scale), unit=stringify(self.unit), 
                                 latMin=stringify(self.latMin), latMax=stringify(self.latMax), longMin=stringify(self.longMin), longMax=stringify(self.longMax))
         return self.miniGeoType
 
@@ -905,11 +1037,12 @@ class GeoType:
         poly = GeoPolygon(vertices, uri=uri, geoType=self)
         poly.resource = self.connection.createURI(uri) if uri else self.connection.createBNode()
         miniResource = self.connection._convert_term_to_mini_term(poly.resource)
-        miniRep = self.connection.mini_repository
+        miniRep = self.connection._get_mini_repository()
         if self.system == GeoType.Cartesian:
             miniVertices = [miniRep.createCartesianGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
         elif self.system == GeoType.Spherical:
             miniVertices = [miniRep.createSphericalGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
         miniRep.createPolygon(miniResource, miniVertices)
         return poly
-        
+
+    

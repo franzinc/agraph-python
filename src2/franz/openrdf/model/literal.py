@@ -24,8 +24,11 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.query.commonlogic import XSD
 from franz.openrdf.util import strings
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
+import datetime
+import time
 
 class Literal(Value):
     """
@@ -34,12 +37,20 @@ class Literal(Value):
     Implementer note: If this is still too heavyweight, subclass but don't
     call super.__init__.  That's why Python is so cool!
     """
-    XSDToPython = {}
     def __init__(self, label, datatype=None, language=None):
+        if isinstance(datatype, str):
+            if datatype[0] == '<':
+                datatype = datatype[1:-1]
+            uri = XMLSchema.name2URI(datatype, exception_if_failure=False)
+            datatype = uri or datatype
+            ## TODO: CONVERT NON-XML SCHEMA TYPES (BUT WHICH ONES; WE
+            ## SHOULD CACHE TO AVOID CREATING TOO MANY)
         self.datatype = datatype
         self.language = language.lower() if language else None
         self.label = label
-
+    ISO_FORMAT_WITH_T = "%Y-%m-%dT%H:%M:%S"
+    XSDToPython = None
+     
     def getLabel(self): return self.label
     
     def getValue(self): return self.getLabel()
@@ -88,6 +99,14 @@ class Literal(Value):
     def booleanValue(self):
         return bool(self.getLabel())
     
+    def datetimeValue(self):
+        return datetime.datetime.strptime(self.getLabel(), Literal.ISO_FORMAT_WITH_T)
+
+    def timeValue(self):
+        ## THIS IS GOING TO BREAK:
+        return datetime.time(self.getLabel())
+
+    
     ## Returns the {@link XMLGregorianCalendar} value of this literal. A calendar
     ## representation can be given for literals whose label conforms to the
     ## syntax of the following <a href="http://www.w3.org/TR/xmlschema-2/">XML
@@ -125,12 +144,20 @@ class Literal(Value):
 ## Automatic conversion from Literal to Python object
 ###############################################################################
 
+    def initializeXSDToPython(self):
+        if not Literal.XSDToPython:
+            Literal.XSDToPython = {str(XMLSchema.INT): int, str(XMLSchema.FLOAT): float, 
+                                   str(XMLSchema.LONG): long, XMLSchema.BOOLEAN: bool,
+                                   str(XMLSchema.DATETIME): datetime.datetime,
+                                   str(XMLSchema.TIME): datetime.time,}
+
     def toPython(self):
         """
         Return a Python object representation of this literal.   
         Slightly silly implementation because we implement a conversion table
         and then don't use the conversion functions.     
         """
+        self.initializeXSDToPython()
         dt = self.getDatatype()
         if dt is None: return self.getLabel()
         else:
@@ -145,6 +172,10 @@ class Literal(Value):
                     return self.floatValue()
                 elif conversion == bool:
                     return self.booleanValue()
+                elif conversion == datetime.datetime:
+                    return self.datetimeValue()
+                elif conversion == datetime.time:
+                    return self.timeValue()
                 else:
                     return conversion(self.label)
             else:

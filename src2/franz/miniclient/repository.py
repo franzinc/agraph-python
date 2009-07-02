@@ -16,7 +16,7 @@ class Catalog:
     def listTripleStores(self):
         """Returns the names of open stores on the server."""
         repos = jsonRequest(self.curl, "GET", self.url + "/repositories")
-        return [repo["id"][1:-1].replace("\\\"", "\"").replace("\\\\", "\\") for repo in repos]
+        return [repo["id"] for repo in repos]
 
     def createTripleStore(self, name):
         """Ask the server to create a new triple store."""
@@ -26,6 +26,10 @@ class Catalog:
         """Create a federated store."""
         nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
                     "?" + urlenc(federate=storeNames))
+
+    def openRemoteStore(self, name, host, port, file):
+        nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
+                    "?" + urlenc(host=host, port=port, file=file))
 
     def deleteTripleStore(self, name):
         """Delete a server-side triple store."""
@@ -60,7 +64,7 @@ class Repository:
         return jsonRequest(self.curl, "GET", self.url + "/writeable")
 
     def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
-                        bindings=None, planner=None):
+                        bindings=None, planner=None, checkVariables=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -69,16 +73,18 @@ class Repository:
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
         if (bindings is not None):
-            bindings = [a + " " + b for a, b in bindings.items()]
+            bindings = "".join(["&$" + urllib.quote(a) + "=" + urllib.quote(b.encode("utf-8")) for a, b in bindings.items()])
         return jsonRequest(self.curl, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                                  environment=self.environment, bind=bindings, planner=planner),
+                                  environment=self.environment, planner=planner,
+                                  checkVariables=checkVariables) + (bindings or ""),
                            rowreader=callback and RowReader(callback))
 
-    def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
+    def evalPrologQuery(self, query, infer=False, callback=None, limit=None, context=None):
         """Execute a Prolog query. Returns a {names, values} object."""
         return jsonRequest(self.curl, "POST", self.url,
-                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment, limit=limit),
+                           urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment,
+                                  limit=limit, context=context),
                            rowreader=callback and RowReader(callback))
 
     def definePrologFunctors(self, definitions):
@@ -92,6 +98,39 @@ class Repository:
         them if name is not given."""
         nullRequest(self.curl, "DELETE", self.url + "/functor", urlenc(environment=self.environment, name=name))
 
+    def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, query=None):
+        """subjectOf, objectOf, and undirected can be either a single
+        predicate or a list of predicates. query should be a prolog
+        query in the form (select ?x (q- ?node !<mypredicate> ?x)),
+        where ?node always returns to the argument passed to the
+        generator."""
+        nullRequest(self.curl, "PUT", self.url + "/snaGenerators/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment, subjectOf=subjectOf, objectOf=objectOf,
+                           undirected=undirected, query=query))
+
+    def deleteSNAGenerator(self, name):
+        nullRequest(self.curl, "DELETE", self.url + "/snaGenerators/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment))
+
+    def listSNAGenerators(self):
+        return jsonRequest(self.curl, "GET", self.url + "/snaGenerators", urlenc(environment=self.environment))
+
+    def registerNeighborMatrix(self, name, group, generator, depth):
+        """group is a list of nodes, generator the name of an SNA generator."""
+        nullRequest(self.curl, "PUT", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment, group=group, depth=depth, generator=generator))
+
+    def rebuildNeighborMatrix(self, name):
+        nullRequest(self.curl, "PUT", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment))
+
+    def deleteNeighborMatrix(self, name):
+        nullRequest(self.curl, "DELETE", self.url + "/neighborMatrices/" + urllib.quote(name) + "?" +
+                    urlenc(environment=self.environment))
+
+    def listNeighborMatrices(self):
+        return jsonRequest(self.curl, "GET", self.url + "/neighborMatrices", urlenc(environment=self.environment))
+
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
         return jsonRequest(self.curl, "POST", self.url + "/eval?" + urlenc(environment=self.environment), code)
@@ -100,6 +139,7 @@ class Repository:
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
+        if subj == [] or pred == [] or obj == [] or context == []: return []
         subjEnd, predEnd, objEnd = None, None, None
         if isinstance(subj, tuple): subj, subjEnd = subj
         if isinstance(pred, tuple): pred, predEnd = pred
@@ -109,6 +149,10 @@ class Repository:
                                   obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit),
                            rowreader=callback and RowReader(callback),
                            accept=(tripleIDs and "application/x-quints+json") or "application/json")
+
+    def getStatementsById(self, ids, returnIDs=True):
+        return jsonRequest(self.curl, "GET", self.url + "/statements/id", urlenc(id=ids),
+                           accept=(returnIDs and "application/x-quints+json") or "application/json")
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
@@ -190,6 +234,15 @@ class Repository:
     def setIndexingChunkThreshold(self, size=None):
         nullRequest(self.curl, "PUT", self.url + "/indexing/chunkThreshold", "%d" % (size or 0),
                     contentType="text/plain")
+
+    def getTripleCacheSize(self):
+        return jsonRequest(self.curl, "GET", self.url + "/tripleCache") or False
+
+    def disableTripleCache(self):
+        nullRequest(self.curl, "DELETE", self.url + "/tripleCache")
+
+    def enableTripleCache(self, size=None):
+        nullRequest(self.curl, "PUT", self.url + "/tripleCache?" + urlenc(size=size))
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
         """Use free-text indices to search for the given pattern.
@@ -433,7 +486,7 @@ def test2():
     print [x[0] for x in rep.getStatementsInsideBox(typ2, "\"loc\"", 0.08, 0.09, 51.0, 52.0)]
 
 if __name__ == '__main__':
-    choice = 2
+    choice = 1
     print "Run test%i" % choice
     if choice == 0: test0()
     elif choice == 1: test1()

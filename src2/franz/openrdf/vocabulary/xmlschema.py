@@ -73,7 +73,7 @@ class XMLSchema:
     UNSIGNED_BYTE = None 
     
     ## map of uri strings to URI objects:
-    name2URI = {}
+    name2URIMap = {}
     
     @staticmethod
     def initialize(factory):
@@ -127,7 +127,6 @@ class XMLSchema:
         XMLSchema.UNSIGNED_BYTE = factory.createURI(namespace=XMLSchema.NAMESPACE, localname="unsignedByte")        
         
         ## (re)build 'name2URI' dictionary
-        XMLSchema.name2URIMap = {}
         for uri in [XMLSchema.DURATION, XMLSchema.DATETIME, XMLSchema.TIME, XMLSchema.DATE,  XMLSchema.GYEARMONTH, 
                 XMLSchema.GYEAR, XMLSchema.GMONTHDAY, XMLSchema.GDAY, XMLSchema.GMONTH, XMLSchema.STRING, 
                 XMLSchema.BOOLEAN, XMLSchema.BASE64BINARY, XMLSchema.HEXBINARY, XMLSchema.FLOAT, XMLSchema.DECIMAL, 
@@ -138,6 +137,19 @@ class XMLSchema:
                 XMLSchema.NEGATIVE_INTEGER, XMLSchema.NON_NEGATIVE_INTEGER, XMLSchema.POSITIVE_INTEGER, XMLSchema.UNSIGNED_LONG, 
                 XMLSchema.UNSIGNED_INT, XMLSchema.UNSIGNED_SHORT, XMLSchema.UNSIGNED_BYTE,]:
             XMLSchema.name2URIMap[str(uri)] = uri
+
+    @staticmethod
+    def name2URI (name, exception_if_failure=True):
+        """
+        Given a URI string, return the OpenRDF URI object.
+        """
+        if not XMLSchema.name2URIMap:
+            XMLSchema.initialize()
+        matchingURI = XMLSchema.name2URIMap.get(name)
+        if matchingURI: return matchingURI
+        elif exception_if_failure:
+            raise IllegalArgumentException("Passed a non-XSD URI to 'XMLSchema.name2URI.")
+        else: return None
 
 #    @staticmethod
 #    def reinitialize(factory, store=None):
@@ -204,16 +216,6 @@ class XMLSchema:
 #                XMLSchema.UNSIGNED_INT, XMLSchema.UNSIGNED_SHORT, XMLSchema.UNSIGNED_BYTE,]:
 #            XMLSchema.name2URIMap[str(uri)] = uri
     
-#    @staticmethod
-#    def name2URI (name, exception_if_failure=True):
-#        """
-#        Given a URI string, return the OpenRDF URI object.
-#        """
-#        matchingURI = XMLSchema.name2URIMap.get(name)
-#        if matchingURI: return matchingURI
-#        elif exception_if_failure:
-#            raise IllegalArgumentException("Passed a non-XSD URI to 'XMLSchema.name2URI.")
-#        else: return None
     
 
 

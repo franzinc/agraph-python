@@ -24,7 +24,58 @@ def urlenc(**args):
         encval(name, val)
     return "&".join(buf)
 
+def write_it(method, url, body, accept, contentType):
+    path = '/Users/bmacgregor/Desktop/trail.py'
+    prolog = """
+##from franz.miniclient.request import makeRequest
+import pycurl, StringIO
+    
+curl = pycurl.Curl()
+
 def makeRequest(curl, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None):
+    print "m",
+    postbody = method == "POST" or method == "PUT"
+    curl.setopt(pycurl.POSTFIELDS, "")
+    if body:
+        if postbody:
+            curl.setopt(pycurl.POSTFIELDS, body)
+        else:
+            url = url + "?" + body
+
+    curl.setopt(pycurl.POST, (postbody and 1) or 0)
+    curl.setopt(pycurl.CUSTOMREQUEST, method)
+    curl.setopt(pycurl.URL, url)
+
+    # The "Expect:" is there to suppress "Expect: 100-continue"
+    # behaviour that is the default in libcurl when posting large
+    # bodies.
+    headers = ["Connection: Keep-Alive", "Accept: " + accept, "Expect:"]
+    if contentType and postbody: headers.append("Content-Type: " + contentType)
+    curl.setopt(pycurl.HTTPHEADER, headers)
+    curl.setopt(pycurl.ENCODING, "") # which means 'any encoding that curl supports'
+
+    buf = StringIO.StringIO()
+    curl.setopt(pycurl.WRITEFUNCTION, buf.write)
+    curl.perform()
+    response = buf.getvalue().decode("utf-8")
+    buf.close()
+    
+"""
+    file = open(path, 'r')
+    s = file.read(3)
+    isEmpty = not s
+    file.close()
+    print 'm',
+    file = open(path, 'a')
+    if isEmpty:
+        file.write(prolog)
+    file.write("""makeRequest(curl, '{method}', '{url}', \"\"\"{body}\"\"\", '{accept}', '{contentType}')\n""".format(
+                                    method=method, url=url, body=body, accept=accept, contentType=contentType))
+    file.close()
+
+def makeRequest(curl, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None):
+    if False: write_it(method, url, body, accept, contentType)
+    
     postbody = method == "POST" or method == "PUT"
     curl.setopt(pycurl.POSTFIELDS, "")
     if body:
@@ -90,7 +141,10 @@ class RowReader:
         self.backlog = None
 
     def process(self, string):
-        if self.hasNames is None: self.hasNames = string[0] == "{"
+        if self.hasNames is None:
+            self.hasNames = string[0] == "{"
+            if not self.hasNames: self.skipNextBracket = True
+
         ln = len(string)
         if self.backlog: string = self.backlog + string
         pos = [0]

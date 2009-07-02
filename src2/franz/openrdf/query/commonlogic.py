@@ -22,6 +22,8 @@
 
 
 from franz.openrdf.exceptions import *
+from franz.openrdf.model.value import Value
+from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 import datetime
 import time
@@ -60,6 +62,7 @@ CONTEXTS_OR_DATASET = 'CONTEXTS'
 ALIASES = {
     'CONTEXT': 'CONTEXTS',
     'TPL': 'TRIPLE',
+    'IN': 'MEMBER',
     }
 
 class Token:
@@ -71,9 +74,10 @@ class Token:
     RESERVED_WORD = 'RESERVED_WORD'
     NUMBER = 'NUMBER'
     BRACKET_SET = set(['(', ')', '[', ']',])
-    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'OPTIONAL', 'IN', 'TRUE', 'FALSE', 'LIST',
+    RESERVED_WORD_SET = set(['AND', 'OR', 'NOT', 'NAF', 'OPTIONAL', 'MEMBER', 'IMPLIES', 
+                             'FORALL', 'EXISTS', 'TRUE', 'FALSE', 'LIST',
                              '=', '<', '>', '<=', '>=', '!=', '+', '-', 'TRIPLE', 'QUAD',
-                             'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT',
+                             'SELECT', 'DISTINCT', 'WHERE', CONTEXTS_OR_DATASET, 'LIMIT', 'ORDER', 'BY',
                              'REGEX',])
     
     def __init__(self, token_type, value):
@@ -185,7 +189,7 @@ class Tokenizer():
                 endPos = i
                 break
         word = string[:endPos] if endPos >= 0 else string
-        word = ALIASES[word.upper] if ALIASES.get(word.upper()) else word
+        word = ALIASES[word.upper()] if ALIASES.get(word.upper()) else word
         if word.upper() in Token.RESERVED_WORD_SET:
             self.tokens.append(Token(Token.RESERVED_WORD, word))
         elif word[0].isdigit():
@@ -229,7 +233,7 @@ class Tokenizer():
             suffix = string[1:]
         elif c in ['"', "'"]:
             suffix = self.grab_string(string, c)
-        elif c == '<':
+        elif c == '<' and string[1].isalpha():
             suffix = self.grab_uri(string)
         ## at this point, the first token must be delimited by a blank,
         ## comma, or delimiter.  Find the end:
@@ -240,11 +244,21 @@ class Tokenizer():
         newToken = self.tokens[len(self.tokens) - 1]
         newToken.offset = len(self.source_string) - len(suffix) - len(newToken.value)
         return suffix
-
+    
     def tokenize(self):
         suffix = self.source_string
         while suffix:
             suffix = self.tokenize_next(suffix)
+        ## combine 'ORDER BY' tokens into one
+        for i, tok in enumerate(self.tokens):
+            if tok.value == 'ORDER' and tok.token_type == Token.RESERVED_WORD:
+                if len(self.tokens) > i:
+                    nextTok = self.tokens[i + 1]
+                    if nextTok.value == 'BY' and nextTok.token_type == Token.RESERVED_WORD:
+                        self.tokens[i] = Token(Token.RESERVED_WORD, 'ORDERBY')
+                        del self.tokens[i + 1]
+                        break
+        #print "TOKENIZED", [str(t) for t in self.tokens]
         return self.tokens
     
     @staticmethod
@@ -262,6 +276,7 @@ DISTINCT = 'distinct'
 FROM = 'from'
 WHERE = 'where'
 LIMIT = 'limit'
+ORDER_BY = 'orderby'
 
 class QueryBlock:
     def __init__(self, query_type=SELECT):
@@ -271,6 +286,8 @@ class QueryBlock:
         self.contexts_clause = None
         self.distinct = False
         self.limit = -1
+        self.order_by = None
+        self.input_bindings = None
         self.temporary_enumerations = {}
         
     def stringify(self, newlines=False): 
@@ -319,7 +336,7 @@ class Term:
             elif self.datatype in [XSD.INTEGER, XSD.NUMBER]:
                 return self.value
             else:
-                return '"%s"<%s>' % (self.value, self.datatype)
+                return '"%s"^^<%s>' % (self.value, self.datatype)
         elif self.term_type == Term.ARTIFICIAL:
             return self.value
 
@@ -327,8 +344,8 @@ ARTIFICIAL_TERMS = set(['TRIPLE', 'QUAD'])
 ARITHMETIC_OPERATORS = set(['+', '-'])
 COMPARISON_OPERATORS = set(['=', '<', '>', '<=', '>=', '!='])
 PREFIX_OPERATORS = set(['REGEX'])
-UNARY_BOOLEAN_OPERATORS = set(['NOT', 'OPTIONAL'])
-BOOLEAN_OPERATORS = set(['AND', 'OR', 'IN']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS).union(PREFIX_OPERATORS)
+UNARY_BOOLEAN_OPERATORS = set(['NOT', 'NAF', 'OPTIONAL'])
+BOOLEAN_OPERATORS = set(['AND', 'OR', 'MEMBER', 'IMPLIES', 'FORALL', 'EXISTS']).union(UNARY_BOOLEAN_OPERATORS).union(COMPARISON_OPERATORS).union(PREFIX_OPERATORS)
 VALUE_OPERATORS = ARITHMETIC_OPERATORS
 CONNECTIVE_OPERATORS = BOOLEAN_OPERATORS.union(VALUE_OPERATORS)
 OPERATOR_EXPRESSIONS = (CONNECTIVE_OPERATORS.union(ARITHMETIC_OPERATORS).union(ARTIFICIAL_TERMS)
@@ -338,8 +355,12 @@ class OpExpression:
     AND = 'AND'
     OR = 'OR'
     NOT = 'NOT'
-    IN = 'IN'
-    OPTIONAL = 'OPTIONAL'    
+    NAF = 'NAF'
+    IN = 'MEMBER'
+    OPTIONAL = 'OPTIONAL'
+    IMPLIES = 'IMPLIES'
+    FORALL = 'FORALL'
+    EXISTS = 'EXISTS'    
     ENUMERATION = 'ENUMERATION'
     PREDICATION = 'PREDICATION'
     TRUE = 'TRUE'
@@ -366,7 +387,8 @@ class OpExpression:
     @staticmethod
     def parse_operator(value):
         value = value.upper()
-        if not value in OPERATOR_EXPRESSIONS and not value in ['SELECT', 'DISTINCT', 'WHERE', 'CONTEXTS', 'LIMIT']:
+        if not value in OPERATOR_EXPRESSIONS and not value in ['SELECT', 'DISTINCT', 'WHERE', 'CONTEXTS', 'LIMIT',
+                                                                'ORDER', 'BY', 'ORDERBY']:
             raise Exception("Need to add '%s' to list of OPERATOR_EXPRESSIONS" % value)
         return value
     
@@ -438,14 +460,12 @@ class CommonLogicTranslator:
         else:
             raise Exception("Can't convert token %s to a term" % token)
  
-    def resourcify(self, term, tokens):
+    def normalize_resource(self, term, tokens):
         """
-        Convert string term to resource term.
+        Make sure resource term is legitimate (not sure why tokenizer doesn't do this)
         TODO: Check that the string really is a URI or qname
         """
-        if (term.term_type == Term.LITERAL or
-            term.term_type == Term.RESOURCE):
-            term.term_type = Term.RESOURCE
+        if (term.term_type == Term.RESOURCE):
             if not term.value:
                 self.syntax_exception("Empty string found where resource expected.", tokens)
             if term.value[0] == '<' and self.value[len(self) - 1] == '>':
@@ -474,9 +494,12 @@ class CommonLogicTranslator:
         return terms
         
     def parse_enumeration(self, value, tokens):
-        arguments = self.parse_expressions(tokens, [])
+        """
+        """
+        arguments = []
+        self.parse_expressions(tokens, arguments)
         for arg in arguments:
-            self.resourcify(arg, tokens)
+            self.normalize_resource(arg, tokens)
         op = OpExpression(OpExpression.ENUMERATION, arguments)
         op.predicate = value
         return op
@@ -587,7 +610,7 @@ class CommonLogicTranslator:
         """
         Infix mode needs special handling for the NOT operator (because its a prefix operator).
         TODO: FIGURE OUT IF 'OPTIONAL' NEEDS SIMILAR HANDLING HERE
-        TODO: GENERALIZE TO ALSO HANDLE 'IN'???
+        TODO: GENERALIZE TO ALSO HANDLE 'MEMBER'???
         """
         opName = tokens[0].value
         if len(tokens) < 2:
@@ -705,7 +728,7 @@ class CommonLogicTranslator:
                 return self.parse_infix_expression(tokens[1:], arguments, connective=connective, needs_another_argument=False, is_boolean=is_boolean)
             if tokenType == Token.BRACKET:
                 return self.parse_bracket(tokens, arguments, connective=connective, is_boolean=is_boolean)
-            elif Token.reserved_type(beginToken, [OpExpression.NOT, OpExpression.OPTIONAL]) and is_boolean:
+            elif Token.reserved_type(beginToken, [OpExpression.NOT, OpExpression.NAF, OpExpression.OPTIONAL]) and is_boolean:
                 return self.parse_unary_connective(tokens, arguments, connective=connective)
             elif Token.reserved_type(beginToken, [OpExpression.TRUE, OpExpression.FALSE]) and is_boolean:
                     arguments.append(OpExpression(beginToken.value, []))
@@ -794,6 +817,23 @@ class CommonLogicTranslator:
             return int(token.value)
         else:
             self.syntax_exception("'limit' operator expects an integer argument", token)
+
+    def parse_order_by_clause(self, tokens):
+        if not tokens:
+            self.syntax_exception("Order by clause is empty", tokens)
+        if tokens[0].value == '(':
+            beginToken = tokens[0]
+            endToken = tokens[len(tokens) - 1]
+            if not (beginToken.value == '(' and endToken.value == ')'):
+                self.syntax_exception("Begin and end parentheses needed to bracket contents of ORDER BY clause", tokens)
+            tokens = tokens[1:-1]
+        variables = []
+        for token in tokens:
+            if token.token_type == Token.VARIABLE:
+                variables.append(self.token_to_term(token))
+            else:
+                self.syntax_exception("Found term '%s' where variable expected" % token.value, token)
+        return variables
             
     def parse(self):
         """
@@ -825,10 +865,12 @@ class CommonLogicTranslator:
         whereToken = None
         contextsToken = None
         limitToken = None
+        orderByToken = None
         for tok in tokens:
             if found_one(tok, 'where', whereToken): whereToken = tok
             if found_one(tok, 'distinct', distinctToken): distinctToken = tok
             if found_one(tok, 'limit', limitToken): limitToken = tok                        
+            if found_one(tok, 'orderby', orderByToken): orderByToken = tok                                    
             if found_one(tok, 'contexts', contextsToken): contextsToken = tok    
         if distinctToken:
             if not distinctToken == tokens[1]:
@@ -848,17 +890,30 @@ class CommonLogicTranslator:
             lastWhereTokenIndex = min(lastWhereTokenIndex, contextsToken.index)
         if limitToken: 
             lastWhereTokenIndex = min(lastWhereTokenIndex, limitToken.index)
+        if orderByToken: 
+            lastWhereTokenIndex = min(lastWhereTokenIndex, orderByToken.index)
         qb.where_clause = self.parse_where_clause(tokens[whereToken.index + 1:lastWhereTokenIndex])
         if contextsToken:
             lastContextsTokenIndex = len(tokens)
             if limitToken and limitToken.index > contextsToken.index:  
                 lastContextsTokenIndex = min(lastContextsTokenIndex, limitToken.index)
+            if orderByToken and orderByToken.index > contextsToken.index: 
+                lastContextsTokenIndex = min(lastContextsTokenIndex, orderByToken.index)
             qb.contexts_clause = self.parse_contexts_clause(tokens[contextsToken.index + 1:lastContextsTokenIndex])
         if limitToken:
             lastLimitTokenIndex = len(tokens)
+            if orderByToken and orderByToken.index > limitToken.index:  
+                lastLimitTokenIndex = min(lastLimitTokenIndex, orderByToken.index)
             if contextsToken and contextsToken.index > limitToken.index:  
                 lastLimitTokenIndex = min(lastLimitTokenIndex, contextsToken.index)
             qb.limit = self.parse_limit_clause(tokens[limitToken.index + 1:lastLimitTokenIndex])
+        if orderByToken:
+            lastOrderByTokenIndex = len(tokens)
+            if limitToken and limitToken.index > orderByToken.index:  
+                lastOrderByTokenIndex = min(lastOrderByTokenIndex, limitToken.index)
+            if contextsToken and contextsToken.index > limitToken.index:  
+                lastOrderByTokenIndex = min(lastOrderByTokenIndex, contextsToken.index)
+            qb.order_by = self.parse_order_by_clause(tokens[orderByToken.index + 1:lastOrderByTokenIndex])
        
 
 ###########################################################################################################
@@ -866,9 +921,10 @@ class CommonLogicTranslator:
 ###########################################################################################################
 
 class Normalizer:
-    def __init__(self, parse_tree, language, contexts=None):
+    def __init__(self, parse_tree, language, contexts=None, spoify_output='False'):
         self.parse_tree = parse_tree
         self.language = language
+        self.spoify_output = spoify_output
         self.variable_counter = -1
         self.recompute_backlinks()
         def deanglify(context):
@@ -911,15 +967,28 @@ class Normalizer:
         def add_backlinks(node, parent, external_value):
             node.parent = parent        
         self.walk(add_backlinks, start_node=(self.parse_tree.where_clause if where_clause_only else None))
-    
+        
+#    def variable_name_is_referenced(self, variable_name):
+#        """
+#        Return 'True' if a variable named 'variable_name' occurs somewhere in the current parse tree.
+#        """      
+#        foundIt = [False]
+#        def doit(node, parent, external_value):
+#            if node.term_type == Term.VARIABLE and node.value == variable_name:                
+#                foundIt[0] = True
+#        self.walk(doit, types=Term)
+#        return foundIt[0]
+
     def get_fresh_variable(self):
+        """
+        """
         def bump_variable_counter(node, parent, sseellff):
             if not node.term_type == Term.VARIABLE: return
             value = node.value
             if len(value) < 2: return
             if not value.startswith('v') or not value[1:].isdigit(): return
             intVal = int(value[1:])
-            sseellff.parse_tree.variable_counter = max(self.parse_tree.variable_counter, intVal)
+            sseellff.variable_counter = max(self.variable_counter, intVal)
         if self.variable_counter == -1:
             self.variable_counter = 0
             self.walk(bump_variable_counter, types=Term, external_value=self)
@@ -1149,7 +1218,8 @@ class Normalizer:
             if p_or_true:
                 notP = OpExpression(OpExpression.TRUE, [])
             else:
-                notP = OpExpression(OpExpression.NOT, [argCopy])
+                #notP = OpExpression(OpExpression.NOT, [argCopy])
+                notP = OpExpression(OpExpression.NAF, [argCopy])
             pOrNotP = OpExpression(OpExpression.OR, [arg, notP])
             self.substitute_node(node, pOrNotP)
         self.walk(doit, types=OpExpression, external_value=self)
@@ -1187,16 +1257,131 @@ class Normalizer:
             joinNode.predicate = OpExpression.TRIPLE
             joinNode.is_spo = True
             self.substitute_node(node, joinNode)
-            ## BUG: DOESN'T WORK FOR QNAMES:
-            self.parse_tree.temporary_enumerations[tempRelation] = ["<{0}>".format(item.value) for item in enumeration.arguments]            
+            self.parse_tree.temporary_enumerations[tempRelation] = [str(item) for item in enumeration.arguments]            
             didIt[0] = True
         self.walk(doit, types=OpExpression, external_value=self)
         if didIt[0]:
             self.recompute_backlinks()
+            
+    def implies_to_or_nots(self):
+        """
+        Convert (implies P Q) to (or (naf P) Q).
+        """
+        didIt = [False]
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.IMPLIES:
+                notOp = OpExpression(OpExpression.NOT, [node.arguments[0]])
+                orOp = OpExpression(OpExpression.OR, [notOp, node.arguments[1]])
+                sseellff.substitute_node(node, orOp)
+                didIt[0] = True
+        self.walk(doIt, OpExpression, external_value=self)
+        if didIt[0]:
+            self.recompute_backlinks()
+        
+    def foralls_to_not_exist_nots(self):
+        """
+        Convert (forall ?x P) to (not (exists ?x (not P))), i.e., apply
+        deMorgans to eliminate 'forall's
+        """
+        didIt = [False]
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.FORALL:
+                notOp = OpExpression(OpExpression.NOT, [node.arguments[1]])
+                existsOp = OpExpression(OpExpression.EXISTS, [node.arguments[0], notOp])
+                notOpToo = OpExpression(OpExpression.NOT, [existsOp])
+                sseellff.substitute_node(node, notOpToo)
+                didIt[0] = True
+        self.walk(doIt, OpExpression, external_value=self)
+        if didIt[0]:
+            self.recompute_backlinks()
+        
+    def push_nots_inwards(self, start_node=None):
+        """
+        Convert '(not (or P Q))' to '(and (not P) (not Q))'
+        Oops: We CANNOT convert '(not (and P Q))' to (or (not P) (not Q)) safely.
+        """
+        didIt = [False]
+        def negate(node, sseellff, op):
+            """
+            Wrap a 'not' around 'node', unless that creates double negation,
+            in which case replace 'node' by its argument'
+            """
+            if node.operator == op:
+                ## double negation
+                arg = node.arguments[0]
+                sseellff.substitute_node(node, arg)
+                arg.parent = node.parent
+                return arg
+            else:
+                notOp = OpExpression(op, [node.clone()])
+                sseellff.substitute_node(node, notOp)
+                notOp.arguments[0].parent = notOp
+                notOp.parent = node.parent
+                return notOp
+        def doIt(node, parent, sseellff):             
+            if node.operator in [OpExpression.NOT, OpExpression.NAF]:
+                notArg = node.arguments[0]
+                if notArg.operator == node.operator:
+                    ## eliminate double negation:
+                    arg = notArg.arguments[0]
+                    sseellff.substitute_node(node, arg)
+                    arg.parent = node.parent
+                    return
+                if not notArg.operator in [OpExpression.OR]: return
+                for arg in notArg.arguments[:]:
+                    negate(arg, sseellff, node.operator)
+                if notArg.operator == OpExpression.AND:
+                    notArg.operator = OpExpression.OR
+                elif notArg.operator == OpExpression.OR:
+                    notArg.operator = OpExpression.AND                
+                sseellff.substitute_node(node, notArg)
+                notArg.parent = node.parent             
+                sseellff.push_nots_inwards(start_node=notArg)
+                didIt[0] = True
+        self.walk(doIt, OpExpression, external_value=self, start_node=start_node)
+        if didIt[0]:
+            self.recompute_backlinks()
 
+    def convert_predications_to_spo_nodes(self, divert_context=False):
+        """
+        Convert all predications to SPO nodes.
+        if 'divert_context', extract contexts from arguments an insert them into the 'context' attribute
+        """
+        def doit(node, parent, external_value):
+            if node.operator == OpExpression.PREDICATION and node.predicate and not node.is_spo:
+                if len(node.arguments) == 1:
+                    predicate = Term(Term.RESOURCE, None, qname="rdf:type")                    
+                    subject = node.arguments[0]                    
+                    object = node.predicate
+                else:
+                    predicate = node.predicate
+                    subject = node.arguments[0]
+                    object = node.arguments[1]
+                node.context = node.arguments[2] if len(node.arguments) == 3 else None
+                node.predicate = 'QUAD' if node.context else 'TRIPLE'
+                if divert_context:
+                    node.arguments = [subject, predicate, object]
+                else:
+                    node.arguments = [subject, predicate, object, node.context]
+                node.is_spo = True
+            elif node.is_spo and len(node.arguments) == 4:
+                node.context = node.arguments[3]
+                if divert_context:
+                    node.arguments.remove(node.context)
+        self.walk(doit, types=OpExpression)
+            
     ###########################################################################################################
     ## PROLOG-specific
     ###########################################################################################################
+    
+    def nots_to_nafs(self):
+        """
+        Convert all 'not' operators to 'naf', since Prolog has no analog of classical negation.
+        """
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.NOT:
+                node.operator = OpExpression.NAF
+        self.walk(doIt, OpExpression)
     
     def filter_quad_contexts(self):
         """
@@ -1254,26 +1439,7 @@ class Normalizer:
                 node.color = 'FILTER'
         ## color some filter nodes:
         self.walk(colorIt, bottom_up=True)
-    
-    def convert_predications_to_spo_nodes(self):
-        """
-        Convert all predications to SPO nodes.
-        Extract contexts from arguments an insert them into the 'context' attribute
-        """
-        def doit(node, parent, external_value):
-            if node.operator == OpExpression.PREDICATION and node.predicate and not node.is_spo:
-                predicate = node.predicate
-                subject = node.arguments[0]
-                object = node.arguments[1]
-                node.context = node.arguments[2] if len(node.arguments) == 3 else None
-                node.predicate = 'QUAD' if node.context else 'TRIPLE'
-                node.arguments = [subject, predicate, object]
-                node.is_spo = True
-            elif node.is_spo and len(node.arguments) == 4:
-                node.context = node.arguments[3]
-                node.arguments.remove(node.context)
-        self.walk(doit, types=OpExpression)
- 
+     
     def bubble_up_contexts(self):
         """
         Locate quad nodes, trim their length from 4 to 3, and propagate the contexts
@@ -1403,6 +1569,17 @@ class Normalizer:
             ## recurse
             self.denormalize_filter_ands()
             
+    def disappear_exists(self):
+        """
+        Make 'exists' disappear.  We do this for SPARQL because the NAF-to-optional-and-not-bound
+        translator doesn't know how to handle exists.        
+        """
+        def doIt(node, parent, sseellff):
+            if node.operator == OpExpression.EXISTS:
+                sseellff.substitute_node(node, node.arguments[1])
+                sseellff.recompute_backlinks()
+        self.walk(doIt, OpExpression, external_value=self)
+    
     def translate_negations(self):
         """
         Translate negation into optional and unbound.
@@ -1416,9 +1593,12 @@ class Normalizer:
         """
         didIt = [False]
         def doit(node, parent, sseellff):
-            if not node.operator == OpExpression.NOT: return
+            if not node.operator in [OpExpression.NAF, OpExpression.NOT]: return
             tripleNode = node.arguments[0]
             if not (tripleNode.operator == OpExpression.PREDICATION and tripleNode.is_spo): return
+            if node.operator == OpExpression.NOT:
+                ## convert 'NOT' into 'NAF', since we don't support classical negation
+                node.operator = OpExpression.NAF
             objArg = tripleNode.arguments[2]
             isSimple = (objArg.term_type == Term.VARIABLE and 
                         True) #sseellff.is_unique_variable_within_where_clause(objArg))
@@ -1434,7 +1614,8 @@ class Normalizer:
                 optionalNode = OpExpression(OpExpression.OPTIONAL, [innerAndNode])
                 boundNode =  OpExpression(OpExpression.PREDICATION, [freshVar])
                 boundNode.predicate = 'bound'
-            notNode = OpExpression(OpExpression.NOT, [boundNode])
+            #notNode = OpExpression(OpExpression.NOT, [boundNode])
+            notNode = OpExpression(OpExpression.NAF, [boundNode])
             outerAndNode = OpExpression(OpExpression.AND, [optionalNode, notNode])
             sseellff.substitute_node(node, outerAndNode)
             sseellff.recompute_backlinks()
@@ -1443,13 +1624,34 @@ class Normalizer:
         if didIt[0]:
             self.flatten_nested_ands()
      
-
+    def convert_select_constants_to_input_bindings(self, include_stupid_filter_clauses=True):
+        selectTerms = self.parse_tree.select_terms
+        auxiliaryInputBindings = {}
+        stupidFilterClauses = []
+        for i, arg in enumerate(selectTerms):
+            if not arg.term_type == Term.VARIABLE:
+                freshVbl = self.get_fresh_variable()
+                selectTerms[i] = freshVbl
+                auxiliaryInputBindings[freshVbl.value] = str(arg)
+                if include_stupid_filter_clauses:
+                    stupidFilterClauses.append(OpExpression(OpExpression.EQUALITY, [freshVbl, freshVbl]))
+        self.parse_tree.input_bindings = auxiliaryInputBindings
+        for clause in stupidFilterClauses:
+            self.conjoin_to_where_clause(clause)
+        
     ###########################################################################################################
     ## Language-specific Normalization Scripts
     ###########################################################################################################
     
     def normalize_for_prolog(self):
         self.propagate_constants_to_predications()
+        self.implies_to_or_nots()
+        self.foralls_to_not_exist_nots()
+        ## do this AFTER converting FORALLs, since that generates more NOTs
+        self.push_nots_inwards()
+        self.nots_to_nafs()
+        if self.spoify_output:
+            self.convert_predications_to_spo_nodes(divert_context=False)
         if self.contexts:
             self.quadify_triples()            
             self.filter_quad_contexts()
@@ -1465,7 +1667,12 @@ class Normalizer:
         Reorganize the parse tree to be compatible with SPARQL's bizarre syntax.
         """
         self.propagate_constants_to_predications(skip_context_variables=True)
-        self.convert_predications_to_spo_nodes()
+        self.implies_to_or_nots()
+        self.foralls_to_not_exist_nots()
+        ## do this AFTER converting FORALLs, since that generates more NOTs
+        self.push_nots_inwards()
+        self.nots_to_nafs()
+        self.convert_predications_to_spo_nodes(divert_context=True)
         self.fix_heterogeneous_disjunctions()
         if False: ## too slow:
             self.translate_in_enumerate_into_disjunction_of_equalities()
@@ -1476,11 +1683,16 @@ class Normalizer:
         #ps("DDD", self.parse_tree)
         if self.contexts:                        
             self.contextify_sparql_triples()
+        if False:
+            ## THIS GIVES FAULTY SEMANTICS; NOT SURE HOW TO FIX:
+            self.disappear_exists()
+            self.push_nots_inwards()
         self.translate_negations()
         ## finally, create non-normalized structure to assist filters output
         self.denormalize_filter_ands()
         self.flatten_nested_ands()
         self.color_filter_nodes()
+        self.convert_select_constants_to_input_bindings()
 
 def pc(msg, parse_tree):
     print msg, str(StringsBuffer(complain='SILENT').common_logify(parse_tree))
@@ -1588,6 +1800,8 @@ class StringsBuffer:
                 self.indent(1).append('\ncontexts (').common_logify(term.contexts_clause, delimiter=' ').append(')')
             if term.limit >= 0:
                 self.indent(1).append('\nlimit ' + str(term.limit))
+            if term.order_by:
+                self.indent(1).append('\norder by (').common_logify(term.order_by, delimiter=' ').append(')')
             self.append(')')
         elif isinstance(term, OpExpression):
             if term.operator == OpExpression.ENUMERATION:
@@ -1637,13 +1851,18 @@ class StringsBuffer:
             elif term.operator in [OpExpression.AND, OpExpression.OR]:                
                 brackets = ('(', ')') if not suppress_parentheses else None
                 self.infix_common_logify(term.arguments, delimiter='\n%s ' % term.operator.lower(), brackets=brackets)
-            elif term.operator in [OpExpression.NOT, OpExpression.OPTIONAL]:
+            elif term.operator in [OpExpression.NOT, OpExpression.NAF, OpExpression.OPTIONAL]:
                 if self.infix_with_prefix_triples:
                     self.append(term.operator.lower()).append('(').infix_common_logify(term.arguments[0]).append(')')
                 else:
                     if not suppress_parentheses: self.append('(')
                     self.append(term.operator.lower() + ' ').infix_common_logify(term.arguments[0])
                     if not suppress_parentheses: self.append(')')                              
+            elif term.operator in [OpExpression.EXISTS, OpExpression.FORALL]:
+                self.append('(').append(term.operator.lower()).append(' ')
+                for arg in term.arguments:              
+                    self.infix_common_logify(arg).append(' ')
+                self.append(')')
             elif term.operator in CONNECTIVE_OPERATORS:
                 self.append('(')                
                 self.infix_common_logify(term.arguments, delimiter=' %s ' % term.operator.lower())
@@ -1710,6 +1929,10 @@ class StringsBuffer:
                     self.prologify(term.arguments, delimiter='\n')
                 else:
                     self.append('(and ').prologify(term.arguments, delimiter='\n').append(')')
+            elif term.operator == OpExpression.EXISTS:
+                self.prologify(term.arguments[1])
+            elif term.operator == OpExpression.NAF:
+                self.append('(not ').prologify(term.arguments[0]).append(')')  
             elif term.operator in COMPARISON_OPERATORS and not term.operator == '=':
                 op = term.operator.lower()
                 ## EXPERIMENT
@@ -1726,9 +1949,10 @@ class StringsBuffer:
             elif term.predicate and self.spoify_output:
                 self.append('(q')
                 self.append(' ').prologify(term.arguments[0]).append(' ').prologify(term.predicate)
-                self.append(' ').prologify(term.arguments[1])
-                if len(term.arguments) > 3:
-                    self.append(' ').prologify(term.arguments[2])
+                for i in range(1, len(term.arguments)):
+                    self.append(' ').prologify(term.arguments[i])
+                #if len(term.arguments) > 3:
+                #   self.append(' ').prologify(term.arguments[2])
                 self.append(')')
             elif term.operator in [OpExpression.OPTIONAL]:
                 self.complain(term, 'OPTIONAL')
@@ -1763,8 +1987,10 @@ class StringsBuffer:
             self.append('where ').append('{ ')
             self.indent(6).sparqlify(term.where_clause, suppress_curlies=True)
             self.append(' }')
+            if term.order_by:            
+                self.indent(0).append('\norder by ').sparqlify(term.order_by, delimiter=' ')                                                 
             if term.limit >= 0:
-                self.indent(0).append('\nlimit ' + str(term.limit))                                
+                self.indent(0).append('\nlimit '+ str(term.limit))  
         elif isinstance(term, OpExpression):
             if term.operator in [OpExpression.AND, OpExpression.OR]:
                 ## are we joining triples or filters? look at first non-connective in descendants
@@ -1794,7 +2020,7 @@ class StringsBuffer:
                 #if not suppress_curlies: self.append('{')              
                 self.append('optional ').sparqlify(term.arguments[0])
                 #if not suppress_curlies: self.append('}')      
-            elif term.operator == OpExpression.NOT:
+            elif term.operator in [OpExpression.NOT, OpExpression.NAF]:
                 if not term.color == 'FILTER': self.complain(term, "NOT") ## eventually shouldn't occur
                 if not suppress_filter: self.append('filter ')
                 self.append('(')
@@ -1832,6 +2058,8 @@ class StringsBuffer:
                 if not suppress_curlies: self.append('{')                
                 self.append('graph ').sparqlify(term.context).append(' { ').sparqlify(term.arguments[0], suppress_curlies=True).append(' } ')
                 if not suppress_curlies: self.append('}') 
+            else:
+                print "DROPPED THIS ON THE FLOOR", term
         return self
 
 
@@ -1859,19 +2087,20 @@ def translate_common_logic_query(query, preferred_language='PROLOG', contexts=No
             translation = str(StringsBuffer(complain=complain).sparqlify(trans.parse_tree))
         else:
             raise IllegalOptionException("No translation available for the execution language '{0}'".format(language))
-        return translation, trans.parse_tree.contexts_clause, trans.parse_tree.temporary_enumerations
+        return translation, trans.parse_tree.contexts_clause, trans.parse_tree.input_bindings, trans.parse_tree.temporary_enumerations
     
     try:
-        translation, contexts, temporary_enumerations = help_translate(preferred_language)
+        preferred_language = preferred_language or 'PROLOG'
+        translation, contexts, input_bindings, temporary_enumerations = help_translate(preferred_language)
         successfulLanguage = preferred_language
     except QueryMissingFeatureException, e1:
         try:
             otherLanguage = 'SPARQL' if preferred_language == 'PROLOG' else 'PROLOG'
-            translation, contexts, temporary_enumerations = help_translate(otherLanguage)
+            translation, contexts, input_bindings, temporary_enumerations = help_translate(otherLanguage)
             successfulLanguage = otherLanguage
         except QueryMissingFeatureException:
             return None, None, None, e1
-    return translation, contexts, temporary_enumerations, successfulLanguage, None
+    return translation, contexts, input_bindings, temporary_enumerations, successfulLanguage, None
 
 def contexts_to_uris(context_terms, repository_connection):
     """
@@ -1902,12 +2131,13 @@ def translate(cl_select_query, target_dialect=CommonLogicTranslator.PROLOG, cont
     trans.parse()
     print "\nCOMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').common_logify(trans.parse_tree))    
     print "\nINFIX COMMON LOGIC \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', infix_with_prefix_triples=trans.infix_with_prefix_triples).infix_common_logify(trans.parse_tree))
-    Normalizer(trans.parse_tree, CommonLogicTranslator.SPARQL).normalize()        
+    Normalizer(trans.parse_tree, CommonLogicTranslator.SPARQL, contexts=contexts).normalize()        
     print "\nSPARQL \n" + str(StringsBuffer(include_newlines=True, complain='SILENT').sparqlify(trans.parse_tree))
     trans = CommonLogicTranslator(cl_select_query)
     trans.parse()    
-    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG, contexts=contexts).normalize()
-    print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_output=True).prologify(trans.parse_tree))    
+    spoify_output = True
+    Normalizer(trans.parse_tree, CommonLogicTranslator.PROLOG, contexts=contexts, spoify_output=spoify_output).normalize()
+    print "\nPROLOG \n" + str(StringsBuffer(include_newlines=True, complain='SILENT', spoify_output=spoify_output).prologify(trans.parse_tree))    
 
 
 query1 = """(select (?s ?o) where (ex:name ?s ?o) (rdf:type ?s <http://www.franz.com/example#Person>))"""
@@ -1952,6 +2182,9 @@ query18 = """(select (?s ?o) where (or (triple ?s foaf:name ?o)
                         (and (not (triple ?s foaf:name ?o1))
                              (or (triple ?s foaf:mbox ?o)
                                  (not (triple ?s foaf:mbox ?o2))))))"""
+query19 = """(select (?p)
+  where (and (ex:Person ?p)
+             (forall ?c (implies (ex:hasChild ?p ?c) (exists ?sp (ex:hasSpouse ?c ?sp))))))"""
                                  
 query19i = """select ?o ?lac ?otype ?c2
 where (?o in [ex:foo, ex:bar]) and
@@ -2009,12 +2242,17 @@ where (?o in [http://www.wildsemantics.com/systemworld#World]) and
 
 """
 
-query20 = """
-"""
+query20 = """  
+ (select (?s ?p ?o ?c ?lac ?otype ?c2)
+ where (and  
+  (quad ?s ?p ?o ?c)
+            
+            ))    """
+
 
 
 if __name__ == '__main__':
-    switch = 20.1
+    switch = 20
     print "Running test", switch
     if switch == 1: translate(query1)  # IMPLICIT AND
     elif switch == 1.1: translate(query1i)
@@ -2050,8 +2288,9 @@ if __name__ == '__main__':
     elif switch == 16.1: translate(query16i)  
     elif switch == 17: translate(query17)    
     elif switch == 18: translate(query18) # NEGATION    
-    elif switch == 19.1: translate(query19i)        
-    elif switch == 20: translate(query20)                
+    elif switch == 19: translate(query19) # UNIVERSAL        
+    elif switch == 19.1: translate(query19i, contexts=['ex:c1', 'ex:c2'])        
+    elif switch == 20: translate(query20)
     elif switch == 20.1: translate(query20i)            
     else:
         print "There is no test number %s" % switch

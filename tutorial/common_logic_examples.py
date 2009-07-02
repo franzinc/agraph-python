@@ -224,11 +224,36 @@ def test207():
                 (and (optional (triple ?s ex:name ?o))
                      (optional (triple ?s foaf:mbox ?o))))"""                
     doQuery(conn, query, prefer='SPARQL')
-    
+
+def test208():
+    """
+    Universal quantification
+    """
+    c = test201(verbose=True);
+    exns = "http://example.org/people#"
+    c.setNamespace('ex', exns)    #loadBobCarolTedAlice(conn)
+    alice = c.createURI(exns, "alice")
+    bob = c.createURI(exns, "bob")
+    carol = c.createURI(exns, "carol")    
+    ted = c.createURI(exns, "ted")    
+    person = c.createURI(exns, "Person")
+    name = c.createURI(exns, "name")      
+    child = c.createURI(exns, "hasChild") 
+    spouse = c.createURI(exns, "hasSpouse")     
+    c.addTriples([
+        (ted, RDF.TYPE, person),
+        (ted, child, alice),
+        (alice, RDF.TYPE, person),
+        (alice, spouse, bob),
+        (alice, child, carol),
+        ])
+    query = """(select (?p) where (and (ex:Person ?p)
+                  (forall ?c (implies (ex:hasChild ?p ?c) (exists ?sp (ex:hasSpouse ?c ?sp))))))"""                
+    doQuery(c, query, prefer='PROLOG')
    
 if __name__ == '__main__':
     choices = [i for i in range(1,3)]
-    choices = [7]
+    choices = [8]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number 20%i\n" % choice
@@ -240,7 +265,7 @@ if __name__ == '__main__':
         elif choice == 5: test205()        
         elif choice == 6: test206()            
         elif choice == 7: test207()                
-        elif choice == 8: test8()                
+        elif choice == 8: test208()                
         elif choice == 9: test9()                        
         elif choice == 10: test10()                            
         elif choice == 11: test11()

@@ -160,8 +160,7 @@ def test5():
     for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
         print "Query triples matching '%s'." % obj
         queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
-        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
-        """ % obj
+        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}""" % obj
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
         result = tupleQuery.evaluate();    
         for bindingSet in result:
@@ -787,14 +786,32 @@ def test21():
     conn.indexTriples(all=True)
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
            conn.size('null'), 'null')
+    print "SNA generators known (should be none): '%s'" % (conn.listSNAGenerators())
     genName = "LesMiserables"
-    generator = conn.registerSNAGenerator(genName, subjectOf=None, objectOf=None, undirected="http://www.franz.com/lesmis#knows", generator_query=None)
+    lmns = "http://www.franz.com/lesmis#"
+    conn.setNamespace('lm', lmns)
+    knows = conn.createURI(lmns, "knows")
+    # Create some generators
+    conn.registerSNAGenerator("LesMiserables1", subjectOf=None, objectOf=None, undirected=knows.toNTriples(), generator_query=None)
+    conn.registerSNAGenerator("LesMiserables2", subjectOf=None, objectOf=None, undirected=None, generator_query=None)
+    print "Created two generators. SNA generators known: '%s'" % (conn.listSNAGenerators())
+    # Delete a generator.
+    conn.deleteSNAGenerator("LesMiserables2")
+    print "Deleted one generator. SNA generators known: '%s'" % (conn.listSNAGenerators())
+    print "Neighbor matrices known (should be none): '%s'" % (conn.listNeighborMatrices())
+    valjean = conn.createURI(lmns, "character11")
+    conn.registerNeighborMatrix("LM_Matrix1", "LesMiserables1", valjean.toNTriples(), max_depth=2)
+    conn.registerNeighborMatrix("LM_Matrix2", "LesMiserables1", valjean.toNTriples(), max_depth=2)
+    print "Neighbor matrices known (should be two): '%s'" % (conn.listNeighborMatrices())
+    conn.deleteNeighborMatrix("LM_Matrix2")
+    print "Deleted one matrix. Neighbor matrices known (should be one): '%s'" % (conn.listNeighborMatrices())
+
 
 
 
 if __name__ == '__main__':
-    choices = [i for i in range(1,21)]
-    #choices = [21]
+    #choices = [i for i in range(1,21)]
+    choices = [21]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
