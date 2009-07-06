@@ -11,6 +11,9 @@ def listCatalogs(serverURL, user=None, password=None):
 def openCatalog(serverURL, catalog, user=None, password=None):
     return Catalog(serverURL + catalog, user, password)
 
+def rootCatalog(serverURL, user=None, password=None):
+    return Catalog(serverURL, user, password)
+
 class Catalog:
     def __init__(self, url, user=None, password=None):
         self.url = url
