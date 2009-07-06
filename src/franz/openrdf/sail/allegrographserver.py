@@ -51,11 +51,11 @@ class AllegroGraphServer(object):
 #    INDIRECT_HOST = "INDIRECT_HOST"
 #    INDIRECT_PORT = "INDIRECT_PORT"
     
-    def __init__(self, host, port=4567, **options):
+    def __init__(self, host, port=4567, user=None, password=None, **options):
         self.host = host
         self.port = port
-        self.username = None
-        self.password = None
+        self.username = user
+        self.password = password
         self.open_catalogs = []
         self.options = options
         self.translated_options = None
@@ -74,7 +74,7 @@ class AllegroGraphServer(object):
 
     def listCatalogs(self):
         catNames = []
-        for longName in miniserver.listCatalogs(self._get_address()):            
+        for longName in miniserver.listCatalogs(self._get_address(), self.username, self.password):            
             catNames.append(self._long_catalog_name_to_short_name(longName))
         return catNames
     
@@ -87,11 +87,11 @@ class AllegroGraphServer(object):
         for cat in self.open_catalogs:
             if cat.getName() == shortName:
                 return cat
-        for longName in miniserver.listCatalogs(self._get_address()):            
+        for longName in miniserver.listCatalogs(self._get_address(), self.username, self.password):            
             internalShortName = self._long_catalog_name_to_short_name(longName)
             if shortName == internalShortName:
                 break ## 'longName' is now set
-        miniCatalog = miniserver.openCatalog(self._get_address(), longName, user=self.username, password=self.password)
+        miniCatalog = miniserver.openCatalog(self._get_address(), longName, self.username, self.password)
         catalog = Catalog(shortName, miniCatalog, self)
         return catalog
 
@@ -122,7 +122,3 @@ class Catalog(object):
         if self.is_closed: return
         self.server.open_catalogs.remove(self)
         self.is_closed = True
-        
-       
-        
-        

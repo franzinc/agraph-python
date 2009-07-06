@@ -777,8 +777,7 @@ class RepositoryConnection(object):
         """
         uris.validateNamespace(namespace, True)
         self._get_namespaces_map()[prefix.lower()] = namespace
-        if self.mini_repository.environment:
-            self.mini_repository.addNamespace(prefix, namespace)
+        self.mini_repository.addNamespace(prefix, namespace)
 
     def removeNamespace(self, prefix):
         """
