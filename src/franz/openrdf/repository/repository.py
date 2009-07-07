@@ -72,7 +72,7 @@ class Repository:
         if self.federated_triple_stores:
             miniCat.federateTripleStores(quotedDbName, [urllib.quote_plus(ts) for ts in self.federated_triple_stores])
         else:
-            miniCat.createTripleStore(quotedDbName)
+            miniCat.createRepository(quotedDbName)
           
     def _attach_to_mini_repository(self):
         """
@@ -84,22 +84,22 @@ class Repository:
         quotedDbName = urllib.quote_plus(self.database_name)
         miniCat = self.mini_catalog
         if self.access_verb == Repository.RENEW:
-            if quotedDbName in miniCat.listTripleStores():
+            if quotedDbName in miniCat.listRepositories():
                 ## not nice, since someone else probably has it open:
-                miniCat.deleteTripleStore(quotedDbName)
+                miniCat.deleteRepository(quotedDbName)
             self._create_triple_store(quotedDbName)                    
         elif self.access_verb == Repository.CREATE:
-            if quotedDbName in miniCat.listTripleStores():
+            if quotedDbName in miniCat.listRepositories():
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
                     quotedDbName)
             self._create_triple_store(quotedDbName)
         elif self.access_verb == Repository.OPEN:
-            if not quotedDbName in miniCat.listTripleStores():
+            if not quotedDbName in miniCat.listRepositories():
                 raise ServerException(
                     "Can't open a triple store named '%s' because there is none.", quotedDbName)
         elif self.access_verb == Repository.ACCESS:
-            if not quotedDbName in miniCat.listTripleStores():
+            if not quotedDbName in miniCat.listRepositories():
                 self._create_triple_store(quotedDbName)      
         self.mini_repository = miniCat.getRepository(quotedDbName)
 #        ## we are done unless a RENEW requires us to clear the store

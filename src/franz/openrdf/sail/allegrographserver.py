@@ -113,7 +113,7 @@ class Catalog(object):
         Return a list of names of repositories (triple stores) managed by
         this catalog.
         """
-        return self.mini_catalog.listTripleStores()
+        return self.mini_catalog.listRepositories()
     
     def getRepository(self, name, access_verb):
         return Repository(self, name, access_verb)

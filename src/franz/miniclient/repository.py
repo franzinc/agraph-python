@@ -20,23 +20,24 @@ class Catalog:
         self.curl = pycurl.Curl()
         if user and password: self.setAuth(user, password)
 
-    def listTripleStores(self):
-        """Returns the names of open stores on the server."""
+    def listRepositories(self):
+        """Returns the names of repositories in the catalog."""
         repos = jsonRequest(self.curl, "GET", self.url + "/repositories")
         return [repo["id"] for repo in repos]
 
-    def createTripleStore(self, name):
-        """Ask the server to create a new triple store."""
+    def createRepository(self, name):
+        """Ask the server to create a new repository."""
         nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name))
+        return self.getRepository(name)
+
+    def deleteRepository(self, name):
+        """Delete a repository in this catalog."""
+        nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
 
     # def federateTripleStores(self, name, storeNames):
     #     """Create a federated store."""
     #     nullRequest(self.curl, "PUT", self.url + "/repositories/" + urllib.quote(name) +
     #                 "?" + urlenc(federate=storeNames))
-
-    # def deleteTripleStore(self, name):
-    #     """Delete a server-side triple store."""
-    #     nullRequest(self.curl, "DELETE", self.url + "/repositories/" + urllib.quote(name))
 
     def getRepository(self, name):
         """Create an access object for a triple store."""

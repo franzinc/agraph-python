@@ -15,8 +15,8 @@ def cleanup(f):
   return fn
 
 def testPreconditions():
-  checkIf("/catalogs/testcatalog" in repository.listCatalogs(url, "test", "xyzzy"))
-  checkIf("foo" in cat.listTripleStores())
+  checkIf("http://localhost:10035/catalogs/testcatalog" in repository.listCatalogs(url, "test", "xyzzy"))
+  checkIf("foo" in cat.listRepositories())
   check(0, rep.getSize())
 
 @cleanup
