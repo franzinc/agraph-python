@@ -18,7 +18,7 @@ class Catalog:
     def __init__(self, url, user=None, password=None):
         self.url = url
         self.curl = pycurl.Curl()
-        if user and password: self.setAuth(user, password)
+        self.setAuth(user, password)
 
     def listRepositories(self):
         """Returns the names of repositories in the catalog."""
@@ -41,19 +41,23 @@ class Catalog:
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
-        return Repository(self.curl, self.url + "/repositories/" + urllib.quote(name))
+        return Repository(self.url + "/repositories/" + urllib.quote(name), self.user, self.password)
 
     def setAuth(self, user, password):
         """Set a username and password to use when talking to this server."""
-        self.curl.setopt(pycurl.USERPWD, "%s:%s" % (user, password))
-        self.curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-
+        self.user = user
+        self.password = password
+        setAuth(self.curl, user, password)
 
 class Repository:
-    def __init__(self, curl, url):
+    def __init__(self, url, user=None, password=None):
         # TODO verify existence of repository at this point?
         self.url = url
-        self.curl = curl
+        self.curl = pycurl.Curl()
+        self.setAuth(user, password)
+
+    def setAuth(self, user, password):
+        setAuth(self.curl, user, password)
 
     def getSize(self, context=None):
         """Returns the amount of triples in the repository."""
