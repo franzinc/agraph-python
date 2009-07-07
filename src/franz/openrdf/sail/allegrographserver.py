@@ -24,13 +24,14 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.repository.repository import Repository
-from franz.miniclient import repository as miniserver
-from franz.miniclient.repository import Catalog
-import urllib
+from franz.miniclient.repository import Catalog, Client
+import urllib, re
 
 READ_ONLY = 'READ_ONLY'
 
 LEGAL_OPTION_TYPES = {READ_ONLY: bool,}
+
+CATURL = re.compile("http://[^/]+(?:/catalogs/(.*))?$")
 
 # * A Sesame Sail contains RDF data that can be queried and updated.
 # * Access to the Sail can be acquired by opening a connection to it.
@@ -51,48 +52,38 @@ class AllegroGraphServer(object):
 #    INDIRECT_HOST = "INDIRECT_HOST"
 #    INDIRECT_PORT = "INDIRECT_PORT"
     
-    def __init__(self, host, port=4567, user=None, password=None, **options):
+    def __init__(self, host, port=10035, user=None, password=None, **options):
         self.host = host
-        self.port = port
-        self.username = user
-        self.password = password
+        self.client = Client("http://%s:%d" % (host, port), user, password)
         self.open_catalogs = []
         self.options = options
         self.translated_options = None
         print "Defining connnection to AllegroGraph server -- host:'%s'  port:%s" % (host, port)
     
-    def _get_address(self):
-        return "%s:%s" % (self.host, self.port)
-    
     def getHost(self): return self.host
     def getOptions(self): return self.options
     
-    def _long_catalog_name_to_short_name(self, longName):
-        pos = longName.rfind('/')
-        shortName = urllib.unquote_plus(longName[pos + 1:])
-        return shortName
+    def _long_catalog_name_to_short_name(self, url):
+        m = CATURL.match(url)
+        if m.group(1): return urllib.unquote_plus(m.group(1))
+        else: return None # unnamed catalog
 
     def listCatalogs(self):
-        catNames = []
-        for longName in miniserver.listCatalogs(self._get_address(), self.username, self.password):            
-            catNames.append(self._long_catalog_name_to_short_name(longName))
-        return catNames
+        """Returns a list of catalog names defined on this server,
+        including None if there is a root catalog."""
+        return [self._long_catalog_name_to_short_name(url) for url in self.client.listCatalogs()]
     
-    def openCatalog(self, shortName):
+    def openCatalog(self, name=None):
         """
-        Open a catalog named 'catalogName'.
+        Open a catalog by name. Pass None to open the root catalog.
         """
-        if not shortName in self.listCatalogs():
+        if not name in self.listCatalogs():
             raise ServerException("There is no catalog named '%s'" % shortName)
         for cat in self.open_catalogs:
             if cat.getName() == shortName:
                 return cat
-        for longName in miniserver.listCatalogs(self._get_address(), self.username, self.password):            
-            internalShortName = self._long_catalog_name_to_short_name(longName)
-            if shortName == internalShortName:
-                break ## 'longName' is now set
-        miniCatalog = miniserver.openCatalog(self._get_address(), longName, self.username, self.password)
-        catalog = Catalog(shortName, miniCatalog, self)
+        miniCatalog = self.client.openCatalogByName(name)
+        catalog = Catalog(name, miniCatalog, self)
         return catalog
 
 class Catalog(object):

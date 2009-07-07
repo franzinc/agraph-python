@@ -28,8 +28,6 @@ def setAuth(curl, name, password):
     if name and password:
         curl.setopt(pycurl.USERPWD, "%s:%s" % (name, password))
         curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-    else:
-        curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_NONE)
 
 def makeRequest(curl, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None):
     postbody = method == "POST" or method == "PUT"
