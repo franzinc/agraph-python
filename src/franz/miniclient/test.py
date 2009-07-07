@@ -5,7 +5,8 @@ import repository, re
 # access to this store.
 
 url = "http://localhost:10035"
-cat = repository.openCatalog(url, "/catalogs/testcatalog", "test", "xyzzy")
+client = repository.Client(url, "test", "xyzzy")
+cat = client.openCatalogByName("testcatalog")
 rep = cat.getRepository("foo")
 
 def cleanup(f):
@@ -15,7 +16,7 @@ def cleanup(f):
   return fn
 
 def testPreconditions():
-  checkIf("http://localhost:10035/catalogs/testcatalog" in repository.listCatalogs(url, "test", "xyzzy"))
+  checkIf("http://localhost:10035/catalogs/testcatalog" in client.listCatalogs())
   checkIf("foo" in cat.listRepositories())
   check(0, rep.getSize())
 

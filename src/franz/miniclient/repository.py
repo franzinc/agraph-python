@@ -1,19 +1,6 @@
 import time, cjson, math
 from request import *
 
-def listCatalogs(serverURL, user=None, password=None):
-    curl = pycurl.Curl()
-    if user:
-        curl.setopt(pycurl.USERPWD, "%s:%s" % (user, password))
-        curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-    return jsonRequest(curl, "GET", serverURL + "/catalogs")
-
-def openCatalog(serverURL, catalog, user=None, password=None):
-    return Catalog(serverURL + catalog, user, password)
-
-def rootCatalog(serverURL, user=None, password=None):
-    return Catalog(serverURL, user, password)
-
 class Catalog:
     def __init__(self, url, user=None, password=None):
         self.url = url
@@ -48,6 +35,21 @@ class Catalog:
         self.user = user
         self.password = password
         setAuth(self.curl, user, password)
+
+
+class Client(Catalog):
+    def listCatalogs(self):
+        return jsonRequest(self.curl, "GET", self.url + "/catalogs")
+
+    def openCatalog(self, url):
+        return Catalog(url, self.user, self.password)
+
+    def openCatalogByName(self, name=None):
+        url = self.url
+        if name:
+            url += "/catalogs/" + urllib.quote(name)
+        return self.openCatalog(url)
+
 
 class Repository:
     def __init__(self, url, user=None, password=None):
