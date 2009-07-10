@@ -78,9 +78,9 @@ class AllegroGraphServer(object):
         Open a catalog by name. Pass None to open the root catalog.
         """
         if not name in self.listCatalogs():
-            raise ServerException("There is no catalog named '%s'" % shortName)
+            raise ServerException("There is no catalog named '%s'" % name)
         for cat in self.open_catalogs:
-            if cat.getName() == shortName:
+            if cat.getName() == name:
                 return cat
         miniCatalog = self.client.openCatalogByName(name)
         catalog = Catalog(name, miniCatalog, self)
