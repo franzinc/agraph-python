@@ -258,6 +258,9 @@ class Repository:
         """Add a predicate for free-text indexing."""
         nullRequest(self.curl, "POST", self.url + "/freetextPredicates", urlenc(predicate=predicate))
 
+    def updateFreeTextIndexing(self):
+        nullRequest(self.curl, "POST", self.url + "/freetextPredicates/update")
+
     def setEnvironment(self, name):
         """Repositories use a current environment, which are
         containers for namespaces and Prolog predicates. Every
