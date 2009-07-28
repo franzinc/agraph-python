@@ -11,7 +11,11 @@ class Catalog:
     def __init__(self, url, user=None, password=None):
         self.url = url
         self.curl = pycurl.Curl()
-        if user and password: self.setAuth(user, password)
+        self.user = user
+        self.password = password
+        if user and password:
+            self.curl.setopt(pycurl.USERPWD, "%s:%s" % (user, password))
+            self.curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
 
     def listTripleStores(self):
         """Returns the names of open stores on the server."""
@@ -37,19 +41,17 @@ class Catalog:
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
-        return Repository(self.curl, self.url + "/repositories/" + urllib.quote(name))
-
-    def setAuth(self, user, password):
-        """Set a username and password to use when talking to this server."""
-        self.curl.setopt(pycurl.USERPWD, "%s:%s" % (user, password))
-        self.curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
+        return Repository(self.url + "/repositories/" + urllib.quote(name), self.user, self.password)
 
 
 class Repository:
-    def __init__(self, curl, url):
+    def __init__(self, url, user=None, password=None):
         # TODO verify existence of repository at this point?
         self.url = url
-        self.curl = curl
+        self.curl = pycurl.Curl()
+        if (user and password):
+            self.curl.setopt(pycurl.USERPWD, "%s:%s" % (user, password))
+            self.curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
         self.environment = None
 
     def getSize(self, context=None):
