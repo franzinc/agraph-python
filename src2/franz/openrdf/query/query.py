@@ -234,7 +234,7 @@ class Query(object):
         if self.queryLanguage == QueryLanguage.SPARQL:  
             query = splicePrefixesIntoQuery(self.queryString, conn)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred, bindings=bindings, planner='identity',
+                                            infer=self.includeInferred, bindings=bindings,
                                             checkVariables=self.checkVariables)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
