@@ -23,8 +23,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
-from franz.openrdf.vocabulary.rdf import RDF
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary import RDF, XMLSchema
 import datetime
 import time
 

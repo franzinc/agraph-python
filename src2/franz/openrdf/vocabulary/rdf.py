@@ -22,101 +22,34 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.openrdf.exceptions import *
+from franz.openrdf.model.value import URI
+
+NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 
 class RDF:
-    NAMESPACE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-    TYPE = None
-    PROPERTY = None
-    XMLLITERAL = None
-    SUBJECT = None
-    PREDICATE = None
-    STATEMENT = None
-    BAG = None
-    ALT = None
-    SEQ = None
-    VALUE = None
-    LI = None
-    LIST = None
-    FIRST = None
-    REST = None
-    NIL = None
+    NAMESPACE = NS
+    TYPE = URI(namespace=NS, localname="type")
+    PROPERTY = URI(namespace=NS, localname="Property")
+    XMLLITERAL = URI(namespace=NS, localname="XMLLiteral")
+    SUBJECT = URI(namespace=NS, localname="subject")
+    PREDICATE = URI(namespace=NS, localname="predicate")
+    OBJECT = URI(namespace=NS, localname="object")
+    STATEMENT = URI(namespace=NS, localname="Statement")
+    BAG = URI(namespace=NS, localname="Bag")
+    ALT = URI(namespace=NS, localname="Alt")
+    SEQ = URI(namespace=NS, localname="Seq")
+    VALUE = URI(namespace=NS, localname="value")
+    LI = URI(namespace=NS, localname="li")
+    LIST = URI(namespace=NS, localname="List")
+    FIRST = URI(namespace=NS, localname="first")
+    REST = URI(namespace=NS, localname="rest")
+    NIL = URI(namespace=NS, localname="nil")
     
     ## map of uri strings to URI objects:
-    name2URI = {}
-    
-    @staticmethod
-    def initialize(factory):
-        """
-        Initialize the constant using factory 'factory'
-        """
-        RDF.TYPE = factory.createURI(namespace=RDF.NAMESPACE, localname="type")
-        RDF.PROPERTY = factory.createURI(namespace=RDF.NAMESPACE, localname="Property")
-        RDF.XMLLITERAL = factory.createURI(namespace=RDF.NAMESPACE, localname="XMLLiteral")
-        RDF.SUBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="subject")
-        RDF.PREDICATE = factory.createURI(namespace=RDF.NAMESPACE, localname="predicate")
-        RDF.OBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="object")
-        RDF.STATEMENT = factory.createURI(namespace=RDF.NAMESPACE, localname="Statement")
-        RDF.BAG = factory.createURI(namespace=RDF.NAMESPACE, localname="Bag")
-        RDF.ALT = factory.createURI(namespace=RDF.NAMESPACE, localname="Alt")
-        RDF.SEQ = factory.createURI(namespace=RDF.NAMESPACE, localname="Seq")
-        RDF.VALUE = factory.createURI(namespace=RDF.NAMESPACE, localname="value")
-        RDF.LI = factory.createURI(namespace=RDF.NAMESPACE, localname="li")
-        RDF.LIST = factory.createURI(namespace=RDF.NAMESPACE, localname="List")
-        RDF.FIRST = factory.createURI(namespace=RDF.NAMESPACE, localname="first")
-        RDF.REST = factory.createURI(namespace=RDF.NAMESPACE, localname="rest")
-        RDF.NIL = factory.createURI(namespace=RDF.NAMESPACE, localname="nil")
-        ## (re)build 'name2URI' dictionary
-        RDF.name2URIMap = {}
-        for uri in [RDF.TYPE, RDF.PROPERTY, RDF.XMLLITERAL, RDF.SUBJECT, RDF.PREDICATE, RDF.OBJECT,
-                    RDF.STATEMENT, RDF.BAG, RDF.ALT, RDF.SEQ, RDF.VALUE, RDF.LI, RDF.LIST, RDF.FIRST,
-                    RDF.REST, RDF.NIL,]:
-            RDF.name2URIMap[str(uri)] = uri
+    uristr2obj = {}
 
-            
-#    @staticmethod
-#    def reinitialize(factory, store=None):
-#        """
-#        Initialize the values in the factory, or
-#        reinitialize the values in factory with more efficient
-#        resources and literals (one's that know what store they
-#        belong to).
-#        """
-#        RDF.TYPE = factory.createURI(namespace=RDF.NAMESPACE, localname="type", store=store)
-#        RDF.PROPERTY = factory.createURI(namespace=RDF.NAMESPACE, localname="Property", store=store)
-#        RDF.XMLLITERAL = factory.createURI(namespace=RDF.NAMESPACE, localname="XMLLiteral", store=store)
-#        RDF.SUBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="subject", store=store)
-#        RDF.PREDICATE = factory.createURI(namespace=RDF.NAMESPACE, localname="predicate", store=store)
-#        RDF.OBJECT = factory.createURI(namespace=RDF.NAMESPACE, localname="object", store=store)
-#        RDF.STATEMENT = factory.createURI(namespace=RDF.NAMESPACE, localname="Statement", store=store)
-#        RDF.BAG = factory.createURI(namespace=RDF.NAMESPACE, localname="Bag", store=store)
-#        RDF.ALT = factory.createURI(namespace=RDF.NAMESPACE, localname="Alt", store=store)
-#        RDF.SEQ = factory.createURI(namespace=RDF.NAMESPACE, localname="Seq", store=store)
-#        RDF.VALUE = factory.createURI(namespace=RDF.NAMESPACE, localname="value", store=store)
-#        RDF.LI = factory.createURI(namespace=RDF.NAMESPACE, localname="li", store=store)
-#        RDF.LIST = factory.createURI(namespace=RDF.NAMESPACE, localname="List", store=store)
-#        RDF.FIRST = factory.createURI(namespace=RDF.NAMESPACE, localname="first", store=store)
-#        RDF.REST = factory.createURI(namespace=RDF.NAMESPACE, localname="rest", store=store)
-#        RDF.NIL = factory.createURI(namespace=RDF.NAMESPACE, localname="nil", store=store)
-#        ## (re)build 'name2URI' dictionary
-#        RDF.name2URIMap = {}
-#        for uri in [RDF.TYPE, RDF.PROPERTY, RDF.XMLLITERAL, RDF.SUBJECT, RDF.PREDICATE, RDF.OBJECT,
-#                    RDF.STATEMENT, RDF.BAG, RDF.ALT, RDF.SEQ, RDF.VALUE, RDF.LI, RDF.LIST, RDF.FIRST,
-#                    RDF.REST, RDF.NIL,]:
-#            RDF.name2URIMap[str(uri)] = uri
-        
-    
-    @staticmethod
-    def name2URI (name, exception_if_failure=True):
-        """
-        Given a URI string, return the OpenRDF URI object.
-        """
-        matchingURI = RDF.name2URIMap.get(name)
-        if matchingURI: return matchingURI
-        elif exception_if_failure:
-            raise IllegalArgumentException("Passed a non-XSD URI to 'XMLSchema.name2URI.")
-        else: return None
-    
+for name, uri in RDF.__dict__.iteritems():
+    if name.upper() == name:
+        RDF.uristr2obj[str(uri)] = uri
 
-
-
+del RDF.uristr2obj[NS]

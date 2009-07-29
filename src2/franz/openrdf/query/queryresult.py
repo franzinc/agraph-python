@@ -22,9 +22,14 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.openrdf.exceptions import *
+#from franz.openrdf.exceptions import 
 from franz.openrdf.model.statement import Statement
 from franz.openrdf.repository.repositoryresult import RepositoryResult
+
+try:
+    from collections import namedtuple
+except ImportError:
+    from franz.openrdf.util.namedtuple import namedtuple
 
 #############################################################################
 ##
@@ -46,9 +51,11 @@ class GraphQueryResult(QueryResult):
     A graph query result is an iterator of Statement's.  This is incredibly inefficient.    
     """
     def __init__(self, string_tuples):
+        QueryResult.__init__(self)
         self.result = RepositoryResult(string_tuples)
     
-    def __iter__(self): return self.result
+    def __iter__(self):
+        return self.result
     
     def close(self):
         """
@@ -63,6 +70,7 @@ class GraphQueryResult(QueryResult):
         """
         return self.result.next()
 
+
 class TupleQueryResult(QueryResult):
     """
     A representation of a variable-binding query result as a sequence of
@@ -72,25 +80,24 @@ class TupleQueryResult(QueryResult):
     free any resources it keeps hold of.
     """
     def __init__(self, variable_names, string_tuples):
-        self.variableNames = variable_names
+        QueryResult.__init__(self)
+        self.variable_names = variable_names
         self.string_tuples = string_tuples
         self.cursor = 0        
-        self.tuple_width = len(variable_names)
-        self.tupleCount = len(string_tuples)        
-        self.reusableRow = [None] * self.tuple_width
+        self.tuple_count = len(string_tuples)        
+        self.binding_set = ListBindingSet(self.variable_names)
     
-    def __iter__(self): return self
+    def __iter__(self):
+        return self
     
     def next(self):
-        if self.cursor >= self.tupleCount:
+        if self.cursor >= self.tuple_count:
             raise StopIteration()
-        i = 0
-        while i < self.tuple_width:
-            self.reusableRow[i] = None
-            i += 1
-        bs = DictBindingSet(self.variableNames, self.string_tuples[self.cursor], self.reusableRow)
+
+        bset = self.binding_set
+        bset._reset(self.string_tuples[self.cursor])
         self.cursor += 1
-        return bs        
+        return bset        
 
     def close(self):
         pass    
@@ -99,71 +106,61 @@ class TupleQueryResult(QueryResult):
         """
         Get the names of the bindings, in order of projection.
         """
-        return self.variableNames
+        return self.variable_names
         
-    def rowCount(self): return len(self.string_tuples)
+    def __len__(self):
+        return self.tuple_count
+    
+    def rowCount(self):
+        return len(self)
 
-class DictBindingSet(dict):
+
+class ListBindingSet(object):
     """
     A BindingSet is a set of named value bindings, which is used to
     represent a single query solution. Values are indexed by name of the binding
     which typically corresponds to the names of the variables used in the
     projection of the original query.
     
-    DictBindingSet emulates a Sesame BindingSet, a Python dictionary and a list simultaneously.
+    ListBindingSet emulates a Sesame BindingSet, a Python dictionary and a list simultaneously.
     The internal datastructure is a pair of lists.  
     """
-    def __init__(self, variableNames, string_tuple, reusable_row):
-        self.variable_names = variableNames
-        self.string_tuple = string_tuple
-        self.reusable_row = reusable_row
+    def __init__(self, variable_names):
+        self.variable_names = variable_names
+        self.string_tuple = None
+        self.value_cache = [None] * len(variable_names)
     
+    def _reset(self, string_tuple):
+        self.string_tuple = string_tuple
+        value_cache = self.value_cache
+        for i in range(len(self.variable_names)):
+            value_cache[i] = None
+        
     def _validate_index(self, index):
-        if index >= 0 and index < len(self.string_tuple): return index
-        else:
-            raise IllegalArgumentException("Out-of-bounds index passed to BindingSet." +
-                                           "  Index must be between 0 and %i, inclusive." % (len(self.string_tuple) - 1)) 
+        if index >= 0 and index < len(self.string_tuple):
+            return index
+
+        raise IndexError("Out-of-bounds index passed to BindingSet." +
+                         "  Index must be between 0 and %i, inclusive." % (len(self.string_tuple) - 1)) 
             
     def _get_ith_value(self, index):
-        term = self.reusable_row[index]
+        term = self.value_cache[index]
         if not term:
             term = Statement.stringTermToTerm(self.string_tuple[index])
-            self.reusable_row[index] = term
+            self.value_cache[index] = term
         return term
         
     def __getitem__(self, key):
         if isinstance(key, int): 
-            #return self.string_tuple[self._validate_index(key)]
             return self._get_ith_value(self._validate_index(key))
-        else:
-            for i in range(len(self.variable_names)):
-                if key == self.variable_names[i]:
-                    return self._get_ith_value(i)
-        raise IllegalArgumentException(("Illegal key '%s' passed to binding set." +
+
+        try:
+            return self._get_ith_value(self.variable_names.index(key))
+        except ValueError:
+            raise KeyError(("Illegal key '%s' passed to binding set." +
                             "\n   Legal keys are %s") % (key, str(self.variable_names)))
+
  
-    def __len__(self):
-        return len(self.reusable_row)
-    
-    def get(self, key):
-        try:
-            return self.__getitem__(key)
-        except IllegalArgumentException:
-            return None
-        
-    def addBindingPair(self, name, value):
-        if value:
-            self[name] = value
-        
-    def addBinding(self, binding):
-        self.addBindingPair(binding.getName(),  binding.getValue())
-        
-    def removeBinding(self, name):
-        try:
-            del self[name]
-        except:
-            pass
-    
     def iterator(self):
         """
         Creates an iterator over the bindings in this BindingSet. This only
@@ -173,34 +170,33 @@ class DictBindingSet(dict):
         Currently, we only support Python-style iteration over BindingSet dictionaries,
         so this (Java-style) iterator method is not implemented.
         """
-        raise UnimplementedMethodException("iterator")        
+        raise NotImplementedError("iterator")        
     
     def getBindingNames(self):
         """
         Gets the names of the bindings in this BindingSet.
 
         """
-        return self.iterkeys()
+        return self.variable_names
 
     def getBinding(self, bindingName):
         """
         Gets the binding with the specified name from this BindingSet.
         """
-        value = self.get(bindingName)
-        return Binding(bindingName, value) if value else None
+        return Binding(bindingName, self[bindingName])
         
     def hasBinding(self, bindingName):
         """
         Checks whether this BindingSet has a binding with the specified name.
         """
-        return self.get(bindingName) or False
+        return self.variable_names.find(bindingName) >= 0
 
     def getValue(self, bindingName):
         """
         Gets the value of the binding with the specified name from this BindingSet.
         Throws exception if 'bindingName' is not legal.
         """
-        return self.__getitem__(bindingName)
+        return self[bindingName]
     
     def getRow(self):
         """
@@ -209,65 +205,38 @@ class DictBindingSet(dict):
         """
         return self.string_tuple
 
+    def __len__(self):
+        return len(self.value_cache)
+    
     def size(self):
         """
         Returns the number of bindings in this BindingSet.
         """
         return len(self)
         
-#    def __eq__(self, other):
-#        """
-#        Compares a BindingSet object to another object.
-#        """
-#        raise UnimplementedMethodException("__eq__")
-
-#    def __hash__(self):
-#        """
-#        The hash code of a binding is defined as the bit-wise XOR of the hash
-#        codes of its bindings:
-#        """
-#        raise UnimplementedMethodException("__hash__")
-    
-#    def __str__(self):
-#        sb = []
-#        sb.append('[')
-#        isFirst = False
-#        for key, value in self.iteritems:
-#            if isFirst: isFirst = False
-#            else: sb.append(';') 
-#            sb.append(key + "=" + str(value))
-#        sb.append(']');
-#        return ''.join(sb)
-
-    def __dict__(self, strings_dict=False):
+    def _toDict(self, strings_dict=False):
         """
         Return a Python dictionary representation of this binding set.
-        This exists to be called by '__str__'.
-        I"M NOT SURE HOW PYTHON WILL USE IT - RMM
         """
         d = {}
         for i in range(len(self.variable_names)):
-            v = self.get(i)
+            v = self[i]
             if strings_dict: v = str(v)
             d[self.variable_names[i]] = v
         return d
         
-    def __str__(self): return str(self.__dict__(strings_dict=True))
-
-
+    def __str__(self):
+        return str(self._toDict(strings_dict=True))
+    
 
 #############################################################################
 ##
 #############################################################################
 
-class Binding:
+class Binding(namedtuple('Binding', 'name value')):
     """
     An implementation of 'Binding'
     """
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
- 
     def getName(self):
         """
         Gets the name of the binding (e.g. the variable name).
@@ -280,21 +249,6 @@ class Binding:
         None, such a "binding" is considered to be unbound.
         """
         return self.value
-    
-    def __str__(self): return self.name + "=" + str(self.value)
-    
-    def __eq__(self, other):
-        """
-        Compares a binding object to another object.
-        """
-        return isinstance(other, Binding) and self.name == other.getName() and self.value == other.getValue()
-
-    def __hash__(self):
-        """
-        The hash code of a binding is defined as the bit-wise XOR of the hash
-        codes of its name and value:
-        """
-        raise UnimplementedMethodException("__hash__")
     
 
 #############################################################################

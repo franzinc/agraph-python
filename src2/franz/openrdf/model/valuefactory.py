@@ -25,10 +25,7 @@ from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value, BNode, URI
 from franz.openrdf.model.literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
 from franz.openrdf.model.statement import Statement
-from franz.openrdf.vocabulary.rdf import RDF
-from franz.openrdf.vocabulary.rdfs import RDFS
-from franz.openrdf.vocabulary.owl import OWL
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary import XMLSchema
 
 import datetime, traceback
 
@@ -39,10 +36,6 @@ class ValueFactory(object):
     BLANK_NODE_AMOUNT = 10    
     def __init__(self, store):
         self.store = store
-        RDF.initialize(self)
-        RDFS.initialize(self)
-        XMLSchema.initialize(self)
-        OWL.initialize(self)
         self.store.getConnection().setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
         self.unusedBNodeIds = []
         
@@ -163,6 +156,3 @@ class ValueFactory(object):
         lowerBound = self.object_position_term_to_openrdf_term(lowerBound)
         upperBound = self.object_position_term_to_openrdf_term(upperBound)
         return RangeLiteral(lowerBound=lowerBound, upperBound=upperBound)
-        
-
-

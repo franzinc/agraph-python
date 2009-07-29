@@ -17,9 +17,12 @@ def urlenc(**args):
         elif isinstance(val, bool): enc(name, (val and "true") or "false")
         elif isinstance(val, int): enc(name, "%d" % val)
         elif isinstance(val, float): enc(name, "%g" % val)
-        elif isinstance(val, list):
+        elif isinstance(val, list) or isinstance(val, tuple):
             for elt in val: encval(name, elt)
-        else: enc(name, val.encode("utf-8"))
+        elif isinstance(val, basestring):
+            enc(name, val.encode("utf-8"))
+        else:
+            enc(name, unicode(val).encode("utf-8"))
     for name, val in args.iteritems():
         encval(name, val)
     return "&".join(buf)

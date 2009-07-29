@@ -89,7 +89,7 @@ def test3():
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
         result = tupleQuery.evaluate();
-        verify(result.rowCount(), 4, 'result.tupleCount', 3)
+        verify(result.rowCount(), 4, 'len(result)', 3)
         try:
             for bindingSet in result:
                 s = bindingSet.getValue("s")
@@ -392,7 +392,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % result.tupleCount    
+    print "Found %i query results" % len(result)
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -405,7 +405,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % result.tupleCount    
+    print "Found %i query results" % len(result)
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -418,7 +418,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % result.tupleCount    
+    print "Found %i query results" % len(result)
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -431,7 +431,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % result.tupleCount    
+    print "Found %i query results" % len(result)
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -810,8 +810,8 @@ def test21():
 
 
 if __name__ == '__main__':
-    #choices = [i for i in range(1,21)]
-    choices = [21]
+    choices = [i for i in range(1,22)]
+    #choices = [21]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"

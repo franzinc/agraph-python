@@ -23,7 +23,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary import RDF
 from franz.openrdf.model.value import BNode, Resource
 from franz.openrdf.model.literal import Literal
 from franz.openrdf.rio.rdfwriter import RDFWriter

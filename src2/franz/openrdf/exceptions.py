@@ -30,9 +30,6 @@ class IllegalArgumentException (Exception):
 class InitializationException(Exception):
     pass
 
-class UnimplementedMethodException(Exception):
-    pass
-
 class IllegalStateException (Exception):
     pass
 
@@ -78,13 +75,3 @@ class QueryMissingFeatureException(Exception):
     """
     Source language evokes a feature not supported by the execution language
     """
-    
-
-#class NiceException(Exception):
-#    pass
-#
-#class RuntimeException(Exception):
-#    pass
-#
-#class FakeException(Exception):
-#    pass
