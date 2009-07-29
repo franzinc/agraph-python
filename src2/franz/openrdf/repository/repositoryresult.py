@@ -132,7 +132,11 @@ class RepositoryResult(object):  ## inherits IterationWrapper
             if isList: collection.append(stmt)
             else: collection.add(stmt)        
 
-    def rowCount(self): return len(self.string_tuples)
+    def __len__(self):
+        return len(self.string_tuples)
+
+    def rowCount(self):
+        return len(self)
     
     @staticmethod
     def normalize_quint(stringTuple):

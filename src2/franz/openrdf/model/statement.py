@@ -84,7 +84,7 @@ class Statement:
         elif index == 3: return self.getContext()
         else:
             ## I don't know what the official Python exception is here :(  - RMM
-            raise IllegalArgumentException("Illegal index %s passed to StatementImpl.\n" +
+            raise IndexError("Illegal index %s passed to StatementImpl.\n" +
                     "  Legal arguments are integers 0-3")
                                               
     def setQuad(self, string_tuple):
@@ -186,6 +186,6 @@ class Statement:
             else:
                 return string_term[1:-1]
         else:
-            raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
+            raise NotImplementedError("BNodes not yet implemented by 'stringTermToTerm'")
                 
 
