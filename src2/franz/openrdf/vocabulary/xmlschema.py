@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -27,6 +28,10 @@ from franz.openrdf.model.value import URI
 NS = "http://www.w3.org/2001/XMLSchema#"
 
 class XMLSchema:
+    """
+    A 'static' class containing useful XMLSchema URIs.
+    """
+
     NAMESPACE = NS
     DURATION = URI(namespace=NS, localname="duration")
     DATETIME = URI(namespace=NS, localname="dateTime")

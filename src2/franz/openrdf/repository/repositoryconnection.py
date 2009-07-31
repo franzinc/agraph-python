@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -833,7 +834,7 @@ class RepositoryConnection(object):
         """
         Return the namespace that is associated with the specified prefix, if any.
         """        
-        return self._get_namespaces_map().get(prefix.lower())
+        return self._get_namespaces_map().get(prefix.lower(), None)
 
     def setNamespace(self, prefix, namespace):
         """
@@ -848,7 +849,7 @@ class RepositoryConnection(object):
         """
         Remove a namespace association with 'prefix'.
         """
-        del self._get_namespaces_map()[prefix.lower()]
+        self._get_namespaces_map().pop(prefix.lower(), None)
 
     def clearNamespaces(self):
         """

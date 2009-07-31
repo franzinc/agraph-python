@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103 
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -22,13 +23,11 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.openrdf.exceptions import *
+from franz.openrdf.exceptions import IllegalArgumentException
 from franz.openrdf.model.value import Value, URI
-from franz.openrdf.query.commonlogic import XSD
 from franz.openrdf.util import strings
 from franz.openrdf.vocabulary import XMLSchema
 import datetime
-import time
 from collections import defaultdict
 
 class Literal(Value):
@@ -39,6 +38,8 @@ class Literal(Value):
     call super.__init__.  That's why Python is so cool!
     """
     def __init__(self, label, datatype=None, language=None):
+        Value.__init__(self)
+        # Use the properties to set the real values
         self.datatype = datatype
         self.language = language
         self.label = label
@@ -61,7 +62,7 @@ class Literal(Value):
             elif datatype.uri is None:
                 datatype = None
 
-        self._datatype = datatype
+        self._datatype = datatype # pylint: disable-msg=W0201
 
     datatype = property(getDatatype, setDatatype)
 
@@ -71,58 +72,63 @@ class Literal(Value):
     
     def setLanguage(self, language):
         """Set the language for this Literal"""
-        ## THE SESAME CODE HAS AN INCONSISTENCY HERE; IT DOESN'T CONVERT TO LOWER CASE, BUT
-        ## THE CONSTRUCTOR DOES CONVERT. WE ARE NOT SURE WHICH IS INTENDED  - RMM
-        self._language = language.lower() if language else None    
+        self._language = language.lower() if language else None # pylint: disable-msg=W0201
 
     language = property(getLanguage, setLanguage)
 
     def getLabel(self):
+        """The label/value for this Literal"""
         return self._label
     
     def setLabel(self, label):
-        self._label = label    
+        """Set the label for this Literal"""
+        self._label = label # pylint: disable-msg=W0201
     
     def getValue(self):
+        """The label/value"""
         return self.label
 
     label = property(getLabel, setLabel)
     
     def __eq__(self, other):
-        if not isinstance(other, Literal): return False
-        if not self.label == other.label: return False
-        if not self.datatype:
-            if other.datatype: return False
-        elif not self.datatype == other.datatype: return False
-        if not self.language:
-            if other.language: return False
-        elif not self.language == other.language: return False
-        return True
+        if not isinstance(other, Literal):
+            return NotImplemented
+
+        return (self.label == other.label and 
+                self.datatype == other.datatype and
+                self.language == other.language)
     
     def __hash__(self):
-        return hash(self.getLabel())
+        return hash(self._label)
     
     def intValue(self):
-        return int(self.getLabel())
+        """Convert to int"""
+        return int(self._label)
     
     def longValue(self):
-        return long(self.getLabel())
+        """Convert to long"""
+        return long(self._label)
     
     def floatValue(self):
-        return float(self.getLabel())
+        """Convert to float"""
+        return float(self._label)
     
     def booleanValue(self):
-        return bool(self.getLabel())
+        """Convert to bool"""
+        return bool(self._label)
     
     def dateValue(self):
-        return datetime.datetime.strptime(self.getLabel(), "%Y-%m-%d").date()
+        """Convert to date"""
+        return datetime.datetime.strptime(self._label, "%Y-%m-%d").date()
 
     def datetimeValue(self):
-        return datetime.datetime.strptime(self.getLabel(), Literal.ISO_FORMAT_WITH_T)
+        """Convert to datetime"""
+        return datetime.datetime.strptime(self._label, Literal.ISO_FORMAT_WITH_T)
 
     def timeValue(self):
+        """Convert to time"""
         ## THIS IS GOING TO BREAK:
-        return datetime.time(self.getLabel())
+        return datetime.time(self._label)
 
     
     ## Returns the {@link XMLGregorianCalendar} value of this literal. A calendar
@@ -132,12 +138,11 @@ class Literal(Value):
     ## <tt>date</tt>, <tt>gYearMonth</tt>, <tt>gMonthDay</tt>,
     ## <tt>gYear</tt>, <tt>gMonth</tt> or <tt>gDay</tt>.
     def calendarValue(self):
+        """calendarValue not useful for Python."""
         raise NotImplementedError("calendarValue")
 
-    def __str__(self):
-        """
-        Display an ntriples syntax for this literal.
-        """
+    def toNTriples(self):
+        """Return an ntriples syntax for this Literal"""
         sb = []
         sb.append('"')
         sb.append(strings.escape_double_quotes(self.getLabel()))
@@ -149,13 +154,6 @@ class Literal(Value):
             sb.append("^^")
             sb.append(str(self.datatype))
         return ''.join(sb)
-
-    def toNTriples(self):
-        """
-        Return an NTriples representation of a resource, in this case, wrap
-        it in angle brackets.
-        """
-        return str(self)
 
 ###############################################################################
 ## Automatic conversion from Literal to Python object
@@ -180,7 +178,7 @@ XSDToPython = defaultdict(lambda: Literal.getValue, [
                 (str(XMLSchema.DATE), Literal.dateValue),
                 (str(XMLSchema.TIME), Literal.timeValue)])
 
-        
+
 ###############################################################################
 # Extension to Sesame API
 ###############################################################################

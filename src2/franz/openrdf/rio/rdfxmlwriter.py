@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -147,7 +148,7 @@ class RDFXMLWriter(RDFWriter):
         """
         Return the prefix assigned to 'namespace', or None
         """
-        return self.namespaceTable.get(namespace)
+        return self.namespaceTable.get(namespace, None)
     
     def setNamespace(self, prefix, name, fixedPrefix): 
         if self.headerWritten:

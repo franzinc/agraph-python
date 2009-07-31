@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103 
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -34,7 +35,7 @@ class Value(object):
     
     def __str__(self):
         return self.toNTriples()
-    def __eq__(self):
+    def __eq__(self, other):
         return NotImplemented
     def __hash__(self):
         raise NotImplementedError()   

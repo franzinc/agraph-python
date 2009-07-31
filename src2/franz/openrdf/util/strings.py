@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,6 +22,10 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+"""
+A strings utility module for helper functions.
+"""
+
 import re
 
 PATTERN = re.compile('.?"')
@@ -31,15 +36,19 @@ def escape_double_quotes(string):
     preceded by a backslash.
     """
     def handle_quote(matchobj):
+        """Replace matches with the appropriate escaped character sequence."""
         match = matchobj.group(0)
 
-        if len(match) == 1:
+        if match == '"':
             return '\\"'
 
-        if match[0] != '\\':
-            return match[0] + '\\"'
+        if match == '\\"':
+            return match
 
-        return match
+        if match == '""':
+            return '\\"\\"'
+
+        return match[0] + '\\"'
 
     return re.sub(PATTERN, handle_quote, string)
 
@@ -48,11 +57,15 @@ def escape_double_quotes(string):
 ##===========================================================================
 
 def _test(string):
+    """Prints test output."""
     print string, "   ", escape_double_quotes(string)
     
 if __name__ == '__main__':
     _test(r'abc')
     _test(r'ab"cd\"ef')
     _test(r'"abc"')
+    _test(r'""abc"')
+    _test(r'""\"""\"\""abc"')
     _test(r'\"abc\"')
+    _test(r'"""')
     

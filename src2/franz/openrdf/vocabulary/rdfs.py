@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -27,6 +28,10 @@ from franz.openrdf.model.value import URI
 NS = "http://www.w3.org/2000/01/rdf-schema#"
 
 class RDFS:
+    """
+    A 'static' class containing useful RDFS URIs.
+    """
+
     NAMESPACE = NS
     RESOURCE = URI(namespace=NS, localname="Resource")
     LITERAL = URI(namespace=NS, localname="Literal")

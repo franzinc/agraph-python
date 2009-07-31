@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,12 +22,15 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-
 from franz.openrdf.model.value import URI 
 
 NS = "http://www.w3.org/2002/07/owl#"
 
 class OWL:
+    """
+    A 'static' class containing useful OWL URIs.
+    """
+
     NAMESPACE = NS
     CLASS = URI(namespace=NS, localname="Class")
     INDIVIDUAL = URI(namespace=NS, localname="Individual")
