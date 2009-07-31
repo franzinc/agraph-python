@@ -122,7 +122,6 @@ class Repository:
 #            self.mini_repository.deleteMatchingStatements(None, None, None, None)
 
     def _get_mini_repository(self):
-        import pycurl
         import sys
         if self.multi_threaded_mode:
             ## EXPERIMENT -- THIS IS WORKING WELL AT THE MOMENT:
@@ -136,12 +135,12 @@ class Repository:
                     pass           
                 if not miniRepository:
                     print >> sys.stderr, ">>>>>>>>>>CREATING NEW THREAD LOCAL REPOSITORY"    
-                    miniRepository = miniclient.repository.Repository(pycurl.Curl(), self.mini_repository.url)
+                    miniRepository = miniclient.repository.Repository(self.mini_repository.url)
                     self.thread_local_mini_repository.value = miniRepository
                 return miniRepository
             else:
                 print >> sys.stderr, ">>>>>>>>>>RESETTING CURL"            
-                return miniclient.repository.Repository(pycurl.Curl(), self.mini_repository.url)
+                return miniclient.repository.Repository(self.mini_repository.url)
         else:
             return self.mini_repository
         
