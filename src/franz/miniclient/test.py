@@ -1,6 +1,6 @@
 import repository, re
 
-# Preconditions: HTTP server running on port 10034, catalog named
+# Preconditions: HTTP server running on port 10035, catalog named
 # testcatalog present, store named foo in it. User test:xyzzy has full
 # access to this store.
 
@@ -11,8 +11,8 @@ rep = cat.getRepository("foo")
 
 def cleanup(f):
   def fn():
-    try: return f()
-    finally: rep.deleteMatchingStatements()
+    rep.deleteMatchingStatements()
+    f()
   return fn
 
 def testPreconditions():
