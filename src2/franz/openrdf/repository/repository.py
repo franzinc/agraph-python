@@ -54,8 +54,6 @@ class Repository:
         self.catalog = catalog
         self.mini_catalog = catalog.mini_catalog
         self.mini_repository = None
-        self.thread_local_mini_repository = threading.local()
-        self.thread_local_mini_repository.value = None
         self.database_name = database_name
         self.access_verb = access_verb.upper()
         self.multi_threaded_mode=multi_threaded_mode
@@ -122,27 +120,7 @@ class Repository:
 #            self.mini_repository.deleteMatchingStatements(None, None, None, None)
 
     def _get_mini_repository(self):
-        import sys
-        if self.multi_threaded_mode:
-            ## EXPERIMENT -- THIS IS WORKING WELL AT THE MOMENT:
-            if True:
-                if hasattr(self.thread_local_mini_repository, 'value'):
-                    miniRepository = self.thread_local_mini_repository.value
-                else:
-                    miniRepository = None
-                if miniRepository:
-                    #print >> sys.stderr, ">>>>>>>>>>REUSING THREAD LOCAL REPOSITORY" 
-                    pass           
-                if not miniRepository:
-                    print >> sys.stderr, ">>>>>>>>>>CREATING NEW THREAD LOCAL REPOSITORY"    
-                    miniRepository = miniclient.repository.Repository(self.mini_repository.url)
-                    self.thread_local_mini_repository.value = miniRepository
-                return miniRepository
-            else:
-                print >> sys.stderr, ">>>>>>>>>>RESETTING CURL"            
-                return miniclient.repository.Repository(self.mini_repository.url)
-        else:
-            return self.mini_repository
+        return self.mini_repository
         
     def initialize(self):
         """
