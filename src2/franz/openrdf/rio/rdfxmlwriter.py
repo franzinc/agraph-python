@@ -183,7 +183,7 @@ class RDFXMLWriter(RDFWriter):
         obj = st.getObject()
         ## Verify that an XML namespace-qualified name can be created for the
         ## predicate
-        predString = str(pred)
+        predString = pred.uri
         predSplitIdx = xmlutil.findURISplitIndex(predString)
         if predSplitIdx == -1:
             raise RDFHandlerException("Unable to create XML namespace-qualified name for predicate: "
@@ -203,8 +203,9 @@ class RDFXMLWriter(RDFWriter):
                 bNode = subj
                 self.writeAttribute(RDF.NAMESPACE, "nodeID", bNode.getID())
             else:
-                uri = subj
-                self.writeAttribute(RDF.NAMESPACE, "about", str(uri))                
+                uri = subj.uri
+                self.writeAttribute(RDF.NAMESPACE, "about", uri)                
+
             self.writeEndOfStartTag()
             self.writeNewLine()
             self.lastWrittenSubject = subj
@@ -218,8 +219,8 @@ class RDFXMLWriter(RDFWriter):
                 bNode = objRes
                 self.writeAttribute(RDF.NAMESPACE, "nodeID", bNode.getID())                
             else:
-                uri = objRes
-                self.writeAttribute(RDF.NAMESPACE, "resource", str(uri))
+                uri = objRes.uri
+                self.writeAttribute(RDF.NAMESPACE, "resource", uri)
             self.writeEndOfEmptyTag()
         elif isinstance(obj, Literal):
             objLit = obj
