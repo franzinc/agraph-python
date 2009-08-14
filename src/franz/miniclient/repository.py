@@ -33,14 +33,17 @@ class Catalog:
 
 class Client(Catalog):
     def listCatalogs(self):
-        return jsonRequest(self, "GET", "/catalogs")
+        return [cat["id"] for cat in jsonRequest(self, "GET", "/catalogs")]
 
-    def openCatalog(self, url):
-        return Catalog(url, self.user, self.password)
+    def openCatalog(self, uriOrName):
+        if (uriOrName.startswith("http://")):
+            return Catalog(uriOrName, self.user, self.password)
+        else:
+            return self.openCatalogByName(uriOrName);
 
     def openCatalogByName(self, name=None):
         url = self.url
-        if name:
+        if name and name != "~":
             url += "/catalogs/" + urllib.quote(name)
         return self.openCatalog(url)
 
