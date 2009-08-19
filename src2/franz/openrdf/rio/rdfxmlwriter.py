@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -23,7 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary import RDF
 from franz.openrdf.model.value import BNode, Resource
 from franz.openrdf.model.literal import Literal
 from franz.openrdf.rio.rdfwriter import RDFWriter
@@ -147,7 +148,7 @@ class RDFXMLWriter(RDFWriter):
         """
         Return the prefix assigned to 'namespace', or None
         """
-        return self.namespaceTable.get(namespace)
+        return self.namespaceTable.get(namespace, None)
     
     def setNamespace(self, prefix, name, fixedPrefix): 
         if self.headerWritten:
@@ -182,7 +183,7 @@ class RDFXMLWriter(RDFWriter):
         obj = st.getObject()
         ## Verify that an XML namespace-qualified name can be created for the
         ## predicate
-        predString = str(pred)
+        predString = pred.uri
         predSplitIdx = xmlutil.findURISplitIndex(predString)
         if predSplitIdx == -1:
             raise RDFHandlerException("Unable to create XML namespace-qualified name for predicate: "
@@ -202,8 +203,9 @@ class RDFXMLWriter(RDFWriter):
                 bNode = subj
                 self.writeAttribute(RDF.NAMESPACE, "nodeID", bNode.getID())
             else:
-                uri = subj
-                self.writeAttribute(RDF.NAMESPACE, "about", str(uri))                
+                uri = subj.uri
+                self.writeAttribute(RDF.NAMESPACE, "about", uri)                
+
             self.writeEndOfStartTag()
             self.writeNewLine()
             self.lastWrittenSubject = subj
@@ -217,8 +219,8 @@ class RDFXMLWriter(RDFWriter):
                 bNode = objRes
                 self.writeAttribute(RDF.NAMESPACE, "nodeID", bNode.getID())                
             else:
-                uri = objRes
-                self.writeAttribute(RDF.NAMESPACE, "resource", str(uri))
+                uri = objRes.uri
+                self.writeAttribute(RDF.NAMESPACE, "resource", uri)
             self.writeEndOfEmptyTag()
         elif isinstance(obj, Literal):
             objLit = obj

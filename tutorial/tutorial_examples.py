@@ -5,6 +5,8 @@ from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.rdfs import RDFS
+from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
 from franz.openrdf.query.dataset import Dataset
 from franz.openrdf.rio.rdfformat import RDFFormat
@@ -14,6 +16,8 @@ from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
 import os, urllib, datetime, time
 
 CURRENT_DIRECTORY = os.getcwd() 
+
+AG_PORT = "8080"
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
@@ -31,15 +35,15 @@ def verify(expressionValue, targetValue, quotedExpression, testNum):
             print "BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP \n   ", message
 
 def test0():
-    for i in range(0, 5):
-        print "Hello World"
-        time.sleep(5)
+    server = AllegroGraphServer("localhost", port=AG_PORT)
+    print "Available catalogs", server.listCatalogs()
 
 def test1(accessMode=Repository.RENEW):
     """
     Tests getting the repository up.  Is called by the other tests to do the startup.
     """
-    server = AllegroGraphServer("localhost", port=8080)
+    print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
+    server = AllegroGraphServer("localhost", port=AG_PORT)
     print "Available catalogs", server.listCatalogs()
     catalog = server.openCatalog('scratch')  
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
@@ -69,22 +73,23 @@ def test2():
     ## bob is a person
     conn.add(bob, RDF.TYPE, person)
     ## bob's name is "Bob":
-    conn.add(bob, conn.createURI("http://example.org/ontology/name"), bobsName)
+    conn.add(bob, name, bobsName)
     print "Triple count: ", conn.size()
     verify(conn.size(), 4, 'conn.size()', 2)
+    for s in conn.getStatements(None, None, None, None): print s    
     conn.remove(bob, name, bobsName)
     print "Triple count: ", conn.size()
     verify(conn.size(), 3, 'conn.size()', 2)
     conn.add(bob, name, bobsName)    
     return conn
-
+    
 def test3():    
     conn = test2()
     try:
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
         result = tupleQuery.evaluate();
-        verify(result.rowCount(), 4, 'result.tupleCount', 3)
+        verify(result.rowCount(), 4, 'len(result)', 3)
         try:
             for bindingSet in result:
                 s = bindingSet.getValue("s")
@@ -99,12 +104,16 @@ def test3():
 def test4():
     conn = test2()
     alice = conn.createURI("http://example.org/people/alice")
+#    statements = conn.getStatements(alice, None, None, tripleIDs=True)
+    print "Searching for Alice using getStatements():"
     statements = conn.getStatements(alice, None, None)
     statements.enableDuplicateFilter() ## there are no duplicates, but this exercises the code that checks
     verify(statements.rowCount(), 2, 'statements.rowCount()', 3)
     for s in statements:
         print s
+    statements.close()
     print "Same thing using JDBC:"
+#    resultSet = conn.getJDBCStatements(alice, None, None, tripleIDs=True)
     resultSet = conn.getJDBCStatements(alice, None, None)
     verify(resultSet.rowCount(), 2, 'resultSet.rowCount()', 3)    
     while resultSet.next():        
@@ -126,20 +135,22 @@ def test5():
     red = conn.createLiteral('Red')
     rouge = conn.createLiteral('Rouge', language="fr")
     fortyTwo = conn.createLiteral('42', datatype=XMLSchema.INT)
-    fortyTwoInteger = conn.createLiteral('42', datatype=XMLSchema.LONG)    
+    fortyTwoInteger = conn.createLiteral('42', datatype=XMLSchema.LONG)     
     fortyTwoUntyped = conn.createLiteral('42')
     date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
-    #time = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATETIME)         
+    time = conn.createLiteral('1984-12-06T09:00:00', datatype=XMLSchema.DATETIME)   
+    weightFloat = conn.createLiteral('20.5', datatype=XMLSchema.FLOAT)
+    weightUntyped = conn.createLiteral('20.5')
     stmt1 = conn.createStatement(alice, age, fortyTwo)
     stmt2 = conn.createStatement(ted, age, fortyTwoUntyped)    
     conn.add(stmt1)
     conn.addStatement(stmt2)
-    conn.addTriple(alice, weight, conn.createLiteral('20.5'))
-    conn.addTriple(ted, weight, conn.createLiteral('20.5', datatype=XMLSchema.FLOAT))
-    conn.add(alice, favoriteColor, red)
-    conn.add(ted, favoriteColor, rouge)
-    conn.add(alice, birthdate, date)
-    conn.add(ted, birthdate, time)    
+    conn.addTriple(alice, weight, weightUntyped)
+    conn.addTriple(ted, weight, weightFloat)
+    conn.addTriples([(alice, favoriteColor, red),
+                     (ted, favoriteColor, rouge),
+                     (alice, birthdate, date),
+                     (ted, birthdate, time)])
     for obj in [None, fortyTwo, fortyTwoUntyped, conn.createLiteral('20.5', datatype=XMLSchema.FLOAT), conn.createLiteral('20.5'),
                 red, rouge]:
         print "Retrieve triples matching '%s'." % obj
@@ -149,8 +160,7 @@ def test5():
     for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
         print "Query triples matching '%s'." % obj
         queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
-        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}
-        """ % obj
+        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}""" % obj
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
         result = tupleQuery.evaluate();    
         for bindingSet in result:
@@ -158,30 +168,68 @@ def test5():
             p = bindingSet[1]
             o = bindingSet[2]
             print "%s %s %s" % (s, p, o)
-    fortyTwoInt = conn.createLiteral(42)
-    print fortyTwoInt.toPython()
-    print "HERE IS THE DATE"
-    for s in conn.getStatements(None, None, '"1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>'):
+    ## Search for date using date object in triple pattern.
+    print "Retrieve triples matching DATE object."
+    statements = conn.getStatements(None, None, date)
+    for s in statements:
         print s
-        queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>)}"""
-        queryString = """SELECT ?s ?p WHERE {?s ?p  "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""        
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        result = tupleQuery.evaluate();    
-        for bindingSet in result:
-            print bindingSet
-            
+    ## Search for datetime using datetime object in triple pattern.
+    print "Retrieve triples matching DATETIME object."
+    statements = conn.getStatements(None, None, time)
+    for s in statements:
+        print s
+    ## Search for specific date value.
+    print "Match triples having specific DATE value."
+    statements = conn.getStatements(None, None, '"1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>')
+    for s in statements:
+        print s
+    ## Search for specific datetime value.
+    print "Match triples having specific DATETIME value."
+    statements = conn.getStatements(None, None, '"1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>')
+    for s in statements:
+        print s
+    ## Search for triples of type xsd:date using SPARQL query.
+    print "Use SPARQL to find triples where the value matches a specific xsd:date."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+    ## Search for triples of type xsd:datetime using SPARQL query.
+    print "Use SPARQL to find triples where the value matches a specific xsd:dateTime."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+
 def test6():
     conn = test1()
     conn.clear()   
+    print "Starting example test6()."
+    # The following paths are relative to os.getcwd(), the working directory.
+    print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
+    # If you get a "file not found" error, use os.chdir("your directory path") to 
+    # point to the location of the data files. For AG Free Edition on Windows:
+    #os.chdir("C:\Program Files\AllegroGraphFJE32\python")
+    print "Current working directory is '%s'" % (os.getcwd())
     path1 = "./vc-db-1.rdf"    
     path2 = "./kennedy.ntriples"                
     baseURI = "http://example.org/example/local"
     context = conn.createURI("http://example.org#vcards")
+    conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read kennedy triples into the null context:
+    print "Load kennedy.ntriples."
     conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
+    print "Load vcards triples."
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
-    conn.indexTriples(all=True, asynchronous=False)
+    conn.indexTriples(all=True)
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
     verify(conn.size(context), 16, 'conn.size(context)', 6)
@@ -299,7 +347,7 @@ def test11():
     alice = conn.createURI(namespace=exns, localname="alice")
     person = conn.createURI(namespace=exns, localname="Person")
     conn.add(alice, RDF.TYPE, person)
-    conn.indexTriples(all=True, asynchronous=True)
+    conn.indexTriples(all=True)
     conn.setNamespace('ex', exns)
     #conn.removeNamespace('ex')
     queryString = """
@@ -334,28 +382,65 @@ def test12():
     conn.add(alice, fullname, alicename)
     conn.add(book, RDF.TYPE, booktype)    
     conn.add(book, booktitle, wonderland) 
-    ##myRepository.indexTriples(all=True, asynchronous=True)
+    ##myRepository.indexTriples(all=True)
+    conn.indexTriples(all=True)
     conn.setNamespace('ex', exns)
-    #conn.setNamespace('fti', "http://franz.com/ns/allegrograph/2.2/textindex/")    
+    print "Whole-word match for 'Alice'"
     queryString = """
     SELECT ?s ?p ?o
     WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }
     """
-#    queryString=""" 
-#    SELECT ?s ?p ?o
-#    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
-#    """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result.string_tuples)
-    print "Found %i query results" % result.tupleCount    
+    print "Found %i query results" % len(result)
     count = 0
     for bindingSet in result:
         print bindingSet
         count += 1
         if count > 5: break
-
-
+    print "Wildcard match for 'Ali*'"
+    queryString = """
+    SELECT ?s ?p ?o
+    WHERE { ?s ?p ?o . ?s fti:match 'Ali*' . }
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate(); 
+    print "Found %i query results" % len(result)
+    count = 0
+    for bindingSet in result:
+        print bindingSet
+        count += 1
+        if count > 5: break
+    print "Wildcard match for '?l?c?'"
+    queryString = """
+    SELECT ?s ?p ?o
+    WHERE { ?s ?p ?o . ?s fti:match '?l?c?' . }
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate(); 
+    print "Found %i query results" % len(result)
+    count = 0
+    for bindingSet in result:
+        print bindingSet
+        count += 1
+        if count > 5: break
+    print "Substring match for 'lic'"
+    queryString = """
+    SELECT ?s ?p ?o
+    WHERE { ?s ?p ?o . FILTER regex(?o, "lic") }
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate(); 
+    print "Found %i query results" % len(result)
+    count = 0
+    for bindingSet in result:
+        print bindingSet
+        count += 1
+        if count > 5: break
+#    queryString=""" 
+#    SELECT ?s ?p ?o
+#    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
+#    """
 def test13():
     """
     Ask, Construct, and Describe queries 
@@ -366,6 +451,7 @@ def test13():
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();
+    print "SELECT result"
     for r in result: print r     
     queryString = """ask { ?s ont:name "Alice" } """
     booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)
@@ -374,7 +460,9 @@ def test13():
     queryString = """construct {?s ?p ?o} where { ?s ?p ?o . filter (?o = "Alice") } """
     constructQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
     result = constructQuery.evaluate(); 
-    print "Construct result", [st for st in result]
+    for st in result:
+        print "Construct result, S P O values in statement:", st.getSubject(), st.getPredicate(), st.getObject()
+    #print "Construct result", [st for st in result]
     queryString = """describe ?s where { ?s ?p ?o . filter (?o = "Alice") } """
     describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
     result = describeQuery.evaluate(); 
@@ -412,8 +500,13 @@ def test15():
     carol = conn.createURI(namespace=exns, localname="carol")    
     age = conn.createURI(namespace=exns, localname="age")    
     range = conn.createRange(30, 50)
-    if False: conn.registerDatatypeMapping(predicate=age, nativeType="int")
-    if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="float")    
+    # range = conn.createRange(24, 42)  #this setting demonstrates that the limits are inclusive.
+    if True: conn.registerDatatypeMapping(predicate=age, nativeType="int")
+    if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")  
+    # True, True: Alice Age 42(int) AND Carol Age 39(int)  
+    # True, False: Alice Age 42(int) AND Carol Age 39(int)
+    # False, True: Alice Age 42(int)
+    # False, False: Error
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
@@ -429,12 +522,12 @@ def test16():
         print "\n%s Apples:\t" % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    catalog = AllegroGraphServer("localhost", port=8080).openCatalog('scratch') 
+    catalog = AllegroGraphServer("localhost", port=AG_PORT).openCatalog('scratch') 
     ## create two ordinary stores, and one federated store: 
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
-    rainbowConn = (catalog.getRepository("rainbowthings", Repository.RENEW)
-                         .addFederatedTripleStores(["redthings", "greenthings"]).initialize().getConnection())
+    #rainbowConn = (catalog.getRepository("rainbowthings", Repository.RENEW)
+    #                     .addFederatedTripleStores(["redthings", "greenthings"]).initialize().getConnection())
     ex = "http://www.demo.com/example#"
     ## add a few triples to the red and green stores:
     redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
@@ -443,12 +536,12 @@ def test16():
     greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
     redConn.setNamespace('ex', ex)
     greenConn.setNamespace('ex', ex)
-    rainbowConn.setNamespace('ex', ex)        
+    #rainbowConn.setNamespace('ex', ex)        
     queryString = "select ?s where { ?s rdf:type ex:Apple }"
     ## query each of the stores; observe that the federated one is the union of the other two:
     pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
-    pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
+    #pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
 
 def test17():
     """
@@ -458,37 +551,38 @@ def test17():
     conn.deleteEnvironment("kennedys") ## start fresh        
     conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
-    conn.setRuleLanguage(QueryLanguage.PROLOG)   
-    rules2 = """
-    (<-- (female ?x) ;; IF
-         (q ?x !kdy:sex !kdy:female))
-    (<-- (male ?x) ;; IF
-         (q ?x !kdy:sex !kdy:male))
-    """
-    conn.addRules(rules2)
-    ## This causes a failure(correctly):
-    #conn.deleteRule('male')
+    conn.setRuleLanguage(QueryLanguage.PROLOG)
+    rules1 = """
+    (<-- (woman ?person) ;; IF
+         (q ?person !kdy:sex !kdy:female)
+         (q ?person !rdf:type !kdy:person))
+    (<-- (man ?person) ;; IF
+         (q ?person !kdy:sex !kdy:male)
+         (q ?person !rdf:type !kdy:person))"""
+    conn.addRules(rules1)
     queryString2 = """
-    (select (?person ?name)
-            (q ?person !rdf:type !kdy:person)
-            (male ?person)
-            (q ?person !kdy:first-name ?name)
-            )
-    """
+    (select (?first ?last)
+            (man ?person)
+            (q ?person !kdy:first-name ?first)
+            (q ?person !kdy:last-name ?last)
+            )"""
     tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)
     result = tupleQuery2.evaluate();     
-    for row in result:
-        print row
+    for bindingSet in result:
+        f = bindingSet.getValue("first")
+        l = bindingSet.getValue("last")
+        print "%s %s" % (f, l)
+
 
 def test18():
     """
     Loading Prolog rules
     """
-    def pq(queryString):
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-        result = tupleQuery.evaluate();     
-        for row in result:
-            print row
+#    def pq(queryString):
+#        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+#        result = tupleQuery.evaluate();     
+#        for row in result:
+#            print row
             
     conn = test6()
     conn.deleteEnvironment("kennedys") ## start fresh        
@@ -498,148 +592,226 @@ def test18():
     conn.setRuleLanguage(QueryLanguage.PROLOG)
     path = "./relative_rules.txt"
     conn.loadRules(path)
-    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
-    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
+#    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
+#    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
+    queryString = """(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();     
+    for bindingSet in result:
+        p = bindingSet.getValue("person")
+        u = bindingSet.getValue("uncle")
+        print "%s is the uncle of %s." % (u, p)
         
+def test19():
+    ## Examples of RDFS++ inference.  Was originally example 2A.
+    conn = test1()
+    print "Beginning test19()..."
+    ## Create URIs for Bob and Robert (and kids) 
+    robert = conn.createURI("http://example.org/people/robert")
+    roberta = conn.createURI("http://example.org/people/roberta")
+    bob = conn.createURI("http://example.org/people/bob")
+    bobby = conn.createURI("http://example.org/people/bobby")
+    ## create name and child predicates, and Person class.
+    name = conn.createURI("http://example.org/ontology/name")
+    fatherOf = conn.createURI("http://example.org/ontology/fatherOf")
+    person = conn.createURI("http://example.org/ontology/Person")
+    ## create literal values for names    
+    bobsName = conn.createLiteral("Bob")
+    bobbysName = conn.createLiteral("Bobby")
+    robertsName = conn.createLiteral("Robert")
+    robertasName = conn.createLiteral("Roberta")
+    ## Bob is the same person as Robert
+    conn.add(bob, OWL.SAMEAS, robert)
+    ## Robert, Bob, and children are people
+    conn.add(robert, RDF.TYPE, person)
+    conn.add(roberta, RDF.TYPE, person)
+    conn.add(bob, RDF.TYPE, person)
+    conn.add(bobby, RDF.TYPE, person)
+    ## They all have names.
+    conn.add(robert, name, robertsName)
+    conn.add(roberta, name, robertasName)
+    conn.add(bob, name, bobsName)
+    conn.add(bobby, name, bobbysName)
+    ## robert has a child
+    conn.add(robert, fatherOf, roberta)
+    ## bob has a child
+    conn.add(bob, fatherOf, bobby)
+    ## List the children of Robert, with inference OFF.
+    print "Children of Robert, inference OFF"
+    for s in conn.getStatements(robert, fatherOf, None, None): print s    
+    ## List the children of Robert with inference ON. The owl:sameAs
+    ## link combines the children of Bob with those of Robert.
+    print "Children of Robert, inference ON"
+    for s in conn.getStatements(robert, fatherOf, None, None, True): print s  
+    ## Remove the owl:sameAs link so we can try the next example. 
+    conn.remove(bob, OWL.SAMEAS, robert)
+    ## Define new predicate, hasFather, as the inverse of fatherOf.
+    hasFather = conn.createURI("http://example.org/ontology/hasFather")
+    conn.add(hasFather, OWL.INVERSEOF, fatherOf)
+    ## Search for people who have fathers, even though there are no hasFather triples.
+    ## With inference OFF.
+    print "People with fathers, inference OFF"
+    for s in conn.getStatements(None, hasFather, None, None): print s    
+    ## With inference ON. The owl:inverseOf link allows AllegroGraph to 
+    ## deduce the inverse links.
+    print "People with fathers, inference ON"
+    for s in conn.getStatements(None, hasFather, None, None, True): print s  
+    ## Remove owl:inverseOf property.
+    conn.remove(hasFather, OWL.INVERSEOF, fatherOf)
+      ## Next 12 lines were for owl:inverseFunctionalProperty, but that isn't
+      ## supported yet in AG.  Commenting them out. 
+      ## Add fatherOf link from Robert to Bobby, giving Bobby two fathers. 
+      #conn.add(robert, fatherOf, bobby)
+      ## Now make fatherOf a 'reverse functional property'
+      #conn.add(fatherOf, RDF.TYPE, OWL.INVERSEFUNCTIONALPROPERTY)
+      ## Bob has how many children? 
+      ## With inference OFF.
+      #print "Who is Bob the father of, inference OFF"
+      #for s in conn.getStatements(bob, fatherOf, None, None): print s    
+      ## With inference ON. AllegroGraph knows that Bob and Robert must
+      ## be the same person.
+      #print "Who is Bob the father of, inference ON"
+      #for s in conn.getStatements(bob, fatherOf, None, None, True): print s  
+    ## Subproperty example.  We'll make fatherOf an rdfs:subpropertyOf parentOf.
+    parentOf = conn.createURI("http://example.org/ontology/parentOf")
+    conn.add(fatherOf, RDFS.SUBPROPERTYOF, parentOf)
+    ## Now search for inferred parentOf links.
+    ## Search for parentOf links, even though there are no parentOf triples.
+    ## With inference OFF.
+    print "People with parents, inference OFF"
+    for s in conn.getStatements(None, parentOf, None, None): print s    
+    ## With inference ON. The rdfs:subpropertyOf link allows AllegroGraph to 
+    ## deduce that fatherOf links imply parentOf links.
+    print "People with parents, inference ON"
+    for s in conn.getStatements(None, parentOf, None, None, True): print s  
+    conn.remove(fatherOf, RDFS.SUBPROPERTYOF, parentOf)
+    ## The next example shows rdfs:range and rdfs:domain in action.
+    ## We'll create two new rdf:type classes.  Note that classes are capitalized.
+    parent = conn.createURI("http://example.org/ontology/Parent")
+    child = conn.createURI("http://exmaple.org/ontology/Child")
+    ## The following triples say that a fatherOf link points from a parent to a child.
+    conn.add(fatherOf, RDFS.DOMAIN, parent)
+    conn.add(fatherOf, RDFS.RANGE, child)
+    ## Now we can search for rdf:type parent.
+    print "Who are the parents?  Inference ON."
+    for s in conn.getStatements(None, RDF.TYPE, parent, None, True): print s
+    ## And we can search for rdf:type child.
+    print "Who are the children?  Inference ON."
+    for s in conn.getStatements(None, RDF.TYPE, child, None, True): print s
     
-def test26():
+def test20():
     """
-    Queries per second.
+    GeoSpatial Reasoning
     """
-    conn = test6()
-    
-    reps = 1 #1000
-    
-    ##TEMPORARY
-    context = conn.createURI("http://example.org#vcards")
-    ## END TEMPORARY
-    
-    t = time.time()
-    for i in range(reps):
-        count = 0
-        resultSet = conn.getJDBCStatements(None, None, None, [context, None])
-        while resultSet.next(): count += 1
-    print "Did %d %d-row matches in %f seconds." % (reps, count, time.time() - t)
- 
-    t = time.time()
-    for i in range(reps):
-        count = 0
-        statments = conn.getStatements(None, None, None, None)
-        for st in statments:
-            st.getSubject()
-            st.getPredicate()
-            st.getObject() 
-            count += 1
-    print "Did %d %d-row matches in %f seconds." % (reps, count, time.time() - t)
-   
-    for size in [1, 5, 10, 100]:
-        queryString = """select ?x ?y ?z {?x ?y ?z} limit %d""" % size
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        t = time.time()
-        for i in range(reps):
-            count = 0
-            result = tupleQuery.evaluate(); 
-            for row in result: count += 1
-            #while result.next(): count += 1
-        print "Did %d %d-row queries in %f seconds." % (reps, count, time.time() - t)
-
-def test27 ():
-    """ CIA FACTBOOK """
-    conn = test1(Repository.ACCESS)
-    if conn.size() == 0:
-        print "Reading CIA Fact Book file."
-        path1 = "/FRANZ_CONSULTING/data/ciafactbook.nt"    
-        baseURI = "http://example.org/example/local"
-        conn.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, serverSide=True)
-    conn.indexTriples(True);
-    t = time.time()
-    count = 0
-    resultSet = conn.getJDBCStatements(None, None, None, None)
-    while resultSet.next(): count += 1
-    print "Did %d-row matches in %f seconds." % (count, time.time() - t)
-    queryString = "select ?x ?y ?z {?x ?y ?z}"
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    t = time.time()
-    count = 0
-    result = tupleQuery.evaluate(); 
-    for row in result: count += 1
-    print "Did %d-row queries in %f seconds." % (count, time.time() - t)
-    
-
-def test28():
-    """
-    Prolog queries
-    """
-    c = test1()
-    qCounter = [0]
-    def pq(query):
-        qCounter[0] = qCounter[0] + 1
-        print "QUERY{0}: ".format(qCounter[0]), query
-        tupleQuery = c.prepareTupleQuery(QueryLanguage.PROLOG, query)
-        try:
-            result = tupleQuery.evaluate();
-            print "   Query returns {0} rows".format(result.tupleCount)     
-            for row in result:
-                print row
-        except Exception, ex:
-            print "Failure ", ex
-#        else:
-#            for row in result:
-#                print row
-
+    conn = test1();
+    conn.clear()
+    print "Starting example test20()."
     exns = "http://example.org/people/"
-    c.setNamespace("ex", exns)    
-    alice = c.createURI(exns, "alice")
-    person = c.createURI(exns, "Person")
-    name = c.createURI(exns, "name")    
-    alicesName = c.createLiteral("Alice")    
-    context1 = c.createURI(exns, "cxt1")      
-    context2 = c.createURI(exns, "cxt2")          
-    c.addTriples([(alice, RDF.TYPE, person, context1),
-                     (alice, name, alicesName, context2),
-                     (alice, c.createURI(exns, "age"), 42, context1),
-                     ])
-    c.setRuleLanguage(QueryLanguage.PROLOG)   
-#    pq("""(select (?s ?p ?o ?c) (q ?s ?p ?o ?c))""")
-#    pq("""(select (?s ?p ?o ?c) 
-#                  (member ?c (?? (list !ex:cxt1))) 
-#                  (q ?s ?p ?o ?c))""")
-#    pq("""(select (?s ?p ?o ?c) 
-#                  (q ?s ?p ?o ?c)
-#                  (member ?c (?? (list !ex:cxt1))))                 
-#                  """)
-#    pq("""(select (?x) (= ?x 42))""")
-#    pq("""(select (?x) (= ?x (literal 42)))""")    
-#    pq("""(select (?x) (member ?x (?? (list 42))))""")
-#    pq("""(select (?x) (member ?x (?? (list (literal "42")))))""")
-    pq("""(select (?x) (member ?x (?? (list (literal "42"))))
-                       (lispp (upi= ?x (literal "4"))) )""")  
-    
-    pq(""" (select (?x) (member ?x (?? (list (literal "42"))))
-                       (and (lispp (upi= ?x (literal "42")))) )   """)  
-    
-    pq(""" (select (?x) (member ?x (?? (list (literal "42"))))
-                        (and (lispp t) ))   """)  
+    conn.setNamespace('ex', exns)
+    alice = conn.createURI(exns, "alice")
+    bob = conn.createURI(exns, "bob")
+    carol = conn.createURI(exns, "carol")
+    conn.createRectangularSystem(scale=1, xMax=100, yMax=100)
+    location = conn.createURI(exns, "location")
+    #conn.registerDatatypeMapping(predicate=location, nativeType="int")   
+    #conn.registerDatatypeMapping(predicate=location, nativeType="float")       
+    conn.add(alice, location, conn.createCoordinate(30,30))
+    conn.add(bob, location, conn.createCoordinate(40, 40))
+    conn.add(carol, location, conn.createCoordinate(50, 50)) 
+    box1 = conn.createBox(20, 40, 20, 40) 
+    print box1
+    print "Find people located within box1."
+    for r in conn.getStatements(None, location, box1) : print r
+    circle1 = conn.createCircle(35, 35, radius=10)  
+    print circle1
+    print "Find people located within circle1."
+    for r in conn.getStatements(None, location, circle1) : print r 
+    polygon1 = conn.createPolygon([(10,40), (50,10), (35,40), (50,70)])
+    print polygon1
+    print "Find people located within polygon1."
+    for r in conn.getStatements(None, location, polygon1) : print r
+    # now we switch to a LatLong (spherical) coordinate system
+    #latLongGeoType = conn.createLatLongSystem(scale=5) #, unit='km')
+    latLongGeoType = conn.createLatLongSystem(scale=5, unit='degree')
+    amsterdam = conn.createURI(exns, "amsterdam")
+    london = conn.createURI(exns, "london")
+    sanfrancisto = conn.createURI(exns, "sanfrancisco")
+    salvador = conn.createURI(exns, "salvador")    
+    location = conn.createURI(exns, "geolocation")
+#    conn.registerDatatypeMapping(predicate=location, nativeType="float")   
+    conn.add(amsterdam, location, conn.createCoordinate(52.366665, 4.883333))
+    conn.add(london, location, conn.createCoordinate(51.533333, -0.08333333))
+    conn.add(sanfrancisto, location, conn.createCoordinate(37.783333, -122.433334)) 
+    conn.add(salvador, location, conn.createCoordinate(13.783333, -88.45))   
+    box2 = conn.createBox( 25.0, 50.0, -130.0, -70.0) 
+    print box2
+    print "Locate entities within box2."
+    for r in conn.getStatements(None, location, box2) : print r    
+    circle2 = conn.createCircle(19.3994, -99.08, 2000, unit='km')
+    print circle2
+    print "Locate entities within circle2."
+    for r in conn.getStatements(None, location, circle2) : print r
+    polygon2 = conn.createPolygon([(51.0, 2.00),(60.0, -5.0),(48.0,-12.5)])
+    print polygon2
+    print "Locate entities within polygon2."
+    for r in conn.getStatements(None, location, polygon2) : print r
+    # experiments in units for lat/long type
+    print "km"
+    latLongGeoType1 = conn.createLatLongSystem(scale=5, unit='km')
+    print latLongGeoType1
+    print "degree"
+    latLongGeoType2 = conn.createLatLongSystem(scale=5, unit='degree')
+    print latLongGeoType2
+    print "mile"
+    latLongGeoType3 = conn.createLatLongSystem(scale=5, unit='miles')
+    print latLongGeoType3
+    print "radian"
+    latLongGeoType4 = conn.createLatLongSystem(scale=5, unit='radian')
+    print latLongGeoType4
+    print "megaton"
+    latLongGeoType5 = conn.createLatLongSystem(scale=5, unit='megaton')
+    print latLongGeoType5
 
-  
-    pq("""(select (?s ?p ?o ?x) (q ?s ?p ?o))""")
-      
-#    pq("""(select (?x) (member ?x (?? (list (literal "42"))))
-#                       (member ?x (?? (list (literal "43")))                      
-#                       )""")    
-#    pq("""   (select (?s ?p ?o ?c ?lac ?otype ?c2) 
-#               (and (q ?s ?p ?o ?c) 
-#                    (lisp* ?v (upi= ?c !<http://www.wildsemantics.com/SystemWorld_context>))) 
-#                    (or (q ?o !<http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac !<http://www.wildsemantics.com/SystemWorld_context>) 
-#                        (not (q ?o !<http://www.wildsemantics.com/systemworld#lookAheadCapsule> ?lac !<http://www.wildsemantics.com/SystemWorld_context>))) 
-#                        (and (q ?o !<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?otype ?c2) (lispp (upi= ?c2 !<http://www.wildsemantics.com/SystemWorld_context>)))
-#                        )
-# """)
+def test21():
+    """
+    Social Network Analysis Reasoning
+    """
+    conn = test1();
+    conn.clear()
+    print "Starting example test21()."
+    print "Current working directory is '%s'" % (os.getcwd())
+    path1 = "./lesmis.rdf"
+    print "Load Les Miserables triples."
+    conn.addFile(path1, None, format=RDFFormat.RDFXML);
+    conn.indexTriples(all=True)
+    print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
+           conn.size('null'), 'null')
+    print "SNA generators known (should be none): '%s'" % (conn.listSNAGenerators())
+    genName = "LesMiserables"
+    lmns = "http://www.franz.com/lesmis#"
+    conn.setNamespace('lm', lmns)
+    knows = conn.createURI(lmns, "knows")
+    # Create some generators
+    conn.registerSNAGenerator("LesMiserables1", subjectOf=None, objectOf=None, undirected=knows.toNTriples(), generator_query=None)
+    conn.registerSNAGenerator("LesMiserables2", subjectOf=None, objectOf=None, undirected=None, generator_query=None)
+    print "Created two generators. SNA generators known: '%s'" % (conn.listSNAGenerators())
+    # Delete a generator.
+    conn.deleteSNAGenerator("LesMiserables2")
+    print "Deleted one generator. SNA generators known: '%s'" % (conn.listSNAGenerators())
+    print "Neighbor matrices known (should be none): '%s'" % (conn.listNeighborMatrices())
+    valjean = conn.createURI(lmns, "character11")
+    conn.registerNeighborMatrix("LM_Matrix1", "LesMiserables1", valjean.toNTriples(), max_depth=2)
+    conn.registerNeighborMatrix("LM_Matrix2", "LesMiserables1", valjean.toNTriples(), max_depth=2)
+    print "Neighbor matrices known (should be two): '%s'" % (conn.listNeighborMatrices())
+    conn.deleteNeighborMatrix("LM_Matrix2")
+    print "Deleted one matrix. Neighbor matrices known (should be one): '%s'" % (conn.listNeighborMatrices())
 
-    
+
+
+
 if __name__ == '__main__':
-    choices = [i for i in range(1,19)]
-    choices = [5]
+    choices = [i for i in range(1,22)]
+    #choices = [21]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -662,10 +834,10 @@ if __name__ == '__main__':
         elif choice == 16: test16()            
         elif choice == 17: test17()                    
         elif choice == 18: test18()                                                             
+        elif choice == 19: test19() 
+        elif choice == 20: test20()  
+        elif choice == 21: test21()                                                                                                           
          
-        elif choice == 26: test26()                                                                                              
-        elif choice == 27: test27()                                                                                                      
-        elif choice == 28: test28()                                                                                                              
         else:
             print "No such test exists."
     

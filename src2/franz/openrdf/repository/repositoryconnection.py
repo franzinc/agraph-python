@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -33,10 +34,7 @@ from franz.openrdf.repository.jdbcresultset import JDBCResultSet
 from franz.openrdf.repository.repositoryresult import RepositoryResult
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.util import uris
-from franz.openrdf.vocabulary.owl import OWL
-from franz.openrdf.vocabulary.rdf import RDF
-from franz.openrdf.vocabulary.rdfs import RDFS
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary import *
 import datetime
 import os
 
@@ -115,7 +113,7 @@ class RepositoryConnection(object):
         executed against the RDF storage.
         """
         ## THIS IS BOGUS; OR IS IT?  WE DON'T KNOW WHAT KIND OF QUERY IT IS:
-        query = Query(queryString, queryLanguage, baseURI)
+        query = Query(queryLanguage, queryString, baseURI)
         query.setConnection(self)
         return query
 
@@ -749,7 +747,7 @@ class RepositoryConnection(object):
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
         
-    def loadRules(self, file ,language=None):
+    def loadRules(self, file, language=None):
         """
         Load a file of rules into the current environment.
         'file' is assumed to reside on the client machine.
@@ -836,7 +834,7 @@ class RepositoryConnection(object):
         """
         Return the namespace that is associated with the specified prefix, if any.
         """        
-        return self._get_namespaces_map().get(prefix.lower())
+        return self._get_namespaces_map().get(prefix.lower(), None)
 
     def setNamespace(self, prefix, namespace):
         """
@@ -851,7 +849,7 @@ class RepositoryConnection(object):
         """
         Remove a namespace association with 'prefix'.
         """
-        del self._get_namespaces_map()[prefix.lower()]
+        self._get_namespaces_map().pop(prefix.lower(), None)
 
     def clearNamespaces(self):
         """
@@ -922,11 +920,10 @@ class RepositoryConnection(object):
         that defines the edges.
         """
         miniRep = self._get_mini_repository()
-        print "CALLING MINI registerSNAGenerator"
         miniRep.registerSNAGenerator(name, subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, 
                                      query=generator_query)
 
-    def dropSNAGenerator(self, name):
+    def deleteSNAGenerator(self, name):
         """
         Destroy the generator named 'name'.
         """
@@ -958,12 +955,12 @@ class RepositoryConnection(object):
         miniRep = self._get_mini_repository()
         miniRep.rebuildNeighborMatrix(name)
     
-    def dropNeighborMatrix(self, name):
+    def deleteNeighborMatrix(self, name):
         """
         Destroy the neighbor matrix named 'name'.
         """
         miniRep = self._get_mini_repository()
-        miniRep.dropNeighborMatrix(name)
+        miniRep.deleteNeighborMatrix(name)
     
     def listNeighborMatrices(self):
         """
@@ -971,8 +968,27 @@ class RepositoryConnection(object):
         """
         miniRep = self._get_mini_repository()
         return miniRep.listNeighborMatrices()
-  
-  
+
+    def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
+        """
+        Return an array of statements for the given free-text pattern search.
+        """
+        miniRep = self._get_mini_repository()
+        return miniRep.evalFreeTextSearch(pattern, infer, callback, limit)
+        
+    def listFreeTextPredicates(self):
+        """
+        List the predicates that are used for free-text indexing.
+        """
+        return self.repository.listFreeTextPredicates()
+        
+    def updateFreeTextIndexing(self):
+        """
+        Request that the server update the free-text index.
+        """
+        return self.repository.updateFreeTextIndexing()
+
+
 class GeoType:
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'

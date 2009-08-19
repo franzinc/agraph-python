@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -110,9 +111,8 @@ class Query(object):
         """ 
         Removes a previously set binding on the supplied variable. Calling this
         method with an unbound variable name has no effect.
-        """ 
-        if self.bindings.get(name):
-            del self.bindings[name]
+        """
+        self.bindings.popitem(name, None)
 
     def getBindings(self):
         """
@@ -234,7 +234,7 @@ class Query(object):
         if self.queryLanguage == QueryLanguage.SPARQL:  
             query = splicePrefixesIntoQuery(self.queryString, conn)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred, bindings=bindings, planner='identity',
+                                            infer=self.includeInferred, bindings=bindings,
                                             checkVariables=self.checkVariables)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:

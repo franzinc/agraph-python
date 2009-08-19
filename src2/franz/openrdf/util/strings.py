@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,38 +22,50 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+"""
+A strings utility module for helper functions.
+"""
 
-from franz.openrdf.exceptions import *
+import re
+
+PATTERN = re.compile('.?"')
 
 def escape_double_quotes(string):
     """
     Place a backslash in front of any double quote in 'string' not already
     preceded by a backslash.
     """
-    if string.find('"') < 0: return string
-    index = 0
-    pieces = []
-    for i, c in enumerate(string):
-        if c == '"' and (i == 0 or not string[i] == '\\'):
-            pieces.append(string[index:i])
-            pieces.append('\\"')
-            index = i + 1
-    ## add last piece:
-    pieces.append(string[index:i])
-    return ''.join(pieces)
+    def handle_quote(matchobj):
+        """Replace matches with the appropriate escaped character sequence."""
+        match = matchobj.group(0)
 
+        if match == '"':
+            return '\\"'
 
+        if match == '\\"':
+            return match
+
+        if match == '""':
+            return '\\"\\"'
+
+        return match[0] + '\\"'
+
+    return re.sub(PATTERN, handle_quote, string)
 
 ##===========================================================================
 ## Test code
 ##===========================================================================
 
-def _test(s):
-    print s, "   ", escape_double_quotes(s)
+def _test(string):
+    """Prints test output."""
+    print string, "   ", escape_double_quotes(string)
     
 if __name__ == '__main__':
-    _test("abc")
-    _test('ab"cd\"ef')
-    _test('"abc"')
-    _test('\"abc\"')
+    _test(r'abc')
+    _test(r'ab"cd\"ef')
+    _test(r'"abc"')
+    _test(r'""abc"')
+    _test(r'""\"""\"\""abc"')
+    _test(r'\"abc\"')
+    _test(r'"""')
     

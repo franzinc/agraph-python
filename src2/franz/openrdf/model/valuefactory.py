@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103 
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -25,10 +26,7 @@ from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value, BNode, URI
 from franz.openrdf.model.literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
 from franz.openrdf.model.statement import Statement
-from franz.openrdf.vocabulary.rdf import RDF
-from franz.openrdf.vocabulary.rdfs import RDFS
-from franz.openrdf.vocabulary.owl import OWL
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary import XMLSchema
 
 import datetime, traceback
 
@@ -39,10 +37,6 @@ class ValueFactory(object):
     BLANK_NODE_AMOUNT = 10    
     def __init__(self, store):
         self.store = store
-        RDF.initialize(self)
-        RDFS.initialize(self)
-        XMLSchema.initialize(self)
-        OWL.initialize(self)
         self.store.getConnection().setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
         self.unusedBNodeIds = []
         
@@ -99,12 +93,12 @@ class ValueFactory(object):
         return Literal(value, datatype=datatype, language=language)
         
 
-    def createStatement(self, subject, predicate, object, context=None):
+    def createStatement(self, subject, predicate, _object, context=None):
         """
         Create a new statement with the supplied subject, predicate and object
         and associated context.  Arguments have type Resource, URI, Value, and Resource.
         """
-        return Statement(subject, predicate, object, context=context)
+        return Statement(subject, predicate, _object, context=context)
     
     def createURI(self, uri=None, namespace=None, localname=None):
         """
@@ -123,14 +117,18 @@ class ValueFactory(object):
 #############################################################################
 
     def validateRangeConstant(self, term, predicate):
+        """Validate an individual range constant"""
         datatype = term.getDatatype()
         if not datatype:
-            raise Exception("Illegal term in range expression '%s' needs to have a datatype." % term.getValue())
+            raise Exception('Illegal term in range expression "%s" needs to '
+                            'have a datatype.' % term.getValue())
+
         rep = self.store.getConnection().repository
-        if rep.mapped_datatypes.get(datatype): return
-        elif predicate and rep.mapped_predicates.get(predicate.getURI()): return
-        else:
-            raise Exception("Illegal term in range expression '%s' with datatype '%s' does not have a datatype or predicate mapping." %
+        if datatype not in rep.mapped_datatypes and \
+           (not predicate or predicate.getURI() not in rep.mapped_predicates):
+            raise Exception('Illegal term in range expression "%s" with '
+                            'datatype "%s" does not have a datatype or '
+                            'predicate mapping.' %
                              (term.getValue(), datatype))
 
     def validateCompoundLiteral(self, term, predicate):
@@ -149,11 +147,11 @@ class ValueFactory(object):
         If 'term' is a string, integer, float, etc, convert it to
         a Literal term.  Otherwise, if its a Value, just pass it through.
         """
-        if term is None: return term
-        if isinstance(term, CompoundLiteral): 
-            self.validateCompoundLiteral(term, predicate)
-        elif not isinstance(term, Value):
-            term = self.createLiteral(term)
+        if term is not None:
+            if isinstance(term, CompoundLiteral): 
+                self.validateCompoundLiteral(term, predicate)
+            elif not isinstance(term, Value):
+                term = self.createLiteral(term)
         return term
     
     def createRange(self, lowerBound, upperBound):
@@ -163,6 +161,3 @@ class ValueFactory(object):
         lowerBound = self.object_position_term_to_openrdf_term(lowerBound)
         upperBound = self.object_position_term_to_openrdf_term(upperBound)
         return RangeLiteral(lowerBound=lowerBound, upperBound=upperBound)
-        
-
-

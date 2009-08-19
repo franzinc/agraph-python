@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -44,20 +45,20 @@ class Sail:
         """
         Set the directory where data and logging for this repository is stored.
         """
-        raise UnimplementedMethodException("setDataDir")
+        raise NotImplementedError("setDataDir")
 
     def getDataDir(self):
         """
         Get the directory where data and logging for this repository is stored.
         """
-        raise UnimplementedMethodException("getDataDir")
+        raise NotImplementedError("getDataDir")
 
     def initialize(self):
         """
         Initializes this repository. A repository needs to be initialized before
         it can be used.
         """
-        raise UnimplementedMethodException("initialize")
+        raise NotImplementedError("initialize")
 
     def shutDown(self):
         """
@@ -65,7 +66,7 @@ class Sail:
         Once shut down, the repository can no longer be used until it is
         re-initialized.
         """
-        raise UnimplementedMethodException("shutDown")
+        raise NotImplementedError("shutDown")
 
     def isWritable(self):
         """
@@ -74,7 +75,7 @@ class Sail:
         determined by the writability of the Sail that this repository operates
         on.
         """
-        raise UnimplementedMethodException("isWritable")
+        raise NotImplementedError("isWritable")
 
     def getConnection(self):
         """
@@ -83,13 +84,13 @@ class Sail:
         closed to make sure that any resources they keep hold of are released. The
         best way to do this is to use a try-finally-block 
         """
-        raise UnimplementedMethodException("getConnection")
+        raise NotImplementedError("getConnection")
 
     def getValueFactory(self):
         """
         Return a ValueFactory for this Repository
         """
-        raise UnimplementedMethodException("getValueFactory")
+        raise NotImplementedError("getValueFactory")
     
 ###################################################################################
 ##
@@ -121,13 +122,13 @@ class StackableSail(Sail):
         Sets the base Sail that this Sail will work on top of. This method
         will be called before the initialize() method is called.
         """
-        raise UnimplementedMethodException("setBaseSail")
+        raise NotImplementedError("setBaseSail")
 
     def getBaseSail(self):
         """
         Gets the base Sail that this Sail works on top of.
         """
-        raise UnimplementedMethodException("getBaseSail")
+        raise NotImplementedError("getBaseSail")
 
 ###################################################################################
 ##

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -23,8 +24,7 @@
 
 from franz.openrdf.exceptions import *
 from franz.openrdf.model.value import Value
-from franz.openrdf.vocabulary.rdf import RDF
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary import RDF, XMLSchema
 import datetime
 import time
 
@@ -189,7 +189,7 @@ class Tokenizer():
                 endPos = i
                 break
         word = string[:endPos] if endPos >= 0 else string
-        word = ALIASES[word.upper()] if ALIASES.get(word.upper()) else word
+        word = ALIASES.get(word.upper(), word)
         if word.upper() in Token.RESERVED_WORD_SET:
             self.tokens.append(Token(Token.RESERVED_WORD, word))
         elif word[0].isdigit():

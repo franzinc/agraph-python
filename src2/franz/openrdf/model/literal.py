@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103 
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -22,13 +23,12 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value
-from franz.openrdf.query.commonlogic import XSD
+from franz.openrdf.exceptions import IllegalArgumentException
+from franz.openrdf.model.value import Value, URI
 from franz.openrdf.util import strings
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
+from franz.openrdf.vocabulary import XMLSchema
 import datetime
-import time
+from collections import defaultdict
 
 class Literal(Value):
     """
@@ -38,73 +38,97 @@ class Literal(Value):
     call super.__init__.  That's why Python is so cool!
     """
     def __init__(self, label, datatype=None, language=None):
+        Value.__init__(self)
+        # Use the properties to set the real values
+        self.datatype = datatype
+        self.language = language
+        self.label = label
+
+    ISO_FORMAT_WITH_T = "%Y-%m-%dT%H:%M:%S"
+
+    def getDatatype(self):
+        """The URI representing the datatype for this literal, if there is one""" 
+        return self._datatype
+    
+    def setDatatype(self, datatype):
+        """Sets the datatype of the value"""
         if isinstance(datatype, str):
             if datatype[0] == '<':
                 datatype = datatype[1:-1]
-            uri = XMLSchema.name2URI(datatype, exception_if_failure=False)
-            datatype = uri or datatype
-            ## TODO: CONVERT NON-XML SCHEMA TYPES (BUT WHICH ONES; WE
-            ## SHOULD CACHE TO AVOID CREATING TOO MANY)
-        self.datatype = datatype
-        self.language = language.lower() if language else None
-        self.label = label
-    ISO_FORMAT_WITH_T = "%Y-%m-%dT%H:%M:%S"
-    XSDToPython = None
-     
-    def getLabel(self): return self.label
-    
-    def getValue(self): return self.getLabel()
+            datatype = XMLSchema.uristr2obj.get(datatype, None) or URI(datatype)
+        elif datatype is not None:
+            if not isinstance(datatype, URI):
+                datatype = URI(datatype)
+            elif datatype.uri is None:
+                datatype = None
 
-    def setLabel(self, label): self.label = label    
-    
-    def getLanguage(self): return self.language
+        self._datatype = datatype # pylint: disable-msg=W0201
+
+    datatype = property(getDatatype, setDatatype)
+
+    def getLanguage(self):
+        """The language for this Literal"""
+        return self._language
     
     def setLanguage(self, language):
-        ## THE SESAME CODE HAS AN INCONSISTENCY HERE; IT DOESN'T CONVERT TO LOWER CASE, BUT
-        ## THE CONSTRUCTOR DOES CONVERT. WE ARE NOT SURE WHICH IS INTENDED  - RMM
-        self.language = language.lower() if language else None    
-    
-    def getDatatype(self):
-        """
-        Return a URI representing the datatype for this literal, if there is one
-        """ 
-        return self.datatype
-    
-    def setDatatype(self, datatype):
-        self.datatype = datatype
+        """Set the language for this Literal"""
+        self._language = language.lower() if language else None # pylint: disable-msg=W0201
 
+    language = property(getLanguage, setLanguage)
+
+    def getLabel(self):
+        """The label/value for this Literal"""
+        return self._label
+    
+    def setLabel(self, label):
+        """Set the label for this Literal"""
+        self._label = label # pylint: disable-msg=W0201
+    
+    def getValue(self):
+        """The label/value"""
+        return self.label
+
+    label = property(getLabel, setLabel)
+    
     def __eq__(self, other):
-        if not isinstance(other, Literal): return False
-        if not self.label == other.label: return False
-        if not self.datatype:
-            if other.datatype: return False
-        elif not self.datatype == other.datatype: return False
-        if not self.language:
-            if other.language: return False
-        elif not self.language == other.language: return False
-        return True
+        if not isinstance(other, Literal):
+            return NotImplemented
+
+        return (self.label == other.label and 
+                self.datatype == other.datatype and
+                self.language == other.language)
     
     def __hash__(self):
-        return self.getLabel().__hash__()
+        return hash(self._label)
     
     def intValue(self):
-        return int(self.getLabel())
+        """Convert to int"""
+        return int(self._label)
     
     def longValue(self):
-        return long(self.getLabel())
+        """Convert to long"""
+        return long(self._label)
     
     def floatValue(self):
-        return float(self.getLabel())
+        """Convert to float"""
+        return float(self._label)
     
     def booleanValue(self):
-        return bool(self.getLabel())
+        """Convert to bool"""
+        return bool(self._label)
     
+    def dateValue(self):
+        """Convert to date"""
+        return datetime.datetime.strptime(self._label, "%Y-%m-%d").date()
+
     def datetimeValue(self):
-        return datetime.datetime.strptime(self.getLabel(), Literal.ISO_FORMAT_WITH_T)
+        """Convert to datetime"""
+        return datetime.datetime.strptime(self._label, Literal.ISO_FORMAT_WITH_T)
 
     def timeValue(self):
+        """Convert to time"""
         ## THIS IS GOING TO BREAK:
-        return datetime.time(self.getLabel())
+        return datetime.time(self._label)
 
     
     ## Returns the {@link XMLGregorianCalendar} value of this literal. A calendar
@@ -114,12 +138,11 @@ class Literal(Value):
     ## <tt>date</tt>, <tt>gYearMonth</tt>, <tt>gMonthDay</tt>,
     ## <tt>gYear</tt>, <tt>gMonth</tt> or <tt>gDay</tt>.
     def calendarValue(self):
-        raise UnimplementedMethodException("calendarValue")
+        """calendarValue not useful for Python."""
+        raise NotImplementedError("calendarValue")
 
-    def __str__(self):
-        """
-        Display an ntriples syntax for this literal.
-        """
+    def toNTriples(self):
+        """Return an ntriples syntax for this Literal"""
         sb = []
         sb.append('"')
         sb.append(strings.escape_double_quotes(self.getLabel()))
@@ -128,60 +151,34 @@ class Literal(Value):
             sb.append('@')
             sb.append(self.language)
         if self.datatype:
-            sb.append("^^<")
+            sb.append("^^")
             sb.append(str(self.datatype))
-            sb.append(">")
         return ''.join(sb)
-
-    def toNTriples(self):
-        """
-        Return an NTriples representation of a resource, in this case, wrap
-        it in angle brackets.
-        """
-        return str(self)
 
 ###############################################################################
 ## Automatic conversion from Literal to Python object
 ###############################################################################
-
-    def initializeXSDToPython(self):
-        if not Literal.XSDToPython:
-            Literal.XSDToPython = {str(XMLSchema.INT): int, str(XMLSchema.FLOAT): float, 
-                                   str(XMLSchema.LONG): long, XMLSchema.BOOLEAN: bool,
-                                   str(XMLSchema.DATETIME): datetime.datetime,
-                                   str(XMLSchema.TIME): datetime.time,}
-
     def toPython(self):
         """
         Return a Python object representation of this literal.   
         Slightly silly implementation because we implement a conversion table
         and then don't use the conversion functions.     
         """
-        self.initializeXSDToPython()
-        dt = self.getDatatype()
-        if dt is None: return self.getLabel()
-        else:
-            dtURI = dt if isinstance(dt, str) else dt.getURI()
-            conversion = Literal.XSDToPython.get(dtURI)
-            if conversion:
-                if conversion == int:
-                    return self.intValue()
-                elif conversion == long:
-                    return self.longValue()
-                elif conversion == float:
-                    return self.floatValue()
-                elif conversion == bool:
-                    return self.booleanValue()
-                elif conversion == datetime.datetime:
-                    return self.datetimeValue()
-                elif conversion == datetime.time:
-                    return self.timeValue()
-                else:
-                    return conversion(self.label)
-            else:
-                return self.label
-    
-        
+        uri = getattr(self.getDatatype(), 'uri', None)
+        conversion = XSDToPython[uri]
+        return conversion(self)
+
+
+XSDToPython = defaultdict(lambda: Literal.getValue, [
+                (str(XMLSchema.INT), Literal.intValue),
+                (str(XMLSchema.FLOAT), Literal.floatValue), 
+                (str(XMLSchema.LONG), Literal.longValue),
+                (str(XMLSchema.BOOLEAN), Literal.booleanValue),
+                (str(XMLSchema.DATETIME), Literal.datetimeValue),
+                (str(XMLSchema.DATE), Literal.dateValue),
+                (str(XMLSchema.TIME), Literal.timeValue)])
+
+
 ###############################################################################
 # Extension to Sesame API
 ###############################################################################

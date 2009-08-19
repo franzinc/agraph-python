@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -121,7 +122,7 @@ class JDBCResultSet(object):
         Return a ResultSetMetaData object that provides the name and datatype of each
         column in the ResultSet.
         """
-        raise UnimplementedMethodException("getMetaData")
+        raise NotImplementedError("getMetaData")
         
     def getRow(self):
         """
@@ -197,4 +198,8 @@ class JDBCResultSet(object):
         pass
   
 
-    def rowCount(self): return len(self.string_tuples)
+    def __len__(self):
+        return len(self.string_tuples)
+    
+    def rowCount(self):
+        return len(self)

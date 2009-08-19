@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -22,96 +23,41 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.openrdf.exceptions import *
+from franz.openrdf.model.value import URI 
+
+NS = "http://www.w3.org/2000/01/rdf-schema#"
 
 class RDFS:
-    NAMESPACE = "http://www.w3.org/2000/01/rdf-schema#"
-    RESOURCE = None
-    LITERAL = None
-    CLASS = None
-     
-    ## map of uri strings to URI objects:
-    name2URI = {}
-    
-    @staticmethod
-    def initialize(factory):
-        """
-        Initialize the constant using factory 'factory'
-        """
-        RDFS.RESOURCE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Resource")
-        RDFS.LITERAL = factory.createURI(namespace=RDFS.NAMESPACE, localname="Literal")
-        RDFS.CLASS = factory.createURI(namespace=RDFS.NAMESPACE, localname="Class")
-        RDFS.SUBCLASSOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subClassOf")
-        RDFS.SUBPROPERTYOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subPropertyOf")
-        RDFS.DOMAIN = factory.createURI(namespace=RDFS.NAMESPACE, localname="domain")
-        RDFS.RANGE = factory.createURI(namespace=RDFS.NAMESPACE, localname="range")
-        RDFS.COMMENT = factory.createURI(namespace=RDFS.NAMESPACE, localname="comment")
-        RDFS.LABEL = factory.createURI(namespace=RDFS.NAMESPACE, localname="label")
-        RDFS.DATATYPE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Datatype")
-        RDFS.CONTAINER = factory.createURI(namespace=RDFS.NAMESPACE, localname="Container")
-        RDFS.MEMBER = factory.createURI(namespace=RDFS.NAMESPACE, localname="member")
-        RDFS.ISDEFINEDBY = factory.createURI(namespace=RDFS.NAMESPACE, localname="isDefinedBy")
-        RDFS.SEEALSO = factory.createURI(namespace=RDFS.NAMESPACE, localname="seeAlso")
-        RDFS.CONTAINERMEMBERSHIPPROPERTY = factory.createURI(namespace=RDFS.NAMESPACE, localname="ContainerMembershipProperty")
+    """
+    A 'static' class containing useful RDFS URIs.
+    """
+
+    NAMESPACE = NS
+    RESOURCE = URI(namespace=NS, localname="Resource")
+    LITERAL = URI(namespace=NS, localname="Literal")
+    CLASS = URI(namespace=NS, localname="Class")
+    SUBCLASSOF = URI(namespace=NS, localname="subClassOf")
+    SUBPROPERTYOF = URI(namespace=NS, localname="subPropertyOf")
+    DOMAIN = URI(namespace=NS, localname="domain")
+    RANGE = URI(namespace=NS, localname="range")
+    COMMENT = URI(namespace=NS, localname="comment")
+    LABEL = URI(namespace=NS, localname="label")
+    DATATYPE = URI(namespace=NS, localname="Datatype")
+    CONTAINER = URI(namespace=NS, localname="Container")
+    MEMBER = URI(namespace=NS, localname="member")
+    ISDEFINEDBY = URI(namespace=NS, localname="isDefinedBy")
+    SEEALSO = URI(namespace=NS, localname="seeAlso")
+    CONTAINERMEMBERSHIPPROPERTY = URI(namespace=NS,
+	localname="ContainerMembershipProperty")
        
-        ## (re)build 'name2URI' dictionary
-        RDFS.name2URIMap = {}
-        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS, 
-                    RDFS.SUBCLASSOF, RDFS.SUBPROPERTYOF, RDFS.DOMAIN, 
-                    RDFS.RANGE, RDFS.COMMENT, RDFS.LABEL, RDFS.DATATYPE, 
-                    RDFS.CONTAINER, RDFS.MEMBER, RDFS.ISDEFINEDBY, 
-                    RDFS.SEEALSO, RDFS.CONTAINERMEMBERSHIPPROPERTY, ]:
-            RDFS.name2URIMap[str(uri)] = uri
+    ## map of uri strings to URI objects:
+    uristr2obj = {}
 
-            
-#    @staticmethod
-#    def reinitialize(factory, store=None):
-#        """
-#        Initialize the values in the factory, or
-#        reinitialize the values in factory with more efficient
-#        resources and literals (one's that know what store they
-#        belong to).
-#        """
-#        RDFS.RESOURCE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Resource")
-#        RDFS.LITERAL = factory.createURI(namespace=RDFS.NAMESPACE, localname="Literal")
-#        RDFS.CLASS = factory.createURI(namespace=RDFS.NAMESPACE, localname="Class")
-#        RDFS.SUBCLASSOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subClassOf")
-#        RDFS.SUBPROPERTYOF = factory.createURI(namespace=RDFS.NAMESPACE, localname="subPropertyOf")
-#        RDFS.DOMAIN = factory.createURI(namespace=RDFS.NAMESPACE, localname="domain")
-#        RDFS.RANGE = factory.createURI(namespace=RDFS.NAMESPACE, localname="range")
-#        RDFS.COMMENT = factory.createURI(namespace=RDFS.NAMESPACE, localname="comment")
-#        RDFS.LABEL = factory.createURI(namespace=RDFS.NAMESPACE, localname="label")
-#        RDFS.DATATYPE = factory.createURI(namespace=RDFS.NAMESPACE, localname="Datatype")
-#        RDFS.CONTAINER = factory.createURI(namespace=RDFS.NAMESPACE, localname="Container")
-#        RDFS.MEMBER = factory.createURI(namespace=RDFS.NAMESPACE, localname="member")
-#        RDFS.ISDEFINEDBY = factory.createURI(namespace=RDFS.NAMESPACE, localname="isDefinedBy")
-#        RDFS.SEEALSO = factory.createURI(namespace=RDFS.NAMESPACE, localname="seeAlso")
-#        RDFS.CONTAINERMEMBERSHIPPROPERTY = factory.createURI(namespace=RDFS.NAMESPACE, localname="ContainerMembershipProperty")
-#
-#        ## (re)build 'name2URI' dictionary
-#        RDFS.name2URIMap = {}
-#        for uri in [RDFS.RESOURCE, RDFS.LITERAL, RDFS.CLASS, 
-#                    RDFS.SUBCLASSOF, RDFS.SUBPROPERTYOF, RDFS.DOMAIN, 
-#                    RDFS.RANGE, RDFS.COMMENT, RDFS.LABEL, RDFS.DATATYPE, 
-#                    RDFS.CONTAINER, RDFS.MEMBER, RDFS.ISDEFINEDBY, 
-#                    RDFS.SEEALSO, RDFS.CONTAINERMEMBERSHIPPROPERTY, ]:
-#            RDFS.name2URIMap[str(uri)] = uri
-        
-    
-    @staticmethod
-    def name2URI (name, exception_if_failure=True):
-        """
-        Given a URI string, return the OpenRDF URI object.
-        """
-        matchingURI = RDFS.name2URIMap.get(name)
-        if matchingURI: return matchingURI
-        elif exception_if_failure:
-            raise IllegalArgumentException("Passed a non-RDFS URI to 'XMLSchema.name2URI.")
-        else: return None
-    
-    
+for name, uri in RDFS.__dict__.iteritems():
+    if name.upper() == name:
+        RDFS.uristr2obj[str(uri)] = uri
 
-
+del RDFS.uristr2obj[NS]
 
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -28,9 +29,6 @@ class IllegalArgumentException (Exception):
     pass
 
 class InitializationException(Exception):
-    pass
-
-class UnimplementedMethodException(Exception):
     pass
 
 class IllegalStateException (Exception):
@@ -78,13 +76,3 @@ class QueryMissingFeatureException(Exception):
     """
     Source language evokes a feature not supported by the execution language
     """
-    
-
-#class NiceException(Exception):
-#    pass
-#
-#class RuntimeException(Exception):
-#    pass
-#
-#class FakeException(Exception):
-#    pass
