@@ -56,7 +56,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         if obj.user and obj.password:
             curl.setopt(pycurl.USERPWD, "%s:%s" % (obj.user, obj.password))
             curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-        if not url.startswith("http:"): url = obj.url + url
+        if url.startswith("/"): url = obj.url + url
 
     postbody = method == "POST" or method == "PUT"
     curl.setopt(pycurl.POSTFIELDS, "")
