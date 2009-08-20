@@ -80,7 +80,11 @@ class Dataset:
         self.asQuery(False)
 
     def _append_uri(self, sb, uri):
-        uriString = str(uri)
+        try:
+            uriString = uri.uri
+        except AttributeError:
+            uriString = str(uri)
+
         if len(uriString) > 50:
             sb.append("<" + uriString[:19] + "..")
             sb.append(uriString[len(uriString) - 29:] + ">/n")

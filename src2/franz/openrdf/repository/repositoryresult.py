@@ -142,8 +142,5 @@ class RepositoryResult(object):  ## inherits IterationWrapper
     @staticmethod
     def normalize_quint(stringTuple):
         st = stringTuple
-        tid = '"{0}"'.format(st[0])
-        if len(stringTuple) == 4:
-            return (st[1], st[2], st[3], None, tid)
-        else:
-            return (st[1], st[2], st[3], st[4], tid)
+        tid = st[0]
+        return (st[1], st[2], st[3], None if len(st) == 4 else st[4], st[0])

@@ -23,38 +23,10 @@
 ##***** END LICENSE BLOCK *****
 
 """
-A strings utility module for helper functions.
+Tests for the package.
 """
 
-import re
-
-PATTERN = re.compile('.?"')
-
-def escape_double_quotes(string):
-    """
-    Place a backslash in front of any double quote in 'string' not already
-    preceded by a backslash.
-    """
-    def handle_quote(matchobj):
-        """Replace matches with the appropriate escaped character sequence."""
-        match = matchobj.group(0)
-
-        if match == '"':
-            return '\\"'
-
-        if match == '\\"':
-            return match
-
-        if match == '""':
-            return '\\"\\"'
-
-        return match[0] + '\\"'
-
-    return re.sub(PATTERN, handle_quote, string)
-
-##===========================================================================
-## Test code
-##===========================================================================
+from strings import escape_double_quotes
 
 def test_escape_double_quotes():
     assert escape_double_quotes(r'abc') == r'abc'

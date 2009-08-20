@@ -38,21 +38,23 @@ class Statement:
         self.string_tuple = None
 
     def __eq__(self, other):
-        if not isinstance(other, Statement): return False
-            ## The object is potentially the cheapest to check, as types
-            ## of these references might be different.
-            ## In general the number of different predicates in sets of
-            ## statements is the smallest, so predicate equality is checked
-            ## last.
-        spoEqual = self.getObject().__eq__(other.getObject()) and self.getSubject().__eq__(other.getSubject()) \
-                and self.getPredicate().__eq__(other.getPredicate())
+        if not isinstance(other, Statement):
+            return NotImplemented
+
+        ## The object is potentially the cheapest to check, as types
+        ## of these references might be different.
+        ## In general the number of different predicates in sets of
+        ## statements is the smallest, so predicate equality is checked
+        ## last.
+        spoEqual = self.getObject() == other.getObject() and self.getSubject() == other.getSubject() \
+                and self.getPredicate() == other.getPredicate()
         if self.context:
-            return spoEqual and self.getContext().__eq__(other.getContext())
+            return spoEqual and self.getContext() == other.getContext()
         else:
             return spoEqual
 
     def __hash__(self):
-        return 961 * self.getSubject().__hash__() + 31 * self.getPredicate().__hash__() + self.getObject().__hash__();
+        return 961 * hash(self.getSubject()) + 31 * hash(self.getPredicate()) + hash(self.getObject())
 
     def __str__(self):
         sb= []
