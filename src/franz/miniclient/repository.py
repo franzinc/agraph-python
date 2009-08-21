@@ -170,11 +170,11 @@ class Repository:
 
     def listFreeTextPredicates(self):
         """List the predicates that are used for free-text indexing."""
-        return jsonRequest(self, "GET", "/freetextPredicates")
+        return jsonRequest(self, "GET", "/freetext/predicates")
 
     def registerFreeTextPredicate(self, predicate):
         """Add a predicate for free-text indexing."""
-        nullRequest(self, "POST", "/freetextPredicates", urlenc(predicate=predicate))
+        nullRequest(self, "POST", "/freetext/predicates", urlenc(predicate=predicate))
 
     def clearNamespaces(self):
         nullRequest(self, "DELETE", "/namespaces")
@@ -187,33 +187,33 @@ class Repository:
         nullRequest(self, "DELETE", "/namespaces/" + urllib.quote(prefix))
 
     def listMappedTypes(self):
-        return jsonRequest(self, "GET", "/typeMapping")
+        return jsonRequest(self, "GET", "/mapping/type")
 
     def addMappedType(self, type, primitiveType):
-        nullRequest(self, "POST", "/typeMapping", urlenc(type=type, primitiveType=primitiveType))
+        nullRequest(self, "POST", "/mapping/type", urlenc(type=type, primitiveType=primitiveType))
 
     def deleteMappedType(self, type):
-        nullRequest(self, "DELETE", "/typeMapping", urlenc(type=type))
+        nullRequest(self, "DELETE", "/mapping/type", urlenc(type=type))
 
     def listMappedPredicates(self):
-        return jsonRequest(self, "GET", "/predicateMapping")
+        return jsonRequest(self, "GET", "/mapping/predicate")
 
     def addMappedPredicate(self, predicate, primitiveType):
-        nullRequest(self, "POST", "/predicateMapping",
+        nullRequest(self, "POST", "/mapping/predicate",
                     urlenc(predicate=predicate, primitiveType=primitiveType))
 
     def deleteMappedPredicate(self, predicate):
-        nullRequest(self, "DELETE", "/predicateMapping", urlenc(predicate=predicate))
+        nullRequest(self, "DELETE", "/mapping/predicate", urlenc(predicate=predicate))
 
     def getCartesianGeoType(self, stripWidth, xMin, xMax, yMin, yMax):
         """Retrieve a cartesian geo-spatial literal type."""
-        return jsonRequest(self, "PUT", "/geo/types/cartesian?" +
+        return jsonRequest(self, "POST", "/geo/types/cartesian?" +
                            urlenc(stripWidth=stripWidth, xmin=xMin, ymin=yMin, xmax=xMax, ymax=yMax))
 
 
     def getSphericalGeoType(self, stripWidth, unit="degree", latMin=None, latMax=None, longMin=None, longMax=None):
         """Retrieve a spherical geo-spatial literal type."""
-        return jsonRequest(self, "PUT", "/geo/types/spherical?" +
+        return jsonRequest(self, "POST", "/geo/types/spherical?" +
                            urlenc(stripWidth=stripWidth, unit=unit, latmin=latMin, latmax=latMax,
                                   longmin=longMin, longmax=longMax))
 
