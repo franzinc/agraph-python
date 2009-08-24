@@ -89,7 +89,7 @@ class Repository:
         """Add Prolog functors to the environment. Takes a string
         containing Lisp-syntax functor definitions (using the <-- and
         <- operators)."""
-        nullRequest(self, "PUT", "/functor", definitions)
+        nullRequest(self, "POST", "/functor", definitions)
 
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
