@@ -146,7 +146,7 @@ class Repository:
 
         accept = "application/json"
         if count: accept = "application/x-quints+json"
-        else if tripleIDs: accept = "text/integer"
+        elif tripleIDs: accept = "text/integer"
         return jsonRequest(self, "GET", "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                                   obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit),
