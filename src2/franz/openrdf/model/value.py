@@ -35,16 +35,18 @@ class Value(object):
     
     def __str__(self):
         return self.toNTriples()
+
     def __eq__(self, other):
         return NotImplemented
-    def __hash__(self):
-        raise NotImplementedError()   
+
+    # Default to not-hashable
+    __hash__ = None
 
     def toNTriples(self):
         """
         Return an NTriples representation of an open rdf term
         """
-        raise NotImplementedError("Failed to implement 'toNTriples' on instance of type %s" % type(self))
+        raise NotImplementedError("Failed to implement 'toNTriples' on instance of type %s" % type(self).__name__)
     
     
 class Resource(Value):
@@ -73,7 +75,7 @@ class URI(Resource):
         return str(self) == str(other)
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(self.uri)
     
     def getURI(self):
         """

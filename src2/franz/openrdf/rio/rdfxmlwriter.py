@@ -236,7 +236,7 @@ class RDFXMLWriter(RDFWriter):
                 if isXMLLiteral: 
                     self.writeAttribute(RDF.NAMESPACE, "parseType", "Literal")
                 else: 
-                    self.writeAttribute(RDF.NAMESPACE, "datatype", str(datatype))
+                    self.writeAttribute(RDF.NAMESPACE, "datatype", datatype.uri)
             self.writeEndOfStartTag()
             ## label
             if isXMLLiteral: 

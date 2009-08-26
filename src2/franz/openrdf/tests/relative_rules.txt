@@ -1,0 +1,115 @@
+;; Prolog rules that define relative relations
+;; Assumes that the prefix 'rltv' is bound to a namespace
+;; of your choice
+
+(<-- (string-concat ?result ?string1 ?string2 ?string3)
+     (lisp ?result (string+ ?string1 ?string2 ?string3)))
+
+(<-- (name ?person (?first ?last))
+     (q ?person !rltv:first-name ?first)
+     (q ?person !rltv:last-name ?last))  
+     
+(<-- (name ?person ?fullname)
+     (q ?person !rltv:first-name ?first)
+     (q ?person !rltv:last-name ?last)
+     (string-concat ?fullname ?first " " ?last))
+
+(<-- (woman ?person)
+    (q ?person !rltv:sex !rltv:female)
+    (q ?person !rdf:type !rltv:person))
+
+(<-- (man ?person)
+    (q ?person !rltv:sex !rltv:male)
+    (q ?person !rdf:type !rltv:person))
+
+(<-- (father ?parent ?child)
+    (man ?parent)
+    (q ?parent !rltv:has-child ?child))
+
+(<-- (mother ?parent ?child)
+    (woman ?parent)
+    (q ?parent !rltv:has-child ?child))
+
+(<-- (parent ?father ?child)
+    (father ?father ?child))
+
+(<-- (parent ?mother ?child)
+    (mother ?mother ?child))
+  
+(<-- (grandparent ?x ?y)
+    (parent ?x ?z)
+    (parent ?z ?y))
+
+(<-- (grandchild ?x ?y)
+    (grandparent ?y ?x))
+
+(<-- (ancestor ?x ?y)
+    (parent ?x ?y))
+
+(<-  (ancestor ?x ?y)     
+    (parent ?x ?z)
+    (ancestor ?z ?y))
+
+(<-- (descendent ?x ?y)
+    (ancestor ?y ?x))
+
+(<-- (aunt ?x ?y) 
+    (father ?z ?x)
+    (woman ?x)
+    (father ?z ?w)
+    (not (= ?x ?w))
+    (parent ?w ?y))
+
+(<-- (uncle ?uncle ?child) 
+    (man ?uncle)
+    (parent ?grandparent ?uncle)
+    (parent ?grandparent ?siblingOfUncle)
+    (not (= ?uncle ?siblingOfUncle))
+    (parent ?siblingOfUncle ?child))
+
+(<-- (nephew ?x ?y)
+    (aunt ?y ?x)
+    (man ?x))
+
+(<- (nephew ?x ?y)
+   (uncle ?y ?x)
+   (man ?x))
+
+(<-- (niece ?x ?y)
+    (aunt ?y ?x)
+    (woman ?x))
+
+(<- (niece ?x ?y)
+   (uncle ?y ?x)
+   (woman ?x))
+
+(<-- (parent-child-have-same-name ?x ?y)     
+    (q- ?x !rltv:first-name ?n1)
+    (parent ?x ?y)
+    (q- ?y !rltv:first-name ?n2)
+    (= ?n1 ?n2))
+
+(<-- (parent-child-went-to-ivy-league-school ?x ?y)     
+    (q- ?x !rltv:alma-mater ?am)
+    (q- ?am !rltv:ivy-league !rltv:true)
+    (parent ?x ?y)
+    (q- ?y !rltv:alma-mater ?am2)
+    (q- ?am2 !rltv:ivy-league !rltv:true))
+
+(<-- (parent-child-went-to-same-ivy-league-school ?x ?y)     
+    (q- ?x !rltv:alma-mater ?am)
+    (q- ?am !rltv:ivy-league !rltv:true)
+    (parent ?x ?y)
+    (q- ?y !rltv:alma-mater ?am))
+
+(<-- (spouse ?x ?y)
+    (q ?x !rltv:spouse ?y))
+
+;; ?x has a spouse and children
+
+(<-- (family ?x ?fam)
+    (q ?x !rltv:spouse ?sp)
+    (bagof ?ch (parent ?x ?ch) ?bag)
+    (append ?bag (?sp) ?fam)
+    ;#!
+    )

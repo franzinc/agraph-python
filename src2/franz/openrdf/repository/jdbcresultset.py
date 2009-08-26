@@ -166,7 +166,7 @@ class JDBCResultSet(object):
         to make counting start at one.
         """
         row = self._get_terms_row()
-        index = self._get_valid_cursor_index(index or columnName)
+        index = self._get_valid_cursor_index(columnName if index is None else index)
         term = row[index]
         if not term:
             term = Statement.stringTermToTerm(self.current_strings_row[index])
