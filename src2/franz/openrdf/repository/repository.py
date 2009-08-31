@@ -22,13 +22,13 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
 from franz import miniclient
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import URI
-from franz.openrdf.model.valuefactory import ValueFactory
-from franz.openrdf.repository.repositoryconnection import RepositoryConnection
-import franz.miniclient
+from ..exceptions import InitializationException, IllegalArgumentException,\
+     ServerException
+from ..model import URI, ValueFactory
+from .repositoryconnection import RepositoryConnection
 import threading
 import urllib
 

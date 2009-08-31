@@ -22,9 +22,10 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.rio.converter import statement2ntriples
+from __future__ import absolute_import
+
+from .rdfformat import RDFFormat
+from .converter import statement2ntriples
 
 class RDFWriter(object):
     def __init__(self, rdfFormat, filePath=None):

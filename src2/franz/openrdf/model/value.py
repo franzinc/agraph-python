@@ -22,11 +22,10 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.util import uris
-
-import traceback
+from ..exceptions import IllegalArgumentException
+from ..util import uris
 
 class Value(object):
     """
@@ -59,7 +58,6 @@ class URI(Resource):
     def __init__(self, uri=None, namespace=None, localname=None):
         if uri and not isinstance(uri, str):
             print "NON-STRING PASSED TO URI CONSTRUCTOR ", uri , "  ", type(uri) ## WE ARE NOT SURE WHAT THIS MEANS.  NEED TO FIGURE IT OUT - RMM
-            traceback.print_stack()
             raise IllegalArgumentException("Object of type %s passed to URI constructor where string expected: %s"
                                            % (type(uri), uri))
         if uri:

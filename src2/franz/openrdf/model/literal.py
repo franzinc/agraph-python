@@ -22,11 +22,13 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import IllegalArgumentException
-from franz.openrdf.model.value import Value, URI
-from franz.openrdf.util import strings
-from franz.openrdf.vocabulary import XMLSchema
+from .value import Value, URI
+from ..exceptions import IllegalArgumentException
+from ..util import strings
+from ..vocabulary import XMLSchema
+
 import datetime
 from collections import defaultdict
 

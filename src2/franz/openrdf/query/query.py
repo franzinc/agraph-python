@@ -22,12 +22,13 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.query import commonlogic
-from franz.openrdf.query.dataset import ALL_CONTEXTS, Dataset
-from franz.openrdf.query.queryresult import GraphQueryResult, TupleQueryResult
-from franz.openrdf.repository.jdbcresultset import JDBCResultSet
+from ..exceptions import IllegalOptionException, QueryMissingFeatureException
+from . import commonlogic
+from .dataset import ALL_CONTEXTS, Dataset
+from .queryresult import GraphQueryResult, TupleQueryResult
+from ..repository.jdbcresultset import JDBCQueryResultSet
 import datetime
 
 class QueryLanguage:
@@ -356,7 +357,7 @@ class TupleQuery(Query):
         """
         response = self.evaluate_generic_query()
         if jdbc:
-            return JDBCResultSet(response['values'], column_names = response['names'])
+            return JDBCQueryResultSet(response['values'], column_names = response['names'])
         else:
             return TupleQueryResult(response['names'], response['values'])
 

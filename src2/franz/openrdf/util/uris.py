@@ -22,9 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import BadFormatException, \
-    IllegalArgumentException
+from ..exceptions import BadFormatException, IllegalArgumentException
 
 
 ## Finds the index of the first local name character in an (non-relative)

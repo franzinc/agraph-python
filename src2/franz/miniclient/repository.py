@@ -145,8 +145,8 @@ class Repository:
         if isinstance(obj, tuple): obj, objEnd = obj
 
         accept = "application/json"
-        if count: accept = "application/x-quints+json"
-        elif tripleIDs: accept = "text/integer"
+        if tripleIDs: accept = "application/x-quints+json"
+        elif count: accept = "text/integer"
         return jsonRequest(self, "GET", "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                                   obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit),

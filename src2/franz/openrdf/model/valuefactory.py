@@ -22,11 +22,12 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value, BNode, URI
-from franz.openrdf.model.literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
-from franz.openrdf.model.statement import Statement
-from franz.openrdf.vocabulary import XMLSchema
+from __future__ import absolute_import
+
+from .value import Value, BNode, URI
+from .literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
+from .statement import Statement
+from ..vocabulary import XMLSchema
 
 import datetime, traceback
 

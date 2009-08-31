@@ -22,9 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.repository.repository import Repository
+from ..repository.repository import Repository
 
 # * A Sesame repository that contains RDF data that can be queried and updated.
 # * Access to the repository can be acquired by opening a connection to it.

@@ -23,8 +23,6 @@
 ##***** END LICENSE BLOCK *****
 
 
-from franz.openrdf.exceptions import *
-
 ALL_CONTEXTS = 'ALL_CONTEXTS'
 MINI_NULL_CONTEXT = 'null'
 

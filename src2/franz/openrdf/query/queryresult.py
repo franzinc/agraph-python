@@ -24,13 +24,13 @@
 
 
 #from franz.openrdf.exceptions import 
-from franz.openrdf.model.statement import Statement
-from franz.openrdf.repository.repositoryresult import RepositoryResult
+from ..model import Statement
+from ..repository.repositoryresult import RepositoryResult
 
 try:
     from collections import namedtuple
 except ImportError:
-    from franz.openrdf.util.namedtuple import namedtuple
+    from ..util.namedtuple import namedtuple
 
 #############################################################################
 ##

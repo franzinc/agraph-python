@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 
 from ..sail.allegrographserver import AllegroGraphServer
 from ..repository.repository import Repository
@@ -224,7 +225,8 @@ def test6():
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read kennedy triples into the null context:
     print "Load kennedy.ntriples."
-    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    #conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES)
     ## read vcards triples into the context 'context':
     print "Load vcards triples."
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
@@ -542,10 +544,7 @@ def test16():
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     #pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
 
-def test17():
-    """
-    Prolog queries
-    """
+def kennedy_male_names(jdbc):
     conn = test6()
     conn.deleteEnvironment("kennedys") ## start fresh        
     conn.setEnvironment("kennedys") 
@@ -566,7 +565,14 @@ def test17():
             (q ?person !kdy:last-name ?last)
             )"""
     tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)
-    result = tupleQuery2.evaluate();     
+    return tupleQuery2.evaluate(jdbc=jdbc)    
+    
+
+def test17():
+    """
+    Prolog queries
+    """
+    result = kennedy_male_names(False);     
     for bindingSet in result:
         f = bindingSet.getValue("first")
         l = bindingSet.getValue("last")
@@ -775,13 +781,13 @@ def test21():
     """
     Social Network Analysis Reasoning
     """
-    conn = test1();
+    conn = test1()
     conn.clear()
     print "Starting example test21()."
     print "Current working directory is '%s'" % (os.getcwd())
     path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
     print "Load Les Miserables triples."
-    conn.addFile(path1, None, format=RDFFormat.RDFXML);
+    conn.addFile(path1, None, format=RDFFormat.RDFXML)
     conn.indexTriples(all=True)
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
            conn.size('null'), 'null')
@@ -804,3 +810,62 @@ def test21():
     print "Neighbor matrices known (should be two): '%s'" % (conn.listNeighborMatrices())
     conn.deleteNeighborMatrix("LM_Matrix2")
     print "Deleted one matrix. Neighbor matrices known (should be one): '%s'" % (conn.listNeighborMatrices())
+
+def test_jdbc_iter():
+    """
+    JDBC test with resultset as iterator.
+    """
+    results = kennedy_male_names(True)     
+    for row in results:
+        f = row.getValue("first")
+        l = row.getValue("last")
+        print "%s %s" % (f, l)
+
+def test_jdbc_java():
+    """
+    JDBC test with resultset as java next.
+    """
+    rows = kennedy_male_names(True)     
+    while rows.next():
+        f = rows.getValue("first")
+        l = rows.getValue("last")
+        print "%s %s" % (f, l)
+    
+def test_getStatements():
+    conn = test6()
+    rows = conn.getStatements(None, None, None, tripleIDs=False)
+
+    for row in rows:
+        print '%s %s %s %s' % (row[0], row[1],
+            row[2], row[3])
+
+    rows = conn.getStatements(None, None, None, tripleIDs=True)
+
+    for row in rows:
+        print '%s %s %s %s %s' % (row[0], row[1],
+            row[2], row[3], row.getTripleID())
+
+
+def test_getJDBCStatements():
+    conn = test6()
+    rows = conn.getJDBCStatements(None, None, None, tripleIDs=False)
+
+    for row in rows:
+        print '%s %s %s %s' % (row.getValue(0), row.getValue(1),
+            row.getValue(2), row.getValue(3))
+
+    rows = conn.getJDBCStatements(None, None, None, tripleIDs=True)
+
+    for row in rows:
+        print '%s %s %s %s %s' % (row.getValue(0), row.getValue(1),
+            row.getValue(2), row.getValue(3), row.getValue(4))
+
+    rows = conn.getJDBCStatements(None, None, None, limit=10, tripleIDs=True)
+
+    assert len(rows) <= 10
+
+## (triple-id default-graph subscript geospatial longitude latitude
+##  telephone-number blank-node literal-language literal-typed literal
+##  literal-short node resource single-float double-float gyear time
+##  date-time date long-88 long short int byte unsigned-long-88
+##  unsigned-long unsigned-short unsigned-int unsigned-byte)

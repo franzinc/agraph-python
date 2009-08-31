@@ -22,10 +22,11 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import ServerException
-from franz.openrdf.repository.repository import Repository
-from franz.miniclient import repository as miniserver
+from ..exceptions import ServerException
+from ..repository.repository import Repository
+from ...miniclient import repository as miniserver
 import urllib
 
 READ_ONLY = 'READ_ONLY'
