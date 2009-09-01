@@ -64,7 +64,7 @@ class Repository:
         return [t["contextID"] for t in jsonRequest(self, "GET", "/contexts")]
 
     def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
-                        bindings=None, planner=None, checkVariables=None):
+                        bindings=None, planner=None, checkVariables=None, count=False):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -77,13 +77,15 @@ class Repository:
         return jsonRequest(self, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
                                   planner=planner, checkVariables=checkVariables) + (bindings or ""),
-                           rowreader=callback and RowReader(callback))
+                           rowreader=callback and RowReader(callback),
+                           accept="text/integer" if count else "application/json")
 
-    def evalPrologQuery(self, query, infer=False, callback=None, limit=None):
+    def evalPrologQuery(self, query, infer=False, callback=None, limit=None, count=False):
         """Execute a Prolog query. Returns a {names, values} object."""
         return jsonRequest(self, "POST", self.url,
                            urlenc(query=query, infer=infer, queryLn="prolog", limit=limit),
-                           rowreader=callback and RowReader(callback))
+                           rowreader=callback and RowReader(callback),
+                           accept="text/integer" if count else "application/json")
 
     def definePrologFunctors(self, definitions):
         """Add Prolog functors to the environment. Takes a string
@@ -95,7 +97,8 @@ class Repository:
         """Evaluate Common Lisp code in the server."""
         return jsonRequest(self, "POST", "/eval", code)
 
-    def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None, limit=None, tripleIDs=False):
+    def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None,
+                      limit=None, tripleIDs=False, count=False):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
@@ -104,15 +107,17 @@ class Repository:
         if isinstance(subj, tuple): subj, subjEnd = subj
         if isinstance(pred, tuple): pred, predEnd = pred
         if isinstance(obj, tuple): obj, objEnd = obj
+
+        accept = "application/json"
+        if count: accept = "text/integer"
+        elif tripleIDs: accept = "application/x-quints+json"
         return jsonRequest(self, "GET", "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                                   obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit),
-                           rowreader=callback and RowReader(callback),
-                           accept=(tripleIDs and "application/x-quints+json") or "application/json")
+                           rowreader=callback and RowReader(callback), accept=accept)
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
-        ##print "ADD STATEMENT CONTEXT '%s' " % context, type(context)
         nullRequest(self, "POST", "/statements", cjson.encode([[subj, pred, obj, context]]),
                     contentType="application/json")
 
