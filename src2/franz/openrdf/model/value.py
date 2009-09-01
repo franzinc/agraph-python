@@ -22,11 +22,10 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.util import uris
-
-import traceback
+from ..exceptions import IllegalArgumentException
+from ..util import uris
 
 class Value(object):
     """
@@ -35,16 +34,18 @@ class Value(object):
     
     def __str__(self):
         return self.toNTriples()
+
     def __eq__(self, other):
         return NotImplemented
-    def __hash__(self):
-        raise NotImplementedError()   
+
+    # Default to not-hashable
+    __hash__ = None
 
     def toNTriples(self):
         """
         Return an NTriples representation of an open rdf term
         """
-        raise NotImplementedError("Failed to implement 'toNTriples' on instance of type %s" % type(self))
+        raise NotImplementedError("Failed to implement 'toNTriples' on instance of type %s" % type(self).__name__)
     
     
 class Resource(Value):
@@ -57,7 +58,6 @@ class URI(Resource):
     def __init__(self, uri=None, namespace=None, localname=None):
         if uri and not isinstance(uri, str):
             print "NON-STRING PASSED TO URI CONSTRUCTOR ", uri , "  ", type(uri) ## WE ARE NOT SURE WHAT THIS MEANS.  NEED TO FIGURE IT OUT - RMM
-            traceback.print_stack()
             raise IllegalArgumentException("Object of type %s passed to URI constructor where string expected: %s"
                                            % (type(uri), uri))
         if uri:
@@ -73,7 +73,7 @@ class URI(Resource):
         return str(self) == str(other)
 
     def __hash__(self):
-        return hash(str(self))
+        return hash(self.uri)
     
     def getURI(self):
         """

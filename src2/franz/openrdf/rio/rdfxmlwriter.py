@@ -22,13 +22,15 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.vocabulary import RDF
-from franz.openrdf.model.value import BNode, Resource
-from franz.openrdf.model.literal import Literal
-from franz.openrdf.rio.rdfwriter import RDFWriter
-from franz.openrdf.rio import xmlutil
+from __future__ import absolute_import
+
+from .rdfformat import RDFFormat
+from .rdfwriter import RDFWriter
+from ..exceptions import IllegalArgumentException, RDFHandlerException
+from ..vocabulary import RDF
+from ..model.value import BNode, Resource
+from ..model import BNode, Literal
+from ..rio import xmlutil
 
 class RDFXMLWriter(RDFWriter):
     """
@@ -236,7 +238,7 @@ class RDFXMLWriter(RDFWriter):
                 if isXMLLiteral: 
                     self.writeAttribute(RDF.NAMESPACE, "parseType", "Literal")
                 else: 
-                    self.writeAttribute(RDF.NAMESPACE, "datatype", str(datatype))
+                    self.writeAttribute(RDF.NAMESPACE, "datatype", datatype.uri)
             self.writeEndOfStartTag()
             ## label
             if isXMLLiteral: 

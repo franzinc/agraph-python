@@ -22,7 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.util.uris import getLocalNameIndex
+from __future__ import absolute_import
+
+from ..util.uris import getLocalNameIndex
 
 def escapeCharacterData(text):
     """

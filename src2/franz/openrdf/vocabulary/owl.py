@@ -22,7 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.model.value import URI 
+from __future__ import absolute_import
+
+from ..model.value import URI 
 
 NS = "http://www.w3.org/2002/07/owl#"
 

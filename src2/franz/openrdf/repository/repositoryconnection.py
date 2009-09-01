@@ -22,19 +22,20 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
-from franz.openrdf.model.statement import Statement
-from franz.openrdf.model.value import Value
-from franz.openrdf.query import query as query_module
-from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from franz.openrdf.query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
-from franz.openrdf.repository.jdbcresultset import JDBCResultSet
-from franz.openrdf.repository.repositoryresult import RepositoryResult
-from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.util import uris
-from franz.openrdf.vocabulary import *
+from .jdbcresultset import JDBCStatementResultSet
+from .repositoryresult import RepositoryResult
+
+from ..exceptions import IllegalOptionException, IllegalArgumentException
+from ..model import Statement, Value
+from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
+from ..query import query as query_module
+from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
+from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
+from ..rio.rdfformat import RDFFormat
+from ..util import uris
+from ..vocabulary import RDF, RDFS, OWL, XMLSchema
 import datetime
 import os
 
@@ -332,8 +333,6 @@ class RepositoryConnection(object):
         else: pass ## can't happen
         return RepositoryResult(stringTuples, subjectFilter=subject)            
     
-    COLUMN_NAMES = ['subject', 'predicate', 'object', 'context']
-    
     def getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False, 
                           limit=None, tripleIDs=False):        
         """
@@ -347,7 +346,7 @@ class RepositoryConnection(object):
         stringTuples = self._get_mini_repository().getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
                  self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred, 
                  limit=limit, tripleIDs=tripleIDs)
-        return JDBCResultSet(stringTuples, column_names = RepositoryConnection.COLUMN_NAMES, tripleIDs=tripleIDs)
+        return JDBCStatementResultSet(stringTuples, triple_ids=tripleIDs)
 
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
         """

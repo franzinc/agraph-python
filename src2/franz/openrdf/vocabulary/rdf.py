@@ -22,8 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.model.value import URI
+from ..model.value import URI
 
 NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 

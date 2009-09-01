@@ -21,10 +21,11 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value
-from franz.openrdf.vocabulary import RDF, XMLSchema
+from ..exceptions import QuerySyntaxException
+from ..model import Value
+from ..vocabulary import RDF, XMLSchema
 import datetime
 import time
 

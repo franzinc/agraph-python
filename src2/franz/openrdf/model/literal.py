@@ -22,11 +22,13 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import IllegalArgumentException
-from franz.openrdf.model.value import Value, URI
-from franz.openrdf.util import strings
-from franz.openrdf.vocabulary import XMLSchema
+from .value import Value, URI
+from ..exceptions import IllegalArgumentException
+from ..util import strings
+from ..vocabulary import XMLSchema
+
 import datetime
 from collections import defaultdict
 
@@ -152,7 +154,7 @@ class Literal(Value):
             sb.append(self.language)
         if self.datatype:
             sb.append("^^")
-            sb.append(str(self.datatype))
+            sb.append(self.datatype.toNTriples())
         return ''.join(sb)
 
 ###############################################################################
@@ -164,19 +166,17 @@ class Literal(Value):
         Slightly silly implementation because we implement a conversion table
         and then don't use the conversion functions.     
         """
-        uri = getattr(self.getDatatype(), 'uri', None)
-        conversion = XSDToPython[uri]
-        return conversion(self)
+        return XSDToPython[getattr(self.datatype, "uri", None)](self)
 
 
 XSDToPython = defaultdict(lambda: Literal.getValue, [
-                (str(XMLSchema.INT), Literal.intValue),
-                (str(XMLSchema.FLOAT), Literal.floatValue), 
-                (str(XMLSchema.LONG), Literal.longValue),
-                (str(XMLSchema.BOOLEAN), Literal.booleanValue),
-                (str(XMLSchema.DATETIME), Literal.datetimeValue),
-                (str(XMLSchema.DATE), Literal.dateValue),
-                (str(XMLSchema.TIME), Literal.timeValue)])
+                (XMLSchema.INT.uri, Literal.intValue),
+                (XMLSchema.FLOAT.uri, Literal.floatValue), 
+                (XMLSchema.LONG.uri, Literal.longValue),
+                (XMLSchema.BOOLEAN.uri, Literal.booleanValue),
+                (XMLSchema.DATETIME.uri, Literal.datetimeValue),
+                (XMLSchema.DATE.uri, Literal.dateValue),
+                (XMLSchema.TIME.uri, Literal.timeValue)])
 
 
 ###############################################################################

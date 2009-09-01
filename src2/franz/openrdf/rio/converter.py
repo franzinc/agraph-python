@@ -22,8 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.model.value import URI, BNode
-from franz.openrdf.model.literal import Literal
+from __future__ import absolute_import
+
+from ..model import Literal, URI, BNode
 
 def spoc2sparqlTerm(term):
     """

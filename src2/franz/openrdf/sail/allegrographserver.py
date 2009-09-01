@@ -22,11 +22,11 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.repository.repository import Repository
-from franz.miniclient import repository as miniserver
-from franz.miniclient.repository import Catalog
+from ..exceptions import ServerException
+from ..repository.repository import Repository
+from ...miniclient import repository as miniserver
 import urllib
 
 READ_ONLY = 'READ_ONLY'
@@ -63,10 +63,13 @@ class AllegroGraphServer(object):
         print "Defining connnection to AllegroGraph server -- host:'%s'  port:%s" % (host, port)
     
     def _get_address(self):
-        return "%s:%s" % (self.host, self.port)
+        return "http://%s:%s" % (self.host, self.port)
     
-    def getHost(self): return self.host
-    def getOptions(self): return self.options
+    def getHost(self):
+        return self.host
+
+    def getOptions(self):
+        return self.options
     
     def _long_catalog_name_to_short_name(self, longName):
         pos = longName.rfind('/')
@@ -124,9 +127,9 @@ class Catalog(object):
         return Repository(self, name, access_verb, multi_threaded_mode=multi_threaded_mode)
     
     def close(self):
-        if self.is_closed: return
-        self.server.open_catalogs.remove(self)
-        self.is_closed = True
+        if not self.is_closed:
+            self.server.open_catalogs.remove(self)
+            self.is_closed = True
         
        
         
