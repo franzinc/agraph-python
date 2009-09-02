@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,8 +22,6 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-
-from franz.openrdf.exceptions import *
 
 ALL_CONTEXTS = 'ALL_CONTEXTS'
 MINI_NULL_CONTEXT = 'null'
@@ -79,7 +78,11 @@ class Dataset:
         self.asQuery(False)
 
     def _append_uri(self, sb, uri):
-        uriString = str(uri)
+        try:
+            uriString = uri.uri
+        except AttributeError:
+            uriString = str(uri)
+
         if len(uriString) > 50:
             sb.append("<" + uriString[:19] + "..")
             sb.append(uriString[len(uriString) - 29:] + ">/n")

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,12 +22,13 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.query import commonlogic
-from franz.openrdf.query.dataset import ALL_CONTEXTS, Dataset
-from franz.openrdf.query.queryresult import GraphQueryResult, TupleQueryResult
-from franz.openrdf.repository.jdbcresultset import JDBCResultSet
+from ..exceptions import IllegalOptionException, QueryMissingFeatureException
+from . import commonlogic
+from .dataset import ALL_CONTEXTS, Dataset
+from .queryresult import GraphQueryResult, TupleQueryResult
+from ..repository.jdbcresultset import JDBCQueryResultSet
 import datetime
 
 class QueryLanguage:
@@ -81,6 +83,7 @@ class Query(object):
         self.includeInferred = False
         self.bindings = {}
         self.connection = None
+        self.checkVariables = False
         ## CommonLogic parameters:
         self.preferred_execution_language = None
         self.actual_execution_language = None
@@ -97,7 +100,7 @@ class Query(object):
         previously bound to the specified value will be overwritten.
         """
         if isinstance(value, str):
-            value = self.connection.createLiteral(value)
+            value = self._get_connection().createLiteral(value)
         self.bindings[name] = value
         
     def setBindings(self, dict):
@@ -109,9 +112,8 @@ class Query(object):
         """ 
         Removes a previously set binding on the supplied variable. Calling this
         method with an unbound variable name has no effect.
-        """ 
-        if self.bindings.get(name):
-            del self.bindings[name]
+        """
+        self.bindings.popitem(name, None)
 
     def getBindings(self):
         """
@@ -139,7 +141,7 @@ class Query(object):
         if not contexts: return
         ds = Dataset()
         for cxt in contexts:
-            if isinstance(cxt, str): cxt = self.connection.createURI(cxt)
+            if isinstance(cxt, str): cxt = self._get_connection().createURI(cxt)
             ds.addNamedGraph(cxt)
         self.setDataset(ds)
      
@@ -158,16 +160,26 @@ class Query(object):
         """ 
         return self.includeInferred
     
+    def setCheckVariables(self, setting):
+        """
+        If true, the presence of variables in the select clause not referenced in a triple
+        are flagged.
+        """
+        self.checkVariables = setting
+    
     def setConnection(self, connection):
         """
         Internal call to embed the connection into the query.
         """
         self.connection = connection
+        
+    def _get_connection(self):
+        return self.connection
     
     TEMPORARY_ENUMERATION_RESOURCE = 'http://www.franz.com#TeMpOrArYeNuMeRaTiOn'
     
     def count_temporaries(self, message):
-        conn = self.connection
+        conn = self._get_connection()
         result = conn.getStatements(conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), None, None, None)
         trace_it(message + "^^^^^Found {0} temporary quads".format(len(result.string_tuples)))
     
@@ -176,14 +188,19 @@ class Query(object):
         Enormous hack to circumvent AG's (SPARQL's) lack of a membership operator.
         """
         if not temporary_enumerations: return
-        conn = self.connection
+        conn = self._get_connection()
         context = conn.createURI(contexts[0]) if contexts else conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE)
+        quads = []
         for tempRelationURI, enumeratedValues in temporary_enumerations.iteritems():
-            quads = []
             for v in enumeratedValues:
-                val = conn.createURI(v) if v and v[0] == '<' else conn.createLiteral(v)
+                if v and v[0] == '"':
+                    if v[len(v) - 1] == '"':
+                        v = v[1:-1]
+                    val = conn.createLiteral(v)
+                else:
+                    val = conn.createURI(v)
                 quads.append((conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), conn.createURI(tempRelationURI), val, context))
-        self.count_temporaries("BEFORE " + insert_or_retract)
+        self.count_temporaries("BEFORE " + insert_or_retract + "  " + str(len(quads)) + " coming")
         if insert_or_retract == 'INSERT':
             if quads:
                 t = quads[0]
@@ -203,44 +220,53 @@ class Query(object):
         """
         ##if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
         ##    raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
-        namedContexts = self.connection._contexts_to_ntriple_contexts(
+        conn = self._get_connection()
+        namedContexts = conn._contexts_to_ntriple_contexts(
                         self.dataset.getNamedGraphs() if self.dataset else None)
-        regularContexts = self.connection._contexts_to_ntriple_contexts(
+        regularContexts = conn._contexts_to_ntriple_contexts(
                 self.dataset.getDefaultGraphs() if self.dataset else ALL_CONTEXTS)
         bindings = None
         if self.bindings:
             bindings = {}
             for vbl, val in self.bindings.items():
-                bindings[vbl] = self.connection._convert_term_to_mini_term(val)
+                bindings[vbl] = conn._convert_term_to_mini_term(val)
         trace_it("NAMED CONTEXTS", namedContexts, "BINDINGS", bindings)                          
-        mini = self.connection.mini_repository
+        mini = conn._get_mini_repository()
         if self.queryLanguage == QueryLanguage.SPARQL:  
-            query = splicePrefixesIntoQuery(self.queryString, self.connection)
+            query = splicePrefixesIntoQuery(self.queryString, conn)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred, bindings=bindings, planner='identity')            
+                                            infer=self.includeInferred, bindings=bindings,
+                                            checkVariables=self.checkVariables)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
-            query = expandPrologQueryPrefixes(self.queryString, self.connection)
+            query = expandPrologQueryPrefixes(self.queryString, conn)
             response = mini.evalPrologQuery(query, infer=self.includeInferred)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
-            query, contexts, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
+            query, contexts, auxiliary_input_bindings, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
                                     preferred_language=self.preferred_execution_language, contexts=namedContexts)
             if contexts and not namedContexts:
-                namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, self.connection)]
+                namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, conn)]
+            if auxiliary_input_bindings:
+                bindings = bindings or {}
+                for vbl, val in auxiliary_input_bindings.items():
+                    print "AUX", vbl, " VAL", val
+                    bindings[vbl] = val
             self.actual_execution_language = lang ## for debugging
             if lang == 'SPARQL':
                 trace_it("         SPARQL QUERY", query)                
                 trace_it("   BINDINGS ", bindings, "  NAMED CONTEXTS", namedContexts)
-                query = splicePrefixesIntoQuery(query, self.connection)
-                self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
-                MINITIMER = datetime.datetime.now()
-                response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
+                query = splicePrefixesIntoQuery(query, conn)
+                try:
+                    self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
+                    MINITIMER = datetime.datetime.now()
+                    response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                                 infer=self.includeInferred, bindings=bindings, planner='identity')
-                trace_it("mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER))                
-                self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
+                    trace_it("mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER))
+                finally:                
+                    self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
             elif lang == 'PROLOG':
-                query = expandPrologQueryPrefixes(query, self.connection)
+                query = expandPrologQueryPrefixes(query, conn)
                 trace_it("         PROLOG QUERY", query)
                 response = mini.evalPrologQuery(query, infer=self.includeInferred)
             else:
@@ -301,7 +327,7 @@ def helpExpandPrologQueryPrefixes(query, connection, startPos):
                     if not (c.isalnum() or c in ['_', '.', '-']): break
                 endPos = colonPos + i + 1 if i else len(query) + 1
                 localName = query[colonPos + 1: endPos]
-                query = query.replace(query[bangPos + 1:endPos], "<%s%s>" % (ns, localName))
+                query = query[:bangPos + 1] + ("<%s%s>" % (ns, localName)) + query[endPos:]
                 return helpExpandPrologQueryPrefixes(query, connection, endPos)
     return query
 
@@ -331,7 +357,7 @@ class TupleQuery(Query):
         """
         response = self.evaluate_generic_query()
         if jdbc:
-            return JDBCResultSet(response['values'], column_names = response['names'])
+            return JDBCQueryResultSet(response['values'], column_names = response['names'])
         else:
             return TupleQueryResult(response['names'], response['values'])
 

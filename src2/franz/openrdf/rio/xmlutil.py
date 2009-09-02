@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,7 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.util.uris import getLocalNameIndex
+from __future__ import absolute_import
+
+from ..util.uris import getLocalNameIndex
 
 def escapeCharacterData(text):
     """

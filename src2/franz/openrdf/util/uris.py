@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,8 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
+from ..exceptions import BadFormatException, IllegalArgumentException
 
 
 ## Finds the index of the first local name character in an (non-relative)
@@ -51,22 +53,27 @@ from franz.openrdf.exceptions import *
 ##         characters. Every legal (non-relative) URI contains at least one
 ##         ':' character to separate the scheme from the rest of the URI.
 def getLocalNameIndex(uri):
-    separatorIdx = uri.rfind('#')
-    if (separatorIdx < 0):
-        separatorIdx = uri.rfind('/')
-    if (separatorIdx < 0):
-        separatorIdx = uri.rfind(':')
-    if (separatorIdx < 0):
+    idx = uri.rfind('#')
+    if (idx < 0):
+        idx = uri.rfind('/')
+    if (idx < 0):
+        idx = uri.rfind(':')
+    if (idx < 0):
         raise IllegalArgumentException("No separator character founds in URI: " + uri)
-    return separatorIdx + 1
+    return idx + 1
 
-def validateNamespace(ns, exception_if_error=False):
-    if not ns:
-        if exception_if_error: raise BadFormatException("Namespace is empty.")
-        else: return False;
-    if not ns[len(ns)-1] in "#/:":
-        if exception_if_error: raise BadFormatException("Illegal namespace; must end with '#', '/', or ':'  %s" % ns)
-        else: return False
+def validateNamespace(namespace, exception_if_error=False):
+    if not namespace:
+        if exception_if_error:
+            raise BadFormatException('Namespace is empty.')
+
+        return False;
+    if not namespace[-1] in '#/:':
+        if exception_if_error:
+            raise BadFormatException('Illegal namespace; must end with '
+                '"#", "/", or ":"  %s' % namespace)
+
+        return False
     return True
 
 ## Checks whether the URI consisting of the specified namespace and local
@@ -75,31 +82,34 @@ def validateNamespace(ns, exception_if_error=False):
 ## 
 ## @param namespace
 ##        The URI's namespace, must not be <tt>null</tt>.
-## @param localName
+## @param localname
 ##        The URI's local name, must not be <tt>null</tt>.
 ## @return <tt>true</tt> if the specified URI has been correctly split into
 ##         a namespace and local name, <tt>false</tt> otherwise.
 ## @see URI
 ## @see #getLocalNameIndex(String)
-def isCorrectURISplit(namespace, localName):
+def isCorrectURISplit(namespace, localname):
     """
     THIS HAS NOT BEEN USED/DEBUGGED.  IS HERE IN CASE WE NEED IT LATER - RMM
     """
-    if (len(namespace) == 0):
+    nslen = len(namespace)
+    if nslen == 0:
         return False        
-    nsLength = len(namespace)
-    lastNsChar = namespace[:-1]
-    if (lastNsChar == '#' and namespace.rfind('#', nsLength - 2) == -1):
+    lastchar = namespace[-1]
+    if (lastchar == '#' and namespace.rfind('#', nslen - 2) == -1):
         ## namespace ends with a '#' and does not contain any futher '#'
         ## characters
         return True
-    elif (localName.indexOf('#') == -1 and localName.find('/') == -1):
-        if (lastNsChar == '/'):
+
+    if (localname.find('#') == -1 and localname.find('/') == -1):
+        if (lastchar == '/'):
             ## URI does not contain any '#' characters and the namespace ends
             ## with the last '/' character
             return True
-        elif (lastNsChar == ':' and localName.find(':') == -1):
+
+        if (lastchar == ':' and localname.find(':') == -1):
             ## URI does not contain any '#' or '/' characters and the namespace
             ## ends with the last ':' character
             return True
+
     return False

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103 
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,26 +22,30 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.util import uris
-
-import traceback
+from ..exceptions import IllegalArgumentException
+from ..util import uris
 
 class Value(object):
     """
     Top class in the org.openrdf.model interfaces.
     """
     
-    def __str__(self): raise UnimplementedMethodException()
-    def __eq__(self): raise UnimplementedMethodException()
-    def __hash__(self): raise UnimplementedMethodException()   
+    def __str__(self):
+        return self.toNTriples()
+
+    def __eq__(self, other):
+        return NotImplemented
+
+    # Default to not-hashable
+    __hash__ = None
 
     def toNTriples(self):
         """
         Return an NTriples representation of an open rdf term
         """
-        raise UnimplementedMethodException("Failed to implement 'toNTriples' on instance of type %s" % type(self))
+        raise NotImplementedError("Failed to implement 'toNTriples' on instance of type %s" % type(self).__name__)
     
     
 class Resource(Value):
@@ -53,26 +58,22 @@ class URI(Resource):
     def __init__(self, uri=None, namespace=None, localname=None):
         if uri and not isinstance(uri, str):
             print "NON-STRING PASSED TO URI CONSTRUCTOR ", uri , "  ", type(uri) ## WE ARE NOT SURE WHAT THIS MEANS.  NEED TO FIGURE IT OUT - RMM
-            traceback.print_stack()
             raise IllegalArgumentException("Object of type %s passed to URI constructor where string expected: %s"
                                            % (type(uri), uri))
         if uri:
             if uri[0] == '<' and uri[len(uri) - 1] == '>':
                 ## be kind and trim the uri:
                 uri = uri[1:-1]
-            self.uri = uri
         elif namespace and localname:
-            self.uri = namespace + localname
-        else:
-            self.uri = None
-    
-    def __str__(self): return self.getURI()
+            uri = namespace + localname
 
+        self._uri = uri
+    
     def __eq__(self, other):
         return str(self) == str(other)
 
     def __hash__(self):
-        return str(self).__hash__()
+        return hash(self.uri)
     
     def getURI(self):
         """
@@ -80,18 +81,26 @@ class URI(Resource):
         overloaded by subclasses, which may use lazy evaluation to
         retrieve the string.
         """
-        return self.uri
+        return self._uri
+
+    uri = property(getURI)
     
-    def getValue(self): return self.getURI()
+    def getValue(self):
+        return self.getURI()
+
+    value = property(getValue)
     
     def getLocalName(self):
         pos = uris.getLocalNameIndex(self.getURI())
         return self.uri[pos:]
     
+    localname = property(getLocalName)
+
     def getNamespace(self):
         pos = uris.getLocalNameIndex(self.getURI())
         return self.uri[0:pos]
-    
+
+    namespace = property(getNamespace)
     def toNTriples(self):
         """
         Return an NTriples representation of a resource, in this case, wrap
@@ -111,9 +120,6 @@ class BNode(Resource):
     def getID(self):
         return self.id
     
-    def __str__(self):
-        return "_:" + self.id
-          
     def __eq__(self, other):
         return isinstance(other, BNode) and self.getId() == other.getId()
     

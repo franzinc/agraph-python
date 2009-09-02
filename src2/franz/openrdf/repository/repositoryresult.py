@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,10 +22,9 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value
-from franz.openrdf.model.statement import Statement
+from ..model import Statement, Value
 
 # * A RepositoryResult is a result collection of objects (for example
 # * {@link org.openrdf.model.Statement}, {@link org.openrdf.model.Namespace},
@@ -72,14 +72,14 @@ class RepositoryResult(object):  ## inherits IterationWrapper
         Shut down the iterator, to insure that resources are free'd up.
         """
         pass
-        
+
     def next(self):
         """
         Return the next Statement in the answer, if there is one.  Otherwise,
         raise StopIteration exception.
         TODO: WHOOOA.  WHAT IF WE HAVE TUPLES INSTEAD OF STATEMENTS; HOW DOES THAT WORK???
         """
-        if not self.nonDuplicateSet is None:
+        if self.nonDuplicateSet is not None:
             try:
                 savedNonDuplicateSet = self.nonDuplicateSet
                 self.nonDuplicateSet = None
@@ -132,13 +132,21 @@ class RepositoryResult(object):  ## inherits IterationWrapper
             if isList: collection.append(stmt)
             else: collection.add(stmt)        
 
-    def rowCount(self): return len(self.string_tuples)
+    def __len__(self):
+        return len(self.string_tuples)
+
+    def rowCount(self):
+        return len(self)
     
     @staticmethod
     def normalize_quint(stringTuple):
         st = stringTuple
-        tid = '"{0}"'.format(st[0])
-        if len(stringTuple) == 4:
-            return (st[1], st[2], st[3], None, tid)
-        else:
-            return (st[1], st[2], st[3], st[4], tid)
+        return (st[1], st[2], st[3], None if len(st) == 4 else st[4], str(st[0]))
+
+    @staticmethod
+    def normalize_quad(stringTuple):
+        st = stringTuple
+        if len(st) == 3:
+            return (st[0], st[1], st[2], None)
+        
+        return st

@@ -22,6 +22,29 @@ class Pool:
 
 curlPool = Pool(pycurl.Curl)
 
+from threading import Lock
+
+class Pool:
+    def __init__(self, create):
+        self.create = create
+        self.lock = Lock()
+        self.pool = []
+    def get(self):
+        self.lock.acquire()
+        try:
+            if len(self.pool): return self.pool.pop()
+            else: return self.create()
+        finally:
+            self.lock.release()
+    def put(self, value):
+        self.lock.acquire()
+        try:
+            self.pool.append(value)
+        finally:
+            self.lock.release()
+
+curlPool = Pool(pycurl.Curl)
+
 class RequestError(Exception):
     def __init__(self, status, message):
         print status, message
@@ -39,9 +62,12 @@ def urlenc(**args):
         elif isinstance(val, bool): enc(name, (val and "true") or "false")
         elif isinstance(val, int): enc(name, "%d" % val)
         elif isinstance(val, float): enc(name, "%g" % val)
-        elif isinstance(val, list):
+        elif isinstance(val, list) or isinstance(val, tuple):
             for elt in val: encval(name, elt)
-        else: enc(name, val.encode("utf-8"))
+        elif isinstance(val, basestring):
+            enc(name, val.encode("utf-8"))
+        else:
+            enc(name, unicode(val).encode("utf-8"))
     for name, val in args.iteritems():
         encval(name, val)
     return "&".join(buf)
@@ -94,9 +120,9 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         curl.perform()
         response = buf.getvalue().decode("utf-8")
         buf.close()
-        resp = (curl.getinfo(pycurl.RESPONSE_CODE), response)
+        result = (curl.getinfo(pycurl.RESPONSE_CODE), response)
         curlPool.put(curl)
-        return resp
+        return result
 
 def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json"):
     if rowreader is None:
@@ -123,6 +149,7 @@ class RowReader:
         if self.hasNames is None:
             self.hasNames = string[0] == "{"
             if not self.hasNames: self.skipNextBracket = True
+
         ln = len(string)
         if self.backlog: string = self.backlog + string
         pos = [0]

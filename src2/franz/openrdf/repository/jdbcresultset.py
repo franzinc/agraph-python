@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,180 +22,197 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.statement import Statement
-from franz.openrdf.model.value import Value
-from franz.openrdf.repository.repositoryresult import RepositoryResult
-
-
-## A JDBSResultSet is a JDBC ResultSet iterator over a collection of tuple results
-## The results may be rows resulting from a SELECT query or triples/quads resulting
-## from a getStatements query.  JDBC-style access is provided as a more efficient
-## alternative to the bulky RepositoryResult iterator.  It permits extraction of
-## values or strings without the superfluous BindingSet wrapper.
-
-STATEMENTS_CURSOR = 'StatementsCursor'
-SELECT_ITERATOR = 'SelectIterator'
+from ..exceptions import JDBCException
+from ..model import Statement, Value
+from .repositoryresult import RepositoryResult
 
 class JDBCResultSet(object):
     """
+    A JDBSResultSet is the base class for a JDBC-like ResultSet iterator over
+    a collection of tuple results. JDBC-style access is provided as an
+    alternative to the RepositoryResult iterator.  It permits extraction of
+    integers, strings, or OpenRDF values.
+
+    Note: Column numbering begins at zero.  True JDBC-style numbering begins at
+    one (1).  Evaluate:
+         JDBCResultSet.COUNTING_STARTS_AT = 1
+    at your client program's initialization time to make counting start at one.
     """
-    COUNTING_STARTS_AT = 0   # real JDBC starts at one; we could change this to 1 if users want
-    def __init__(self, string_tuples, column_names=None, tripleIDs=False):
-        ## NOT SURE WHY WE CALL 'lower' HERE:
-        self.column_names = [v.lower() for v in column_names]
+
+    COUNTING_STARTS_AT = 0   # JDBC starts at one; we could change this to 1 if users want
+    def __init__(self, string_tuples, column_names):
+        self.tuple_width = len(column_names)
+        if string_tuples is None or self.tuple_width == 0:
+            raise JDBCException('Failed to properly initialize JDBC ResultSet')
         self.string_tuples = string_tuples
+        self.column_names = [v.lower() for v in column_names]
         self.cursor = 0
-        self.tuple_width = None
-        self.low_index = -1
-        self.high_index = -1
         self.current_strings_row = None
         self.current_terms_row = None 
-        self.triple_ids = tripleIDs       
+        self.iter_called = False
     
-    def initialize_tuple_width(self):
-        self.tuple_width = len(self.current_strings_row)
-        self.low_index = JDBCResultSet.COUNTING_STARTS_AT
-        self.high_index = JDBCResultSet.COUNTING_STARTS_AT + self.tuple_width
-        
-    def _get_valid_cursor_index(self, index):
+    def _tuple_index(self, index):
         """
         Verify that 'index' is in bounds.  Convert from column name to integer
-        if necessary.  Return valid index.
+        if necessary.  Returns a valid index.
         """
-        if self.tuple_width is None:
-            self.initialize_tuple_width()
-        if index is None:
-            raise JDBCException("Failed to include 'index' argument to JDBC Statements iterator")
         if isinstance(index, int):
-            if index >= self.low_index and index <= self.high_index:
-                return index - JDBCResultSet.COUNTING_STARTS_AT
-            else:
-                raise JDBCException("'index' argument should be between %i and %i, inclusive." % (self.low_index, self.high_index))    
-        elif isinstance(index, str):
-            i = 0
-            name = index.lower()
-            while i < len(self.column_names):
-                if name == self.column_names[i]:
-                    return i
-                i += 1
-            raise JDBCException("Unmatched column name '%s'" % index)                
-        else:
-            raise JDBCException("Passed non-integer, non-string argument '%s' to JDBC call." % str(index))
+            index -= self.COUNTING_STARTS_AT
 
-    def _get_terms_row(self):
+            if index < 0 or index >= self.tuple_width:
+                raise JDBCException('"index" argument should in [%d, %d).' %
+                    (self.COUNTING_STARTS_AT,
+                     self.COUNTING_STARTS_AT + self.tuple_width))
+        elif isinstance(index, basestring):
+            try:
+                index = self.column_names.index(index.lower())
+            except ValueError:
+                raise JDBCException('Unmatched column name "%s"' % index)
+        else:
+            raise JDBCException('Passed non-integer, non-string argument '
+                                '"%s" to JDBC call.' % str(index))
+
+        return index
+
+    def _terms_row(self):
         """
-        Return a terms row (a list) for 'self'.  It may or may not be partially or completely
-        filled in with terms.  Call 'get_row' to return a fully-filled-in row.
+        Return terms row storage (a list) for 'self'.
         """
         row = self.current_terms_row
-        if not row:
-            if self.tuple_width is None:
-                self.initialize_tuple_width()
-            row = [None] * self.tuple_width
-            self.current_terms_row = row
+        if row is None:
+            self.current_terms_row = row = [None] * self.tuple_width
         return row
         
-    def getInt(self, index):
+    def getInt(self, indexOrName):
         """
-        Return an integer value for the column denoted by 'index'.
-        Throw an exception if the column value is not either an integer, or
-        something readily convertible to an integer (e.g., a float).
-        'index' may be an integer or a column name.
-        If the tuple denotes a Statement (a quad), then 2 = object position. 
-        Note: Column numbering begins at zero.  True JDBC-style numbering begins at
-        one (1).  Evaluate:
-             JDBCResultSet.COUNTING_STARTS_AT = 1
-        to make counting start at one.
-        """
-        index = self._get_valid_cursor_index(index)
-        try:
-            value =  int(Statement.ntriples_string_to_value(self.current_strings_row[index]))
-            return value
-        except:
-            raise JDBCException("Cannot convert value '%s' to an integer." 
-                                % Statement.ntriples_string_to_value(self.current_strings_row[index]))
+        Return an integer value for the column denoted by 'indexOrName'.
 
+        'indexOrName' may be an integer or a column name.
+        """
+        index = self._tuple_index(indexOrName)
+        value = Statement.ntriples_string_to_value(
+            self.current_strings_row[index])
+
+        try:
+            value =  int(value)
+        except ValueError:
+            raise JDBCException('Cannot convert value "%s" to an integer.' 
+                % value)
+
+        return value
+    
     def getMetaData(self):
         """
         Return a ResultSetMetaData object that provides the name and datatype of each
         column in the ResultSet.
         """
-        raise UnimplementedMethodException("getMetaData")
+        raise NotImplementedError('getMetaData')
         
     def getRow(self):
         """
         Return a Python tuple of OpenRDF Value objects.  For a SELECT query, the 
         row contains a Value for each SELECT column.  For a getStatements query,
         the row contains subject, predicate, object, and context values.
+
         Note: This call does NOT advance the iterator to the next row.
         """
-        i = 0
-        while i < self.tuple_width:
+        for i in range(self.tuple_width):
             self.getValue(i)
-            i += 1;
-        return self._get_terms_row()
+        return self._terms_row()
         
-    def getString(self, index):
+    def getString(self, indexOrName):
         """
-        Return a string value for the column denoted by 'index'.
+        Return a string value for the column denoted by 'indexOrName'.
         For a resource-valued column, this is a URI label.  For a literal-valued
         column, this is the string representation of the literal value.
-        'index' may be an integer or a column name.
-        If the tuple denotes a Statement (a quad), then 0 = subject, 1 = predicate
-        2 = object, and 3 = context. 
-        Note: Column numbering begins at zero.  True JDBC-style numbering begins at
-        one (1).  Evaluate:
-             JDBCResultSet.COUNTING_STARTS_AT = 1
-        to make counting start at one.
+
+        'indexOrName' may be an integer or a column name.
         """
-        index = self._get_valid_cursor_index(index)
-        return Statement.ntriples_string_to_value(self.current_strings_row[index])
+        index = self._tuple_index(indexOrName)
+        return Statement.ntriples_string_to_value(
+            self.current_strings_row[index])
     
-    def getValue(self, index=None, columnName=None):
+    def getValue(self, indexOrName):
         """
-        Return an OpenRDF Value (a Resource or Literal) for the column denoted by 'index'
-        or named 'columnName'. 'index' is an integer greater than zero.  'columnName' is
-        a string matching a variable name.
-        If the tuple denotes a Statement (a quad), then 0 = subject, 1 = predicate
-        2 = object, and 3 = context. 
-        Note: Column numbering begins at zero.  True JDBC-style numbering begins at
-        one (1).  Evaluate:
-             JDBCResultSet.COUNTING_STARTS_AT = 1
-        to make counting start at one.
+        Return an OpenRDF Value (a Resource or Literal) for the column denoted by
+        'indexOrName'.
+
+        'indexOrName' may be an integer or a column name.
         """
-        row = self._get_terms_row()
-        index = self._get_valid_cursor_index(index or columnName)
+        row = self._terms_row()
+        index = self._tuple_index(indexOrName)
         term = row[index]
-        if not term:
-            term = Statement.stringTermToTerm(self.current_strings_row[index])
-            row[index] = term
+        if term is None:
+            term = row[index] = Statement.stringTermToTerm(
+                self.current_strings_row[index])
         return term
+
+    def __iter__(self):
+        self.iter_called = True
+        return self
 
     def next(self):
         """
-        Advance to the next tuple.  Return True if there is one, and False
-        if the iterator has been exhausted.
+        Advance to the next tuple.
+
+        If called as Python iterator, it uses the proper exceptions.
+        If called directly, the function returns True if there is a next,
+        and False if the iterator has been exhausted.
         """
-        if self.string_tuples is None:
-            raise JDBCException("Failed to properly initialize JDBC ResultSet")
         if self.cursor < len(self.string_tuples):
             stringTuple = self.string_tuples[self.cursor]
-            if self.triple_ids:
-                stringTuple = RepositoryResult.normalize_quint(stringTuple)
             self.current_strings_row = stringTuple
             self.current_terms_row = None
             self.cursor += 1
-            return True
-        else:
-            return False
+            return self if self.iter_called else True
+
+        if self.iter_called:
+            raise StopIteration()
+
+        return False
     
     def close(self):
         """
-        Currently a no-op.  When we do streaming, this may do something
+        Currently a no-op.
         """
         pass
-  
+    
+    def __len__(self):
+        return len(self.string_tuples)
+    
+    def rowCount(self):
+        return len(self)
 
-    def rowCount(self): return len(self.string_tuples)
+
+class JDBCStatementResultSet(JDBCResultSet):
+    """
+    This result set may be used for quads or quints resulting from a
+    getStatements call.
+
+    If the tuple denotes a Statement (a quad), then column order is
+    subject, predicate, object, context, and (optionally) id. 
+    """
+    QUAD = ['subject', 'predicate', 'object', 'context']
+    QUINT = ['subject', 'predicate', 'object', 'context', 'id'] 
+
+    def __init__(self, string_tuples, triple_ids=False):
+        JDBCResultSet.__init__(self, string_tuples,
+            self.QUINT if triple_ids else self.QUAD)
+        self.normalizer = RepositoryResult.normalize_quint if triple_ids \
+            else RepositoryResult.normalize_quad
+
+    def next(self):
+        retValue = JDBCResultSet.next(self)
+        if retValue:
+            self.current_strings_row = self.normalizer(self.current_strings_row)
+
+        return retValue
+
+
+class JDBCQueryResultSet(JDBCResultSet):
+    """
+    This result set may be used for rows resulting from a query.
+    """
+    pass

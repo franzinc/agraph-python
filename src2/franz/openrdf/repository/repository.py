@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,16 +22,21 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import URI
-from franz.openrdf.model.valuefactory import ValueFactory 
-from franz.openrdf.repository.repositoryconnection import RepositoryConnection
+from franz import miniclient
+from ..exceptions import InitializationException, IllegalArgumentException,\
+     ServerException
+from ..model import URI, ValueFactory
+from .repositoryconnection import RepositoryConnection
+import threading
+import urllib
+
 
 import urllib
 
 # * A Sesame repository that contains RDF data that can be queried and updated.
-# * Access to the repository can be acquired by openening a connection to it.
+# * Access to the repository can be acquired by opening a connection to it.
 # * This connection can then be used to query and/or update the contents of the
 # * repository. Depending on the implementation of the repository, it may or may
 # * not support multiple concurrent connections.
@@ -40,18 +46,19 @@ import urllib
 # * Forgetting the latter can result in loss of data (depending on the Repository
 # * implementation)!
 class Repository:
-    RENEW = 'renew'
-    ACCESS = 'access'
-    OPEN = 'open'
-    CREATE = 'create'
-    REPLACE = 'replace'
+    RENEW = 'RENEW'
+    ACCESS = 'ACCESS'
+    OPEN = 'OPEN'
+    CREATE = 'CREATE'
+    REPLACE = 'REPLACE'
 
-    def __init__(self, catalog, database_name, access_verb):
+    def __init__(self, catalog, database_name, access_verb, multi_threaded_mode=False):
         self.catalog = catalog
         self.mini_catalog = catalog.mini_catalog
         self.mini_repository = None
         self.database_name = database_name
-        self.access_verb = access_verb
+        self.access_verb = access_verb.upper()
+        self.multi_threaded_mode=multi_threaded_mode
         ## system state fields:
         self.connection = None
         self.value_factory = None
@@ -80,32 +87,29 @@ class Repository:
         
         TODO: FIGURE OUT WHAT 'REPLACE' DOES
         """
-        #clearIt = False
-        quotedDbName = urllib.quote_plus(self.database_name)
+        name = urllib.quote_plus(self.database_name)
         miniCat = self.mini_catalog
+        exists = name in miniCat.listRepositories();
         if self.access_verb == Repository.RENEW:
-            if quotedDbName in miniCat.listRepositories():
+            if exits:
                 ## not nice, since someone else probably has it open:
                 miniCat.deleteRepository(quotedDbName)
-            self._create_triple_store(quotedDbName)                    
+            self._create_triple_store(name)                    
         elif self.access_verb == Repository.CREATE:
-            if quotedDbName in miniCat.listRepositories():
+            if exits:
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
-                    quotedDbName)
-            self._create_triple_store(quotedDbName)
+                    name)
+            self._create_triple_store(name)
         elif self.access_verb == Repository.OPEN:
-            if not quotedDbName in miniCat.listRepositories():
+            if not exists:
                 raise ServerException(
-                    "Can't open a triple store named '%s' because there is none.", quotedDbName)
+                    "Can't open a triple store named '%s' because there is none.", name)
         elif self.access_verb == Repository.ACCESS:
-            if not quotedDbName in miniCat.listRepositories():
-                self._create_triple_store(quotedDbName)      
+            if not exits:
+                self._create_triple_store(name)      
         self.mini_repository = miniCat.getRepository(quotedDbName)
-#        ## we are done unless a RENEW requires us to clear the store
-#        if clearIt:
-#            self.mini_repository.deleteMatchingStatements(None, None, None, None)
-        
+
     def initialize(self):
         """
         Initializes this repository. A repository needs to be initialized before
@@ -119,6 +123,10 @@ class Repository:
 #        print "ENV", self.environment
 #        self.mini_repository.deleteEnvironment(self.environment)
 #        print "ENV AfTER", self.mini_repository.listEnvironments()
+
+        ## tricky: 'Literal' can be called before ValueFactory is initialized, causing
+        ## it to break.  Here we make sure its up:
+        self.getValueFactory()
         self.is_initialized = True
         return self    
     
@@ -182,11 +190,11 @@ class Repository:
             if not nativeType:
                 raise IllegalArgumentException("Missing 'nativeType' parameter in call to 'registerDatatypeMapping'")
             lispType = self._translate_inlined_type(nativeType)
-            mapping = [predicate, lispType, "predicate"]
+            #mapping = [predicate, lispType, "predicate"]
             self.mapped_predicates[predicate] = lispType
         elif datatype:
             lispType = self._translate_inlined_type(nativeType or datatype)
-            mapping = [datatype, lispType, "datatype"]
+            #mapping = [datatype, lispType, "datatype"]
             self.mapped_datatypes[datatype] = lispType
         if predicate:
             self.mini_repository.addMappedPredicate("<%s>" % predicate, lispType)            
@@ -211,7 +219,8 @@ class Repository:
         determined by the writability of the Sail that this store operates
         on.
         """
-        return self.mini_repository.is_writable()
+        # TODO maybe remove this, it's nonsense in 4.0.
+        return True;
 
     def getConnection(self):
         """
@@ -231,7 +240,3 @@ class Repository:
         if not self.value_factory:
             self.value_factory = ValueFactory(self)
         return self.value_factory
-
-    
-    
-    

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103 
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,9 +22,11 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.model.value import Value, URI, BNode
-from franz.openrdf.model.literal import Literal
+from __future__ import absolute_import
+
+from ..exceptions import BadFormatException
+from .value import Value, URI, BNode
+from .literal import Literal
 
 class Statement:
     """
@@ -37,16 +40,18 @@ class Statement:
         self.string_tuple = None
 
     def __eq__(self, other):
-        if not isinstance(other, Statement): return False
-            ## The object is potentially the cheapest to check, as types
-            ## of these references might be different.
-            ## In general the number of different predicates in sets of
-            ## statements is the smallest, so predicate equality is checked
-            ## last.
-        spoEqual = self.getObject().__eq__(other.getObject()) and self.getSubject().__eq__(other.getSubject()) \
-                and self.getPredicate().__eq__(other.getPredicate())
+        if not isinstance(other, Statement):
+            return NotImplemented
+
+        ## The object is potentially the cheapest to check, as types
+        ## of these references might be different.
+        ## In general the number of different predicates in sets of
+        ## statements is the smallest, so predicate equality is checked
+        ## last.
+        spoEqual = self.getObject() == other.getObject() and self.getSubject() == other.getSubject() \
+                and self.getPredicate() == other.getPredicate()
         if self.context:
-            return spoEqual and self.getContext().__eq__(other.getContext())
+            return spoEqual and self.getContext() == other.getContext()
         else:
             return spoEqual
 
@@ -83,8 +88,7 @@ class Statement:
         elif index == 2: return self.getObject()
         elif index == 3: return self.getContext()
         else:
-            ## I don't know what the official Python exception is here :(  - RMM
-            raise IllegalArgumentException("Illegal index %s passed to StatementImpl.\n" +
+            raise IndexError("Illegal index %s passed to StatementImpl.\n" +
                     "  Legal arguments are integers 0-3")
                                               
     def setQuad(self, string_tuple):
@@ -95,7 +99,8 @@ class Statement:
             self.subject = Statement.stringTermToTerm(self.string_tuple[0])
         return self.subject
     
-    def setSubject(self, subject): self.subject = subject
+    def setSubject(self, subject):
+        self.subject = subject
     
     def getPredicate(self):
         if not self.predicate:
@@ -119,9 +124,13 @@ class Statement:
     
     def setContext(self, context): self.context = context
 
-    def getTripleID(self): 
-        if len(self.string_tuple) < 5: return -1
-        else: return self.string_tuple[4]
+    def getTripleID(self):
+        if len(self.string_tuple) == 5:
+            id = int(self.string_tuple[4])
+        else:
+            id = -1
+            
+        return id
     
     @staticmethod
     def stringTermToTerm(string_term):
@@ -186,6 +195,6 @@ class Statement:
             else:
                 return string_term[1:-1]
         else:
-            raise UnimplementedMethodException("BNodes not yet implemented by 'stringTermToTerm'")
+            raise NotImplementedError("BNodes not yet implemented by 'stringTermToTerm'")
                 
 

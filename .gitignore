@@ -1,2 +1,5 @@
+<<<<<<< HEAD:.gitignore
 .git-branch-name
+=======
+>>>>>>> agraph3:.gitignore
 *.pyc

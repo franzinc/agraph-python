@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,13 +22,15 @@
 ##
 ##***** END LICENSE BLOCK *****
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.vocabulary.rdf import RDF
-from franz.openrdf.model.value import BNode, Resource
-from franz.openrdf.model.literal import Literal
-from franz.openrdf.rio.rdfwriter import RDFWriter
-from franz.openrdf.rio import xmlutil
+from __future__ import absolute_import
+
+from .rdfformat import RDFFormat
+from .rdfwriter import RDFWriter
+from ..exceptions import IllegalArgumentException, RDFHandlerException
+from ..vocabulary import RDF
+from ..model.value import BNode, Resource
+from ..model import BNode, Literal
+from ..rio import xmlutil
 
 class RDFXMLWriter(RDFWriter):
     """
@@ -147,7 +150,7 @@ class RDFXMLWriter(RDFWriter):
         """
         Return the prefix assigned to 'namespace', or None
         """
-        return self.namespaceTable.get(namespace)
+        return self.namespaceTable.get(namespace, None)
     
     def setNamespace(self, prefix, name, fixedPrefix): 
         if self.headerWritten:
@@ -182,7 +185,7 @@ class RDFXMLWriter(RDFWriter):
         obj = st.getObject()
         ## Verify that an XML namespace-qualified name can be created for the
         ## predicate
-        predString = str(pred)
+        predString = pred.uri
         predSplitIdx = xmlutil.findURISplitIndex(predString)
         if predSplitIdx == -1:
             raise RDFHandlerException("Unable to create XML namespace-qualified name for predicate: "
@@ -202,8 +205,9 @@ class RDFXMLWriter(RDFWriter):
                 bNode = subj
                 self.writeAttribute(RDF.NAMESPACE, "nodeID", bNode.getID())
             else:
-                uri = subj
-                self.writeAttribute(RDF.NAMESPACE, "about", str(uri))                
+                uri = subj.uri
+                self.writeAttribute(RDF.NAMESPACE, "about", uri)                
+
             self.writeEndOfStartTag()
             self.writeNewLine()
             self.lastWrittenSubject = subj
@@ -217,8 +221,8 @@ class RDFXMLWriter(RDFWriter):
                 bNode = objRes
                 self.writeAttribute(RDF.NAMESPACE, "nodeID", bNode.getID())                
             else:
-                uri = objRes
-                self.writeAttribute(RDF.NAMESPACE, "resource", str(uri))
+                uri = objRes.uri
+                self.writeAttribute(RDF.NAMESPACE, "resource", uri)
             self.writeEndOfEmptyTag()
         elif isinstance(obj, Literal):
             objLit = obj
@@ -234,7 +238,7 @@ class RDFXMLWriter(RDFWriter):
                 if isXMLLiteral: 
                     self.writeAttribute(RDF.NAMESPACE, "parseType", "Literal")
                 else: 
-                    self.writeAttribute(RDF.NAMESPACE, "datatype", str(datatype))
+                    self.writeAttribute(RDF.NAMESPACE, "datatype", datatype.uri)
             self.writeEndOfStartTag()
             ## label
             if isXMLLiteral: 

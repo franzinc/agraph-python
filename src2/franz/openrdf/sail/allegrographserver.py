@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=C0103
 
 ##***** BEGIN LICENSE BLOCK *****
 ##Version: MPL 1.1
@@ -21,17 +22,16 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from __future__ import absolute_import
 
-from franz.openrdf.exceptions import *
-from franz.openrdf.repository.repository import Repository
-from franz.miniclient.repository import Catalog, Client
-import urllib, re
+from ..exceptions import ServerException
+from ..repository.repository import Repository
+from ...miniclient import repository as miniserver
+import urllib
 
 READ_ONLY = 'READ_ONLY'
 
 LEGAL_OPTION_TYPES = {READ_ONLY: bool,}
-
-CATURL = re.compile("http://[^/]+(?:/catalogs/(.*))?$")
 
 # * A Sesame Sail contains RDF data that can be queried and updated.
 # * Access to the Sail can be acquired by opening a connection to it.
@@ -59,19 +59,23 @@ class AllegroGraphServer(object):
         self.options = options
         self.translated_options = None
         print "Defining connnection to AllegroGraph server -- host:'%s'  port:%s" % (host, port)
+
+    def _get_address(self):
+        return "http://%s:%s" % (self.host, self.port)
     
-    def getHost(self): return self.host
-    def getOptions(self): return self.options
+    def getHost(self):
+        return self.host
+
+    def getOptions(self):
+        return self.options
     
-    def _long_catalog_name_to_short_name(self, url):
-        m = CATURL.match(url)
-        if m.group(1): return urllib.unquote_plus(m.group(1))
-        else: return None # unnamed catalog
+    def _long_catalog_name_to_short_name(self, longName):
+        pos = longName.rfind('/')
+        shortName = urllib.unquote_plus(longName[pos + 1:])
+        return shortName
 
     def listCatalogs(self):
-        """Returns a list of catalog names defined on this server,
-        including None if there is a root catalog."""
-        return [self._long_catalog_name_to_short_name(url) for url in self.client.listCatalogs()]
+        return self.client.listCatalogs()
     
     def openCatalog(self, name=None):
         """
@@ -106,10 +110,10 @@ class Catalog(object):
         """
         return self.mini_catalog.listRepositories()
     
-    def getRepository(self, name, access_verb):
-        return Repository(self, name, access_verb)
+    def getRepository(self, name, access_verb, multi_threaded_mode=False):
+        return Repository(self, name, access_verb, multi_threaded_mode=multi_threaded_mode)
     
     def close(self):
-        if self.is_closed: return
-        self.server.open_catalogs.remove(self)
-        self.is_closed = True
+        if not self.is_closed:
+            self.server.open_catalogs.remove(self)
+            self.is_closed = True

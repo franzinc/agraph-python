@@ -116,6 +116,10 @@ class Repository:
                                   obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit),
                            rowreader=callback and RowReader(callback), accept=accept)
 
+    def getStatementsById(self, ids, returnIDs=True):
+        return jsonRequest(self, "GET", "/statements/id", urlenc(id=ids),
+                           accept=(returnIDs and "application/x-quints+json") or "application/json")
+
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
         nullRequest(self, "POST", "/statements", cjson.encode([[subj, pred, obj, context]]),
@@ -282,5 +286,4 @@ class Repository:
     def createPolygon(self, resource, points):
         """Create a polygon with the given name in the store. points
         should be a list of literals created with createCartesianGeoLiteral."""
-        nullRequest(self, "PUT", "/geo/polygon?" +
-                    urlenc(resource=resource, point=points))
+        nullRequest(self, "PUT", "/geo/polygon?" + urlenc(resource=resource, point=points))

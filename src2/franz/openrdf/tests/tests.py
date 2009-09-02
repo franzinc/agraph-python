@@ -1,21 +1,21 @@
+from __future__ import absolute_import
 
-
-from franz.openrdf.sail.allegrographserver import AllegroGraphServer
-from franz.openrdf.repository.repository import Repository
-from franz.miniclient import repository
-from franz.openrdf.query.query import QueryLanguage
-from franz.openrdf.vocabulary.rdf import RDF
-from franz.openrdf.vocabulary.rdfs import RDFS
-from franz.openrdf.vocabulary.owl import OWL
-from franz.openrdf.vocabulary.xmlschema import XMLSchema
-from franz.openrdf.query.dataset import Dataset
-from franz.openrdf.rio.rdfformat import RDFFormat
-from franz.openrdf.rio.rdfwriter import  NTriplesWriter
-from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
+from ..sail.allegrographserver import AllegroGraphServer
+from ..repository.repository import Repository
+from ...miniclient import repository
+from ..query.query import QueryLanguage
+from ..vocabulary.rdf import RDF
+from ..vocabulary.rdfs import RDFS
+from ..vocabulary.owl import OWL
+from ..vocabulary.xmlschema import XMLSchema
+from ..query.dataset import Dataset
+from ..rio.rdfformat import RDFFormat
+from ..rio.rdfwriter import  NTriplesWriter
+from ..rio.rdfxmlwriter import RDFXMLWriter
 
 import os, urllib, datetime, time
 
-CURRENT_DIRECTORY = os.getcwd() 
+CURRENT_DIRECTORY = os.path.dirname(__file__)
 
 AG_PORT = "8080"
 
@@ -218,14 +218,15 @@ def test6():
     # point to the location of the data files. For AG Free Edition on Windows:
     #os.chdir("C:\Program Files\AllegroGraphFJE32\python")
     print "Current working directory is '%s'" % (os.getcwd())
-    path1 = "./vc-db-1.rdf"    
-    path2 = "./kennedy.ntriples"                
+    path1 = os.path.join(CURRENT_DIRECTORY, "vc-db-1.rdf")
+    path2 = os.path.join(CURRENT_DIRECTORY, "kennedy.ntriples")
     baseURI = "http://example.org/example/local"
     context = conn.createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read kennedy triples into the null context:
     print "Load kennedy.ntriples."
-    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    #conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES)
     ## read vcards triples into the context 'context':
     print "Load vcards triples."
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
@@ -543,10 +544,7 @@ def test16():
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     #pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
 
-def test17():
-    """
-    Prolog queries
-    """
+def kennedy_male_names(jdbc):
     conn = test6()
     conn.deleteEnvironment("kennedys") ## start fresh        
     conn.setEnvironment("kennedys") 
@@ -567,7 +565,14 @@ def test17():
             (q ?person !kdy:last-name ?last)
             )"""
     tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)
-    result = tupleQuery2.evaluate();     
+    return tupleQuery2.evaluate(jdbc=jdbc)    
+    
+
+def test17():
+    """
+    Prolog queries
+    """
+    result = kennedy_male_names(False);     
     for bindingSet in result:
         f = bindingSet.getValue("first")
         l = bindingSet.getValue("last")
@@ -590,7 +595,7 @@ def test18():
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
     conn.setRuleLanguage(QueryLanguage.PROLOG)
-    path = "./relative_rules.txt"
+    path = os.path.join(CURRENT_DIRECTORY, "relative_rules.txt")
     conn.loadRules(path)
 #    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
 #    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
@@ -776,13 +781,13 @@ def test21():
     """
     Social Network Analysis Reasoning
     """
-    conn = test1();
+    conn = test1()
     conn.clear()
     print "Starting example test21()."
     print "Current working directory is '%s'" % (os.getcwd())
-    path1 = "./lesmis.rdf"
+    path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
     print "Load Les Miserables triples."
-    conn.addFile(path1, None, format=RDFFormat.RDFXML);
+    conn.addFile(path1, None, format=RDFFormat.RDFXML)
     conn.indexTriples(all=True)
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
            conn.size('null'), 'null')
@@ -806,38 +811,61 @@ def test21():
     conn.deleteNeighborMatrix("LM_Matrix2")
     print "Deleted one matrix. Neighbor matrices known (should be one): '%s'" % (conn.listNeighborMatrices())
 
+def test_jdbc_iter():
+    """
+    JDBC test with resultset as iterator.
+    """
+    results = kennedy_male_names(True)     
+    for row in results:
+        f = row.getValue("first")
+        l = row.getValue("last")
+        print "%s %s" % (f, l)
 
-
-
-if __name__ == '__main__':
-    choices = [i for i in range(1,22)]
-    #choices = [21]
-    for choice in choices:
-        print "\n==========================================================================="
-        print "Test Run Number ", choice, "\n"
-        if choice == 0: test0()
-        elif choice == 1: test1()
-        elif choice == 2: test2()
-        elif choice == 3: test3()
-        elif choice == 4: test4()    
-        elif choice == 5: test5()        
-        elif choice == 6: test6()            
-        elif choice == 7: test7()                
-        elif choice == 8: test8()                
-        elif choice == 9: test9()                        
-        elif choice == 10: test10()                            
-        elif choice == 11: test11()
-        elif choice == 12: test12()                                                                                   
-        elif choice == 13: test13()  
-        elif choice == 14: test14()                                                                                         
-        elif choice == 15: test15()    
-        elif choice == 16: test16()            
-        elif choice == 17: test17()                    
-        elif choice == 18: test18()                                                             
-        elif choice == 19: test19() 
-        elif choice == 20: test20()  
-        elif choice == 21: test21()                                                                                                           
-         
-        else:
-            print "No such test exists."
+def test_jdbc_java():
+    """
+    JDBC test with resultset as java next.
+    """
+    rows = kennedy_male_names(True)     
+    while rows.next():
+        f = rows.getValue("first")
+        l = rows.getValue("last")
+        print "%s %s" % (f, l)
     
+def test_getStatements():
+    conn = test6()
+    rows = conn.getStatements(None, None, None, tripleIDs=False)
+
+    for row in rows:
+        print '%s %s %s %s' % (row[0], row[1],
+            row[2], row[3])
+
+    rows = conn.getStatements(None, None, None, tripleIDs=True)
+
+    for row in rows:
+        print '%s %s %s %s %s' % (row[0], row[1],
+            row[2], row[3], row.getTripleID())
+
+
+def test_getJDBCStatements():
+    conn = test6()
+    rows = conn.getJDBCStatements(None, None, None, tripleIDs=False)
+
+    for row in rows:
+        print '%s %s %s %s' % (row.getValue(0), row.getValue(1),
+            row.getValue(2), row.getValue(3))
+
+    rows = conn.getJDBCStatements(None, None, None, tripleIDs=True)
+
+    for row in rows:
+        print '%s %s %s %s %s' % (row.getValue(0), row.getValue(1),
+            row.getValue(2), row.getValue(3), row.getValue(4))
+
+    rows = conn.getJDBCStatements(None, None, None, limit=10, tripleIDs=True)
+
+    assert len(rows) <= 10
+
+## (triple-id default-graph subscript geospatial longitude latitude
+##  telephone-number blank-node literal-language literal-typed literal
+##  literal-short node resource single-float double-float gyear time
+##  date-time date long-88 long short int byte unsigned-long-88
+##  unsigned-long unsigned-short unsigned-int unsigned-byte)
