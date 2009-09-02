@@ -54,7 +54,7 @@ class AllegroGraphServer(object):
     
     def __init__(self, host, port=10035, user=None, password=None, **options):
         self.host = host
-        self.client = Client("http://%s:%d" % (host, port), user, password)
+        self.client = miniserver.Client("http://%s:%d" % (host, port), user, password)
         self.open_catalogs = []
         self.options = options
         self.translated_options = None

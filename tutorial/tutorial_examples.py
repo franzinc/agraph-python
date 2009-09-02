@@ -17,7 +17,7 @@ import os, urllib, datetime, time
 
 CURRENT_DIRECTORY = os.getcwd() 
 
-AG_PORT = "8080"
+AG_PORT = 10035
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
@@ -34,18 +34,20 @@ def verify(expressionValue, targetValue, quotedExpression, testNum):
         else:
             print "BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP \n   ", message
 
+def mkServer():
+    return AllegroGraphServer("localhost", port=AG_PORT, user="test", password="xyzzy")
+
 def test0():
-    server = AllegroGraphServer("localhost", port=AG_PORT)
-    print "Available catalogs", server.listCatalogs()
+    print "Available catalogs", mkServer().listCatalogs()
 
 def test1(accessMode=Repository.RENEW):
     """
     Tests getting the repository up.  Is called by the other tests to do the startup.
     """
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
-    server = AllegroGraphServer("localhost", port=AG_PORT)
+    server = mkServer()
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('scratch')  
+    catalog = server.openCatalog('testcatalog')  
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
     myRepository = catalog.getRepository("agraph_test", accessMode)
     myRepository.initialize()
@@ -522,7 +524,7 @@ def test16():
         print "\n%s Apples:\t" % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    catalog = AllegroGraphServer("localhost", port=AG_PORT).openCatalog('scratch') 
+    catalog = mkServer().openCatalog('testcatalog') 
     ## create two ordinary stores, and one federated store: 
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()

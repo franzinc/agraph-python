@@ -74,12 +74,12 @@ class Repository:
         """ 
         return self.database_name
     
-    def _create_triple_store(self, quotedDbName):
+    def _create_triple_store(self, name):
         miniCat = self.mini_catalog
         if self.federated_triple_stores:
-            miniCat.federateTripleStores(quotedDbName, [urllib.quote_plus(ts) for ts in self.federated_triple_stores])
+            miniCat.federateTripleStores(name, [urllib.quote_plus(ts) for ts in self.federated_triple_stores])
         else:
-            miniCat.createRepository(quotedDbName)
+            miniCat.createRepository(name)
           
     def _attach_to_mini_repository(self):
         """
@@ -91,12 +91,12 @@ class Repository:
         miniCat = self.mini_catalog
         exists = name in miniCat.listRepositories();
         if self.access_verb == Repository.RENEW:
-            if exits:
+            if exists:
                 ## not nice, since someone else probably has it open:
-                miniCat.deleteRepository(quotedDbName)
+                miniCat.deleteRepository(name)
             self._create_triple_store(name)                    
         elif self.access_verb == Repository.CREATE:
-            if exits:
+            if exists:
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
                     name)
@@ -106,9 +106,9 @@ class Repository:
                 raise ServerException(
                     "Can't open a triple store named '%s' because there is none.", name)
         elif self.access_verb == Repository.ACCESS:
-            if not exits:
+            if not exists:
                 self._create_triple_store(name)      
-        self.mini_repository = miniCat.getRepository(quotedDbName)
+        self.mini_repository = miniCat.getRepository(name)
 
     def initialize(self):
         """
