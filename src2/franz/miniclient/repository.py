@@ -47,6 +47,15 @@ class Client(Catalog):
             url += "/catalogs/" + urllib.quote(name)
         return self.openCatalog(url)
 
+    def getInitfile(self):
+        return jsonRequest(self, "GET", "/initfile")
+
+    def setInitfile(self, content=None, restart=True):
+        if (content is None):
+            nullRequest(self, "DELETE", "/initfile")
+        else:
+            nullRequest(self, "PUT", "/initfile?" + urlenc(restart=restart), content)
+
 
 class Repository:
     def __init__(self, url, user=None, password=None):

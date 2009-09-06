@@ -53,8 +53,8 @@ def testProlog():
     rep.addStatement("<http:%d>" % x, "<http:before>", "<http:%d>" % (x + 1))
     rep.addStatement("<http:%d>" % (x + 1), "<http:after>", "<http:%d>" % x)
   eq([["<http:2>"]], rep.evalPrologQuery("(select ?x (q- ?x !<http:before> !<http:3>))")["values"])
-#  rep.definePrologFunctors("(<-- (after-after ?a ?b) (q- ?a !<http:after> ?x) (q- ?x !<http:after> ?b))")
-#  eq([["<http:5>"]], rep.evalPrologQuery("(select ?x (after-after ?x !<http:3>))")["values"])
+  client.setInitfile("(<-- (after-after ?a ?b) (q- ?a !<http:after> ?x) (q- ?x !<http:after> ?b))")
+  eq([["<http:5>"]], rep.evalPrologQuery("(select ?x (after-after ?x !<http:3>))")["values"])
 
 @with_setup(cleanup)
 def testGeo():
