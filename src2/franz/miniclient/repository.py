@@ -1,12 +1,22 @@
-import time, cjson, math
+import time, cjson, math, re, threading
 from request import *
 
-class Catalog:
+class Service(object):
     def __init__(self, url, user=None, password=None):
         self.url = url
         self.user = user
         self.password = password
+        self.backend = None
 
+    def _instanceFromUrl(self, constructor, url):
+        return constructor(url, self.user, self.password)
+    
+    def toBaseClient(self):
+        url = re.match("^https?://[^/]+", self.url).group(0)
+        return self._instanceFromUrl(Client, url)
+
+
+class Catalog(Service):
     def listRepositories(self):
         """Returns the names of repositories in the catalog."""
         repos = jsonRequest(self, "GET", "/repositories")
@@ -28,7 +38,7 @@ class Catalog:
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
-        return Repository(self.url + "/repositories/" + urllib.quote(name), self.user, self.password)
+        return self._instanceFromUrl(Repository, self.url + "/repositories/" + urllib.quote(name))
 
 
 class Client(Catalog):
@@ -37,9 +47,9 @@ class Client(Catalog):
 
     def openCatalog(self, uriOrName):
         if (uriOrName.startswith("http://")):
-            return Catalog(uriOrName, self.user, self.password)
+            return self._instanceFromUrl(Catalog, uriOrName)
         else:
-            return self.openCatalogByName(uriOrName);
+            return self.openCatalogByName(uriOrName)
 
     def openCatalogByName(self, name=None):
         url = self.url
@@ -56,14 +66,15 @@ class Client(Catalog):
         else:
             nullRequest(self, "PUT", "/initfile?" + urlenc(restart=restart), content)
 
+    def _spawnBackend(self):
+        return jsonRequest(self, "POST", "/backends")
+    def _closeBackend(self, id):
+        nullRequest(self, "DELETE", "/backends/" + urllib.quote(id))
+    def _pingBackend(self, id):
+        nullRequest(self, "GET", "/backends/" + urllib.quote(id) + "/ping")
 
-class Repository:
-    def __init__(self, url, user=None, password=None):
-        # TODO verify existence of repository at this point?
-        self.url = url
-        self.user = user
-        self.password = password
 
+class Repository(Service):
     def getSize(self, context=None):
         """Returns the amount of triples in the repository."""
         return jsonRequest(self, "GET", "/size", urlenc(context=context))
@@ -105,6 +116,12 @@ class Repository:
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
         return jsonRequest(self, "POST", "/eval", code)
+
+    def commit(self):
+        nullRequest(self, "POST", "/commit")
+
+    def rollback(self):
+        nullRequest(self, "POST", "/rollback")
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None,
                       limit=None, tripleIDs=False, count=False):
@@ -261,7 +278,7 @@ class Repository:
             sign = "+"
             if (number < 0):
                 sign= "-"
-                number = -number;
+                number = -number
             fl = math.floor(number)
             return sign + (("%%0%dd" % digits) % fl) + (".%07d" % ((number - fl) * 10000000))
 
@@ -296,3 +313,29 @@ class Repository:
         """Create a polygon with the given name in the store. points
         should be a list of literals created with createCartesianGeoLiteral."""
         nullRequest(self, "PUT", "/geo/polygon?" + urlenc(resource=resource, point=points))
+
+    backendAlive = None
+    
+    def openDedicatedBackend(self):
+        if self.backend: return
+        client = self.toBaseClient()
+        id = self.backend = client._spawnBackend()
+        alive = self.backendAlive = threading.Event()
+        def pingBackend():
+            while True:
+                stop = alive.wait(250)
+                if alive.isSet(): return
+                try: client._pingBackend(id)
+                except Exception: return
+        threading.Thread(target=pingBackend)
+
+    def closeDedicatedBackend(self):
+        if not self.backend: return
+        self.backendAlive.set()
+        self.backendAlive = None
+        try: self.toBaseClient()._closeBackend(self.backend)
+        except Exception: pass
+        self.backend = None
+
+    def __del__(self):
+        self.closeDedicatedBackend()
