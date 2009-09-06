@@ -147,16 +147,6 @@ class Repository:
             self.federated_triple_stores.add(ts)
         return self
         
-    def indexTriples(self, all=False, asynchronous=False):
-        """
-        Index the newly-added triples in the store.  This should be done after every 
-        significant-sized load of triples into the store.
-        If 'all', re-index all triples in the store.  If 'asynchronous', spawn
-        the indexing task as a separate thread, and don't wait for it to complete.
-        Note. Upon version 4.0, calling this will no longer be necessary.        
-        """
-        self.mini_repository.indexStatements(all=all)
-
     def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
         """
         Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index

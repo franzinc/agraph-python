@@ -74,6 +74,14 @@ def urlenc(**args):
 
 def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None):
     curl = curlPool.get()
+
+    # Uncomment these 5 lines to see pycurl debug output
+    ## def report(debug_type, debug_msg):
+    ##     if debug_type != 3:
+    ##         print "debug(%d): %s" % (debug_type, debug_msg)
+    ## curl.setopt(pycurl.VERBOSE, 1)
+    ## curl.setopt(pycurl.DEBUGFUNCTION, report)
+
     if obj.user and obj.password:
         curl.setopt(pycurl.USERPWD, "%s:%s" % (obj.user, obj.password))
         curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)

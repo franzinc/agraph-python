@@ -17,7 +17,8 @@ import os, urllib, datetime, time
 
 CURRENT_DIRECTORY = os.path.dirname(__file__)
 
-AG_PORT = "8080"
+AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
+AG_PORT = int(os.environ.get('AGRAPH_PORT', '8080'))
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
@@ -35,7 +36,7 @@ def verify(expressionValue, targetValue, quotedExpression, testNum):
             print "BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP \n   ", message
 
 def test0():
-    server = AllegroGraphServer("localhost", port=AG_PORT)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     print "Available catalogs", server.listCatalogs()
 
 def test1(accessMode=Repository.RENEW):
@@ -43,9 +44,9 @@ def test1(accessMode=Repository.RENEW):
     Tests getting the repository up.  Is called by the other tests to do the startup.
     """
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
-    server = AllegroGraphServer("localhost", port=AG_PORT)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('scratch')  
+    catalog = server.openCatalog('tests')  
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
     myRepository = catalog.getRepository("agraph_test", accessMode)
     myRepository.initialize()
@@ -230,7 +231,6 @@ def test6():
     ## read vcards triples into the context 'context':
     print "Load vcards triples."
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
-    conn.indexTriples(all=True)
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
     verify(conn.size(context), 16, 'conn.size(context)', 6)
@@ -348,7 +348,6 @@ def test11():
     alice = conn.createURI(namespace=exns, localname="alice")
     person = conn.createURI(namespace=exns, localname="Person")
     conn.add(alice, RDF.TYPE, person)
-    conn.indexTriples(all=True)
     conn.setNamespace('ex', exns)
     #conn.removeNamespace('ex')
     queryString = """
@@ -383,8 +382,6 @@ def test12():
     conn.add(alice, fullname, alicename)
     conn.add(book, RDF.TYPE, booktype)    
     conn.add(book, booktitle, wonderland) 
-    ##myRepository.indexTriples(all=True)
-    conn.indexTriples(all=True)
     conn.setNamespace('ex', exns)
     print "Whole-word match for 'Alice'"
     queryString = """
@@ -523,7 +520,7 @@ def test16():
         print "\n%s Apples:\t" % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    catalog = AllegroGraphServer("localhost", port=AG_PORT).openCatalog('scratch') 
+    catalog = AllegroGraphServer(AG_HOST, port=AG_PORT).openCatalog('tests') 
     ## create two ordinary stores, and one federated store: 
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
@@ -546,8 +543,6 @@ def test16():
 
 def kennedy_male_names(jdbc):
     conn = test6()
-    conn.deleteEnvironment("kennedys") ## start fresh        
-    conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setRuleLanguage(QueryLanguage.PROLOG)
     rules1 = """
@@ -590,8 +585,6 @@ def test18():
 #            print row
             
     conn = test6()
-    conn.deleteEnvironment("kennedys") ## start fresh        
-    conn.setEnvironment("kennedys") 
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
     conn.setRuleLanguage(QueryLanguage.PROLOG)
@@ -788,7 +781,6 @@ def test21():
     path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
     print "Load Les Miserables triples."
     conn.addFile(path1, None, format=RDFFormat.RDFXML)
-    conn.indexTriples(all=True)
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
            conn.size('null'), 'null')
     print "SNA generators known (should be none): '%s'" % (conn.listSNAGenerators())

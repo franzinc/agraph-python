@@ -661,9 +661,6 @@ class RepositoryConnection(object):
     def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
         return self.repository.registerFreeTextPredicate(uri=uri, namespace=namespace, localname=localname)
     
-    def indexTriples(self, all=False, asynchronous=False):
-        return self.repository.indexTriples(all=all, asynchronous=asynchronous)
-    
     def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         return self.repository.registerDatatypeMapping(predicate=predicate, datatype=datatype, nativeType=nativeType)
 
@@ -696,37 +693,6 @@ class RepositoryConnection(object):
     def createRange(self, lowerBound, upperBound):
         return self.getValueFactory().createRange(lowerBound=lowerBound, upperBound=upperBound)
 
-    #############################################################################################
-    ## Extensions
-    #############################################################################################
-    
-    def createEnvironment(self, name):
-        if not name in self._get_mini_repository().listEnvironments():
-            self._get_mini_repository().createEnvironment(name)
-        
-    def deleteEnvironment(self, name):
-        """
-        Delete an environment.  This causes all rule and namespace definitions for this
-        environment to be lost.
-        """
-        if name in self._get_mini_repository().listEnvironments():
-            self._get_mini_repository().deleteEnvironment(name)
-    
-    def setEnvironment(self, name):
-        """
-        Choose an environment for execution of a Prolog query.  Rules and namespaces defined 
-        in this environment persist across user sessions.  Call 'deleteEnvironment' to start
-        with a fresh (empty) environment.
-        """
-        self.createEnvironment(name)
-        self._get_mini_repository().setEnvironment(name)
-    
-    def listEnvironments(self):
-        """
-        List the names of environments currently maintained by the system.
-        """
-        return self._get_mini_repository().listEnvironments()
-    
     def setRuleLanguage(self, queryLanguage):
         self.ruleLanguage = queryLanguage
 
@@ -736,8 +702,6 @@ class RepositoryConnection(object):
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
         former appends a new rule; the latter overwrites any rule with the same predicate.
         """
-        if not self._get_mini_repository().environment:
-            raise Exception("Cannot add a rule because an environment has not been set.")
         language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
             rules = query_module.expandPrologQueryPrefixes(rules, self)
@@ -762,8 +726,6 @@ class RepositoryConnection(object):
         Delete rule(s) with predicate named 'predicate'.  If 'predicate' is None, delete
         all rules.
         """
-        if not self._get_mini_repository().environment:
-            raise Exception("Cannot delete a rule because an environment has not been set.")
         language = language or self.ruleLanguage
         if language == QueryLanguage.PROLOG:
             self._get_mini_repository().deletePrologFunctor(predicate)
@@ -840,8 +802,7 @@ class RepositoryConnection(object):
         """
         uris.validateNamespace(namespace, True)
         self._get_namespaces_map()[prefix.lower()] = namespace
-        if self._get_mini_repository().environment:
-            self._get_mini_repository().addNamespace(prefix, namespace)
+        self._get_mini_repository().addNamespace(prefix, namespace)
 
     def removeNamespace(self, prefix):
         """
