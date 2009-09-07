@@ -38,7 +38,7 @@ from ..util import uris
 from ..vocabulary import RDF, RDFS, OWL, XMLSchema
 import datetime
 import os
-
+from contextlib import contextmanager
 
 # * Main interface for updating data in and performing queries on a Sesame
 # * repository. By default, a RepositoryConnection is in autoCommit mode, meaning
@@ -889,15 +889,6 @@ class RepositoryConnection(object):
         miniRep = self._get_mini_repository()
         miniRep.deleteSNAGenerator(name)
     
-    def listSNAGenerators(self):
-        """
-        Return a list of the names of registered SNA generators.
-        ALTERNATIVELY, CONSIDER RETURNING A DICT THAT CONTAINS GENERATOR NAMES AS KEYS,
-        AND ADJACENCY MAPS AS VALUES
-        """
-        miniRep = self._get_mini_repository()
-        return miniRep.listSNAGenerators()
-    
     def registerNeighborMatrix(self, name, generator, group_uris, max_depth=2):
         """
         Construct a neighbor matrix named name.  The generator named 'generator' is applied
@@ -946,6 +937,20 @@ class RepositoryConnection(object):
         Request that the server update the free-text index.
         """
         return self.repository.updateFreeTextIndexing()
+
+    def openDedicated(self):
+        miniRep = self._get_mini_repository()
+        return miniRep.openDedicatedBackend()
+
+    def closeDedicated(self):
+        miniRep = self._get_mini_repository()
+        return miniRep.closeDedicatedBackend()
+
+    @contextmanager
+    def dedicated(self):
+        self.openDedicated()
+        yield self
+        self.closeDedicated()
 
 
 class GeoType:

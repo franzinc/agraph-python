@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from __future__ import with_statement
 
 from ..sail.allegrographserver import AllegroGraphServer
 from ..repository.repository import Repository
@@ -39,9 +40,9 @@ def test0():
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     print "Available catalogs", server.listCatalogs()
 
-def test1(accessMode=Repository.RENEW):
+def connect(accessMode=Repository.RENEW):
     """
-    Tests getting the repository up.  Is called by the other tests to do the startup.
+    Connect is called by the other tests to startup the connection to the test database.
     """
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
@@ -54,9 +55,15 @@ def test1(accessMode=Repository.RENEW):
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), connection.size())
     return connection
+
+def test1(accessMode=Repository.RENEW):
+    """
+    Tests getting the repository up.
+    """
+    return connect(accessMode)
     
 def test2():
-    conn = test1()
+    conn = connect()
     ## create some resources and literals to make statements out of
     alice = conn.createURI("http://example.org/people/alice")
     bob = conn.createURI("http://example.org/people/bob")
@@ -124,7 +131,7 @@ def test5():
     """
     Typed Literals
     """
-    conn = test1()
+    conn = connect()
     conn.clear()
     exns = "http://example.org/people/"
     alice = conn.createURI("http://example.org/people/alice")
@@ -209,8 +216,9 @@ def test5():
         print "%s %s" % (s, p)
 
 
-def test6():
-    conn = test1()
+def test6(conn = None):
+    if conn is None:
+        conn = connect()
     conn.clear()   
     print "Starting example test6()."
     # The following paths are relative to os.getcwd(), the working directory.
@@ -276,7 +284,7 @@ def test10():
     """
     Datasets and multiple contexts
     """
-    conn = test1()
+    conn = connect()
     exns = "http://example.org/people/"
     alice = conn.createURI(namespace=exns, localname="alice")
     bob = conn.createURI(namespace=exns, localname="bob")
@@ -343,7 +351,7 @@ def test11():
     """
     Namespaces
     """
-    conn = test1()
+    conn = connect()
     exns = "http://example.org/people/"
     alice = conn.createURI(namespace=exns, localname="alice")
     person = conn.createURI(namespace=exns, localname="Person")
@@ -364,7 +372,7 @@ def test12():
     """
     Text search
     """
-    conn = test1()
+    conn = connect()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
     #myRepository.registerFreeTextPredicate("http://example.org/people/name")    
@@ -489,7 +497,7 @@ def test15():
     """
     Range matches
     """
-    conn = test1()
+    conn = connect()
     conn.clear()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
@@ -542,8 +550,8 @@ def test16():
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     #pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
 
-def kennedy_male_names(jdbc):
-    conn = test6()
+def kennedy_male_names(jdbc, conn=None):
+    conn = test6(conn)
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setRuleLanguage(QueryLanguage.PROLOG)
     rules1 = """
@@ -568,11 +576,12 @@ def test17():
     """
     Prolog queries
     """
-    result = kennedy_male_names(False);     
-    for bindingSet in result:
-        f = bindingSet.getValue("first")
-        l = bindingSet.getValue("last")
-        print "%s %s" % (f, l)
+    with connect().dedicated() as conn:
+        result = kennedy_male_names(False, conn);     
+        for bindingSet in result:
+            f = bindingSet.getValue("first")
+            l = bindingSet.getValue("last")
+            print "%s %s" % (f, l)
 
 
 def test18():
@@ -584,26 +593,26 @@ def test18():
 #        result = tupleQuery.evaluate();     
 #        for row in result:
 #            print row
-            
-    conn = test6()
-    conn.setNamespace("kdy", "http://www.franz.com/simple#")
-    conn.setNamespace("rltv", "http://www.franz.com/simple#")  
-    conn.setRuleLanguage(QueryLanguage.PROLOG)
-    path = os.path.join(CURRENT_DIRECTORY, "relative_rules.txt")
-    conn.loadRules(path)
-#    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
-#    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
-    queryString = """(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-    result = tupleQuery.evaluate();     
-    for bindingSet in result:
-        p = bindingSet.getValue("person")
-        u = bindingSet.getValue("uncle")
-        print "%s is the uncle of %s." % (u, p)
+    with connect().dedicated() as conn:        
+        test6(conn)
+        conn.setNamespace("kdy", "http://www.franz.com/simple#")
+        conn.setNamespace("rltv", "http://www.franz.com/simple#")  
+        conn.setRuleLanguage(QueryLanguage.PROLOG)
+        path = os.path.join(CURRENT_DIRECTORY, "relative_rules.txt")
+        conn.loadRules(path)
+    #    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
+    #    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
+        queryString = """(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))"""
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();     
+        for bindingSet in result:
+            p = bindingSet.getValue("person")
+            u = bindingSet.getValue("uncle")
+            print "%s is the uncle of %s." % (u, p)
         
 def test19():
     ## Examples of RDFS++ inference.  Was originally example 2A.
-    conn = test1()
+    conn = connect()
     print "Beginning test19()..."
     ## Create URIs for Bob and Robert (and kids) 
     robert = conn.createURI("http://example.org/people/robert")
@@ -702,7 +711,7 @@ def test20():
     """
     GeoSpatial Reasoning
     """
-    conn = test1();
+    conn = connect();
     conn.clear()
     print "Starting example test20()."
     exns = "http://example.org/people/"
@@ -775,7 +784,7 @@ def test21():
     """
     Social Network Analysis Reasoning
     """
-    conn = test1()
+    conn = connect()
     conn.clear()
     print "Starting example test21()."
     print "Current working directory is '%s'" % (os.getcwd())
@@ -784,7 +793,6 @@ def test21():
     conn.addFile(path1, None, format=RDFFormat.RDFXML)
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
            conn.size('null'), 'null')
-    print "SNA generators known (should be none): '%s'" % (conn.listSNAGenerators())
     genName = "LesMiserables"
     lmns = "http://www.franz.com/lesmis#"
     conn.setNamespace('lm', lmns)
@@ -795,7 +803,6 @@ def test21():
     print "Created two generators. SNA generators known: '%s'" % (conn.listSNAGenerators())
     # Delete a generator.
     conn.deleteSNAGenerator("LesMiserables2")
-    print "Deleted one generator. SNA generators known: '%s'" % (conn.listSNAGenerators())
     print "Neighbor matrices known (should be none): '%s'" % (conn.listNeighborMatrices())
     valjean = conn.createURI(lmns, "character11")
     conn.registerNeighborMatrix("LM_Matrix1", "LesMiserables1", valjean.toNTriples(), max_depth=2)
@@ -808,21 +815,23 @@ def test_jdbc_iter():
     """
     JDBC test with resultset as iterator.
     """
-    results = kennedy_male_names(True)     
-    for row in results:
-        f = row.getValue("first")
-        l = row.getValue("last")
-        print "%s %s" % (f, l)
+    with connect().dedicated() as conn:
+        results = kennedy_male_names(True, conn)     
+        for row in results:
+            f = row.getValue("first")
+            l = row.getValue("last")
+            print "%s %s" % (f, l)
 
 def test_jdbc_java():
     """
     JDBC test with resultset as java next.
     """
-    rows = kennedy_male_names(True)     
-    while rows.next():
-        f = rows.getValue("first")
-        l = rows.getValue("last")
-        print "%s %s" % (f, l)
+    with connect().dedicated() as conn:
+        rows = kennedy_male_names(True, conn)     
+        while rows.next():
+            f = rows.getValue("first")
+            l = rows.getValue("last")
+            print "%s %s" % (f, l)
     
 def test_getStatements():
     conn = test6()
