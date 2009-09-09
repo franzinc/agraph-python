@@ -47,11 +47,23 @@ def connect(accessMode=Repository.RENEW):
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('tests')  
+    catalog = server.openCatalog('tests')
+    catalogs = catalog.listRepositories()
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
-    myRepository = catalog.getRepository("agraph_test", accessMode)
+
+    # Instead of renewing the database, clear it.
+    if accessMode == Repository.RENEW:
+        mode = Repository.CREATE if 'agraph_test' not in catalogs else Repository.OPEN
+    else:
+        mode = accessMode
+
+    myRepository = catalog.getRepository("agraph_test", mode)
     myRepository.initialize()
     connection = myRepository.getConnection()
+
+    if accessMode == Repository.RENEW:
+        connection.clear()
+        
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), connection.size())
     return connection
@@ -132,7 +144,6 @@ def test5():
     Typed Literals
     """
     conn = connect()
-    conn.clear()
     exns = "http://example.org/people/"
     alice = conn.createURI("http://example.org/people/alice")
     age = conn.createURI(namespace=exns, localname="age")
@@ -219,7 +230,8 @@ def test5():
 def test6(conn = None):
     if conn is None:
         conn = connect()
-    conn.clear()   
+    else:
+        conn.clear()   
     print "Starting example test6()."
     # The following paths are relative to os.getcwd(), the working directory.
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
@@ -498,7 +510,6 @@ def test15():
     Range matches
     """
     conn = connect()
-    conn.clear()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
     alice = conn.createURI(namespace=exns, localname="alice")
@@ -712,7 +723,6 @@ def test20():
     GeoSpatial Reasoning
     """
     conn = connect();
-    conn.clear()
     print "Starting example test20()."
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
@@ -784,33 +794,27 @@ def test21():
     """
     Social Network Analysis Reasoning
     """
-    conn = connect()
-    conn.clear()
-    print "Starting example test21()."
-    print "Current working directory is '%s'" % (os.getcwd())
-    path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
-    print "Load Les Miserables triples."
-    conn.addFile(path1, None, format=RDFFormat.RDFXML)
-    print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
-           conn.size('null'), 'null')
-    genName = "LesMiserables"
-    lmns = "http://www.franz.com/lesmis#"
-    conn.setNamespace('lm', lmns)
-    knows = conn.createURI(lmns, "knows")
-    # Create some generators
-    conn.registerSNAGenerator("LesMiserables1", subjectOf=None, objectOf=None, undirected=knows.toNTriples(), generator_query=None)
-    conn.registerSNAGenerator("LesMiserables2", subjectOf=None, objectOf=None, undirected=None, generator_query=None)
-    print "Created two generators. SNA generators known: '%s'" % (conn.listSNAGenerators())
-    # Delete a generator.
-    conn.deleteSNAGenerator("LesMiserables2")
-    print "Neighbor matrices known (should be none): '%s'" % (conn.listNeighborMatrices())
-    valjean = conn.createURI(lmns, "character11")
-    conn.registerNeighborMatrix("LM_Matrix1", "LesMiserables1", valjean.toNTriples(), max_depth=2)
-    conn.registerNeighborMatrix("LM_Matrix2", "LesMiserables1", valjean.toNTriples(), max_depth=2)
-    print "Neighbor matrices known (should be two): '%s'" % (conn.listNeighborMatrices())
-    conn.deleteNeighborMatrix("LM_Matrix2")
-    print "Deleted one matrix. Neighbor matrices known (should be one): '%s'" % (conn.listNeighborMatrices())
+    with connect().dedicated() as conn:
+        print "Starting example test21()."
+        print "Current working directory is '%s'" % (os.getcwd())
+        path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
+        print "Load Les Miserables triples."
+        conn.addFile(path1, None, format=RDFFormat.RDFXML)
+        print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
+               conn.size('null'), 'null')
+        genName = "LesMiserables"
+        lmns = "http://www.franz.com/lesmis#"
+        conn.setNamespace('lm', lmns)
+        knows = conn.createURI(lmns, "knows")
+        # Create some generators
+        conn.registerSNAGenerator("LesMiserables1", subjectOf=None, objectOf=None, undirected=knows.toNTriples(), generator_query=None)
+        conn.registerSNAGenerator("LesMiserables2", subjectOf=None, objectOf=None, undirected=None, generator_query=None)
+        valjean = conn.createURI(lmns, "character11")
+        conn.registerNeighborMatrix("LM_Matrix1", "LesMiserables1", valjean.toNTriples(), max_depth=2)
+        conn.registerNeighborMatrix("LM_Matrix2", "LesMiserables1", valjean.toNTriples(), max_depth=2)
 
+##         conn.rebuildNeighborMatrix('LM_Matrix1')
+        
 def test_jdbc_iter():
     """
     JDBC test with resultset as iterator.

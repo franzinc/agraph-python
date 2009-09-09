@@ -23,6 +23,7 @@
 ##***** END LICENSE BLOCK *****
 
 from __future__ import absolute_import
+from __future__ import with_statement
 
 from .jdbcresultset import JDBCStatementResultSet
 from .repositoryresult import RepositoryResult
@@ -495,7 +496,7 @@ class RepositoryConnection(object):
         else:
             raise IllegalArgumentException("Illegal first argument to 'remove'.  Expected a Value, Statement, or iterator.")
 
-    def removeTriples(self, subject, predicate, object, contexts=None):
+    def removeTriples(self, subject, predicate, object, contexts=ALL_CONTEXTS):
         """
         Removes the statement(s) with the specified subject, predicate and object
         from the repository, optionally restricted to the specified contexts.
@@ -503,10 +504,8 @@ class RepositoryConnection(object):
         subj = self._to_ntriples(subject)
         pred = self._to_ntriples(predicate)
         obj = self._to_ntriples(self.getValueFactory().object_position_term_to_openrdf_term(object))
-        ## NEED TO FIGURE OUT HOW WILDCARD CONTEXT LOOKS HERE!!!
-        ## THIS IS BOGUS FOR 'None' CONTEXT???; COMPLETELY AMBIGUOUS:  (NOT SURE IF THIS IS AN OLD STATEMENT)
         ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)   
-        if len(ntripleContexts) == 0:
+        if ntripleContexts is None or len(ntripleContexts) == 0:
             self._get_mini_repository().deleteMatchingStatements(subj, pred, obj, None)
         else:
             for cxt in ntripleContexts:
@@ -579,10 +578,10 @@ class RepositoryConnection(object):
 #     * @throws RepositoryException
 #     *         If the statements could not be removed from the repository, for
 #     *         example because the repository is not writable.
-    def clear(self, contexts=None):
+    def clear(self, contexts=ALL_CONTEXTS):
         """
         Removes all statements from designated contexts in the repository.  If
-        'contexts' is None, clears the repository of all statements.
+        'contexts' is ALL_CONTEXTS, clears the repository of all statements.
         """
         self.removeTriples(None, None, None, contexts=contexts)
          
@@ -701,6 +700,8 @@ class RepositoryConnection(object):
         Add a sequence of one or more rules (in ASCII format) to the current environment.
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
         former appends a new rule; the latter overwrites any rule with the same predicate.
+
+        For use with a dedicated connection.
         """
         language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
@@ -709,29 +710,19 @@ class RepositoryConnection(object):
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
         
-    def loadRules(self, file, language=None):
+    def loadRules(self, filename, language=None):
         """
         Load a file of rules into the current environment.
         'file' is assumed to reside on the client machine.
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
         former appends a new rule; the latter overwrites any rule with the same predicate.
+
+        For use with a dedicated connection.
         """
-        f = open(file)
-        body = f.read()
-        f.close()
+        with open(filename) as _file:
+            body = _file.read()
         self.addRules(body, language)
         
-    def deleteRule(self, predicate, language=None):
-        """
-        Delete rule(s) with predicate named 'predicate'.  If 'predicate' is None, delete
-        all rules.
-        """
-        language = language or self.ruleLanguage
-        if language == QueryLanguage.PROLOG:
-            self._get_mini_repository().deletePrologFunctor(predicate)
-        else:
-            raise Exception("Cannot add a rule because the rule language has not been set.")
-
     #############################################################################################
     ## Server-side implementation of namespaces
     #############################################################################################
@@ -877,47 +868,32 @@ class RepositoryConnection(object):
         fullURIs or qnames, that define the edges traversed by the generator.
         Alternatively, instead of an adjacency map, one may provide a 'generator_query',
         that defines the edges.
+
+        For use with a dedicated connection.
         """
         miniRep = self._get_mini_repository()
         miniRep.registerSNAGenerator(name, subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, 
                                      query=generator_query)
 
-    def deleteSNAGenerator(self, name):
-        """
-        Destroy the generator named 'name'.
-        """
-        miniRep = self._get_mini_repository()
-        miniRep.deleteSNAGenerator(name)
-    
     def registerNeighborMatrix(self, name, generator, group_uris, max_depth=2):
         """
         Construct a neighbor matrix named name.  The generator named 'generator' is applied
         to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),
         computing edges to max depth 'max_depth'.
+
+        For use with a dedicated connection.
         """
         miniRep = self._get_mini_repository()
         miniRep.registerNeighborMatrix(name, group_uris, generator, max_depth)
 
-    def rebuildNeighborMatrix(self, name):
-        """
-        Recompute the set of edges cached in the neighbor matrix named 'name'.
-        """
-        miniRep = self._get_mini_repository()
-        miniRep.rebuildNeighborMatrix(name)
-    
-    def deleteNeighborMatrix(self, name):
-        """
-        Destroy the neighbor matrix named 'name'.
-        """
-        miniRep = self._get_mini_repository()
-        miniRep.deleteNeighborMatrix(name)
-    
-    def listNeighborMatrices(self):
-        """
-        Return a list of the names of registered neighbor matrices
-        """
-        miniRep = self._get_mini_repository()
-        return miniRep.listNeighborMatrices()
+##     def rebuildNeighborMatrix(self, name):
+##         """
+##         Recompute the set of edges cached in the neighbor matrix named 'name'.
+
+##         For use with a dedicated connection.
+##         """
+##         miniRep = self._get_mini_repository()
+##         miniRep.rebuildNeighborMatrix(name)
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
         """
@@ -939,18 +915,44 @@ class RepositoryConnection(object):
         return self.repository.updateFreeTextIndexing()
 
     def openDedicated(self):
+        """
+        Open a dedicated backend/connection.
+        """
         miniRep = self._get_mini_repository()
         return miniRep.openDedicatedBackend()
 
     def closeDedicated(self):
+        """
+        Close a dedicated backend/connection.
+        """
         miniRep = self._get_mini_repository()
         return miniRep.closeDedicatedBackend()
 
     @contextmanager
     def dedicated(self):
+        """
+        A dedicated connection context manager for use with the 'with' statement:
+
+        with conn.dedicated():
+            # Automatically calls openDedicated at block start
+            # Do work
+            # Automatically calls closeDedicated at block end
+        """
         self.openDedicated()
         yield self
         self.closeDedicated()
+
+    def commit(self):
+        """
+        Commits changes on a dedicated connection.
+        """
+        return self._get_mini_repository().commit()
+
+    def rollback(self):
+        """
+        Rolls back changes on a dedicated connection.
+        """
+        return self._get_mini_repository().rollBack()
 
 
 class GeoType:
