@@ -314,6 +314,20 @@ class Repository(Service):
         should be a list of literals created with createCartesianGeoLiteral."""
         nullRequest(self, "PUT", "/geo/polygon?" + urlenc(resource=resource, point=points))
 
+    def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, query=None):
+        """subjectOf, objectOf, and undirected can be either a single
+        predicate or a list of predicates. query should be a prolog
+        query in the form (select ?x (q- ?node !<mypredicate> ?x)),
+        where ?node always returns to the argument passed to the
+        generator."""
+        nullRequest(self, "PUT", "/snaGenerators/" + urllib.quote(name) + "?" +
+                    urlenc(subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, query=query))
+
+    def registerNeighborMatrix(self, name, group, generator, depth):
+        """group is a list of nodes, generator the name of an SNA generator."""
+        nullRequest(self, "PUT", "/neighborMatrices/" + urllib.quote(name) + "?" +
+                    urlenc(group=group, depth=depth, generator=generator))
+
     backendAlive = None
     
     def openDedicatedBackend(self):
