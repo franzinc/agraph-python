@@ -1,0 +1,151 @@
+#!/usr/bin/env python2.6
+# -*- coding: utf-8 -*-
+
+##***** BEGIN LICENSE BLOCK *****
+##Version: MPL 1.1
+##
+##The contents of this file are subject to the Mozilla Public License Version
+##1.1 (the "License"); you may not use this file except in compliance with
+##the License. You may obtain a copy of the License at
+##http:##www.mozilla.org/MPL/
+##
+##Software distributed under the License is distributed on an "AS IS" basis,
+##WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+##for the specific language governing rights and limitations under the
+##License.
+##
+##The Original Code is the AllegroGraph Java Client interface.
+##
+##The Original Code was written by Franz Inc.
+##Copyright (C) 2006 Franz Inc.  All Rights Reserved.
+##
+##***** END LICENSE BLOCK *****
+
+"""
+Usage: load [dir [process_count]]
+
+load will walk the directory specified (or the current directory)
+for .nt, .owl, and/or .rdf files and load them using the number of
+processes specified (or by default 4 processes).
+
+If the environment variable AGRAPH_HOST exists is set to anything other
+than localhost, the script accesses the files locally and posts the
+contents in the request. Otherwise, it uses server-side loads if on the
+same machine as the server.
+"""
+
+from multiprocessing import JoinableQueue, Process
+from Queue import Empty
+import os, sys, time
+
+from franz.openrdf.sail.allegrographserver import AllegroGraphServer
+from franz.openrdf.repository.repository import Repository
+from franz.openrdf.vocabulary import XMLSchema
+
+LOCALHOST = 'localhost'
+AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
+AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
+AG_ONSERVER = AG_HOST == LOCALHOST
+
+# The work queue
+work = None
+
+def connect(access_mode=Repository.OPEN):
+    """
+    Connect is called to connect to a store.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    catalog = server.openCatalog('tests')
+    repository = catalog.getRepository('load_test', access_mode)
+    repository.initialize()
+    return repository.getConnection()
+
+def load_files(proc_num):
+    """
+    load_files does the work of the child processes.
+    """
+    conn = connect()
+
+    def dequeue(wait=False):
+        try:
+            return work.get(wait, timeout=5)
+        except Empty:
+            return None
+
+    filename = dequeue(True)
+
+    while filename is not None:
+        context = conn.createLiteral(filename, datatype=XMLSchema.STRING)
+        display_args = (sys.argv[0], proc_num, filename)
+        print '%s(%d): Processing file %s...' % display_args
+        try:
+            conn.addFile(filename, context=context, serverSide=AG_ONSERVER)
+        except Exception:
+            print '%s(%d): Error processing file %s...' % display_args
+        work.task_done()
+        filename = dequeue()
+
+    conn.close()
+
+def main():
+    """
+    The parent main process.
+    """
+    global work
+
+    try:
+        directory = sys.argv[1]
+        if not os.path.isdir(directory):
+            print __doc__
+            sys.exit(1)
+    except IndexError:
+        directory = '.'
+
+    try:
+        proc_count = int(sys.argv[2])
+    except IndexError:
+        proc_count = 4
+
+    # Renewing the repository
+    print 'Renewing the repository.'
+    conn = connect(Repository.RENEW)
+
+    print '%s: Processing directory "%s" with %d processes.' % (
+        sys.argv[0], directory, proc_count)
+
+    # Get the full list of filenames before the timer is started
+    dir_walk = os.walk(directory)
+
+    # Create the work queue
+    work = JoinableQueue(maxsize=1000)
+
+    # Start the processes
+    for proc_num in range(proc_count):
+        p = Process(target=load_files, args=(proc_num,))
+        p.start()
+
+    # Begin the timer
+    the_time = time.time()
+
+    # Find files to process
+    for root, dirs, files in dir_walk:
+        for filename in files:
+            basename, ext = os.path.splitext(filename)
+            if ext in ['.nt', '.owl', '.rdf']:
+                work.put(os.path.abspath(os.path.join(root, filename)))
+
+    # Signal that there is no more work for the queue
+    work.close()
+
+    # Wait for all the work to be completed
+    work.join()
+
+    # Display the results
+    the_time = time.time() - the_time
+    triples = conn.size()
+    conn.close()
+    print "%d triples loaded in %s seconds (%s triples/second)." % (
+        triples, the_time, triples/the_time)
+
+if __name__ == '__main__':
+    main()

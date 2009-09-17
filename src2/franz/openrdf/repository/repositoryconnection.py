@@ -952,7 +952,7 @@ class RepositoryConnection(object):
         """
         Rolls back changes on a dedicated connection.
         """
-        return self._get_mini_repository().rollBack()
+        return self._get_mini_repository().rollback()
 
 
 class GeoType:
