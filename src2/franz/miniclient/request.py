@@ -1,4 +1,4 @@
-import StringIO, pycurl, urllib, cjson, locale
+import StringIO, pycurl, urllib, cjson, locale, re
 from threading import Lock
 
 class Pool:
@@ -46,10 +46,18 @@ class Pool:
 curlPool = Pool(pycurl.Curl)
 
 class RequestError(Exception):
+    code = None
+    
     def __init__(self, status, message):
         print status, message
         self.status = status
+        if status == 400:
+            match = re.match("([A-Z ]+): (.*)", message)
+            if match:
+                code = match.group(1)
+                message = match.group(2)
         self.message = message
+            
     def __str__(self):
         return "Server returned %s: %s" % (self.status, self.message)
 
