@@ -73,6 +73,22 @@ class Client(Catalog):
     def _pingBackend(self, id):
         nullRequest(self, "GET", "/backends/" + urllib.quote(id) + "/ping")
 
+    def listFederations(self):
+        return [fed["id"] for fed in jsonRequest(self, "GET", "/federated")]
+
+    def getFederation(self, id):
+        return self._instanceFromUrl(Repository, self.url + "/federated/" + urllib.quote(id))
+
+    def createFederation(self, id, urls=[], repos=[]):
+        """Pass URLs for remote stores, 'renoname' or 'catname:reponame'
+        for local ones."""
+        nullRequest(self, "PUT", "/federated/" + urllib.quote(id) + "?" +
+                    urlenc(url=urls, repo=repos))
+        return self.getFederation(id)
+
+    def deleteFederation(self, id):
+        nullRequest(self, "DELETE", "/federated/" + urllib.quote(id))
+
 
 class Repository(Service):
     def getSize(self, context=None):

@@ -92,3 +92,14 @@ def testBackend():
     rep.commit()
     rep.closeDedicatedBackend()
     eq(1, rep.getSize())
+
+@with_setup(cleanup)
+def testFederation():
+    eq([], client.listFederations())
+    fed = client.createFederation("fed", repos=["tests:foo"])
+    eq(0, fed.getSize())
+    rep.addStatement("<x>", "<y>", "<z>")
+    eq(1, fed.getSize())
+    eq(["fed"], client.listFederations())
+    client.deleteFederation("fed")
+    eq([], client.listFederations())
