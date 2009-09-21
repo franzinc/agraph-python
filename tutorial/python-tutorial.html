@@ -1207,7 +1207,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
     bossuet = conn.createURI(lmns, "character64")
 </pre>
 <h3 id="Creating an Environment">Creating an Environment</h3>
-<p>We're going to use Prolog queries, so we'll need an &quot;environment&quot; for the queries, just like in our example of <a href="#Prolog Rules">Prolog rules</a>. The Prolog queries and the SNA generators (below) must reside in the same environment. We also need to set the rule language. </p>
+<p>We're going to use Prolog queries, so we'll need an &quot;environment&quot; for the queries, just like in our example of <a href="#Loading Prolog Rules">Prolog rules</a>. The Prolog queries and the SNA generators (below) must reside in the same environment. We also need to set the rule language. </p>
 <pre class="input">    conn.deleteEnvironment(&quot;LesMiserables&quot;) ## start fresh 
     conn.createEnvironment(&quot;LesMiserables&quot;) 
     conn.setEnvironment(&quot;LesMiserables&quot;) 
