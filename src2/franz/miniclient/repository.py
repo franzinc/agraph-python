@@ -43,7 +43,7 @@ class Catalog(Service):
 
 class Client(Catalog):
     def listCatalogs(self):
-        return [cat["id"] for cat in jsonRequest(self, "GET", "/catalogs")]
+        return [cat["id"] if cat["id"] != "/" else None for cat in jsonRequest(self, "GET", "/catalogs")]
 
     def openCatalog(self, uriOrName):
         if (uriOrName.startswith("http://")):
