@@ -22,29 +22,6 @@ class Pool:
 
 curlPool = Pool(pycurl.Curl)
 
-from threading import Lock
-
-class Pool:
-    def __init__(self, create):
-        self.create = create
-        self.lock = Lock()
-        self.pool = []
-    def get(self):
-        self.lock.acquire()
-        try:
-            if len(self.pool): return self.pool.pop()
-            else: return self.create()
-        finally:
-            self.lock.release()
-    def put(self, value):
-        self.lock.acquire()
-        try:
-            self.pool.append(value)
-        finally:
-            self.lock.release()
-
-curlPool = Pool(pycurl.Curl)
-
 class RequestError(Exception):
     code = None
     

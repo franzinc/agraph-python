@@ -31,11 +31,6 @@ class Catalog(Service):
         """Delete a repository in this catalog."""
         nullRequest(self, "DELETE", "/repositories/" + urllib.quote(name))
 
-    # def federateTripleStores(self, name, storeNames):
-    #     """Create a federated store."""
-    #     nullRequest(self, "PUT", "/repositories/" + urllib.quote(name) +
-    #                 "?" + urlenc(federate=storeNames))
-
     def getRepository(self, name):
         """Create an access object for a triple store."""
         return self._instanceFromUrl(Repository, self.url + "/repositories/" + urllib.quote(name))
