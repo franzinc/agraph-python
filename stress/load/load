@@ -36,7 +36,7 @@ same machine as the server.
 
 from multiprocessing import JoinableQueue, Process
 from Queue import Empty
-import os, sys, time
+import os, sys, time, traceback
 
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.repository.repository import Repository
@@ -82,6 +82,7 @@ def load_files(proc_num):
             conn.addFile(filename, context=context, serverSide=AG_ONSERVER)
         except Exception:
             print '%s(%d): Error processing file %s...' % display_args
+            traceback.print_exc()
         work.task_done()
         filename = dequeue()
 
@@ -109,6 +110,7 @@ def main():
     # Renewing the repository
     print 'Renewing the repository.'
     conn = connect(Repository.RENEW)
+    triples = conn.size()
 
     print '%s: Processing directory "%s" with %d processes.' % (
         sys.argv[0], directory, proc_count)
@@ -142,7 +144,7 @@ def main():
 
     # Display the results
     the_time = time.time() - the_time
-    triples = conn.size()
+    triples = conn.size() - triples
     conn.close()
     print "%d triples loaded in %s seconds (%s triples/second)." % (
         triples, the_time, triples/the_time)

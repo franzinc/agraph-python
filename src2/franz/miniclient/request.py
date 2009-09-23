@@ -1,11 +1,25 @@
-import StringIO, pycurl, urllib, cjson, locale, re
+import StringIO, pycurl, urllib, cjson, locale, re, os
 from threading import Lock
 
+curlPool = None
+
 class Pool:
-    def __init__(self, create):
+    @staticmethod
+    def instance():
+        global curlPool
+        pid = os.getpid()
+
+        if curlPool is None or curlPool.pid != pid:
+            curlPool = Pool(pycurl.Curl, pid)
+
+        return curlPool
+        
+    def __init__(self, create, pid):
         self.create = create
+        self.pid = pid
         self.lock = Lock()
         self.pool = []
+
     def get(self):
         self.lock.acquire()
         try:
@@ -19,8 +33,6 @@ class Pool:
             self.pool.append(value)
         finally:
             self.lock.release()
-
-curlPool = Pool(pycurl.Curl)
 
 class RequestError(Exception):
     code = None
@@ -58,7 +70,7 @@ def urlenc(**args):
     return "&".join(buf)
 
 def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None):
-    curl = curlPool.get()
+    curl = Pool.instance().get()
 
     # Uncomment these 5 lines to see pycurl debug output
     ## def report(debug_type, debug_msg):
@@ -88,6 +100,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     # behaviour that is the default in libcurl when posting large
     # bodies.
     headers = ["Connection: Keep-Alive", "Accept: " + accept, "Expect:"]
+    if callback: headers.append("Connection: close")
     if obj.backend: headers.append("X-Backend-ID: " + obj.backend)
     if contentType and postbody: headers.append("Content-Type: " + contentType)
     curl.setopt(pycurl.HTTPHEADER, headers)
@@ -115,7 +128,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         response = buf.getvalue().decode("utf-8")
         buf.close()
         result = (curl.getinfo(pycurl.RESPONSE_CODE), response)
-        curlPool.put(curl)
+        Pool.instance().put(curl)
         return result
 
 def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json"):
