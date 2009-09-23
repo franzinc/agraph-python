@@ -172,7 +172,7 @@ def main():
         for filename in files:
             basename, ext = os.path.splitext(filename)
             if ext in ['.nt', '.owl', '.rdf']:
-                the_time = the_time or time.clock()
+                the_time = the_time or time.time()
                 work.put(os.path.abspath(os.path.join(root, filename)))
                 count += 1
 
@@ -184,7 +184,7 @@ def main():
 
     # Display the results
     if the_time:
-        the_time = time.clock() - the_time - DEQUEUE_WAIT
+        the_time = time.time() - the_time - DEQUEUE_WAIT
     triples = conn.size() - triples
     conn.close()
     print "%s: %d files, %d triples loaded in %s seconds " \
