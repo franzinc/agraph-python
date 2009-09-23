@@ -37,6 +37,9 @@ class Catalog(Service):
 
 
 class Client(Catalog):
+    def getVersion(self):
+        return jsonRequest(self, "GET", "/version")
+    
     def listCatalogs(self):
         return [cat["id"] if cat["id"] != "/" else None for cat in jsonRequest(self, "GET", "/catalogs")]
 

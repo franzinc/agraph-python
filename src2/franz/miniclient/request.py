@@ -31,7 +31,7 @@ class RequestError(Exception):
         if status == 400:
             match = re.match("([A-Z ]+): (.*)", message)
             if match:
-                code = match.group(1)
+                self.code = match.group(1)
                 message = match.group(2)
         self.message = message
             
