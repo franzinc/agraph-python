@@ -36,6 +36,7 @@ same machine as the server.
 
 from multiprocessing import Process
 from Queue import Empty
+from datetime import datetime
 import os, sys, time, traceback
 
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
@@ -43,10 +44,10 @@ from franz.openrdf.repository.repository import Repository
 from franz.openrdf.vocabulary import XMLSchema
 
 # The time to wait in DEQUEUE for files to be added the first time
-DEQUEUE_FIRST_WAIT = 15
+DEQUEUE_FIRST_WAIT = 60
 
 # The time to wait in DEQUEUE for more files to be added
-DEQUEUE_WAIT = 1
+DEQUEUE_WAIT = 2
 
 LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
@@ -111,20 +112,23 @@ def load_files(proc_num):
     errors = 0
     while filename is not None:
         context = conn.createLiteral(filename, datatype=XMLSchema.STRING)
-        display_args = (PROG, proc_num, filename)
-        #print '%s(%d): Processing file %s...' % display_args
+        
+        if count % 100 == 0:
+            print '%s(%d) [%s]: Processed %d files so far...' % (
+                PROG, proc_num, datetime.now(), count)
         try:
             conn.addFile(filename, context=context, serverSide=AG_ONSERVER)
             count += 1
         except Exception:
-            print '%s(%d): Error processing file %s...' % display_args
+            print '%s(%d) [%s]: Error processing file %s...' % (
+                PROG, proc_num, datetime.now(), filename)
             errors += 1
             traceback.print_exc()
         work.task_done()
         filename = dequeue(DEQUEUE_WAIT)
 
-    print "%s(%d): Process finished, %d files loaded, %d loading errors." % (
-        PROG, proc_num, count, errors)
+    print "%s(%d) [%s]: Process finished, %d files loaded, " \
+        "%d loading errors." % (PROG, proc_num, datetime.now(), count, errors)
     sys.stdout.flush()
     conn.close()
 
@@ -148,12 +152,12 @@ def main():
         proc_count = 4
 
     # Renewing the repository
-    print 'Renewing the repository.'
+    print '%s [%s]: Renewing the repository.' % (PROG, datetime.now())
     conn = connect(Repository.RENEW)
     triples = conn.size()
 
-    print '%s: Processing directory "%s" with %d processes.' % (
-        PROG, directory, proc_count)
+    print '%s [%s]: Processing directory "%s" with %d processes.' % (
+        PROG, datetime.now(), directory, proc_count)
 
     # Create the work queue
     work = JoinableQueue(maxsize=1000)
@@ -187,9 +191,9 @@ def main():
         the_time = time.time() - the_time - DEQUEUE_WAIT
     triples = conn.size() - triples
     conn.close()
-    print "%s: %d files, %d triples loaded in %s seconds " \
-        " (%s triples/second, %s file commits/second)." % (
-        PROG, count, triples, the_time, triples/the_time, count/the_time)
+    print "%s [%s]: %d files, %d triples loaded in %s seconds " \
+        " (%s triples/second, %s file commits/second)." % (PROG, datetime.now(),
+        count, triples, the_time, triples/the_time, count/the_time)
     sys.stdout.flush()
 
 if __name__ == '__main__':
