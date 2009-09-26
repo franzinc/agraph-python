@@ -18,8 +18,13 @@ import os, urllib, datetime, time
 
 CURRENT_DIRECTORY = os.path.dirname(__file__)
 
-AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
+LOCALHOST = 'localhost'
+AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
+AG_ONSERVER = AG_HOST == LOCALHOST
+
+CATALOG = 'tests'
+STORE = 'agraph_test'
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
@@ -47,17 +52,17 @@ def connect(accessMode=Repository.RENEW):
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('tests')
+    catalog = server.openCatalog(CATALOG)
     catalogs = catalog.listRepositories()
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
 
     # Instead of renewing the database, clear it.
     if accessMode == Repository.RENEW:
-        mode = Repository.CREATE if 'agraph_test' not in catalogs else Repository.OPEN
+        mode = Repository.CREATE if STORE not in catalogs else Repository.OPEN
     else:
         mode = accessMode
 
-    myRepository = catalog.getRepository("agraph_test", mode)
+    myRepository = catalog.getRepository(STORE, mode)
     myRepository.initialize()
     connection = myRepository.getConnection()
 
@@ -540,7 +545,7 @@ def test16():
         print "\n%s Apples:\t" % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    catalog = AllegroGraphServer(AG_HOST, port=AG_PORT).openCatalog('tests') 
+    catalog = AllegroGraphServer(AG_HOST, port=AG_PORT).openCatalog(CATALOG) 
     ## create two ordinary stores, and one federated store: 
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
@@ -1192,8 +1197,33 @@ def test_getJDBCStatements():
 
     assert len(rows) <= 10
 
-## (triple-id default-graph subscript geospatial longitude latitude
-##  telephone-number blank-node literal-language literal-typed literal
-##  literal-short node resource single-float double-float gyear time
-##  date-time date long-88 long short int byte unsigned-long-88
-##  unsigned-long unsigned-short unsigned-int unsigned-byte)
+def test_dedicated():
+    """
+    Test of Dedicated Back End Commit/Rollback
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    catalog = server.openCatalog(CATALOG)  
+    myRepository = catalog.getRepository(STORE, Repository.RENEW)
+    myRepository.initialize()
+    common = myRepository.getConnection()
+
+    with myRepository.getConnection().dedicated() as dedicated:
+        path1 = os.path.join(CURRENT_DIRECTORY, 'vc-db-1.rdf')
+        path2 = os.path.join(CURRENT_DIRECTORY, 'kennedy.ntriples')
+        path3 = os.path.join(CURRENT_DIRECTORY, 'lesmis.rdf')
+        baseURI = "http://example.org/example/local"
+        context = dedicated.createURI("http://example.org#vcards")
+        dedicated.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
+        ## read vcards triples into the context 'context' of back end:
+        # Load 16 vcards triples into named context in dedicated back end.
+        dedicated.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
+        ## read kennedy triples into the dedicated null context:
+        # Load 1214 kennedy.ntriples into null context of dedicated back end.
+        dedicated.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+        ## read lesmis triples into the null context of the common back end:
+        # Load 916 lesmis triples into null context of common back end.
+        common.addFile(path3, baseURI, format=RDFFormat.RDFXML, context=None);
+        assert 16 == dedicated.size(context)
+        assert 1214 == dedicated.size('null')
+        assert 916 == common.size('null')
+    

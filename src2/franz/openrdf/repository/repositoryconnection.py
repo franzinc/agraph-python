@@ -37,8 +37,8 @@ from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLang
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
 from ..vocabulary import RDF, RDFS, OWL, XMLSchema
-import datetime
-import os
+
+import copy, datetime, os
 from contextlib import contextmanager
 
 # * Main interface for updating data in and performing queries on a Sesame
@@ -83,30 +83,18 @@ from contextlib import contextmanager
 class RepositoryConnection(object):
     def __init__(self, repository):
         self.repository = repository 
-        #self.mini_repository = repository.mini_repository
+        self.mini_repository = repository.mini_repository
         self.is_closed = False
         self.ruleLanguage = None
         
     def _get_mini_repository(self):
-        """
-        The mini-repository code is not thread-safe.  If in multi-threaded
-        mode, we create a new curl object before every HTTP call.  Here,
-        we call 'get_mini_repository' repeatedly instead of caching the
-        object to insure of the curl hack.
-        """
-        return self.repository.mini_repository
+        return self.mini_repository
         
     def getValueFactory(self):
         return self.repository.getValueFactory()
         
-    def rollback(self):
-        print "PRETENDING TO ROLLBACK"
-    
     def close(self):
         self.is_closed = True
-    
-    def commit(self):
-        print "PRETENDING TO COMMIT"
     
     def prepareQuery(self, queryLanguage, queryString, baseURI=None):
         """
@@ -919,12 +907,18 @@ class RepositoryConnection(object):
         Open a dedicated backend/connection.
         """
         miniRep = self._get_mini_repository()
+        if miniRep == self.repository.mini_repository:
+            # Don't use the shared mini_repository for a dedicated backend
+            miniRep = self.mini_repository = copy.copy(self.repository.mini_repository)
+
         return miniRep.openDedicatedBackend()
 
     def closeDedicated(self):
         """
         Close a dedicated backend/connection.
         """
+        # Keeping the clone of the mini_repository is fine in case the user
+        # calls openDedicated again.
         miniRep = self._get_mini_repository()
         return miniRep.closeDedicatedBackend()
 

@@ -58,7 +58,6 @@ class AllegroGraphServer(object):
         self.open_catalogs = []
         self.options = options
         self.translated_options = None
-        print "Defining connnection to AllegroGraph server -- host:'%s'  port:%s" % (host, port)
 
     def _get_address(self):
         return "http://%s:%s" % (self.host, self.port)
@@ -111,8 +110,8 @@ class Catalog(object):
         """
         return self.mini_catalog.listRepositories()
     
-    def getRepository(self, name, access_verb, multi_threaded_mode=False):
-        return Repository(self, name, access_verb, multi_threaded_mode=multi_threaded_mode)
+    def getRepository(self, name, access_verb):
+        return Repository(self, name, access_verb)
     
     def close(self):
         if not self.is_closed:

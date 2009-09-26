@@ -29,9 +29,6 @@ from ..exceptions import InitializationException, IllegalArgumentException,\
      ServerException
 from ..model import URI, ValueFactory
 from .repositoryconnection import RepositoryConnection
-import threading
-import urllib
-
 
 import urllib
 
@@ -52,15 +49,13 @@ class Repository:
     CREATE = 'CREATE'
     REPLACE = 'REPLACE'
 
-    def __init__(self, catalog, database_name, access_verb, multi_threaded_mode=False):
+    def __init__(self, catalog, database_name, access_verb):
         self.catalog = catalog
         self.mini_catalog = catalog.mini_catalog
         self.mini_repository = None
         self.database_name = database_name
         self.access_verb = access_verb.upper()
-        self.multi_threaded_mode=multi_threaded_mode
         ## system state fields:
-        self.connection = None
         self.value_factory = None
         self.is_initialized = False
         self.federated_triple_stores = None
@@ -219,9 +214,7 @@ class Repository:
         closed to make sure that any resources they keep hold of are released. The
         best way to do this is to use a try-finally-block 
         """
-        if not self.connection:
-            self.connection = RepositoryConnection(self)
-        return self.connection
+        return RepositoryConnection(self)
 
     def getValueFactory(self):
         """
