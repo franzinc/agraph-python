@@ -149,7 +149,6 @@ class Repository:
         triples/statements.  This is needed to make the  fti:match  operator
         work properly.
         """
-        print ">>>>>>>>>>>>>>>>>>REGISTER FREE TEXT PREDICATE", uri
         uri = uri or (namespace + localname)
         self.mini_repository.registerFreeTextPredicate("<%s>" % uri)
         
@@ -177,7 +176,7 @@ class Repository:
             lispType = self._translate_inlined_type(nativeType)
             #mapping = [predicate, lispType, "predicate"]
             self.mapped_predicates[predicate] = lispType
-        elif datatype:
+        elif datatype: 
             lispType = self._translate_inlined_type(nativeType or datatype)
             #mapping = [datatype, lispType, "datatype"]
             self.mapped_datatypes[datatype] = lispType

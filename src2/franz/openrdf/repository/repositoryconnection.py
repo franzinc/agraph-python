@@ -194,12 +194,22 @@ class RepositoryConnection(object):
         return self.size() == 0
     
     def _context_to_ntriples(self, context, none_is_mini_null=False):
-        if context is None: return MINI_NULL_CONTEXT if none_is_mini_null else None
-        if context == MINI_NULL_CONTEXT: return MINI_NULL_CONTEXT
-        elif context == 'null': return MINI_NULL_CONTEXT
-        elif context: return context.toNTriples()
-        elif none_is_mini_null: return MINI_NULL_CONTEXT
-        else: return None            
+        if context is None:
+            return MINI_NULL_CONTEXT if none_is_mini_null else None
+
+        if context == MINI_NULL_CONTEXT:
+            return MINI_NULL_CONTEXT
+
+        if context == 'null':
+            return MINI_NULL_CONTEXT
+
+        if context:
+            return context if isinstance(context, basestring) else context.toNTriples()
+
+        if none_is_mini_null:
+            return MINI_NULL_CONTEXT
+
+        return None            
        
     def _contexts_to_ntriple_contexts(self, contexts, none_is_mini_null=False):
         """
@@ -689,7 +699,7 @@ class RepositoryConnection(object):
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
         former appends a new rule; the latter overwrites any rule with the same predicate.
 
-        For use with a dedicated connection.
+        For use with an open session.
         """
         language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
@@ -705,7 +715,7 @@ class RepositoryConnection(object):
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
         former appends a new rule; the latter overwrites any rule with the same predicate.
 
-        For use with a dedicated connection.
+        For use with an open session.
         """
         with open(filename) as _file:
             body = _file.read()
@@ -857,7 +867,7 @@ class RepositoryConnection(object):
         Alternatively, instead of an adjacency map, one may provide a 'generator_query',
         that defines the edges.
 
-        For use with a dedicated connection.
+        For use with an open session.
         """
         miniRep = self._get_mini_repository()
         miniRep.registerSNAGenerator(name, subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, 
@@ -869,19 +879,10 @@ class RepositoryConnection(object):
         to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),
         computing edges to max depth 'max_depth'.
 
-        For use with a dedicated connection.
+        For use with an open session.
         """
         miniRep = self._get_mini_repository()
         miniRep.registerNeighborMatrix(name, group_uris, generator, max_depth)
-
-##     def rebuildNeighborMatrix(self, name):
-##         """
-##         Recompute the set of edges cached in the neighbor matrix named 'name'.
-
-##         For use with a dedicated connection.
-##         """
-##         miniRep = self._get_mini_repository()
-##         miniRep.rebuildNeighborMatrix(name)
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
         """
@@ -902,49 +903,49 @@ class RepositoryConnection(object):
         """
         return self.repository.updateFreeTextIndexing()
 
-    def openDedicated(self):
+    def openSession(self):
         """
-        Open a dedicated backend/connection.
+        Open a session.
         """
         miniRep = self._get_mini_repository()
         if miniRep == self.repository.mini_repository:
-            # Don't use the shared mini_repository for a dedicated backend
+            # Don't use the shared mini_repository for a session
             miniRep = self.mini_repository = copy.copy(self.repository.mini_repository)
 
-        return miniRep.openDedicatedBackend()
+        return miniRep.openSession()
 
-    def closeDedicated(self):
+    def closeSession(self):
         """
-        Close a dedicated backend/connection.
+        Close a session.
         """
         # Keeping the clone of the mini_repository is fine in case the user
-        # calls openDedicated again.
+        # calls openSession again.
         miniRep = self._get_mini_repository()
-        return miniRep.closeDedicatedBackend()
+        return miniRep.closeSession()
 
     @contextmanager
-    def dedicated(self):
+    def session(self):
         """
-        A dedicated connection context manager for use with the 'with' statement:
+        A session context manager for use with the 'with' statement:
 
-        with conn.dedicated():
-            # Automatically calls openDedicated at block start
+        with conn.session():
+            # Automatically calls openSession at block start
             # Do work
-            # Automatically calls closeDedicated at block end
+            # Automatically calls closeSession at block end
         """
-        self.openDedicated()
+        self.openSession()
         yield self
-        self.closeDedicated()
+        self.closeSession()
 
     def commit(self):
         """
-        Commits changes on a dedicated connection.
+        Commits changes on an open session.
         """
         return self._get_mini_repository().commit()
 
     def rollback(self):
         """
-        Rolls back changes on a dedicated connection.
+        Rolls back changes on open session.
         """
         return self._get_mini_repository().rollback()
 

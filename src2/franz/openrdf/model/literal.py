@@ -32,6 +32,41 @@ from ..vocabulary import XMLSchema
 import datetime
 from collections import defaultdict
 
+
+def datatype_from_python(value, datatype):
+    """
+    If 'value' is not a string, convert it into one, and infer its
+    datatype, unless 'datatype' is set (i.e., overrides it).
+    """
+    if isinstance(value, str):
+        return value, datatype
+
+    ## careful: test for 'bool' must precede test for 'int':
+    if isinstance(value, bool):
+        return str(value), datatype or XMLSchema.BOOLEAN
+
+    if isinstance(value, int):
+        return str(value), datatype or XMLSchema.INT
+
+    if isinstance(value, float):
+        return str(value), datatype or XMLSchema.FLOAT
+
+    if isinstance(value, datetime.datetime):
+        ## TODO: NEED TO ADD TIMEZONE VALUE??:
+        value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## truncate microseconds  
+        return value, datatype or XMLSchema.DATETIME
+
+    if isinstance(value, datetime.time):
+        value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
+        return str(value), datatype or XMLSchema.TIME
+
+    if isinstance(value, datetime.date):
+        value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
+        return str(value), datatype or XMLSchema.DATE
+
+    return str(value), datatype
+
+
 class Literal(Value):
     """
     Lightweight implementation of the Literal class.  Think 'LiteralBase'.
@@ -41,10 +76,10 @@ class Literal(Value):
     """
     def __init__(self, label, datatype=None, language=None):
         Value.__init__(self)
-        # Use the properties to set the real values
-        self.datatype = datatype
+        
+        # Uses the properties to set the real values
+        self.label, self.datatype = datatype_from_python(label, datatype)
         self.language = language
-        self.label = label
 
     ISO_FORMAT_WITH_T = "%Y-%m-%dT%H:%M:%S"
 
@@ -273,5 +308,4 @@ class GeoPolygon(GeoSpatialRegion):
     def getResource(self): return self.resource
     
     def __str__(self): return "|Polygon|%s" % self.vertices
-        
-        
+    

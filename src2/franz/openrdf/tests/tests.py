@@ -521,7 +521,7 @@ def test15():
     bob = conn.createURI(namespace=exns, localname="bob")
     carol = conn.createURI(namespace=exns, localname="carol")    
     age = conn.createURI(namespace=exns, localname="age")    
-    range = conn.createRange(30, 50)
+    age_range = conn.createRange(30, 50)
     # range = conn.createRange(24, 42)  #this setting demonstrates that the limits are inclusive.
     if True: conn.registerDatatypeMapping(predicate=age, nativeType="int")
     if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")  
@@ -532,7 +532,8 @@ def test15():
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
-    rows = conn.getStatements(None, age, range)
+    rows = conn.getStatements(None, age, age_range)
+    assert len(rows) > 0
     for r in rows:
         print r 
 
@@ -592,7 +593,7 @@ def test17():
     """
     Prolog queries
     """
-    with connect().dedicated() as conn:
+    with connect().session() as conn:
         result = kennedy_male_names(False, conn);     
         for bindingSet in result:
             f = bindingSet.getValue("first")
@@ -609,7 +610,7 @@ def test18():
 #        result = tupleQuery.evaluate();     
 #        for row in result:
 #            print row
-    with connect().dedicated() as conn:        
+    with connect().session() as conn:        
         test6(conn)
         conn.setNamespace("kdy", "http://www.franz.com/simple#")
         conn.setNamespace("rltv", "http://www.franz.com/simple#")  
@@ -799,7 +800,7 @@ def test21():
     """
     Social Network Analysis Reasoning
     """
-    with connect().dedicated() as conn:
+    with connect().session() as conn:
         print "Starting example test21()."
         print "Current working directory is '%s'" % (os.getcwd())
         path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
@@ -827,7 +828,7 @@ def test22():
     More Social Network Analysis Reasoning
     """
 
-    with connect().dedicated() as conn:
+    with connect().session() as conn:
         print "Starting example test21()."
         print "Current working directory is '%s'" % (os.getcwd())
         path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
@@ -1146,7 +1147,7 @@ def test_jdbc_iter():
     """
     JDBC test with resultset as iterator.
     """
-    with connect().dedicated() as conn:
+    with connect().session() as conn:
         results = kennedy_male_names(True, conn)     
         for row in results:
             f = row.getValue("first")
@@ -1157,7 +1158,7 @@ def test_jdbc_java():
     """
     JDBC test with resultset as java next.
     """
-    with connect().dedicated() as conn:
+    with connect().session() as conn:
         rows = kennedy_male_names(True, conn)     
         while rows.next():
             f = rows.getValue("first")
@@ -1197,9 +1198,9 @@ def test_getJDBCStatements():
 
     assert len(rows) <= 10
 
-def test_dedicated():
+def test_session():
     """
-    Test of Dedicated Back End Commit/Rollback
+    Test of Session Commit/Rollback
     """
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     catalog = server.openCatalog(CATALOG)  
@@ -1207,7 +1208,7 @@ def test_dedicated():
     myRepository.initialize()
     common = myRepository.getConnection()
 
-    with myRepository.getConnection().dedicated() as dedicated:
+    with myRepository.getConnection().session() as dedicated:
         path1 = os.path.join(CURRENT_DIRECTORY, 'vc-db-1.rdf')
         path2 = os.path.join(CURRENT_DIRECTORY, 'kennedy.ntriples')
         path3 = os.path.join(CURRENT_DIRECTORY, 'lesmis.rdf')

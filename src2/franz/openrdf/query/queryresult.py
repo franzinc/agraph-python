@@ -235,6 +235,7 @@ class ListBindingSet(object):
 #############################################################################
 
 class Binding(namedtuple('Binding', 'name value')):
+    __slots__ = ()
     """
     An implementation of 'Binding'
     """
