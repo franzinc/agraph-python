@@ -103,3 +103,11 @@ def testFederation():
     eq(["fed"], client.listFederations())
     client.deleteFederation("fed")
     eq([], client.listFederations())
+
+@with_setup(cleanup)
+def testTemporal():
+    rep.addMappedType("<time>", "date-time")
+    rep.addStatement("<x>", "<happened>", "\"2009-09-28T17:41:39\"^^<time>")
+    rep.addStatement("<y>", "<happened>", "\"2009-09-28T18:22:00\"^^<time>")
+    rep.addStatement("<z>", "<happened>", "\"2009-09-28T17:02:41\"^^<time>")
+    eq(2, len(rep.getStatements(obj=("\"2009-09-28T17:00:00\"^^<time>", "\"2009-09-28T18:00:00\"^^<time>"))))
