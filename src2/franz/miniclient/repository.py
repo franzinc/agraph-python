@@ -6,7 +6,6 @@ class Service(object):
         self.url = url
         self.user = user
         self.password = password
-        self.backend = None
 
     def _instanceFromUrl(self, constructor, url):
         return constructor(url, self.user, self.password)
@@ -63,13 +62,6 @@ class Client(Catalog):
             nullRequest(self, "DELETE", "/initfile")
         else:
             nullRequest(self, "PUT", "/initfile?" + urlenc(restart=restart), content)
-
-    def _spawnBackend(self):
-        return jsonRequest(self, "POST", "/backends")
-    def _closeBackend(self, id):
-        nullRequest(self, "DELETE", "/backends/" + urllib.quote(id))
-    def _pingBackend(self, id):
-        nullRequest(self, "GET", "/backends/" + urllib.quote(id) + "/ping")
 
     def listFederations(self):
         return [fed["id"] for fed in jsonRequest(self, "GET", "/federated")]
@@ -342,28 +334,28 @@ class Repository(Service):
         nullRequest(self, "PUT", "/neighborMatrices/" + urllib.quote(name) + "?" +
                     urlenc(group=group, depth=depth, generator=generator))
 
-    backendAlive = None
+    sessionAlive = None
     
-    def openDedicatedBackend(self):
-        if self.backend: return
-        client = self.toBaseClient()
-        id = self.backend = client._spawnBackend()
-        alive = self.backendAlive = threading.Event()
-        def pingBackend():
+    def openSession(self, autocommit=False, lifetime=None):
+        if self.sessionAlive: return
+        self.oldUrl = self.url
+        self.url = jsonRequest(self, "POST", "/session?" + urlenc(autoCommit=autocommit, lifetime=lifetime))
+        alive = self.sessionAlive = threading.Event()
+        def pingSession():
             while True:
-                stop = alive.wait(250)
+                stop = alive.wait(lifetime - 60 if lifetime else 250)
                 if alive.isSet(): return
-                try: client._pingBackend(id)
+                try: nullRequest(self, "GET", "/session/ping")
                 except Exception: return
-        threading.Thread(target=pingBackend)
+        threading.Thread(target=pingSession)
 
-    def closeDedicatedBackend(self):
-        if not self.backend: return
-        self.backendAlive.set()
-        self.backendAlive = None
-        try: self.toBaseClient()._closeBackend(self.backend)
+    def closeSession(self):
+        if not self.sessionAlive: return
+        self.sessionAlive.set()
+        self.sessionAlive = None
+        try: nullRequest(self, "POST", "/session/close")
         except Exception: pass
-        self.backend = None
+        self.url = self.oldUrl
 
     def __del__(self):
-        self.closeDedicatedBackend()
+        self.closeSession()

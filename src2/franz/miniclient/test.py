@@ -78,19 +78,19 @@ def testGeo():
   eq(['"London"'], [x[0] for x in rep.getStatementsInsideBox(typ2, '"loc"', 0.08, 0.09, 51.0, 52.0)])
 
 @with_setup(cleanup)
-def testBackend():
+def testSession():
     eq(0, rep.getSize())
-    rep.openDedicatedBackend()
+    rep.openSession()
     rep.addStatement("<a>", "<b>", "<c>")
     eq(1, rep.getSize())
-    rep.closeDedicatedBackend()
+    rep.closeSession()
     eq(0, rep.getSize())
-    rep.openDedicatedBackend()
+    rep.openSession()
     rep.addStatement("<a>", "<b>", "<c>")
     rep.definePrologFunctors("(<-- (b ?a ?b) (q- ?a !<b> ?b))")
     rep.evalPrologQuery("(select ?x (b ?x !<c>))")
     rep.commit()
-    rep.closeDedicatedBackend()
+    rep.closeSession()
     eq(1, rep.getSize())
 
 @with_setup(cleanup)
