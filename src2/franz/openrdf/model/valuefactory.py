@@ -29,8 +29,6 @@ from .literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
 from .statement import Statement
 from ..vocabulary import XMLSchema
 
-import datetime, traceback
-
 class ValueFactory(object):
     """
     A factory for creating URIs, blank nodes, literals and statements.
@@ -55,34 +53,6 @@ class ValueFactory(object):
             nodeID = self.getUnusedBNodeId()
         return BNode(nodeID)
     
-    @staticmethod
-    def _interpret_value(value, datatype):
-        """
-        If 'self' is not a string, convert it into one, and infer its
-        datatype, unless 'datatype' is set (i.e., overrides it).
-        """
-        if isinstance(value, str):
-            return value, datatype
-        ## careful: test for 'bool' must precede test for 'int':
-        elif isinstance(value, bool):
-            return str(value), datatype or XMLSchema.BOOLEAN
-        elif isinstance(value, int):
-            return str(value), datatype or XMLSchema.INT
-        elif isinstance(value, float):
-            return str(value), datatype or XMLSchema.FLOAT
-        elif isinstance(value, datetime.datetime):
-            ## TODO: NEED TO ADD TIMEZONE VALUE??:
-            value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## truncate microseconds  
-            return value, datatype or XMLSchema.DATETIME
-        elif isinstance(value, datetime.time):
-            value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
-            return str(value), datatype or XMLSchema.TIME
-        elif isinstance(value, datetime.date):
-            value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
-            return str(value), datatype or XMLSchema.DATE
-        else:
-            return str(value), datatype
-    
     def createLiteral(self, value, datatype=None, language=None):
         """
         Create a new literal with value 'value'.  'datatype' if supplied,
@@ -90,7 +60,7 @@ class ValueFactory(object):
         """
         if isinstance(value, (tuple, list)) and len(value) == 2:
             return self.createRange(value[0], value[1])
-        value, datatype = ValueFactory._interpret_value(value, datatype)
+
         return Literal(value, datatype=datatype, language=language)
         
 

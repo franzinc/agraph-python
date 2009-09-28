@@ -69,11 +69,9 @@ def datatype_from_python(value, datatype):
 
 class Literal(Value):
     """
-    Lightweight implementation of the Literal class.  Think 'LiteralBase'.
-    
-    Implementer note: If this is still too heavyweight, subclass but don't
-    call super.__init__.  That's why Python is so cool!
+    Implementation of the Literal class.
     """
+    
     def __init__(self, label, datatype=None, language=None):
         Value.__init__(self)
         
