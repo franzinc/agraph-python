@@ -903,9 +903,16 @@ class RepositoryConnection(object):
         """
         return self.repository.updateFreeTextIndexing()
 
-    def openSession(self):
+    def openSession(self, autocommit=False, lifetime=None):
         """
         Open a session.
+
+        If autocommit is True, commits are done on each request, otherwise
+        you will need to call commit() or rollback() as appropriate for your
+        application.
+
+        lifetime is an integer specifying the time to live in seconds of 
+        the session.
         """
         miniRep = self._get_mini_repository()
         if miniRep == self.repository.mini_repository:
@@ -924,7 +931,7 @@ class RepositoryConnection(object):
         return miniRep.closeSession()
 
     @contextmanager
-    def session(self):
+    def session(self,  autocommit=False, lifetime=None):
         """
         A session context manager for use with the 'with' statement:
 
@@ -932,8 +939,16 @@ class RepositoryConnection(object):
             # Automatically calls openSession at block start
             # Do work
             # Automatically calls closeSession at block end
+
+
+        If autocommit is True, commits are done on each request, otherwise
+        you will need to call commit() or rollback() as appropriate for your
+        application.
+
+        lifetime is an integer specifying the time to live in seconds of 
+        the session.
         """
-        self.openSession()
+        self.openSession(autocommit, lifetime)
         yield self
         self.closeSession()
 

@@ -99,6 +99,7 @@ def load_files(proc_num):
     load_files does the work of the child processes.
     """
     conn = connect()
+    conn.openSession(True)
 
     def dequeue(timeout):
         try:
@@ -127,10 +128,12 @@ def load_files(proc_num):
         work.task_done()
         filename = dequeue(DEQUEUE_WAIT)
 
+    conn.closeSession()
+    conn.close()
+
     print "%s(%d) [%s]: Process finished, %d files loaded, " \
         "%d loading errors." % (PROG, proc_num, datetime.now(), count, errors)
     sys.stdout.flush()
-    conn.close()
 
 def main():
     """
@@ -160,7 +163,7 @@ def main():
         PROG, datetime.now(), directory, proc_count)
 
     # Create the work queue
-    work = JoinableQueue(maxsize=1000)
+    work = JoinableQueue(maxsize=4000)
 
     # Start the processes
     for proc_num in range(proc_count):

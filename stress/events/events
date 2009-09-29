@@ -362,7 +362,6 @@ def load_events(proc_num):
 
             try:
                 conn.mini_repository.addStatements(quads)
-                conn.commit()
                 count += len(quads)
             except Exception:
                 print '%s(%d) [%s]: Error adding quads...' % (
@@ -387,7 +386,7 @@ def load_events(proc_num):
             conn.commit()
         loadq.task_done()
 
-    with connect().session() as conn:
+    with connect().session(True) as conn:
         phase = dequeue()
         assert phase == LoadPhase.baseline
         load_phase(PhaseParameters(BaselineRange, 1, SIZE/10))
