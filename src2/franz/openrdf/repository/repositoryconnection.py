@@ -919,7 +919,7 @@ class RepositoryConnection(object):
             # Don't use the shared mini_repository for a session
             miniRep = self.mini_repository = copy.copy(self.repository.mini_repository)
 
-        return miniRep.openSession()
+        return miniRep.openSession(autocommit, lifetime)
 
     def closeSession(self):
         """
