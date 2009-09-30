@@ -415,16 +415,14 @@ def load_events(proc_num):
                     the_range.getUpperBound().getLabel(),
                     timestamp.toNTriples())
 
-        with conn.session():
-            events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
-                ).evaluate(count=True)
-            print '%s(%d) [%s]: Found %d events (%d triples) to delete.' % (
-                PROG, proc_num, datetime.now(), events, events * EVENT_SIZE)
-            conn.commit()
+        events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+            ).evaluate(count=True)
+        print '%s(%d) [%s]: Found %d events (%d triples) to delete.' % (
+            PROG, proc_num, datetime.now(), events, events * EVENT_SIZE)
         
         loadq.task_done()
 
-    with connect().session(True) as conn:
+    with connect().session(True, 3600) as conn:
         phase = dequeue()
         assert phase == LoadPhase.baseline
         load_phase(PhaseParameters(BaselineRange, 1, SIZE/10))
@@ -471,10 +469,8 @@ def query_events(proc_num):
         timestamp = URI(namespace=NS, localname='EventTimeStamp')
 
         # Perform the query in prolog or sparql
-        language = QueryLanguage.PROLOG
-
-        # switch off once the SPARQL query works.
-        # language = QueryLanguage.PROLOG if proc_num % 2 == 1 else QueryLanguage.SPARQL
+        language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
+            else QueryLanguage.SPARQL
 
         if language is QueryLanguage.PROLOG:
             queryString = """
