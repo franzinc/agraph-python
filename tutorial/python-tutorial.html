@@ -186,7 +186,8 @@ In Windows XP, you can set an environment variable by
   <li>Predicate: The second field contains the URI identifying a property of this resource, such as its color or size, or a relationship between this resource and another one, such as parentage or ownership. </li>
   <li>Object: The third field is the value of the property. It could be a literal value, such as &quot;red,&quot; or the URI of a linked resource. </li>
   </ul>
-  <li>A &quot;quint&quot; is a triple with an added &quot;context&quot; field, which is used to subdivide a repository into groups of related triples,.and a &quot;tripleID&quot; field. AllegroGraph Server implements triples as quints behind the scenes. The fourth and fifth fields are often ignored, however, so we speak casually of &quot;triples,&quot; and sometimes of &quot;quads,&quot; when it would be more rigorous to call them all &quot;quints.&quot; </li>
+  <li>A &quot;quad&quot; is a triple with an added &quot;context&quot; field, which is used to divide the repository into &quot;subgraphs.&quot; This context or subgraph is just a URI label that appears in the fourth field of related triples. </li>
+  <li>A &quot;quint&quot; is a quad with fifth field used for the &quot;tripleID.&quot; AllegroGraph Server implements all triples as quints behind the scenes. The fourth and fifth fields are often ignored, however, so we speak casually of &quot;triples,&quot; and sometimes of &quot;quads,&quot; when it would be more rigorous to call them all &quot;quints.&quot; </li>
   <li>A &quot;resource description &quot; is defined as a collection of triples that all have the same URI in the subject field. In other words, the triples all describe attributes of the same thing.</li>
   <li>A &quot;statement&quot; is a client-side Python object that describes a triple (quad, quint).&nbsp; </li>
 </ul>
@@ -196,7 +197,7 @@ In Windows XP, you can set an environment variable by
       <ul>
         <li>A &quot;catalog&quot; is a list of repositories owned by an AllegroGraph server.</li>
         <li>A &quot;repository&quot; is a collection of triples within a Catalog, stored and indexed on a hard disk.</li>
-        <li>A &quot;context&quot; is a subset of the triples in a repository. </li>
+        <li>A &quot;context&quot; is a subgraph of the triples in a repository. </li>
         <li>If contexts are not in use, the triples are stored in the &quot;null&quot; context. </li>
         <li>If contexts are being used, the &quot;null&quot; context is not available. </li>
       </ul>      </td>
@@ -216,7 +217,7 @@ this diagram:</p>
   </tr>
 </table>
 
-<p>The example first connects to an AllegroGraph Server by providing the endpoint (host IP address and port number) of an already-launched AllegroGraph server.. This creates a client-side server object, which can access the AllegroGraph server's list of available catalogs through the <strong>listCatalogs()</strong> method:. </p>
+<p>The example first connects to an AllegroGraph Server by providing the endpoint (host IP address and port number) of an already-launched AllegroGraph server. This creates a client-side server object, which can access the AllegroGraph server's list of available catalogs through the <strong>listCatalogs()</strong> method:. </p>
 <pre class="input">def test1(accessMode=Repository.RENEW):
     server = AllegroGraphServer(path=&quot;localhost&quot;, port=&quot;8080&quot;)
     print &quot;Available catalogs&quot;, server.listCatalogs()
@@ -1440,7 +1441,7 @@ Number of cliques: 2
 "7.5555557e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
 7.5555557e-1</pre>
 <p>That's the expected result of 0.755. </p>
-<p>&nbsp;</p>
+<p><font color="#CCCCCC">September 25, 2009 </font><font size="-3"></font></p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
