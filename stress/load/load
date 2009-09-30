@@ -114,12 +114,15 @@ def load_files(proc_num):
         if count % 100 == 0:
             print '%s(%d) [%s]: Processed %d files so far...' % (
                 PROG, proc_num, datetime.now(), count)
+            sys.stdout.flush()
+            
         try:
             conn.addFile(filename, context=context, serverSide=AG_ONSERVER)
             count += 1
         except Exception:
             print '%s(%d) [%s]: Error processing file %s...' % (
                 PROG, proc_num, datetime.now(), filename)
+            sys.stdout.flush()
             errors += 1
             traceback.print_exc()
         work.task_done()
@@ -163,6 +166,7 @@ def main():
     print '%s [%s]: Processing %s "%s" with %d processes.' % (
         PROG, datetime.now(), "directory" if is_dir else "filenames in",
         path, proc_count)
+    sys.stdout.flush()
 
     # Create the work queue
     work = JoinableQueue(maxsize=4000)

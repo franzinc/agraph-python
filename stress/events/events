@@ -50,7 +50,7 @@ QUERY_WORKERS = 8
 EVENT_SIZE = 50
 
 # Events per commit in bulk load phase
-BULK_EVENTS = 400
+BULK_EVENTS = 250
 
 # Goal store size
 SIZE = (10**9)
@@ -365,6 +365,8 @@ def load_events(proc_num):
         storage = [None]*EVENT_SIZE
         quads = [None]*(EVENT_SIZE*params.events_in_commit)
 
+        status_size = 1000 if params.events_in_commit == 1 else 250
+
         count = 0
         errors = 0
 
@@ -375,8 +377,8 @@ def load_events(proc_num):
                 quads[index:index+EVENT_SIZE] = event_quads
                 index += EVENT_SIZE
 
-            if count > 0 and count % 10000 == 0:
-                print '%s(%d) [%s]: Loading status - %d triples loaded so far' \
+            if commit > 0 and commit % status_size == 0:
+                print '%s(%d) [%s]: Loading status - %d triples loaded so far '\
                       'at %s triples per commit, %d loading errors.' % (PROG,
                       proc_num, datetime.now(), count,
                       EVENT_SIZE*params.events_in_commit, errors)
@@ -468,20 +470,38 @@ def query_events(proc_num):
         the_range = conn.createRange(start, end)
         timestamp = URI(namespace=NS, localname='EventTimeStamp')
 
-        # Perform the query
-        queryString = """
-              (select (?event ?pred ?obj)
-                (lisp ?start (value->upi \"%s\" :date-time))
-                (lisp ?end (value->upi \"%s\" :date-time))
-                (q- ?event !%s (? ?start ?end) !%s)
-                (q- ?event ?pred ?obj))""" % (
-                    the_range.getLowerBound().getLabel(),
-                    the_range.getUpperBound().getLabel(),
-                    timestamp.toNTriples(), customer)
+        # Perform the query in prolog or sparql
+        language = QueryLanguage.PROLOG
+
+        # switch off once the SPARQL query works.
+        # language = QueryLanguage.PROLOG if proc_num % 2 == 1 else QueryLanguage.SPARQL
+
+        if language is QueryLanguage.PROLOG:
+            queryString = """
+                  (select (?event ?pred ?obj)
+                    (lisp ?start (value->upi \"%s\" :date-time))
+                    (lisp ?end (value->upi \"%s\" :date-time))
+                    (q- ?event !%s (? ?start ?end) !%s)
+                    (q- ?event ?pred ?obj))""" % (
+                        the_range.getLowerBound().getLabel(),
+                        the_range.getUpperBound().getLabel(),
+                        timestamp.toNTriples(), customer)
+        else:
+            queryString = """
+                SELECT ?event ?pred ?obj {
+                 GRAPH %s {
+                   ?event %s ?time .
+                   FILTER (?time <= %s)
+                   FILTER (?time >= %s)
+                 }
+                 {?event ?pred ?obj}
+                }""" % (customer, timestamp.toNTriples(),
+                    the_range.getUpperBound().toNTriples(),
+                    the_range.getLowerBound().toNTriples())
 
         try:
             # Actually pull the full results to the client, then just count them
-            count = len(conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+            count = len(conn.prepareTupleQuery(language, queryString
                 ).evaluate())
         except RequestError:
             # During huge bulk deletions, some queries may be invalidated
