@@ -43,8 +43,8 @@ from franz.openrdf.model import Literal, Statement, URI
 NS = 'http://franz.com/events#';
 
 # Number of worker processes
-LOAD_WORKERS = 4
-QUERY_WORKERS = 4
+LOAD_WORKERS = 8
+QUERY_WORKERS = 8
 
 # Size of the Events
 EVENT_SIZE = 50
@@ -375,6 +375,13 @@ def load_events(proc_num):
                 quads[index:index+EVENT_SIZE] = event_quads
                 index += EVENT_SIZE
 
+            if count > 0 and count % 10000 == 0:
+                print '%s(%d) [%s]: Loading status - %d triples loaded so far' \
+                      'at %s triples per commit, %d loading errors.' % (PROG,
+                      proc_num, datetime.now(), count,
+                      EVENT_SIZE*params.events_in_commit, errors)
+                sys.stdout.flush()
+
             try:
                 conn.mini_repository.addStatements(quads)
                 count += len(quads)
@@ -384,7 +391,7 @@ def load_events(proc_num):
                 errors += 1
                 traceback.print_exc()
             
-        print '%s(%d) [%s]: Loading done, %d triples loaded at %s triples ' \
+        print '%s(%d) [%s]: Loading done - %d triples loaded at %s triples ' \
             'per commit, %d loading errors.' % (PROG, proc_num, datetime.now(),
             count, EVENT_SIZE*params.events_in_commit, errors)
         sys.stdout.flush()
@@ -405,8 +412,6 @@ def load_events(proc_num):
                     the_range.getLowerBound().getLabel(),
                     the_range.getUpperBound().getLabel(),
                     timestamp.toNTriples())
-
-        print queryString
 
         with conn.session():
             events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
@@ -502,7 +507,7 @@ def query_events(proc_num):
     queryq.task_done()
 
     the_time = time.time() - the_time
-    print 'query(%d) [%s]: Querying done. %d triple results returned for %d '\
+    print 'query(%d) [%s]: Querying done - %d triple results returned for %d '\
         'queries in %d seconds (%s queries/second), %d query retries.' % (
         proc_num, datetime.now(), count, queries, the_time, queries/the_time,
         restarts)
@@ -521,7 +526,8 @@ def main():
 
     print '%s [%s]: Testing with %d loading, %d querying processes.' % (
         PROG, datetime.now(), LOAD_WORKERS, QUERY_WORKERS)
-
+    sys.stdout.flush()
+    
     # Create the work queue
     loadq = JoinableQueue(maxsize=LOAD_WORKERS)
 
