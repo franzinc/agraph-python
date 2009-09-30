@@ -43,8 +43,10 @@ def test1(accessMode=Repository.RENEW):
     Tests getting the repository up.  Is called by the other tests to do the startup.
     """
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
+    # For remote linux server, using port forwarding from localhost.
+    server = AllegroGraphServer("localhost", port=AG_PORT, user="test", password="xyzzy") 
     # For localhost.
-    server = AllegroGraphServer("localhost", port=AG_PORT)
+    #server = AllegroGraphServer("localhost", port=AG_PORT)
     print "Available catalogs", server.listCatalogs()
     catalog = server.openCatalog('scratch')  
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
