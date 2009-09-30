@@ -318,7 +318,8 @@ else:
 
 # The work queue
 class LoadPhase:
-    baseline, bulk, with_query, delete = range(4)
+    baseline, bulk, with_query, delete, die = range(5)
+    last = delete
 
 class PhaseParameters(object):
     def __init__(self, date_range, events_in_commit, triples):
@@ -429,6 +430,10 @@ def load_events(proc_num):
         phase = dequeue()
         if phase == LoadPhase.delete:
             delete_phase()
+            phase = dequeue()
+
+        assert phase == LoadPhase.die
+        loadq.task_done()
 
     conn.close()
 
@@ -507,6 +512,13 @@ def main():
         for proc_num in range(proc_count):
             loadq.put(phase)
 
+        if phase == LoadPhase.last:
+            for proc_num in range(LOAD_WORKERS):
+                loadq.put(LoadPhase.die)
+
+            # Signal that there is no more work for the queue
+            loadq.close()
+
         # Wait for all the work to be completed
         loadq.join()
 
@@ -532,6 +544,8 @@ def main():
         for proc_num in range(QUERY_WORKERS):
             queryq.put('Stop')
 
+        # Signal that there is no more work for the queue
+        queryq.close()
         queryq.join()
 
     total_time = time.time()
