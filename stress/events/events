@@ -33,6 +33,7 @@ from datetime import datetime, timedelta
 from collections import namedtuple
 import os, random, sys, time, traceback
 
+from franz.openrdf.exceptions import RequestError
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.repository.repository import Repository
@@ -45,11 +46,14 @@ NS = 'http://franz.com/events#';
 LOAD_WORKERS = 4
 QUERY_WORKERS = 4
 
-# Goal store size
-SIZE = (10**7)
-
 # Size of the Events
 EVENT_SIZE = 50
+
+# Events per commit in bulk load phase
+BULK_EVENTS = 400
+
+# Goal store size
+SIZE = (10**9)
 
 LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
@@ -65,10 +69,14 @@ def connect(access_mode=Repository.OPEN):
     repository = catalog.getRepository('events_test', access_mode)
     repository.initialize()
     if access_mode is Repository.RENEW:
-        repository.registerDatatypeMapping(datatype=XMLSchema.DATETIME, nativeType='datetime')
-        repository.registerDatatypeMapping(datatype=XMLSchema.DATE, nativeType='date')
-        repository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType='int')
-        repository.registerDatatypeMapping(datatype=XMLSchema.FLOAT, nativeType='float')
+        repository.registerDatatypeMapping(datatype=XMLSchema.DATETIME,
+            nativeType='datetime')
+        repository.registerDatatypeMapping(datatype=XMLSchema.DATE,
+            nativeType='date')
+        repository.registerDatatypeMapping(datatype=XMLSchema.INT,
+            nativeType='int')
+        repository.registerDatatypeMapping(datatype=XMLSchema.FLOAT,
+            nativeType='float')
     return repository.getConnection()
 
 # PredInfo takes a uri in ntriples format and a generator function
@@ -166,7 +174,8 @@ def random_money():
     return Literal(round(random.uniform(0.01, 10000.00), 2)).toNTriples()
 
 def random_uri(prefix, limit=int(SIZE/1000)):
-    # Striving for 1000 ids per prefix (e.g. customer), so by default there are SIZE/1000 ids
+    # Striving for 1000 ids per prefix (e.g. customer), so by default there
+    # are SIZE/1000 ids
     return URI(namespace=NS,
         localname='%s-%d' % (prefix, random.randrange(limit))).toNTriples()
 
@@ -242,7 +251,8 @@ PAYMENT = [
     PredInfo('PaymentType', random_payoption),
     PredInfo('OriginalPostedAmount', random_money),
     PredInfo('PaymentTarget', lambda: random_uri('PaymentTarget', 100)),
-    PredInfo('DepositDesignation', lambda: random_uri('DepositDesignation', 100)),
+    PredInfo('DepositDesignation',
+        lambda: random_uri('DepositDesignation', 100)),
     PredInfo('BusinessEntity', lambda: random_uri('BusinessUnit', 100))
     ]
 
@@ -316,7 +326,6 @@ if buggy_version():
 else:
     from multiprocessing import JoinableQueue
 
-# The work queue
 class LoadPhase:
     baseline, bulk, with_query, delete, die = range(5)
     last = delete
@@ -336,6 +345,7 @@ class PhaseParameters(object):
     def commits_per_worker(self):
         return int(self.commits / LOAD_WORKERS)
 
+# The work queues for loading and querying
 loadq = None
 queryq = None
 
@@ -374,7 +384,7 @@ def load_events(proc_num):
                 errors += 1
                 traceback.print_exc()
             
-        print '%s(%d) [%s]: Loading finished, %d triples loaded at %s triples ' \
+        print '%s(%d) [%s]: Loading done, %d triples loaded at %s triples ' \
             'per commit, %d loading errors.' % (PROG, proc_num, datetime.now(),
             count, EVENT_SIZE*params.events_in_commit, errors)
         sys.stdout.flush()
@@ -399,19 +409,12 @@ def load_events(proc_num):
         print queryString
 
         with conn.session():
-            events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString).evaluate(count=True)
-            print '%s(%d) [%s]: Found %d events (%d triples) to delete.' % (PROG, proc_num,
-                datetime.now(), events, events * EVENT_SIZE)
+            events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+                ).evaluate(count=True)
+            print '%s(%d) [%s]: Found %d events (%d triples) to delete.' % (
+                PROG, proc_num, datetime.now(), events, events * EVENT_SIZE)
             conn.commit()
-
-##         # A python version?
-##         events = conn.getStatements(None, timestamp, the_range)
-##         print '%s(%d) [%s]: Found %d events to delete.' % (PROG, proc_num,
-##             datetime.now(), len(events))
-##         for event in events:
-##             conn.removeTriples(event.getSubject(), None, None)
-##         conn.commit()
-            
+        
         loadq.task_done()
 
     with connect().session(True) as conn:
@@ -421,7 +424,7 @@ def load_events(proc_num):
         
         phase = dequeue()
         assert phase == LoadPhase.bulk
-        load_phase(PhaseParameters(BulkRange, 40, (SIZE*9)/10))
+        load_phase(PhaseParameters(BulkRange, BULK_EVENTS, (SIZE*9)/10))
 
         phase = dequeue()
         assert phase == LoadPhase.with_query
@@ -458,26 +461,51 @@ def query_events(proc_num):
             start, end = end, start
 
         the_range = conn.createRange(start, end)
+        timestamp = URI(namespace=NS, localname='EventTimeStamp')
 
         # Perform the query
-        events = conn.getStatements(None, timestamp, the_range, contexts=customer)
-        
-        return len(events)
+        queryString = """
+              (select (?event ?pred ?obj)
+                (lisp ?start (value->upi \"%s\" :date-time))
+                (lisp ?end (value->upi \"%s\" :date-time))
+                (q- ?event !%s (? ?start ?end) !%s)
+                (q- ?event ?pred ?obj))""" % (
+                    the_range.getLowerBound().getLabel(),
+                    the_range.getUpperBound().getLabel(),
+                    timestamp.toNTriples(), customer)
+
+        try:
+            # Actually pull the full results to the client, then just count them
+            count = len(conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+                ).evaluate())
+        except RequestError:
+            # During huge bulk deletions, some queries may be invalidated
+            # and a error returned to indicate they should be rerun. Keep
+            # track of it if this happens.
+            count = -1
+
+        return count
 
     the_time = time.time()
     queries = 0
     count = 0
+    restarts = 0
     while dequeue() is None:
-        count += random_query()
+        result = random_query()
+        if result >= 0:
+            count += result
+        else:
+            restarts += 1
         queries += 1
 
     conn.close()
     queryq.task_done()
 
     the_time = time.time() - the_time
-    print 'query(%d) [%s]: Querying finished. %d triple results returned for %d ' \
-        'queries in %d seconds (%s queries/second), ' % (
-        proc_num, datetime.now(), count, queries, the_time, queries/the_time)
+    print 'query(%d) [%s]: Querying done. %d triple results returned for %d '\
+        'queries in %d seconds (%s queries/second), %d query retries.' % (
+        proc_num, datetime.now(), count, queries, the_time, queries/the_time,
+        restarts)
     sys.stdout.flush()
 
 def main():
@@ -491,7 +519,7 @@ def main():
     conn = connect(Repository.RENEW)
     triples = conn.size()
 
-    print '%s [%s]: Processing events with %d loading, %d querying processes.' % (
+    print '%s [%s]: Testing with %d loading, %d querying processes.' % (
         PROG, datetime.now(), LOAD_WORKERS, QUERY_WORKERS)
 
     # Create the work queue
@@ -559,8 +587,8 @@ def main():
     sys.stdout.flush()
     load_phase(LoadPhase.bulk)
 
-    print '%s [%s]: Phase 3: Perform %d triple commits while running queries.' % (
-        PROG, datetime.now(), EVENT_SIZE)
+    print '%s [%s]: Phase 3: Perform %d triple commits while running queries.' \
+        % (PROG, datetime.now(), EVENT_SIZE)
     sys.stdout.flush()
     begin_queries()
     load_phase(LoadPhase.with_query)

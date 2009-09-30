@@ -22,6 +22,8 @@
 ##
 ##***** END LICENSE BLOCK *****
 
+from franz.miniclient.request import RequestError
+
 class IllegalOptionException(Exception):
     pass
 
