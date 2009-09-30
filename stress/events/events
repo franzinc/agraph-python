@@ -46,13 +46,10 @@ LOAD_WORKERS = 4
 QUERY_WORKERS = 4
 
 # Goal store size
-SIZE = (10**9)
+SIZE = (10**7)
 
 # Size of the Events
 EVENT_SIZE = 50
-
-# The time to wait in DEQUEUE for the next phase
-DEQUEUE_WAIT = 10
 
 LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
@@ -349,7 +346,7 @@ def load_events(proc_num):
     
     def dequeue():
         try:
-            return loadq.get(timeout=DEQUEUE_WAIT)
+            return loadq.get()
         except Empty:
             return None
 
@@ -388,7 +385,8 @@ def load_events(proc_num):
         timestamp = URI(namespace=NS, localname='EventTimeStamp')
 
         queryString = """
-            (select0 (?event)
+              (select0 (?event)
+                (:count-only t)
                 (lisp ?start (value->upi \"%s\" :date-time))
                 (lisp ?end (value->upi \"%s\" :date-time))
                 (q- ?event !%s (? ?start ?end))
@@ -400,7 +398,7 @@ def load_events(proc_num):
         print queryString
 
         with conn.session():
-            events = len(conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString).evaluate())
+            events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString).evaluate(count=True)
             print '%s(%d) [%s]: Found %d events (%d triples) to delete.' % (PROG, proc_num,
                 datetime.now(), events, events * EVENT_SIZE)
             conn.commit()
@@ -422,7 +420,7 @@ def load_events(proc_num):
         
         phase = dequeue()
         assert phase == LoadPhase.bulk
-        load_phase(PhaseParameters(BulkRange, 400, (SIZE*9)/10))
+        load_phase(PhaseParameters(BulkRange, 40, (SIZE*9)/10))
 
         phase = dequeue()
         assert phase == LoadPhase.with_query

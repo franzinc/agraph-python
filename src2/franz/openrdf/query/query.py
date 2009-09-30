@@ -213,7 +213,7 @@ class Query(object):
             conn.removeQuads(quads)
         self.count_temporaries("AFTER " + insert_or_retract)
     
-    def evaluate_generic_query(self):
+    def evaluate_generic_query(self, count=False):
         """
         Evaluate a SPARQL or PROLOG or COMMON_LOGIC query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
@@ -236,12 +236,12 @@ class Query(object):
             query = splicePrefixesIntoQuery(self.queryString, conn)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings,
-                                            checkVariables=self.checkVariables)            
+                                            checkVariables=self.checkVariables, count=count)            
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
             query = expandPrologQueryPrefixes(self.queryString, conn)
-            response = mini.evalPrologQuery(query, infer=self.includeInferred)
+            response = mini.evalPrologQuery(query, infer=self.includeInferred, count=count)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
             query, contexts, auxiliary_input_bindings, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
                                     preferred_language=self.preferred_execution_language, contexts=namedContexts)
@@ -261,14 +261,14 @@ class Query(object):
                     self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
                     MINITIMER = datetime.datetime.now()
                     response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                                infer=self.includeInferred, bindings=bindings, planner='identity')
+                                                infer=self.includeInferred, bindings=bindings, planner='identity', count=count)
                     trace_it("mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER))
                 finally:                
                     self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
             elif lang == 'PROLOG':
                 query = expandPrologQueryPrefixes(query, conn)
                 trace_it("         PROLOG QUERY", query)
-                response = mini.evalPrologQuery(query, infer=self.includeInferred)
+                response = mini.evalPrologQuery(query, infer=self.includeInferred, count=count)
             else:
                 raise exception
         return response
@@ -346,7 +346,7 @@ class TupleQuery(Query):
         super(TupleQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
         self.connection = None
         
-    def evaluate(self, jdbc=False):
+    def evaluate(self, jdbc=False, count=False):
         """
         Execute the embedded query against the RDF store.  Return
         an iterator that produces for each step a tuple of values
@@ -355,11 +355,15 @@ class TupleQuery(Query):
         If 'jdbc', returns a JDBC-style iterator that miminizes the
         overhead of creating response objects.         
         """
-        response = self.evaluate_generic_query()
+        response = self.evaluate_generic_query(count=count)
+
+        if count:
+            return response
+        
         if jdbc:
             return JDBCQueryResultSet(response['values'], column_names = response['names'])
-        else:
-            return TupleQueryResult(response['names'], response['values'])
+
+        return TupleQueryResult(response['names'], response['values'])
 
 class GraphQuery(Query):
     
