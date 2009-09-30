@@ -61,7 +61,7 @@ def datatype_from_python(value, datatype):
         return str(value), datatype or XMLSchema.TIME
 
     if isinstance(value, datetime.date):
-        value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
+        value = value.strftime(Literal.ISO_FORMAT)
         return str(value), datatype or XMLSchema.DATE
 
     return str(value), datatype
@@ -80,6 +80,7 @@ class Literal(Value):
         self.language = language
 
     ISO_FORMAT_WITH_T = "%Y-%m-%dT%H:%M:%S"
+    ISO_FORMAT = "%Y-%m-%d"
 
     def getDatatype(self):
         """The URI representing the datatype for this literal, if there is one""" 

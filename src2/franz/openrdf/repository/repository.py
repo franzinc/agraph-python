@@ -152,13 +152,13 @@ class Repository:
         uri = uri or (namespace + localname)
         self.mini_repository.registerFreeTextPredicate("<%s>" % uri)
         
-    def _translate_inlined_type(self, type):
-        if type == "int": return "int"
-        elif type == "datetime": return "date-time"
-        elif type == "float": return "double-float"
-        else:
-            raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
-                    "'int', 'float', and 'datetime'")
+    def _translate_inlined_type(self, the_type):
+        if the_type == 'int': return 'int'
+        if the_type == 'datetime': return "date-time"
+        if the_type == 'date': return 'date'
+        if the_type == "float": return "double-float"
+        raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
+                "'int', 'float', and 'datetime'" % the_type)
         
     def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         """

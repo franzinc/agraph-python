@@ -34,21 +34,22 @@ from collections import namedtuple
 import os, random, sys, time, traceback
 
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
+from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.repository.repository import Repository
 from franz.openrdf.vocabulary import XMLSchema, RDF
 from franz.openrdf.model import Literal, Statement, URI
 
-NS = "http://franz.com/events#";
-
-# Initial store size
-SIZE = (10**7)
-
-# Size of the Events
-EVENT_SIZE = 50
+NS = 'http://franz.com/events#';
 
 # Number of worker processes
 LOAD_WORKERS = 4
 QUERY_WORKERS = 4
+
+# Goal store size
+SIZE = (10**9)
+
+# Size of the Events
+EVENT_SIZE = 50
 
 # The time to wait in DEQUEUE for the next phase
 DEQUEUE_WAIT = 10
@@ -66,9 +67,15 @@ def connect(access_mode=Repository.OPEN):
     catalog = server.openCatalog('tests')
     repository = catalog.getRepository('events_test', access_mode)
     repository.initialize()
+    if access_mode is Repository.RENEW:
+        repository.registerDatatypeMapping(datatype=XMLSchema.DATETIME, nativeType='datetime')
+        repository.registerDatatypeMapping(datatype=XMLSchema.DATE, nativeType='date')
+        repository.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType='int')
+        repository.registerDatatypeMapping(datatype=XMLSchema.FLOAT, nativeType='float')
     return repository.getConnection()
 
-# PredInfo takes a uri in ntriples format and a generator for the object ntriple string
+# PredInfo takes a uri in ntriples format and a generator function
+# for the object ntriple string
 class PredInfo(namedtuple('PredInfo', 'uri generator')):
     __slots__ = ()
 
@@ -90,29 +97,31 @@ class RandomDate(object):
         self.end = end
         self.seconds = (end - start).days * 24 * 60 * 60
 
-    def _make_random(self):
+    def random(self):
         return self.start + timedelta(seconds=random.randrange(self.seconds))
 
-    def __call__(self):
-        return Literal(self._make_random()).toNTriples()
-
-    def date(self):
-        return Literal(self._make_random().date()).toNTriples()
-        
-
-BaselineRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0), datetime(2008, 2, 1, 0, 0, 0))
-BulkRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0), datetime(2009, 1, 1, 0, 0, 0))
-WithQueryRange = RandomDate(datetime(2009, 1, 1, 0, 0, 0), datetime(2009, 2, 1, 0, 0, 0))
+BaselineRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0),
+                           datetime(2008, 2, 1, 0, 0, 0))
+BulkRange = RandomDate(datetime(2008, 2, 1, 0, 0, 0),
+                       datetime(2009, 1, 1, 0, 0, 0))
+WithQueryRange = RandomDate(datetime(2009, 1, 1, 0, 0, 0),
+                            datetime(2009, 2, 1, 0, 0, 0))
 DeleteRange = BaselineRange
-FullDateRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0), datetime(2009, 2, 1, 0, 0, 0))
+FullDateRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0),
+                           datetime(2009, 2, 1, 0, 0, 0))
 
-random_datetime = BaselineRange
+def random_datetime():
+    fn = random_datetime
+    return Literal(fn.range.random()).toNTriples()
+
+random_datetime.range = BaselineRange
 
 def random_date():
-    return random_datetime.date()
+    fn = random_datetime
+    return Literal(fn.range.random().date()).toNTriples()
 
 def random_int():
-    return Literal(random.randrange(2**32-1), XMLSchema.INT).toNTriples()
+    return Literal(random.randrange(2**31-1), XMLSchema.INT).toNTriples()
 
 def random_name():
     fn = random_name
@@ -162,19 +171,19 @@ def random_money():
 def random_uri(prefix, limit=int(SIZE/1000)):
     # Striving for 1000 ids per prefix (e.g. customer), so by default there are SIZE/1000 ids
     return URI(namespace=NS,
-        localname="%s-%d" % (prefix, random.randrange(limit))).toNTriples()
+        localname='%s-%d' % (prefix, random.randrange(limit))).toNTriples()
 
 def random_customer():
     return random_uri('Customer')
 
 def random_account():
-    return random_uri("Account")
+    return random_uri('Account')
 
 def random_action():
     fn = random_action
     return Literal(random.choice(fn.actions)).toNTriples()
 
-random_action.actions = ("Add", "Modify")
+random_action.actions = ('Add', 'Modify')
 
 def random_handling():
     fn = random_handling
@@ -186,80 +195,80 @@ def type_uri(label):
     return URI(namespace=NS, localname=label).toNTriples()
 
 INTERACTION = [
-    PredInfo(RDF.TYPE, lambda: type_uri("CustomerInteraction")),
-    PredInfo("EventTimeStamp", random_datetime),
-    PredInfo("EntityId", random_int),
-    PredInfo("OriginatingSystem", lambda: '"CRM"'),
-    PredInfo("Agent", random_name),
-    PredInfo("Direction", random_direction),
-    PredInfo("DoneInOne", random_bool),
-    PredInfo("EndDate", random_datetime),
-    PredInfo("FeeBased", random_bool),
-    PredInfo("InteractionId", random_int),
-    PredInfo("Origin", random_origin),
-    PredInfo("PayOption", random_payoption),
-    PredInfo("ReasonLevel1", random_int),
-    PredInfo("ReasonLevel2", random_int),
-    PredInfo("OriginatingSystem", random_int),
-    PredInfo("Result", random_int)
+    PredInfo(RDF.TYPE, lambda: type_uri('CustomerInteraction')),
+    PredInfo('EventTimeStamp', random_datetime),
+    PredInfo('EntityId', random_int),
+    PredInfo('OriginatingSystem', lambda: '"CRM"'),
+    PredInfo('Agent', random_name),
+    PredInfo('Direction', random_direction),
+    PredInfo('DoneInOne', random_bool),
+    PredInfo('EndDate', random_datetime),
+    PredInfo('FeeBased', random_bool),
+    PredInfo('InteractionId', random_int),
+    PredInfo('Origin', random_origin),
+    PredInfo('PayOption', random_payoption),
+    PredInfo('ReasonLevel1', random_int),
+    PredInfo('ReasonLevel2', random_int),
+    PredInfo('OriginatingSystem', random_int),
+    PredInfo('Result', random_int)
     ]
 
 INVOICE = [
-    PredInfo(RDF.TYPE, lambda: type_uri("Invoice")),
-    PredInfo("EventTimeStamp", random_datetime),
-    PredInfo("AccountId", random_account),
-    PredInfo("OriginatingSystem", lambda: '"Invoicing"'), 
-    PredInfo("DueDate", random_datetime),
-    PredInfo("Action", random_action),
-    PredInfo("TotalAmountDue", random_money),
-    PredInfo("AmountDueHandling", random_handling),
-    PredInfo("LegalInvoiceNumber", random_int),
-    PredInfo("PreviousBalanceAmount", random_money),
-    PredInfo("TotalFinanceActivites", random_money),
-    PredInfo("BillDate", random_date),
-    PredInfo("TotalUsageCharges", random_money),
-    PredInfo("TotalRecurringCharges", random_money),
-    PredInfo("TotalOneTimeCharges", random_money)
+    PredInfo(RDF.TYPE, lambda: type_uri('Invoice')),
+    PredInfo('EventTimeStamp', random_datetime),
+    PredInfo('AccountId', random_account),
+    PredInfo('OriginatingSystem', lambda: '"Invoicing"'), 
+    PredInfo('DueDate', random_datetime),
+    PredInfo('Action', random_action),
+    PredInfo('TotalAmountDue', random_money),
+    PredInfo('AmountDueHandling', random_handling),
+    PredInfo('LegalInvoiceNumber', random_int),
+    PredInfo('PreviousBalanceAmount', random_money),
+    PredInfo('TotalFinanceActivites', random_money),
+    PredInfo('BillDate', random_date),
+    PredInfo('TotalUsageCharges', random_money),
+    PredInfo('TotalRecurringCharges', random_money),
+    PredInfo('TotalOneTimeCharges', random_money)
     ]
 
 PAYMENT = [
-    PredInfo(RDF.TYPE, lambda: type_uri("AccountPayment")),
-    PredInfo("EventTimeStamp", random_datetime),
-    PredInfo("AccountId", random_account),
-    PredInfo("OriginatingSystem", lambda: '"Ordering"'),
-    PredInfo("SubscriberId", random_customer),
-    PredInfo("InvoiceId", random_int),
-    PredInfo("PaymentAmount", random_money),
-    PredInfo("OriginalAmount", random_money),
-    PredInfo("AmountDue", random_money),
-    PredInfo("DepositDate", random_datetime),
-    PredInfo("PaymentType", random_payoption),
-    PredInfo("OriginalPostedAmount", random_money),
-    PredInfo("PaymentTarget", lambda: random_uri('PaymentTarget', 100)),
-    PredInfo("DepositDesignation", lambda: random_uri('DepositDesignation', 100)),
-    PredInfo("BusinessEntity", lambda: random_uri("BusinessUnit", 100))
+    PredInfo(RDF.TYPE, lambda: type_uri('AccountPayment')),
+    PredInfo('EventTimeStamp', random_datetime),
+    PredInfo('AccountId', random_account),
+    PredInfo('OriginatingSystem', lambda: '"Ordering"'),
+    PredInfo('SubscriberId', random_customer),
+    PredInfo('InvoiceId', random_int),
+    PredInfo('PaymentAmount', random_money),
+    PredInfo('OriginalAmount', random_money),
+    PredInfo('AmountDue', random_money),
+    PredInfo('DepositDate', random_datetime),
+    PredInfo('PaymentType', random_payoption),
+    PredInfo('OriginalPostedAmount', random_money),
+    PredInfo('PaymentTarget', lambda: random_uri('PaymentTarget', 100)),
+    PredInfo('DepositDesignation', lambda: random_uri('DepositDesignation', 100)),
+    PredInfo('BusinessEntity', lambda: random_uri('BusinessUnit', 100))
     ]
 
 PURCHASE = [
-    PredInfo(RDF.TYPE, lambda: type_uri("Purchase")),
-    PredInfo("EventTimeStamp", random_datetime),
-    PredInfo("AccountId", random_account),
-    PredInfo("OriginatingSystem", lambda: '"Sales"'),
-    PredInfo("PurchaseDate", random_datetime),
-    PredInfo("PurchaseAmount", random_money),
-    PredInfo("InvoiceID", random_int),
-    PredInfo("ProductID", lambda: random_uri("Product")), 
-    PredInfo("LegalInvoiceNumber", random_int),
-    PredInfo("PreviousBalanceAmount", random_money),
-    PredInfo("DeliveredVia", random_delivery),
-    PredInfo("PaidVia", random_payoption),
-    PredInfo("CCApprovalNumber", random_int),
-    PredInfo("TotalRecurringCharges", random_money),
-    PredInfo("TotalOneTimeCharges", random_money)
+    PredInfo(RDF.TYPE, lambda: type_uri('Purchase')),
+    PredInfo('EventTimeStamp', random_datetime),
+    PredInfo('AccountId', random_account),
+    PredInfo('OriginatingSystem', lambda: '"Sales"'),
+    PredInfo('PurchaseDate', random_datetime),
+    PredInfo('PurchaseAmount', random_money),
+    PredInfo('InvoiceID', random_int),
+    PredInfo('ProductID', lambda: random_uri('Product')), 
+    PredInfo('LegalInvoiceNumber', random_int),
+    PredInfo('PreviousBalanceAmount', random_money),
+    PredInfo('DeliveredVia', random_delivery),
+    PredInfo('PaidVia', random_payoption),
+    PredInfo('CCApprovalNumber', random_int),
+    PredInfo('TotalRecurringCharges', random_money),
+    PredInfo('TotalOneTimeCharges', random_money)
     ]
 
 def pad_events(event):
-    pred_format = event[0].generator() + "-%d"
+    pred_format = event[0].generator() + '-%d'
 
     for i in range(len(event), EVENT_SIZE):
         event.append(PredInfo(pred_format % i, random_int))
@@ -316,8 +325,7 @@ class LoadPhase:
 
 class PhaseParameters(object):
     def __init__(self, date_range, events_in_commit, triples):
-        global random_datetime
-        random_datetime = date_range
+        random_datetime.range = date_range
         object.__init__(self)
         self.events_in_commit = events_in_commit
         self.triples = triples
@@ -337,7 +345,6 @@ def load_events(proc_num):
     """
     load_files does the work of the child processes.
     """
-    global random_datetime
     conn = None
     
     def dequeue():
@@ -369,21 +376,43 @@ def load_events(proc_num):
                 errors += 1
                 traceback.print_exc()
             
-        print "%s(%d) [%s]: Process finished, %d triples loaded at %s triples " \
-            "per commit, %d loading errors." % (PROG, proc_num, datetime.now(),
+        print '%s(%d) [%s]: Loading finished, %d triples loaded at %s triples ' \
+            'per commit, %d loading errors.' % (PROG, proc_num, datetime.now(),
             count, EVENT_SIZE*params.events_in_commit, errors)
         sys.stdout.flush()
         loadq.task_done()
 
     def delete_phase():
         # Replace this with an in-server deletion
-        events = []
-        for result in conn.getStatements(None, None, conn.createRange(DeleteRange.start, DeleteRange.end)):
-            events.append(result.getSubject())
+        the_range = conn.createRange(DeleteRange.start, DeleteRange.end)
+        timestamp = URI(namespace=NS, localname='EventTimeStamp')
 
-        if events:
-            conn.removeTriples(events, None, None)
+        queryString = """
+            (select0 (?event)
+                (lisp ?start (value->upi \"%s\" :date-time))
+                (lisp ?end (value->upi \"%s\" :date-time))
+                (q- ?event !%s (? ?start ?end))
+                (lisp (delete-triples :s ?event)))""" % (
+                    the_range.getLowerBound().getLabel(),
+                    the_range.getUpperBound().getLabel(),
+                    timestamp.toNTriples())
+
+        print queryString
+
+        with conn.session():
+            events = len(conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString).evaluate())
+            print '%s(%d) [%s]: Found %d events (%d triples) to delete.' % (PROG, proc_num,
+                datetime.now(), events, events * EVENT_SIZE)
             conn.commit()
+
+##         # A python version?
+##         events = conn.getStatements(None, timestamp, the_range)
+##         print '%s(%d) [%s]: Found %d events to delete.' % (PROG, proc_num,
+##             datetime.now(), len(events))
+##         for event in events:
+##             conn.removeTriples(event.getSubject(), None, None)
+##         conn.commit()
+            
         loadq.task_done()
 
     with connect().session(True) as conn:
@@ -393,7 +422,7 @@ def load_events(proc_num):
         
         phase = dequeue()
         assert phase == LoadPhase.bulk
-        load_phase(PhaseParameters(BulkRange, 200, (SIZE*9)/10))
+        load_phase(PhaseParameters(BulkRange, 400, (SIZE*9)/10))
 
         phase = dequeue()
         assert phase == LoadPhase.with_query
@@ -414,21 +443,23 @@ def query_events(proc_num):
         except Empty:
             return None
 
-    timestamp = URI(namespace=NS, localname="EventTimeStamp")
+    timestamp = URI(namespace=NS, localname='EventTimeStamp')
 
     def random_query():
         # Pick a random customer
         customer = random_customer()
 
         # Pick a random date range
-        start, end = FullDateRange.start, FullDateRange.end
+        start, end = FullDateRange.random(), FullDateRange.random()
         if start > end:
             start, end = end, start
 
-        # Perform the query
-        results = conn.getStatements(None, timestamp, None, contexts=customer) # conn.createRange(start, end))
+        the_range = conn.createRange(start, end)
 
-        return len(results)
+        # Perform the query
+        events = conn.getStatements(None, timestamp, the_range, contexts=customer)
+        
+        return len(events)
 
     the_time = time.time()
     queries = 0
@@ -441,8 +472,8 @@ def query_events(proc_num):
     queryq.task_done()
 
     the_time = time.time() - the_time
-    print "query(%d) [%s]: Process finished. %d triple results returned for %d " \
-        "queries in %d seconds (%s queries/second), " % (
+    print 'query(%d) [%s]: Querying finished. %d triple results returned for %d ' \
+        'queries in %d seconds (%s queries/second), ' % (
         proc_num, datetime.now(), count, queries, the_time, queries/the_time)
     sys.stdout.flush()
 
@@ -471,7 +502,7 @@ def main():
     def load_phase(phase):
         # Begin the timer
         phase_time = time.time()
-        triples = conn.size()
+        triples_start = conn.size()
 
         # Tell the processes what to do (We only need one deletion process)
         proc_count = 1 if phase == LoadPhase.delete else LOAD_WORKERS
@@ -481,11 +512,13 @@ def main():
         # Wait for all the work to be completed
         loadq.join()
 
-        triples = conn.size() - triples
+        triples_end = conn.size()
+        triples = triples_end - triples_start
         phase_time = time.time() - phase_time 
-        print "%s [%s]: %d total triples processed in %s seconds " \
-            " (%s triples/second)." % (PROG, datetime.now(),
-            triples, phase_time, triples/phase_time)
+        print '%s [%s]: %d total triples processed in %s seconds ' \
+            ' (%s triples/second). ' % (PROG, datetime.now(),
+            triples, phase_time, triples/phase_time),
+        print 'Store contains %d triples.' % triples_end
         sys.stdout.flush()
 
     def begin_queries():
@@ -504,10 +537,25 @@ def main():
         queryq.join()
 
     total_time = time.time()
+    print '%s [%s]: Phase 1: Baseline %d triple commits without queries.' % (
+        PROG, datetime.now(), EVENT_SIZE)
+    sys.stdout.flush()
     load_phase(LoadPhase.baseline)
+
+    print '%s [%s]: Phase 2: Grow store to about %d triples.' % (
+        PROG, datetime.now(), SIZE)
+    sys.stdout.flush()
     load_phase(LoadPhase.bulk)
+
+    print '%s [%s]: Phase 3: Perform %d triple commits while running queries.' % (
+        PROG, datetime.now(), EVENT_SIZE)
+    sys.stdout.flush()
     begin_queries()
     load_phase(LoadPhase.with_query)
+
+    print '%s [%s]: Phase 4: Shrink store by 1 month while running queries.' % (
+        PROG, datetime.now())
+    sys.stdout.flush()
     load_phase(LoadPhase.delete)
     end_queries()
     
@@ -516,8 +564,8 @@ def main():
     triples = conn.size() - triples
     conn.close()
 
-    print "%s [%s]: Test completed in %s total seconds - " \
-        "store contains %d triples.." % (PROG, datetime.now(),
+    print '%s [%s]: Test completed in %s total seconds - ' \
+        'store contains %d triples.' % (PROG, datetime.now(),
         total_time, triples)
     sys.stdout.flush()
 

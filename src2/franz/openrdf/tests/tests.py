@@ -13,6 +13,7 @@ from ..query.dataset import Dataset
 from ..rio.rdfformat import RDFFormat
 from ..rio.rdfwriter import  NTriplesWriter
 from ..rio.rdfxmlwriter import RDFXMLWriter
+from ..model import Literal, Statement, URI
 
 import os, urllib, datetime, time
 
@@ -1204,9 +1205,10 @@ def test_session():
     """
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     catalog = server.openCatalog(CATALOG)  
-    myRepository = catalog.getRepository(STORE, Repository.RENEW)
+    myRepository = catalog.getRepository(STORE, Repository.OPEN)
     myRepository.initialize()
     common = myRepository.getConnection()
+    common.clear()
 
     with myRepository.getConnection().session() as dedicated:
         path1 = os.path.join(CURRENT_DIRECTORY, 'vc-db-1.rdf')
@@ -1227,4 +1229,38 @@ def test_session():
         assert 16 == dedicated.size(context)
         assert 1214 == dedicated.size('null')
         assert 916 == common.size('null')
-    
+
+def test_temporal():
+    """
+    Test of temporal range queries.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    catalog = server.openCatalog(CATALOG)  
+    myRepository = catalog.getRepository(STORE, Repository.OPEN)
+    myRepository.initialize()
+    myRepository.registerDatatypeMapping(datatype=XMLSchema.DATETIME, nativeType="datetime")
+    conn = myRepository.getConnection()
+    conn.clear()
+
+    ns = 'http://www.example.org#'
+
+    pred = URI(namespace=ns, localname='happened')
+    x = URI(namespace=ns, localname='x')
+    y = URI(namespace=ns, localname='y')
+    z = URI(namespace=ns, localname='z')
+
+    x_dt = Literal(datetime.datetime(2009, 9, 28, 17, 41, 39))
+    y_dt = Literal(datetime.datetime(2009, 9, 28, 18, 22))
+    z_dt = Literal(datetime.datetime(2009, 9, 28, 17, 02, 41))
+
+    conn.addStatement(Statement(x, pred, x_dt))
+    conn.addStatement(Statement(y, pred, y_dt))
+    conn.addStatement(Statement(z, pred, z_dt))
+
+    start_dt = datetime.datetime(2009, 9, 28, 17)
+    end_dt = datetime.datetime(2009, 9, 28, 18)
+
+    the_range = conn.createRange(start_dt, end_dt)
+
+    results = conn.getStatements(None, None, the_range)
+    assert len(results) == 2
