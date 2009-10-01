@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 ##***** BEGIN LICENSE BLOCK *****
@@ -27,10 +27,18 @@ Usage: events
 An event store stress tests.
 """
 
-from multiprocessing import Process
+from __future__ import with_statement
+try:
+    from multiprocessing import Process
+except:
+    assert False, \
+        "Use Python 2.6 or install http://pypi.python.org/pypi/multiprocessing/"
 from Queue import Empty
 from datetime import datetime, timedelta
-from collections import namedtuple
+try:
+    from collections import namedtuple
+except ImportError:
+    from franz.openrdf.util.namedtuple import namedtuple
 import os, random, sys, time, traceback
 
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
