@@ -33,7 +33,6 @@ from datetime import datetime, timedelta
 from collections import namedtuple
 import os, random, sys, time, traceback
 
-from franz.openrdf.exceptions import RequestError
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.repository.repository import Repository
@@ -43,8 +42,8 @@ from franz.openrdf.model import Literal, Statement, URI
 NS = 'http://franz.com/events#';
 
 # Number of worker processes
-LOAD_WORKERS = 8
-QUERY_WORKERS = 8
+LOAD_WORKERS = 4
+QUERY_WORKERS = 4
 
 # Size of the Events
 EVENT_SIZE = 50
@@ -378,8 +377,8 @@ def load_events(proc_num):
                 index += EVENT_SIZE
 
             if commit > 0 and commit % status_size == 0:
-                print '%s(%d) [%s]: Loading status - %d triples loaded so far '\
-                      'at %s triples per commit, %d loading errors.' % (PROG,
+                print 'loader(%d) [%s]: Status - %d triples loaded so far '\
+                      'at %s triples per commit, %d loading errors.' % (
                       proc_num, datetime.now(), count,
                       EVENT_SIZE*params.events_in_commit, errors)
                 sys.stdout.flush()
@@ -388,37 +387,42 @@ def load_events(proc_num):
                 conn.mini_repository.addStatements(quads)
                 count += len(quads)
             except Exception:
-                print '%s(%d) [%s]: Error adding quads...' % (
-                    PROG, proc_num, datetime.now())
+                print 'loader(%d) [%s]: Error adding quads...' % (
+                    proc_num, datetime.now())
                 errors += 1
                 traceback.print_exc()
             
-        print '%s(%d) [%s]: Loading done - %d triples loaded at %s triples ' \
-            'per commit, %d loading errors.' % (PROG, proc_num, datetime.now(),
+        print 'loader(%d) [%s]: Loading done - %d triples at %s triples ' \
+            'per commit, %d loading errors.' % (proc_num, datetime.now(),
             count, EVENT_SIZE*params.events_in_commit, errors)
         sys.stdout.flush()
         loadq.task_done()
 
     def delete_phase():
-        # Replace this with an in-server deletion
-        the_range = conn.createRange(DeleteRange.start, DeleteRange.end)
-        timestamp = URI(namespace=NS, localname='EventTimeStamp')
+        timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
 
-        queryString = """
-              (select0 (?event)
-                (:count-only t)
-                (lisp ?start (value->upi \"%s\" :date-time))
-                (lisp ?end (value->upi \"%s\" :date-time))
-                (q- ?event !%s (? ?start ?end))
-                (lisp (delete-triples :s ?event)))""" % (
-                    the_range.getLowerBound().getLabel(),
-                    the_range.getUpperBound().getLabel(),
-                    timestamp.toNTriples())
+        start, end = DeleteRange.start, DeleteRange.end
+        interval = timedelta(seconds=24*60*60)
 
-        events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
-            ).evaluate(count=True)
-        print '%s(%d) [%s]: Found %d events (%d triples) to delete.' % (
-            PROG, proc_num, datetime.now(), events, events * EVENT_SIZE)
+        events = 0
+        while start < end:
+            day_end = start + interval
+            
+            queryString = """
+                (select0 (?event)
+                  (:count-only t)
+                  (lisp ?start (value->upi \"%s\" :date-time))
+                  (lisp ?end (value->upi \"%s\" :date-time))
+                  (q- ?event !%s (? ?start ?end))
+                  (lisp (delete-triples :s ?event)))""" % (
+                      Literal(start).label, Literal(day_end).label, timestamp)
+
+            events += conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+                ).evaluate(count=True)
+            start = day_end
+
+        print 'loader(%d) [%s]: Found %d events (%d triples) to delete.' % (
+            proc_num, datetime.now(), events, events * EVENT_SIZE)
         
         loadq.task_done()
 
@@ -499,11 +503,12 @@ def query_events(proc_num):
             # Actually pull the full results to the client, then just count them
             count = len(conn.prepareTupleQuery(language, queryString
                 ).evaluate())
-        except RequestError:
+        except Exception:
             # During huge bulk deletions, some queries may be invalidated
             # and a error returned to indicate they should be rerun. Keep
             # track of it if this happens.
             count = -1
+            traceback.print_exc()
 
         return count
 
@@ -524,7 +529,7 @@ def query_events(proc_num):
 
     the_time = time.time() - the_time
     print 'query(%d) [%s]: Querying done - %d triple results returned for %d '\
-        'queries in %d seconds (%s queries/second), %d query retries.' % (
+        'queries in %d seconds (%s queries/second), %d query aborted.' % (
         proc_num, datetime.now(), count, queries, the_time, queries/the_time,
         restarts)
     sys.stdout.flush()
