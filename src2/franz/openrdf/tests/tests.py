@@ -1236,9 +1236,10 @@ def test_temporal():
     """
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     catalog = server.openCatalog(CATALOG)  
-    myRepository = catalog.getRepository(STORE, Repository.OPEN)
+    myRepository = catalog.getRepository(STORE, Repository.RENEW)
     myRepository.initialize()
-    myRepository.registerDatatypeMapping(datatype=XMLSchema.DATETIME, nativeType="datetime")
+    myRepository.registerDatatypeMapping(datatype=XMLSchema.DATETIME,
+        nativeType="datetime")
     conn = myRepository.getConnection()
     conn.clear()
 
@@ -1264,3 +1265,31 @@ def test_temporal():
 
     results = conn.getStatements(None, None, the_range)
     assert len(results) == 2
+
+    # Try the same query with Prolog and SPARQL
+    queryString = '''
+       (select0 (?subject)
+         (:limit 10)
+         (:count-only t)
+         (q- ?subject ? (? !%s !%s)))''' % (
+            the_range.getLowerBound().toNTriples(),
+            the_range.getUpperBound().toNTriples())
+
+    print queryString
+
+    count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+        ).evaluate(count=True)
+    assert count == 2
+
+    queryString = """
+        SELECT ?event {
+          ?event ?pred ?time .
+          FILTER (?time <= %s)
+          FILTER (?time >= %s) }""" % (
+            the_range.getLowerBound().toNTriples(),
+            the_range.getUpperBound().toNTriples())
+
+    results = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString
+        ).evaluate()
+    assert len(results) == 2
+
