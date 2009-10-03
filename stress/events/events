@@ -45,13 +45,13 @@ from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.repository.repository import Repository
 from franz.openrdf.vocabulary import XMLSchema, RDF
-from franz.openrdf.model import Literal, Statement, URI
+from franz.openrdf.model import Literal, Statement, URI, ValueFactory
 
 NS = 'http://franz.com/events#';
 
 # Number of worker processes
-LOAD_WORKERS = 4
-QUERY_WORKERS = 4
+LOAD_WORKERS = 8
+QUERY_WORKERS = 8
 
 # Size of the Events
 EVENT_SIZE = 50
@@ -66,7 +66,14 @@ LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 PROG = sys.argv[0]
-        
+
+# Reduce the number of times we need to round-trip to the server for blank nodes
+ValueFactory.BLANK_NODE_AMOUNT = BULK_EVENTS * 4
+
+def trace(output):
+    print output
+    sys.stdout.flush()
+
 def connect(access_mode=Repository.OPEN):
     """
     Connect is called to connect to a store.
@@ -385,52 +392,61 @@ def load_events(proc_num):
                 index += EVENT_SIZE
 
             if commit > 0 and commit % status_size == 0:
-                print 'loader(%d) [%s]: Status - %d triples loaded so far '\
+                trace('loader(%d) [%s]: Status - %d triples loaded so far '
                       'at %s triples per commit, %d loading errors.' % (
                       proc_num, datetime.now(), count,
-                      EVENT_SIZE*params.events_in_commit, errors)
-                sys.stdout.flush()
+                      EVENT_SIZE*params.events_in_commit, errors))
 
             try:
                 conn.mini_repository.addStatements(quads)
                 count += len(quads)
             except Exception:
-                print 'loader(%d) [%s]: Error adding quads...' % (
-                    proc_num, datetime.now())
+                trace('loader(%d) [%s]: Error adding quads...' % (
+                    proc_num, datetime.now()))
                 errors += 1
                 traceback.print_exc()
             
-        print 'loader(%d) [%s]: Loading done - %d triples at %s triples ' \
+        trace('loader(%d) [%s]: Loading done - %d triples at %s triples '
             'per commit, %d loading errors.' % (proc_num, datetime.now(),
-            count, EVENT_SIZE*params.events_in_commit, errors)
+            count, EVENT_SIZE*params.events_in_commit, errors))
         sys.stdout.flush()
         loadq.task_done()
 
     def delete_phase():
-        timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
-
         start, end = DeleteRange.start, DeleteRange.end
         interval = timedelta(seconds=24*60*60)
 
+        start_nt = Literal(start)
+        timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
+        limit = BULK_EVENTS * EVENT_SIZE
+        day_end = start + interval
+        day_nt = Literal(day_end)
+
         events = 0
         while start < end:
-            day_end = start + interval
-            
             queryString = """
                 (select0 (?event)
+                  (:limit %d)
                   (:count-only t)
                   (lisp ?start (value->upi \"%s\" :date-time))
                   (lisp ?end (value->upi \"%s\" :date-time))
                   (q- ?event !%s (? ?start ?end))
                   (lisp (delete-triples :s ?event)))""" % (
-                      Literal(start).label, Literal(day_end).label, timestamp)
+                      limit, start_nt.label, day_nt.label, timestamp)
 
-            events += conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+            count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
                 ).evaluate(count=True)
-            start = day_end
+            assert count <= limit
+            events += count
 
-        print 'loader(%d) [%s]: Found %d events (%d triples) to delete.' % (
-            proc_num, datetime.now(), events, events * EVENT_SIZE)
+            if count == 0:
+                start = day_end
+                start_nt = Literal(start)
+                day_end = start + interval
+                day_nt = Literal(day_end)
+
+        trace('loader(%d) [%s]: Found %d events (%d triples) to delete.' % (
+            proc_num, datetime.now(), events, events * EVENT_SIZE))
         
         loadq.task_done()
 
@@ -466,7 +482,7 @@ def query_events(proc_num):
         except Empty:
             return None
 
-    timestamp = URI(namespace=NS, localname='EventTimeStamp')
+    timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
 
     def random_query():
         # Pick a random customer
@@ -477,23 +493,21 @@ def query_events(proc_num):
         if start > end:
             start, end = end, start
 
-        the_range = conn.createRange(start, end)
-        timestamp = URI(namespace=NS, localname='EventTimeStamp')
+        start_nt = Literal(start).toNTriples()
+        end_nt = Literal(end).toNTriples()
 
         # Perform the query in prolog or sparql
-        language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
-            else QueryLanguage.SPARQL
+        #language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
+        #    else QueryLanguage.SPARQL
+
+        language = QueryLanguage.PROLOG
 
         if language is QueryLanguage.PROLOG:
             queryString = """
                   (select (?event ?pred ?obj)
-                    (lisp ?start (value->upi \"%s\" :date-time))
-                    (lisp ?end (value->upi \"%s\" :date-time))
-                    (q- ?event !%s (? ?start ?end) !%s)
+                    (q- ?event !%s (? !%s !%s) !%s)
                     (q- ?event ?pred ?obj))""" % (
-                        the_range.getLowerBound().getLabel(),
-                        the_range.getUpperBound().getLabel(),
-                        timestamp.toNTriples(), customer)
+                        timestamp, start_nt, end_nt, customer)
         else:
             queryString = """
                 SELECT ?event ?pred ?obj {
@@ -503,9 +517,7 @@ def query_events(proc_num):
                    FILTER (?time >= %s)
                  }
                  {?event ?pred ?obj}
-                }""" % (customer, timestamp.toNTriples(),
-                    the_range.getUpperBound().toNTriples(),
-                    the_range.getLowerBound().toNTriples())
+                }""" % (customer, timestamp, start_nt, end_nt)
 
         try:
             # Actually pull the full results to the client, then just count them
@@ -515,8 +527,10 @@ def query_events(proc_num):
             # During huge bulk deletions, some queries may be invalidated
             # and a error returned to indicate they should be rerun. Keep
             # track of it if this happens.
-            count = -1
+            trace('query(%d) [%s]: Error executing query:\n%s\n' % (
+                proc_num, datetime.now(), queryString))
             traceback.print_exc()
+            count = -1
 
         return count
 
@@ -536,11 +550,10 @@ def query_events(proc_num):
     queryq.task_done()
 
     the_time = time.time() - the_time
-    print 'query(%d) [%s]: Querying done - %d triple results returned for %d '\
+    trace('query(%d) [%s]: Querying done - %d triple results returned for %d '
         'queries in %d seconds (%s queries/second), %d query aborted.' % (
         proc_num, datetime.now(), count, queries, the_time, queries/the_time,
-        restarts)
-    sys.stdout.flush()
+        restarts))
 
 def main():
     """
@@ -549,13 +562,12 @@ def main():
     global loadq
 
     # Renewing the repository
-    print '%s [%s]: Renewing the repository.' % (PROG, datetime.now())
+    trace('%s [%s]: Renewing the repository.' % (PROG, datetime.now()))
     conn = connect(Repository.RENEW)
     triples = conn.size()
 
-    print '%s [%s]: Testing with %d loading, %d querying processes.' % (
-        PROG, datetime.now(), LOAD_WORKERS, QUERY_WORKERS)
-    sys.stdout.flush()
+    trace('%s [%s]: Testing with %d loading, %d querying processes.' % (
+        PROG, datetime.now(), LOAD_WORKERS, QUERY_WORKERS))
     
     # Create the work queue
     loadq = JoinableQueue(maxsize=LOAD_WORKERS)
@@ -588,11 +600,10 @@ def main():
         triples_end = conn.size()
         triples = triples_end - triples_start
         phase_time = time.time() - phase_time 
-        print '%s [%s]: %d total triples processed in %s seconds ' \
-            ' (%s triples/second). ' % (PROG, datetime.now(),
-            triples, phase_time, triples/phase_time),
-        print 'Store contains %d triples.' % triples_end
-        sys.stdout.flush()
+        trace('%s [%s]: %d total triples processed in %s seconds '
+            ' (%s triples/second). Store contains %d triples.' % (
+            PROG, datetime.now(), triples, phase_time, triples/phase_time,
+            triples_end))
 
     def begin_queries():
         global queryq
@@ -612,25 +623,21 @@ def main():
         queryq.join()
 
     total_time = time.time()
-    print '%s [%s]: Phase 1: Baseline %d triple commits without queries.' % (
-        PROG, datetime.now(), EVENT_SIZE)
-    sys.stdout.flush()
+    trace('%s [%s]: Phase 1: Baseline %d triple commits without queries.' % (
+        PROG, datetime.now(), EVENT_SIZE))
     load_phase(LoadPhase.baseline)
 
-    print '%s [%s]: Phase 2: Grow store to about %d triples.' % (
-        PROG, datetime.now(), SIZE)
-    sys.stdout.flush()
+    trace('%s [%s]: Phase 2: Grow store to about %d triples.' % (
+        PROG, datetime.now(), SIZE))
     load_phase(LoadPhase.bulk)
 
-    print '%s [%s]: Phase 3: Perform %d triple commits while running queries.' \
-        % (PROG, datetime.now(), EVENT_SIZE)
-    sys.stdout.flush()
+    trace('%s [%s]: Phase 3: Perform %d triple commits while running queries.' %
+        (PROG, datetime.now(), EVENT_SIZE))
     begin_queries()
     load_phase(LoadPhase.with_query)
 
-    print '%s [%s]: Phase 4: Shrink store by 1 month while running queries.' % (
-        PROG, datetime.now())
-    sys.stdout.flush()
+    trace('%s [%s]: Phase 4: Shrink store by 1 month while running queries.' % (
+        PROG, datetime.now()))
     load_phase(LoadPhase.delete)
     end_queries()
     
@@ -639,10 +646,9 @@ def main():
     triples = conn.size() - triples
     conn.close()
 
-    print '%s [%s]: Test completed in %s total seconds - ' \
+    trace('%s [%s]: Test completed in %s total seconds - '
         'store contains %d triples.' % (PROG, datetime.now(),
-        total_time, triples)
-    sys.stdout.flush()
+        total_time, triples))
 
 
 if __name__ == '__main__':

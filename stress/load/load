@@ -41,7 +41,7 @@ try:
     from multiprocessing import Process
 except:
     assert False, \
-        "Use Python 2.6 or install http://pypi.python.org/pypi/multiprocessing/"
+        'Use Python 2.6 or install http://pypi.python.org/pypi/multiprocessing/'
 from Queue import Empty
 from datetime import datetime
 import os, sys, time, traceback
@@ -58,6 +58,10 @@ PROG = sys.argv[0]
 
 # The work queue
 work = None
+
+def trace(output):
+    print output
+    sys.stdout.flush()
 
 def buggy_version():
     """There is a bug in Python versions <= 2.6.2"""
@@ -116,17 +120,15 @@ def load_files(proc_num):
         context = conn.createLiteral(filename, datatype=XMLSchema.STRING)
         
         if count % 100 == 0:
-            print '%s(%d) [%s]: Processed %d files so far...' % (
-                PROG, proc_num, datetime.now(), count)
-            sys.stdout.flush()
+            trace('%s(%d) [%s]: Processed %d files so far...' % (
+                PROG, proc_num, datetime.now(), count))
             
         try:
             conn.addFile(filename, context=context, serverSide=AG_ONSERVER)
             count += 1
         except Exception:
-            print '%s(%d) [%s]: Error processing file %s...' % (
-                PROG, proc_num, datetime.now(), filename)
-            sys.stdout.flush()
+            trace('%s(%d) [%s]: Error processing file %s...' % (
+                PROG, proc_num, datetime.now(), filename))
             errors += 1
             traceback.print_exc()
         work.task_done()
@@ -137,9 +139,8 @@ def load_files(proc_num):
     conn.closeSession()
     conn.close()
 
-    print "%s(%d) [%s]: Process finished, %d files loaded, " \
-        "%d loading errors." % (PROG, proc_num, datetime.now(), count, errors)
-    sys.stdout.flush()
+    trace('%s(%d) [%s]: Process finished, %d files loaded, %d loading errors.' %
+        (PROG, proc_num, datetime.now(), count, errors))
 
 def main():
     """
@@ -150,7 +151,7 @@ def main():
     try:
         path = sys.argv[1]
         if not os.path.exists(path):
-            print __doc__
+            trace(__doc__)
             sys.exit(1)
         is_dir = os.path.isdir(path)
     except IndexError:
@@ -163,14 +164,13 @@ def main():
         proc_count = 4
 
     # Renewing the repository
-    print '%s [%s]: Renewing the repository.' % (PROG, datetime.now())
+    trace('%s [%s]: Renewing the repository.' % (PROG, datetime.now()))
     conn = connect(Repository.RENEW)
     triples = conn.size()
 
-    print '%s [%s]: Processing %s "%s" with %d processes.' % (
-        PROG, datetime.now(), "directory" if is_dir else "filenames in",
-        path, proc_count)
-    sys.stdout.flush()
+    trace('%s [%s]: Processing %s "%s" with %d processes.' % (PROG,
+        datetime.now(), "directory" if is_dir else "filenames in",
+        path, proc_count))
 
     # Create the work queue
     work = JoinableQueue(maxsize=4000)
@@ -220,10 +220,9 @@ def main():
         the_time = time.time() - the_time
     triples = conn.size() - triples
     conn.close()
-    print "%s [%s]: %d files, %d triples loaded in %s seconds " \
-        " (%s triples/second, %s file commits/second)." % (PROG, datetime.now(),
-        count, triples, the_time, triples/the_time, count/the_time)
-    sys.stdout.flush()
+    trace('%s [%s]: %d files, %d triples loaded in %s seconds '
+        ' (%s triples/second, %s file commits/second).' % (PROG, datetime.now(),
+        count, triples, the_time, triples/the_time, count/the_time))
 
 if __name__ == '__main__':
     main()

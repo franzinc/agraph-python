@@ -13,7 +13,7 @@ from ..query.dataset import Dataset
 from ..rio.rdfformat import RDFFormat
 from ..rio.rdfwriter import  NTriplesWriter
 from ..rio.rdfxmlwriter import RDFXMLWriter
-from ..model import Literal, Statement, URI
+from ..model import Literal, Statement, URI, ValueFactory
 
 import os, urllib, datetime, time
 
@@ -1266,6 +1266,9 @@ def test_temporal():
     results = conn.getStatements(None, None, the_range)
     assert len(results) == 2
 
+    def results_str():
+        return '\n'.join([str(result) for result in results])
+
     # Try the same query with Prolog and SPARQL
     queryString = '''
        (select0 (?subject)
@@ -1275,21 +1278,59 @@ def test_temporal():
             the_range.getLowerBound().toNTriples(),
             the_range.getUpperBound().toNTriples())
 
-    print queryString
-
     count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
         ).evaluate(count=True)
-    assert count == 2
+    assert count == 2, '%s\nResult was %d, should be 2.' % (queryString, count)
+
+
+    queryString = """
+        SELECT ?event ?time WHERE {
+          ?event %s ?time .
+          FILTER (?time <= %s) }""" % (
+            pred.toNTriples(),
+            the_range.getUpperBound().toNTriples())
+
+    results = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString
+        ).evaluate()
+
+    assert len(results) == 2, '%s\n%s\nResult count %s, should be 2.' % (
+        queryString, results_str(), len(results))
+
+    queryString = """
+        SELECT ?event ?time WHERE {
+          ?event %s ?time .
+          FILTER (?time >= %s) }""" % (
+            pred.toNTriples(),
+            the_range.getLowerBound().toNTriples())
+
+    results = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString
+        ).evaluate()
+
+    assert len(results) == 3, '%s\n%s\nResult count %s, should be 3.' % (
+        queryString, results_str(), len(results))
 
     queryString = """
         SELECT ?event {
-          ?event ?pred ?time .
-          FILTER (?time <= %s)
-          FILTER (?time >= %s) }""" % (
+          ?event %s ?time .
+          FILTER (?time >= %s && ?time <= %s) }""" % (
+            pred.toNTriples(),
             the_range.getLowerBound().toNTriples(),
             the_range.getUpperBound().toNTriples())
 
     results = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString
         ).evaluate()
-    assert len(results) == 2
 
+    assert len(results) == 2, '%s\n%s\nResult count %s, should be 2.' % (
+        queryString, results_str(), len(results))
+
+def test_blanknodes():
+    """
+    Test Blank Node Creation
+    """
+    ValueFactory.BLANK_NODE_AMOUNT = 50
+    conn = connect()
+    node = conn.createBNode()
+    assert node
+    value_factory = conn.getValueFactory()
+    assert len(value_factory.unusedBNodeIds) + 1 == ValueFactory.BLANK_NODE_AMOUNT
+    

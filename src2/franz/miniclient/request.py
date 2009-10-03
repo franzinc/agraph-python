@@ -79,6 +79,8 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     ## curl.setopt(pycurl.VERBOSE, 1)
     ## curl.setopt(pycurl.DEBUGFUNCTION, report)
 
+    curl.setopt(pycurl.TIMEOUT, 45)
+
     if obj.user and obj.password:
         curl.setopt(pycurl.USERPWD, "%s:%s" % (obj.user, obj.password))
         curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
