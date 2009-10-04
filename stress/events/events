@@ -53,6 +53,9 @@ NS = 'http://franz.com/events#';
 LOAD_WORKERS = 8
 QUERY_WORKERS = 8
 
+# Time to run queries in minutes
+QUERY_TIME = 10
+
 # Size of the Events
 EVENT_SIZE = 50
 
@@ -633,13 +636,17 @@ def main():
 
     trace('%s [%s]: Phase 3: Perform %d triple commits while running queries.' %
         (PROG, datetime.now(), EVENT_SIZE))
-    begin_queries()
     load_phase(LoadPhase.with_query)
 
-    trace('%s [%s]: Phase 4: Shrink store by 1 month while running queries.' % (
+    trace('%s [%s]: Phase 4: Perform customer/date rqnge queries for '
+        '%d minutes.' % QUERY_TIME)
+    begin_queries()
+    time.sleep(QUERY_TIME*60)
+    end_queries()
+
+    trace('%s [%s]: Phase 5: Shrink store by 1 month while running queries.' % (
         PROG, datetime.now()))
     load_phase(LoadPhase.delete)
-    end_queries()
     
     # Display the results
     total_time = time.time() - total_time
