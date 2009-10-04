@@ -634,12 +634,12 @@ def main():
         PROG, datetime.now(), SIZE))
     load_phase(LoadPhase.bulk)
 
-    trace('%s [%s]: Phase 3: Perform %d triple commits while running queries.' %
+    trace('%s [%s]: Phase 3: Perform %d triple commits.' %
         (PROG, datetime.now(), EVENT_SIZE))
     load_phase(LoadPhase.with_query)
 
-    trace('%s [%s]: Phase 4: Perform customer/date rqnge queries for '
-        '%d minutes.' % QUERY_TIME)
+    trace('%s [%s]: Phase 4: Perform customer/date range queries for '
+        '%d minutes.' % (PROG, datetime.now(), QUERY_TIME))
     begin_queries()
     time.sleep(QUERY_TIME*60)
     end_queries()
