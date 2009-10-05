@@ -264,7 +264,7 @@ class Repository(Service):
 
     def createCartesianGeoLiteral(self, type, x, y):
         """Create a geo-spatial literal of the given type."""
-        return "\"%+g%+g\"^^<%s>" % (x, y, type)
+        return "\"%+g%+g\"^^%s" % (x, y, type)
 
     class UnsupportedUnitError(Exception):
         def __init__(self, unit): self.unit = unit
@@ -289,7 +289,7 @@ class Repository(Service):
             return sign + (("%%0%dd" % digits) % fl) + (".%07d" % ((number - fl) * 10000000))
 
         conv = self.unitDegreeFactor(unit)
-        return "\"%s%s\"^^<%s>" % (asISO6709(lat * conv, 2), asISO6709(long * conv, 3), type)
+        return "\"%s%s\"^^%s" % (asISO6709(lat * conv, 2), asISO6709(long * conv, 3), type)
 
     def getStatementsHaversine(self, type, predicate, lat, long, radius, unit="km", limit=None):
         """Get all the triples with a given predicate whose object
