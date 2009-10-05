@@ -357,5 +357,9 @@ class Repository(Service):
         except Exception: pass
         self.url = self.oldUrl
 
+    def setAutoCommit(self, on):
+        """Only allowed when a session is active."""
+        nullRequest(self, "POST", "/session/autoCommit?" + urlenc(on=on))
+
     def __del__(self):
         self.closeSession()
