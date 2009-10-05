@@ -416,14 +416,14 @@ def load_events(proc_num):
         loadq.task_done()
 
     def delete_phase():
-        start, end = DeleteRange.start, DeleteRange.end
-        interval = timedelta(seconds=24*60*60)
-
-        start_nt = Literal(start)
         timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
         limit = BULK_EVENTS * EVENT_SIZE
-        day_end = start + interval
-        day_nt = Literal(day_end)
+
+        interval = timedelta(seconds=24*60*60)
+        start, end = DeleteRange.start, DeleteRange.end
+        eod = start + interval
+        start_nt = Literal(start).toNTriples()
+        eod_nt = Literal(eod).toNTriples()
 
         events = 0
         while start < end:
@@ -431,22 +431,26 @@ def load_events(proc_num):
                 (select0 (?event)
                   (:limit %d)
                   (:count-only t)
-                  (lisp ?start (value->upi \"%s\" :date-time))
-                  (lisp ?end (value->upi \"%s\" :date-time))
-                  (q- ?event !%s (? ?start ?end))
+                  (q- ?event !%s (? !%s !%s))
                   (lisp (delete-triples :s ?event)))""" % (
-                      limit, start_nt.label, day_nt.label, timestamp)
+                      limit, timestamp, start_nt, eod_nt)
 
-            count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
-                ).evaluate(count=True)
-            assert count <= limit
-            events += count
-
+            try:
+                count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+                    ).evaluate(count=True)
+                assert count <= limit
+                events += count
+            except Exception:
+                trace('loader(%d) [%s]: Error deleting triples...\n%s' % (
+                    proc_num, datetime.now(), queryString))
+                count = -1
+                traceback.print_exc()
+            
             if count == 0:
-                start = day_end
-                start_nt = Literal(start)
-                day_end = start + interval
-                day_nt = Literal(day_end)
+                start = eod
+                start_nt = Literal(start).toNTriples()
+                eod = start + interval
+                eod_nt = Literal(eod).toNTriples()
 
         trace('loader(%d) [%s]: Found %d events (%d triples) to delete.' % (
             proc_num, datetime.now(), events, events * EVENT_SIZE))
