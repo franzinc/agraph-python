@@ -50,8 +50,8 @@ from franz.openrdf.model import Literal, Statement, URI, ValueFactory
 NS = 'http://franz.com/events#';
 
 # Number of worker processes
-LOAD_WORKERS = 8
-QUERY_WORKERS = 8
+LOAD_WORKERS = 24
+QUERY_WORKERS = 24
 
 # Time to run queries in minutes
 QUERY_TIME = 10
@@ -128,7 +128,8 @@ BulkRange = RandomDate(datetime(2008, 2, 1, 0, 0, 0),
                        datetime(2009, 1, 1, 0, 0, 0))
 WithQueryRange = RandomDate(datetime(2009, 1, 1, 0, 0, 0),
                             datetime(2009, 2, 1, 0, 0, 0))
-DeleteRange = BaselineRange
+DeleteRange = RandomDate(BaselineRange.start,
+                         BaselineRange.end - timedelta(seconds=1))
 FullDateRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0),
                            datetime(2009, 2, 1, 0, 0, 0))
 
@@ -351,6 +352,7 @@ class PhaseParameters(object):
     def __init__(self, date_range, events_in_commit, triples):
         random_datetime.range = date_range
         object.__init__(self)
+        self.date_range = date_range
         self.events_in_commit = events_in_commit
         self.triples = triples
 
@@ -361,6 +363,13 @@ class PhaseParameters(object):
     @property
     def commits_per_worker(self):
         return int(self.commits / LOAD_WORKERS)
+
+PhaseParams = [
+    PhaseParameters(BaselineRange, 1, SIZE/10),
+    PhaseParameters(BulkRange, BULK_EVENTS, (SIZE*9)/10),
+    PhaseParameters(WithQueryRange, 1, SIZE/10),
+    PhaseParameters(DeleteRange, BULK_EVENTS, SIZE/10)]
+
 
 # The work queues for loading and querying
 loadq = None
@@ -378,7 +387,8 @@ def load_events(proc_num):
         except Empty:
             return None
 
-    def load_phase(params):
+    def load_phase(phase):
+        params = PhaseParams[phase]
         storage = [None]*EVENT_SIZE
         quads = [None]*(EVENT_SIZE*params.events_in_commit)
 
@@ -416,11 +426,12 @@ def load_events(proc_num):
         loadq.task_done()
 
     def delete_phase():
+        params = PhaseParams[LoadPhase.delete]
         timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
-        limit = BULK_EVENTS * EVENT_SIZE
+        limit = params.events_in_commit
 
         interval = timedelta(seconds=24*60*60)
-        start, end = DeleteRange.start, DeleteRange.end
+        start, end = params.date_range.start, params.date_range.end
         eod = start + interval
         start_nt = Literal(start).toNTriples()
         eod_nt = Literal(eod).toNTriples()
@@ -440,17 +451,16 @@ def load_events(proc_num):
                     ).evaluate(count=True)
                 assert count <= limit
                 events += count
+
+                if count == 0:
+                    start = eod
+                    start_nt = Literal(start).toNTriples()
+                    eod = start + interval
+                    eod_nt = Literal(eod).toNTriples()
             except Exception:
                 trace('loader(%d) [%s]: Error deleting triples...\n%s' % (
                     proc_num, datetime.now(), queryString))
-                count = -1
                 traceback.print_exc()
-            
-            if count == 0:
-                start = eod
-                start_nt = Literal(start).toNTriples()
-                eod = start + interval
-                eod_nt = Literal(eod).toNTriples()
 
         trace('loader(%d) [%s]: Found %d events (%d triples) to delete.' % (
             proc_num, datetime.now(), events, events * EVENT_SIZE))
@@ -460,15 +470,15 @@ def load_events(proc_num):
     with connect().session(True, 3600) as conn:
         phase = dequeue()
         assert phase == LoadPhase.baseline
-        load_phase(PhaseParameters(BaselineRange, 1, SIZE/10))
+        load_phase(phase)
         
         phase = dequeue()
         assert phase == LoadPhase.bulk
-        load_phase(PhaseParameters(BulkRange, BULK_EVENTS, (SIZE*9)/10))
+        load_phase(phase)
 
         phase = dequeue()
         assert phase == LoadPhase.with_query
-        load_phase(PhaseParameters(WithQueryRange, 1, SIZE/10))
+        load_phase(phase)
 
         phase = dequeue()
         if phase == LoadPhase.delete:
@@ -558,9 +568,9 @@ def query_events(proc_num):
 
     the_time = time.time() - the_time
     trace('query(%d) [%s]: Querying done - %d triple results returned for %d '
-        'queries in %d seconds (%s queries/second), %d query aborted.' % (
-        proc_num, datetime.now(), count, queries, the_time, queries/the_time,
-        restarts))
+        'queries in %d seconds (%s queries/second, %s triples per query), '
+        ' %d query aborted.' % (proc_num, datetime.now(), count, queries,
+        the_time, queries/the_time, count/queries, restarts))
 
 def main():
     """
@@ -585,9 +595,9 @@ def main():
         p.start()
 
     def load_phase(phase):
-        # Begin the timer
-        phase_time = time.time()
+        params = PhaseParams[phase]
         triples_start = conn.size()
+        phase_time = time.time()
 
         # Tell the processes what to do (We only need one deletion process)
         proc_count = 1 if phase == LoadPhase.delete else LOAD_WORKERS
@@ -606,11 +616,13 @@ def main():
 
         triples_end = conn.size()
         triples = triples_end - triples_start
-        phase_time = time.time() - phase_time 
+        phase_time = time.time() - phase_time
+        commits = triples/(params.events_in_commit*EVENT_SIZE)
         trace('%s [%s]: %d total triples processed in %s seconds '
-            ' (%s triples/second). Store contains %d triples.' % (
+            ' (%s triples/second, %s commits/second). '
+            'Store contains %d triples.' % (
             PROG, datetime.now(), triples, phase_time, triples/phase_time,
-            triples_end))
+            commits/phase_time, triples_end))
 
     def begin_queries():
         global queryq
@@ -630,7 +642,7 @@ def main():
         queryq.join()
 
     total_time = time.time()
-    trace('%s [%s]: Phase 1: Baseline %d triple commits without queries.' % (
+    trace('%s [%s]: Phase 1: Baseline %d triple commits.' % (
         PROG, datetime.now(), EVENT_SIZE))
     load_phase(LoadPhase.baseline)
 
@@ -648,7 +660,7 @@ def main():
     time.sleep(QUERY_TIME*60)
     end_queries()
 
-    trace('%s [%s]: Phase 5: Shrink store by 1 month while running queries.' % (
+    trace('%s [%s]: Phase 5: Shrink store by 1 month.' % (
         PROG, datetime.now()))
     load_phase(LoadPhase.delete)
     
