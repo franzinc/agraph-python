@@ -43,7 +43,10 @@ def test1(accessMode=Repository.RENEW):
     Tests getting the repository up.  Is called by the other tests to do the startup.
     """
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
-    server = AllegroGraphServer("localhost", port=AG_PORT)
+    # For remote linux server, using port forwarding from localhost.
+    server = AllegroGraphServer("localhost", port=AG_PORT, user="test", password="xyzzy") 
+    # For localhost.
+    #server = AllegroGraphServer("localhost", port=AG_PORT)
     print "Available catalogs", server.listCatalogs()
     catalog = server.openCatalog('scratch')  
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
@@ -89,7 +92,7 @@ def test3():
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
         result = tupleQuery.evaluate();
-        verify(result.rowCount(), 4, 'len(result)', 3)
+        verify(result.rowCount(), 4, 'result.tupleCount', 3)
         try:
             for bindingSet in result:
                 s = bindingSet.getValue("s")
@@ -392,7 +395,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)
+    print "Found %i query results" % len(result)      
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -405,7 +408,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)
+    print "Found %i query results" % len(result)    
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -418,7 +421,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)
+    print "Found %i query results" % len(result)    
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -431,7 +434,7 @@ def test12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)
+    print "Found %i query results" % len(result)    
     count = 0
     for bindingSet in result:
         print bindingSet
@@ -441,6 +444,8 @@ def test12():
 #    SELECT ?s ?p ?o
 #    WHERE { ?s ?p ?o . FILTER regex(?o, "Ali") }
 #    """
+
+
 def test13():
     """
     Ask, Construct, and Describe queries 
@@ -578,12 +583,6 @@ def test18():
     """
     Loading Prolog rules
     """
-#    def pq(queryString):
-#        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-#        result = tupleQuery.evaluate();     
-#        for row in result:
-#            print row
-            
     conn = test6()
     conn.deleteEnvironment("kennedys") ## start fresh        
     conn.setEnvironment("kennedys") 
@@ -755,22 +754,7 @@ def test20():
     print polygon2
     print "Locate entities within polygon2."
     for r in conn.getStatements(None, location, polygon2) : print r
-    # experiments in units for lat/long type
-    print "km"
-    latLongGeoType1 = conn.createLatLongSystem(scale=5, unit='km')
-    print latLongGeoType1
-    print "degree"
-    latLongGeoType2 = conn.createLatLongSystem(scale=5, unit='degree')
-    print latLongGeoType2
-    print "mile"
-    latLongGeoType3 = conn.createLatLongSystem(scale=5, unit='miles')
-    print latLongGeoType3
-    print "radian"
-    latLongGeoType4 = conn.createLatLongSystem(scale=5, unit='radian')
-    print latLongGeoType4
-    print "megaton"
-    latLongGeoType5 = conn.createLatLongSystem(scale=5, unit='megaton')
-    print latLongGeoType5
+
 
 def test21():
     """
@@ -781,37 +765,335 @@ def test21():
     print "Starting example test21()."
     print "Current working directory is '%s'" % (os.getcwd())
     path1 = "./lesmis.rdf"
-    print "Load Les Miserables triples."
+    print "\nLoad Les Miserables triples."
     conn.addFile(path1, None, format=RDFFormat.RDFXML);
     conn.indexTriples(all=True)
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
            conn.size('null'), 'null')
-    print "SNA generators known (should be none): '%s'" % (conn.listSNAGenerators())
-    genName = "LesMiserables"
+
+    # Create URIs for relationship predicates.
     lmns = "http://www.franz.com/lesmis#"
     conn.setNamespace('lm', lmns)
     knows = conn.createURI(lmns, "knows")
-    # Create some generators
-    conn.registerSNAGenerator("LesMiserables1", subjectOf=None, objectOf=None, undirected=knows.toNTriples(), generator_query=None)
-    conn.registerSNAGenerator("LesMiserables2", subjectOf=None, objectOf=None, undirected=None, generator_query=None)
-    print "Created two generators. SNA generators known: '%s'" % (conn.listSNAGenerators())
-    # Delete a generator.
-    conn.deleteSNAGenerator("LesMiserables2")
-    print "Deleted one generator. SNA generators known: '%s'" % (conn.listSNAGenerators())
-    print "Neighbor matrices known (should be none): '%s'" % (conn.listNeighborMatrices())
+    barely_knows = conn.createURI(lmns, "barely_knows")
+    knows_well = conn.createURI(lmns, "knows_well")
+
+    # Create URIs for some characters.
     valjean = conn.createURI(lmns, "character11")
-    conn.registerNeighborMatrix("LM_Matrix1", "LesMiserables1", valjean.toNTriples(), max_depth=2)
-    conn.registerNeighborMatrix("LM_Matrix2", "LesMiserables1", valjean.toNTriples(), max_depth=2)
-    print "Neighbor matrices known (should be two): '%s'" % (conn.listNeighborMatrices())
-    conn.deleteNeighborMatrix("LM_Matrix2")
-    print "Deleted one matrix. Neighbor matrices known (should be one): '%s'" % (conn.listNeighborMatrices())
+    bossuet = conn.createURI(lmns, "character64")
+
+    conn.deleteEnvironment("LesMiserables") ## start fresh 
+    conn.createEnvironment("LesMiserables")       
+    conn.setEnvironment("LesMiserables") 
+    conn.setRuleLanguage(QueryLanguage.PROLOG)
+
+    # Create some generators
+    print "\nSNA generators known (should be none): '%s'" % (conn.listSNAGenerators())
+    conn.registerSNAGenerator("intimates", subjectOf=None, objectOf=None, 
+        undirected=knows_well, generator_query=None)
+    conn.registerSNAGenerator("associates", subjectOf=None, objectOf=None, 
+        undirected=[knows, knows_well], generator_query=None)
+    conn.registerSNAGenerator("everyone", subjectOf=None, objectOf=None, 
+        undirected=[knows, knows_well, barely_knows], 
+        generator_query=None)
+    conn.registerSNAGenerator("emptyGen", subjectOf=None, objectOf=None, undirected=None, 
+        generator_query=None)
+    print "Created four generators."
+    print "SNA generators known (should be four): '%s'" % (conn.listSNAGenerators())
+
+    # Create neighbor matrix.
+    print "\nNeighbor matrices known (should be none): '%s'" % (conn.listNeighborMatrices())
+    conn.registerNeighborMatrix("matrix1", "intimates", valjean, max_depth=2)
+    conn.registerNeighborMatrix("matrix2", "associates", valjean, max_depth=5)
+    conn.registerNeighborMatrix("matrix3", "everyone", valjean, max_depth=2)
+    conn.registerNeighborMatrix("emptyMat", "emptyGen", valjean, max_depth=2) 
+    print "Created four matrices."
+    print "Neighbor matrices known (should be four): '%s'" % (conn.listNeighborMatrices())
+    conn.rebuildNeighborMatrix("matrix1")  
+    print "Rebuilt one matrix.  Neighbor matrices known (should still be four): '%s'" % (conn.listNeighborMatrices()) 
+
+    # Delete a generator.
+    conn.deleteSNAGenerator("emptyGen")
+    print "\nDeleted one generator. SNA generators known (should be three): '%s'" % (conn.listSNAGenerators())
+
+    # Delete a matrix.
+    conn.deleteNeighborMatrix("emptyMat")
+    print "Deleted one matrix. Neighbor matrices known (should be three): '%s'" % (conn.listNeighborMatrices())
+
+    # Explore Valjean's ego group.
+    print "\nValjean's ego group members (using associates)."
+    queryString = """
+    (select (?member ?name)
+      (ego-group-member !lm:character11 1 associates ?member)
+      (q ?member !dc:title ?name))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("member")
+        n = bindingSet.getValue("name")
+        print "%s %s" % (p, n)
+
+    # Valjean's ego group using neighbor matrix.
+    print "\nValjean's ego group (using associates matrix)."
+    queryString = """
+    (select (?member ?name)
+      (ego-group-member !lm:character11 1 matrix2 ?member)
+      (q ?member !dc:title ?name))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("member")
+        n = bindingSet.getValue("name")
+        print "%s %s" % (p, n)
+
+    print "\nValjean's ego group in one list depth 1 (using associates)."
+    queryString = """
+    (select ?group
+      (ego-group !lm:character11 1 associates ?group))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("group")
+        print "%s" % (p)
+
+    print "\nValjean's ego group in one list depth 2 (using associates)."
+    queryString = """
+    (select ?group
+      (ego-group !lm:character11 2 associates ?group))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("group")
+        print "%s" % (p)
+
+    print "\nValjean's ego group in one list depth 3 (using associates)."
+    queryString = """
+    (select ?group
+      (ego-group !lm:character11 3 associates ?group))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("group")
+        print "%s" % (p)
+
+
+    print "\nShortest breadth-first path connecting Valjean to Bossuet using intimates."
+    queryString = """
+    (select ?path
+      (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("path")
+        print "%s" % (p)
+
+    print "\nShortest breadth-first path connecting Valjean to Bossuet using associates."
+    queryString = """
+    (select ?path
+      (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("path")
+        print "%s" % (p)
+
+    print "\nShortest breadth-first path connecting Valjean to Bossuet using everyone."
+    queryString = """
+    (select ?path
+      (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("path")
+        print "%s" % (p)
+
+    print "\nShortest breadth-first path connecting Valjean to Bossuet? with associates (should be two)."
+    queryString = """
+    (select ?path
+      (breadth-first-search-paths !lm:character11 !lm:character64 associates ?path))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("path")
+        print "%s" % (p)
+
+    print "\nShortest depth-first paths connecting Valjean to Bossuet? with associates (should be two)."
+    queryString = """
+    (select ?path
+      (depth-first-search-paths !lm:character11 !lm:character64 associates ?path))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("path")
+        print "%s" % (p)
+
+    print "\nShortest bidirectional paths connecting Valjean to Bossuet with associates (should be two)."
+    queryString = """
+    (select ?path
+      (bidirectional-search-paths !lm:character11 !lm:character64 associates ?path))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("path")
+        print "%s" % (p)
+
+    print "\nNodal degree of Valjean (should be seven)."
+    queryString = """
+    (select ?degree
+      (nodal-degree !lm:character11 associates ?degree))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("degree")
+        print "%s" % (p)
+        print "%s" % p.toPython()
+
+    print "\nHow many neighbors are around Valjean? (should be 36)."
+    queryString = """
+    (select ?neighbors
+      (nodal-degree !lm:character11 everyone ?neighbors))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("neighbors")
+        print "%s" % (p)
+        print "%s" % p.toPython()
+
+    print "\nWho are Valjean's neighbors? (using everyone)."
+    queryString = """
+    (select (?name)
+      (nodal-neighbors !lm:character11 everyone ?member)
+      (q ?member !dc:title ?name))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        n = bindingSet.getValue("name")
+        print "%s, " % (n),
+
+    print "\nGraph density of Valjean's ego group? (using associates)."
+    queryString = """
+    (select ?density
+      (ego-group !lm:character11 1 associates ?group)
+      (graph-density ?group associates ?density))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("density")
+        print "%s" % (p)
+        print "%s" % (p.toPython())
+
+    print "\nValjean's cliques? Should be two (using associates)."
+    queryString = """
+    (select ?clique
+      (clique !lm:character11 associates ?clique))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Number of cliques: %s" % len(result)
+    for bindingSet in result:
+        p = bindingSet.getValue("clique")
+        print "%s" % (p)
+
+    # Valjean's actor-degree-centrality using a depth of 1.
+    print "\nValjean's actor-degree-centrality to his ego group at depth 1 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 1 associates ?group)
+      (actor-degree-centrality !lm:character11 ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "%s" % (p)
+        print "%s" % (p.toPython())
+
+    # Valjean's actor-degree-centrality using a depth of 2.
+    print "\nValjean's actor-degree-centrality to his ego group at depth 2 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (actor-degree-centrality !lm:character11 ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "%s" % (p)
+        print "%s" % (p.toPython())
+
+    # Valjean's actor-closeness-centrality using a depth of 1.
+    print "\nValjean's actor-closeness-centrality to his ego group at depth 1 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 1 associates ?group)
+      (actor-closeness-centrality !lm:character11 ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "%s" % (p)
+        print "%s" % (p.toPython())
+
+    # Valjean's actor-closeness-centrality using a depth of 2.
+    print "\nValjean's actor-closeness-centrality to his ego group at depth 2 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (actor-closeness-centrality !lm:character11 ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "%s" % (p)
+        print "%s" % (p.toPython())
+
+    # Valjean's actor-betweenness-centrality using a depth of 2.
+    print "\nValjean's actor-betweenness-centrality to his ego group at depth 2 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (actor-betweenness-centrality !lm:character11 ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "%s" % (p)
+        print "%s" % (p.toPython())
 
 
 
 
 if __name__ == '__main__':
     choices = [i for i in range(1,22)]
-    #choices = [21]
+    #choices = [1]
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -836,8 +1118,7 @@ if __name__ == '__main__':
         elif choice == 18: test18()                                                             
         elif choice == 19: test19() 
         elif choice == 20: test20()  
-        elif choice == 21: test21()                                                                                                           
-         
+        elif choice == 21: test21()
         else:
             print "No such test exists."
     

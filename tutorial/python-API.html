@@ -107,7 +107,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 </table>
 <h2 id="Repository Class">Repository Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>A repository contains RDF data that can be queried and updated.
-Access to the repository can be acquired by openening a connection to it.
+Access to the repository can be acquired by opening a connection to it.
 This connection can then be used to query and/or update the contents of the
 repository. Depending on the implementation of the repository, it may or may
 not support multiple concurrent connections.</p>
@@ -183,21 +183,22 @@ implementation)! </p>
 <h2 id="RepositoryConnection Class">RepositoryConnection Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The RepositoryConnection class is the main interface for updating data in and performing queries on a <a href="#Repository Class">Repository</a>. By default, a RespositoryConnection is in autoCommit mode, meaning  that each operation corresponds to a single transaction on the underlying triple store. autoCommit can be switched off, in which case it is up to the user to  handle transaction commit/rollback. Note that care should be taking to always  properly close a RepositoryConnection after one is finished with it, to free  up resources and avoid unnecessary locks.<br>
   <br>
-  Several methods take a <em>vararg</em> argument that optionally specifies a (set of)  context(s) on which the method should operate. Note that a <em>vararg</em> parameter  is optional, it can be completely left out of the method call, in which case  a method either operates on a provided statements context (if one of the  method parameters is a statement or collection of statements), or operates on  the repository as a whole, completely ignoring context. A <em>vararg</em> argument may  also be null (cast to Resource) meaning that the method operates on those  statements which have no associated context only.</p>
+  Several methods take a <em>vararg</em> argument that optionally specifies a (set of)  context(s) on which the method should operate.  (A context is the URI of a subgraph.)  Note that a <em>vararg</em> parameter  is optional, it can be completely left out of the method call, in which case  a method either operates on a provided statements context (if one of the  method parameters is a statement or collection of statements), or operates on  the repository as a whole, completely ignoring context. A <em>vararg</em> argument may  also be null (cast to Resource) meaning that the method operates on those  statements which have no associated context only.</p>
 <p>Source: \AllegroGraphDirectory\python\franz\openrdf\repository\repositoryconnection.py.</p>
 <h3>Constructor</h3>
 <p>RepositoryConnection(self, repository)</p>
 <p>where <em>repository</em> is the <a href="#Repository Class">Repository</a> object that created this RepositoryConnection. </p>
 <p>Example: The best practice is to use the <a href="#Repository Class">Repository</a>.getConnection() method, which supplies the <em>repository</em> parameter to the construction method. .</p>
 <pre>&nbsp;&nbsp;&nbsp; connection = myRepository.getConnection()</pre>
-<h3>Methods</h3>
+<h3>General Connection Methods</h3>
+<p>This table contains the repositoryConnection methods that create, maintain, search, and delete triple stores. There are following tables that list special methods for <a href="#Free Text Search Methods">Free Text Search</a>, <a href="#Prolog Rule Inference Methods">Prolog Rule Inference</a>, <a href="#Geospatial Reasoning Methods">Geospatial Reasoning</a>, and <a href="#Social Network Analysis Methods">Social Network Analysis</a>. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
       <td valign="top">add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False)</td>
       <td><p>Calls addTriple(), addStatement(), or addFile(). Best practice is to avoid add() and use addFile(), addStatement(), and addTriple() instead.&nbsp; </p>
               <p><em>arg0</em> may be a <a href="#Statement Class">Statement</a> or a <em>filepath</em>. If so, <em>arg1</em> and <em>arg2</em> default to None. </p>
               <p><em>arg0, arg1</em>, and <em>arg2</em> may be the subject, predicate and object of a single triple. </p>
-              <p><em>contexts</em> is an optional list of contexts, defaulting to None.&nbsp; If None, the triple(s) will be added to the null context. </p>
+              <p><em>contexts</em> is an optional list of contexts (subgraph URIs), defaulting to None.&nbsp; If None, the triple(s) will be added to the null context (the default or background graph). </p>
               <p><em>base</em> is the baseURI to associate with loading a file.&nbsp; Defaults to None. </p>
               <p><em>format</em> is RDFFormat.NTRIPLES or RDFFormat.RDFXML. Defaults to None.</p>
               <p><em>serverSide</em> indicates whether the <em>filepath</em> refers to a file on the client computer or on the server.&nbsp; Defaults to False. </p></td>
@@ -206,32 +207,26 @@ implementation)! </p>
       <td valign="top">addFile(self, filePath, base=None, format=None, context=None, serverSide=False)</td>
       <td><p>Loads a file into the triple store. Note that a file can be loaded into only one context. </p>
               <p><em>filepath</em> identifies the file to load. </p>
-              <p><em>context</em> is an optional context name, defaulting to None.&nbsp; If None, the triple(s) will be added to the null context. </p>
+              <p><em>context</em> is an optional context URI (subgraph URI), defaulting to None.&nbsp; If None, the triple(s) will be added to the null context (the default or background graph). </p>
               <p><em>base</em> is the baseURI to associate with loading a file.&nbsp; Defaults to None. </p>
               <p><em>format</em> is RDFFormat.NTRIPLES or RDFFormat.RDFXML. Defaults to None.</p>
               <p><em>serverSide</em> indicates whether the <em>filepath</em> refers to a file on the client computer or on the server.&nbsp; Defaults to False. </p></td>
   </tr>
   <tr>
-      <td valign="top">addRules(self, rules, language=None)</td>
-      <td>Add a sequence of one or more rules (in ASCII format) to the current environment.<br>
-    If the <em>language</em> is QueryLanguage.PROLOG, rule declarations start with '&lt;-' or '&lt;--'. The former appends a new rule; the latter overwrites any rule with the same predicate. <em>language</em> defaults to QueryLanguage.PROLOG. </td>
-  </tr>
-  <tr>
       <td valign="top">addStatement(self, statement, contexts=None)</td>
-      <td>Add the supplied <em><a href="#Statement Class">Statement</a></em> to the specified <em>contexts</em> of the repository.&nbsp; <em>contexts</em> defaults to None, which adds the statement to the null context. . </td>
+      <td>Add the supplied <em><a href="#Statement Class">Statement</a></em> to the specified <em>contexts</em> of the repository.&nbsp; <em>contexts</em> defaults to None, which adds the statement to the null context (the default or background graph).</td>
   </tr>
   <tr>
       <td valign="top">addTriple(self, subject, predicate, object, contexts=None)</td>
-      <td>Adds a single triple to the repository.&nbsp; <em>subject, predicate</em> and <em>object</em> are the three values of the triple. <em>contexts </em>is an optional list of contexts to add the triple to, defaulting to None.&nbsp; If None, the triple will be added to the null context. </td>
+      <td>Adds a single triple to the repository.&nbsp; <em>subject, predicate</em> and <em>object</em> are the three values of the triple. <em>contexts </em>is an optional list of context URIs to add the triple to, defaulting to None.&nbsp; If None, the triple will be added to the null context (the default or background graph). </td>
   </tr>
   <tr>
       <td valign="top">addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False)</td>
-      <td>Add the supplied <em>triples_or_quads</em> to this repository. Each triple can be a list or a tuple of Values. If <em>context</em> is set, then the context is substituted in for each triple, defaulting to ALL_CONTEXTS. If <em>ntriples</em> is True, then the triples or quads are assumed to contain valid ntriples strings, and they are passed to the server with no conversion. The default value is False. </td>
+      <td>Add the supplied <em>triples_or_quads</em> to this repository. Each triple can be a list or a tuple of Values.<em> context</em> is the URI of a subgraph, which will be stored in the fourth field of the &quot;triple,&quot; defaulting to ALL_CONTEXTS. If <em>ntriples</em> is True, then the triples or quads are assumed to contain valid ntriples strings, and they are passed to the server with no conversion. The default value is False. </td>
   </tr>
   <tr>
       <td valign="top">clear(self, contexts=None)</td>
-      <td>Removes all statements from the designated <em>contexts</em> in the repository. If<br>
-              <em>contexts</em> is None (the default), it clears the repository of all statements. </td>
+      <td>Removes all statements from the designated list of <em>contexts</em> (subgraphs) in the repository. If <em>contexts</em> is None (the default), it clears the repository of all statements.</td>
   </tr>
   <tr>
       <td valign="top">clearNamespaces(self)</td>
@@ -246,45 +241,16 @@ implementation)! </p>
       <td>Creates a new blank node with the given node identifier. nodeID defaults to None. If <em>nodeID</em> is None, a new, unused node ID is generated. </td>
   </tr>
   <tr>
-    <td valign="top">createBox(self, xMin=None, xMax=None, yMin=None, yMax=None)</td>
-    <td>Create a rectangular search region (a box) for geospatial search. This method works for both Cartesian and spherical coordinate systems. xMin, xMax may be used to input latitude. yMin, yMax may be used to input longitude.</td>
-  </tr>
-  <tr>
-    <td valign="top">createCircle(self, x, y, radius, unit=None)</td>
-    <td>Create a circular search region for geospatial search. This method works for both Cartesian and spherical coordinate systems.<em> radius</em> is the radius of the circle expressed in the designated <em>unit</em>, which defaults to the unit assigned to the coordinate system. <em>x</em> and <em>y</em> locate the center of the circle and may be used for latitude and longitude. </td>
-  </tr>
-  <tr>
-    <td valign="top">createCoordinate(self, x=None, y=None, lat=None, long=None)</td>
-    <td>Create a coordinate point in a geospatial coordinate system. Must include <em>x</em> and <em>y</em>, or <em>lat</em> and <em>long.</em> Use this method to create the object value for a location triple. </td>
-  </tr>
-  <tr>
-      <td valign="top">createEnvironment(self, name)</td>
-      <td>Repositories use a current environment, which is a container for namespaces and Prolog rules. Rules and namespaces defined in this environment persist across user sessions. Every server-side repository has a default environment that is used when no environment is specified.&nbsp; <em>name</em> is a string label. </td>
-  </tr>
-  <tr>
-    <td valign="top">createLatLongSystem(self, unit='degree', scale=None, latMin=None, latMax=None, longMin=None, longMax=None)</td>
-    <td>Create a spherical coordinate system for geospatial location matching. <em>unit</em> can be 'degree', 'mile', 'radian', or 'km'. <em>scale</em> should be your estimate of the size of a typical search region in the latitudinal direction. <em>latMin</em> and <em>latMax</em> are the bottom and top borders of the coordinate system. <em>longMin</em> and <em>longMax</em> are the left and right sides of the coordinate system. </td>
-  </tr>
-  <tr>
       <td valign="top">createLiteral(self, value, datatype=None, language=None)</td>
       <td>Create a new literal with <em>value</em>. <em>datatype</em> if supplied, should be a URI, in which case <em>value</em> should be a string. You may optionally include an RDF <em>language</em> attribute. <em>datatype </em>and <em>language</em> default to None. </td>
-  </tr>
-  <tr>
-    <td valign="top">createPolygon(self, vertices, uri=None, geoType=None)</td>
-    <td>Create a polygonal search region for geospatial search. The vertices are saved as triples in AllegroGraph. <em>vertices</em> is a list of (x, y) pairs such as [(51.0, 2.00),(60.0, -5.0),(48.0,-12.5)]. <em>uri</em> is an optional subject value for the vertex triples, in case you want to manipulate them. <em>geoType</em> is 'CARTESIAN' or 'SPHERICAL', but defaults to None. </td>
   </tr>
   <tr>
       <td valign="top">createRange(self, lowerBound, upperBound)</td>
       <td>Create a compound literal representing a range from <em>lowerBound</em> to <em>upperBound</em>.</td>
   </tr>
   <tr>
-    <td valign="top">createRectangularSystem(self, scale=1, unit=None, xMin=0, xMax=None, yMin=0, yMax=None)</td>
-    <td>Create a Cartesian coordinate system for geospatial location matching. <em>scale</em> should be your estimate of the Y size of a typical search region. <em>unit </em>must be None. <em>xMin</em> and <em>xMax</em> are the left and right edges of the rectangle. <em>yMin</em> and <em>yMax</em> are the bottom and top edges of the rectangle. </td>
-  </tr>
-  <tr>
       <td valign="top">createStatement(self, subject, predicate, object, context=None)</td>
-      <td>Create a new <a href="#Statement Class">Statement</a> object useing the supplied <em>subject, predicate</em> and <em>object</em><br>
-    and associated <em>context</em>, which defaults to None. </td>
+      <td>Create a new <a href="#Statement Class">Statement</a> object using the supplied <em>subject, predicate</em> and <em>object</em> and associated <em>context</em>, which defaults to None. The context is the URI of a subgraph.</td>
   </tr>
   <tr>
       <td valign="top">createURI(self, uri=None, namespace=None, localname=None)</td>
@@ -292,33 +258,20 @@ implementation)! </p>
     <em>namespace/localname </em>pair.</td>
   </tr>
   <tr>
-      <td valign="top">deleteEnvironment(self, name)</td>
-      <td>Delete an environment. This causes all rule and namespace definitions for this<br>
-    environment to be lost.</td>
-  </tr>
-  <tr>
-      <td valign="top">deleteRule(self, predicate, language=None)</td>
-      <td>Delete rule(s) with predicate named <em>predicate</em>. If <em>predicate</em> is None, delete<br>
-    all rules from the current environment. <em>language</em> defaults to QueryLanguage.PROLOG.</td>
-  </tr>
-  <tr>
       <td valign="top">export(self, handler, contexts=ALL_CONTEXTS)</td>
-      <td>Exports all triples in the repository to an external file.&nbsp; <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). </td>
+      <td>Exports all triples in the repository to an external file.&nbsp; <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). Each context is the URI of a subgraph. </td>
   </tr>
   <tr>
       <td valign="top">exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS)</td>
-      <td>Exports all triples that match <em>subj</em>, <em>pred</em> and/or <em>obj</em>. &nbsp; May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS).</td>
+      <td>Exports all triples that match <em>subj</em>, <em>pred</em> and/or <em>obj</em>. &nbsp; May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). Each context is the URI of a subgraph. </td>
   </tr>
   <tr>
       <td valign="top">getContextIDs(self)</td>
-      <td>Return a list of context resources, one for each context referenced by a quad in <br>
-    the triple store. Omits the default context.</td>
+      <td>Return a list of context URIs, one for each subgraph referenced by a quad in the triple store. Omits the default context because its ID would be null.</td>
   </tr>
   <tr>
       <td valign="top">getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False)</td>
-      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from<br>
-    the repository. The result is optionally restricted to the specified set<br>
-    of named <em>contexts</em> (default is ALL_CONTEXTS). May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Returns a JDBCResultSet that enables Values, strings, etc. to be selectively extracted from the result, without the bulky overhead of the OpenRDF BindingSet protocol. </td>
+      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Returns a JDBCResultSet that enables Values, strings, etc. to be selectively extracted from the result, without the bulky overhead of the OpenRDF BindingSet protocol. </td>
   </tr>
   <tr>
       <td valign="top">getNamespace(self, prefix)</td>
@@ -331,7 +284,7 @@ implementation)! </p>
   <tr>
       <td valign="top">getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,<br>
 limit=None)</td>
-      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; </td>
+      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; </td>
   </tr>
   <tr>
     <td valign="top">getStatementsById(self, ids) </td>
@@ -350,14 +303,6 @@ limit=None)</td>
       <td>Returns True if size() is zero.&nbsp; </td>
   </tr>
   <tr>
-      <td valign="top">listEnvironments(self)</td>
-      <td>List the names of environments currently maintained by the system.</td>
-  </tr>
-  <tr>
-      <td valign="top">loadRules(self, file ,language=None)</td>
-      <td>Load a file of rules into the current environment. <em>file</em> is assumed to reside on the client machine. <em>language</em> defaults to QueryLanguage.PROLOG.</td>
-  </tr>
-  <tr>
       <td valign="top">prepareBooleanQuery(self, queryLanguage, queryString, baseURI=None)</td>
       <td>Parse <em>queryString</em> into a <a href="#Query Class">Query</a> object which can be executed against the RDF storage. <em>queryString</em> must be an ASK query. The result is true or false. <em>queryLanguage</em> is one of SPARQL, PROLOG, or COMMON_LOGIC.&nbsp; <em>baseURI</em> optionally provides a URI prefix (defaults to None). Returns a <a href="#Query Class">Query</a> object.&nbsp; The result of query execution will be True of False. </td>
   </tr>
@@ -374,10 +319,6 @@ limit=None)</td>
       <td><p>Register an inlined datatype. <em>Predicate</em> is the URI of predicate used in the triple store. <em>Datatype</em> may be one of: XMLSchema.INT, XMLSchema.LONG, XMLSchema.FLOAT, XMLSchema.DATE, and XMLSchema.DATETIME.&nbsp; <em>NativeType</em> may be &quot;int&quot;, &quot;datetime&quot;, or &quot;float&quot;.</p>
               <p> You must supply <em>nativeType</em> and either <em>predicate</em> or <em>datatype</em>. </p>
               <p>If <em>predicate</em>, then object arguments to triples with that predicate will use an inlined encoding of type <em>nativeType</em> in their internal representation. If <em>datatype</em>, then typed literal objects with a datatype matching <em>datatype</em> will use an inlined encoding of type <em>nativeType</em>.</p></td>
-  </tr>
-  <tr>
-      <td valign="top">registerFreeTextPredicate(self, uri=None, namespace=None, localname=None)</td>
-      <td>You must supply either the<em> uri</em> parameter or both <em>namespace</em> and <em>localname</em>. Register a predicate <em>uri</em> (or alternately generate the URI by concatenating <em>namespace</em>+<em>localname</em>).&nbsp; This tells the <a href="#Repository Class">Repository</a> to index text keywords from string values of this predicate in the triple store. This makes text search possible on this predicate. </td>
   </tr>
   <tr>
       <td valign="top">remove(self, arg0, arg1=None, arg2=None, contexts=None)</td>
@@ -408,22 +349,130 @@ limit=None)</td>
     from the repository, optionally restricted to the specified <em>contexts</em> (defaults to None)..</td>
   </tr>
   <tr>
-      <td valign="top">setEnvironment(self, name)</td>
-      <td>Choose an environment for execution of a Prolog query. Call deleteEnvironment() to start with a fresh (empty) environment.</td>
-  </tr>
-  <tr>
       <td valign="top">setNamespace(self, prefix, namespace)</td>
       <td>Define (or redefine) a <em>namespace</em> associated with <em>prefix</em>. </td>
-  </tr>
-  <tr>
-      <td valign="top">setRuleLanguage(self, queryLanguage)</td>
-      <td><em>queryLanguage</em> is QueryLanguage.PROLOG.</td>
   </tr>
   <tr>
       <td valign="top">size(self, contexts=ALL_CONTEXTS)</td>
       <td>Returns the number of (explicit) statements that are in the specified <em>contexts</em> in this repository. contexts defaults to ALL_CONTEXTS, but can be a tuple of context names from getContextIDs(). </td>
   </tr>
 </table>
+<h3 id="Free Text Search Methods">Free Text Search Methods</h3>
+<p>The following repositoryConnection method supports free-text indexing in AllegroGraph. </p>
+<table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+  <tr>
+    <td valign="top">registerFreeTextPredicate(self, uri=None, namespace=None, localname=None)</td>
+    <td>You must supply either the<em> uri</em> parameter or both <em>namespace</em> and <em>localname</em>. Register a predicate <em>uri</em> (or alternately generate the URI by concatenating <em>namespace</em>+<em>localname</em>).&nbsp; This tells the <a href="#Repository Class">Repository</a> to index text keywords from string values of this predicate in the triple store. This makes text search possible on this predicate. </td>
+  </tr>
+</table>
+<p>Note that text search is implemented through a SPARQL query using a &quot;magic&quot; predicate called <strong>fti:search</strong>. See the AllegroGraph Python API Tutorial for an example of how to set up this search. </p>
+<h3 id="Prolog Rule Inference Methods">Prolog Rule Inference Methods</h3>
+<p>These repositoryConnection methods support the use of Prolog rules in AllegroGraph.</p>
+<table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+  <tr>
+    <td valign="top">addRules(self, rules, language=None)</td>
+    <td>Add a sequence of one or more rules (in ASCII format).<br>
+    If the <em>language</em> is QueryLanguage.PROLOG, rule declarations start with '&lt;-' or '&lt;--'. The former appends a new rule; the latter overwrites any rule with the same predicate. <em>language</em> defaults to QueryLanguage.PROLOG. </td>
+  </tr>
+  <tr>
+    <td valign="top">createEnvironment(self, name)</td>
+    <td>Repositories use a current environment, which is a container for namespaces and Prolog rules. Rules and namespaces defined in this environment persist across user sessions. Every server-side repository has a default environment that is used when no environment is specified.&nbsp; <em>name</em> is a string label. </td>
+  </tr>
+  <tr>
+    <td valign="top">deleteEnvironment(self, name)</td>
+    <td>Delete an environment. This causes all rule and namespace definitions for this<br>
+      environment to be lost.</td>
+  </tr>
+  <tr>
+    <td valign="top">deleteRule(self, predicate, language=None)</td>
+    <td>Delete rule(s) with predicate named <em>predicate</em>. If <em>predicate</em> is None, delete<br>
+      all rules from the current environment. <em>language</em> defaults to QueryLanguage.PROLOG.</td>
+  </tr>
+  <tr>
+    <td valign="top">listEnvironments(self)</td>
+    <td>List the names of environments currently maintained by the system.</td>
+  </tr>
+  <tr>
+    <td valign="top">loadRules(self, file ,language=None)</td>
+    <td>Load a file of rules into the current environment. <em>file</em> is assumed to reside on the client machine. <em>language</em> defaults to QueryLanguage.PROLOG.</td>
+  </tr>
+  <tr>
+    <td valign="top">setEnvironment(self, name)</td>
+    <td>Choose an environment for execution of a Prolog query. Call deleteEnvironment() to start with a fresh (empty) environment.</td>
+  </tr>
+  <tr>
+    <td valign="top">setRuleLanguage(self, queryLanguage)</td>
+    <td><em>queryLanguage</em> is QueryLanguage.PROLOG.</td>
+  </tr>
+</table>
+<h3 id="Geospatial Reasoning Methods">Geospatial Reasoning Methods</h3>
+<p>These repositoryConnection methods support geospatial reasoning. </p>
+<table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+  <tr>
+    <td valign="top">createBox(self, xMin=None, xMax=None, yMin=None, yMax=None)</td>
+    <td>Create a rectangular search region (a box) for geospatial search. This method works for both Cartesian and spherical coordinate systems. xMin, xMax may be used to input latitude. yMin, yMax may be used to input longitude.</td>
+  </tr>
+  <tr>
+    <td valign="top">createCircle(self, x, y, radius, unit=None)</td>
+    <td>Create a circular search region for geospatial search. This method works for both Cartesian and spherical coordinate systems.<em> radius</em> is the radius of the circle expressed in the designated <em>unit</em>, which defaults to the unit assigned to the coordinate system. <em>x</em> and <em>y</em> locate the center of the circle and may be used for latitude and longitude. </td>
+  </tr>
+  <tr>
+    <td valign="top">createCoordinate(self, x=None, y=None, lat=None, long=None)</td>
+    <td>Create a coordinate point in a geospatial coordinate system. Must include <em>x</em> and <em>y</em>, or <em>lat</em> and <em>long.</em> Use this method to create the object value for a location triple. </td>
+  </tr>
+  <tr>
+    <td valign="top">createLatLongSystem(self, unit='degree', scale=None, latMin=None, latMax=None, longMin=None, longMax=None)</td>
+    <td>Create a spherical coordinate system for geospatial location matching. <em>unit</em> can be 'degree', 'mile', 'radian', or 'km'. <em>scale</em> should be your estimate of the size of a typical search region in the latitudinal direction. <em>latMin</em> and <em>latMax</em> are the bottom and top borders of the coordinate system. <em>longMin</em> and <em>longMax</em> are the left and right sides of the coordinate system. </td>
+  </tr>
+  <tr>
+    <td valign="top">createPolygon(self, vertices, uri=None, geoType=None)</td>
+    <td>Create a polygonal search region for geospatial search. The vertices are saved as triples in AllegroGraph. <em>vertices</em> is a list of (x, y) pairs such as [(51.0, 2.00),(60.0, -5.0),(48.0,-12.5)]. <em>uri</em> is an optional subject value for the vertex triples, in case you want to manipulate them. <em>geoType</em> is 'CARTESIAN' or 'SPHERICAL', but defaults to None. </td>
+  </tr>
+  <tr>
+    <td valign="top">createRectangularSystem(self, scale=1, unit=None, xMin=0, xMax=None, yMin=0, yMax=None)</td>
+    <td>Create a Cartesian coordinate system for geospatial location matching. <em>scale</em> should be your estimate of the Y size of a typical search region. <em>unit </em>must be None. <em>xMin</em> and <em>xMax</em> are the left and right edges of the rectangle. <em>yMin</em> and <em>yMax</em> are the bottom and top edges of the rectangle. </td>
+  </tr>
+</table>
+<h3 id="Social Network Analysis Methods">Social Network Analysis Methods</h3>
+<p>The following repositoryConnection methods support Social Network Analysis in AllegroGraph.</p>
+<table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+  <tr>
+    <td valign="top">dropNeighborMatrix(self, name)</td>
+    <td>Destroy the neighbor matrix named 'name'.</td>
+  </tr>
+  <tr>
+    <td valign="top">dropSNAGenerator(self, name)</td>
+    <td>Destroy the generator named 'name'.</td>
+  </tr>
+  <tr>
+    <td valign="top">listNeighborMatrices(self)</td>
+    <td>Return a list of the names of registered neighbor matrices.</td>
+  </tr>
+  <tr>
+    <td valign="top">listSNAGenerators(self)</td>
+    <td>Return a list of the names of registered SNA generators.</td>
+  </tr>
+  <tr>
+    <td valign="top">rebuildNeighborMatrix(self, name)</td>
+    <td>Recompute the set of edges cached in the neighbor matrix named 'name'.</td>
+  </tr>
+  <tr>
+    <td valign="top">registerNeighborMatrix(self, name, generator, group_uris, max_depth=2)</td>
+    <td>Construct a neighbor matrix named 'name'. The generator named 'generator' is applied 
+to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),<br>
+computing edges to max depth 'max_depth'.</td>
+  </tr>
+  <tr>
+    <td valign="top">registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, generator_query=None)</td>
+    <td>Create (and remember) a generator named 'name'. 
+If one already exists with the same name; redefine it. 
+'subjectOf', 'objectOf' and 'undirected' expect a list of predicate URIs, expressed as 
+fullURIs or qnames, that define the edges traversed by the generator. 
+Alternatively, instead of an adjacency map, one may provide a 'generator_query', 
+that defines the edges.</td>
+  </tr>
+</table>
+<p>&nbsp; </p>
 <h2 id="Query Class">Query Class&nbsp;(and Subclasses) &nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The Query class is 
 
@@ -482,7 +531,7 @@ non-instantiable. It is an abstract class from which the three query subclasses 
   </tr>
     <tr>
       <td valign="top">setContexts(self, contexts)</td>
-      <td>Assert a set of contexts (named graphs) that filter all triples.</td>
+      <td>Assert a set of contexts (a list of subgraph URIs) that filter all triples.</td>
   </tr>
     <tr>
       <td valign="top">setDataset(self, dataset)</td>
@@ -581,13 +630,13 @@ operation.</td>
 <h2 id="Statement Class">Statement Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 
-<p>A Statement is a client-side triple.&nbsp; It encapsulates the subject, predicate, object and context values of a single triple and makes them available. </p>
+<p>A Statement is a client-side triple.&nbsp; It encapsulates the subject, predicate, object and context (subgraph) values of a single quad and makes them available. </p>
 <p>Source: \AllegroGraphDirectory\python\franz\openrdf\model\statement.py.</p>
 <h3>Constructor</h3>
 <p>Statement(self, subject, predicate, object, context=None)</p>
 <ul>
   <li><em>subject, predicate, object </em>are the values of a typical triple.</li>
-  <li><em>context </em> is the optional label of the context subdivision of the repository.. </li>
+  <li><em>context </em> is the optional URI  of the subgraph of the repository.</li>
 </ul>
 <p>Example:&nbsp; Best practice is to allow the <a href="#RepositoryConnection Class">RepositoryConnection</a>.createStatement() method to create and return the Statement object. There is no reason for the Python application programmer to create a Statement object directly.&nbsp; </p>
 <pre>    stmt1 = conn.createStatement(alice, age, fortyTwo)</pre>
@@ -595,7 +644,7 @@ operation.</td>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
       <td valign="top">getContext(self)</td>
-      <td>Returns the value in the fourth position of the stored tuple. </td>
+      <td>Returns the value in the fourth position of the stored tuple (the subgraph URI). </td>
   </tr>
   <tr>
       <td valign="top">getObject(self)</td>

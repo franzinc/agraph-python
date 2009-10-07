@@ -9,6 +9,18 @@
 .output { margin-left:4em; background-color:#F1F1F1;}
 .returnlink {font-size:small;  font-weight:normal; }
 
+.style1 {
+	color: #0000FF;
+	font-weight: bold;
+}
+.style2 {
+	color: #008040;
+	font-weight: bold;
+}
+.style3 {
+	color: #800080;
+	font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -18,7 +30,7 @@
 The Python API offers convenient and efficient
 access to an AllegroGraph server from a Python-based application.  This API provides methods for
 creating, querying and maintaining RDF data, and for managing the stored triples. </p>
-<p>The Python API deliberately emulates the Aduna Sesame API to make it easier to migrate from Sesame to AllegroGraph.&nbsp; The Python API has also been extended in ways that make it easier and more intuitive than the Sesame API.&nbsp; </p>
+<p>The Python API deliberately emulates the Aduma Sesame API to make it easier to migrate from Sesame to AllegroGraph.&nbsp; The Python API has also been extended in ways that make it easier and more intuitive than the Sesame API.&nbsp; </p>
 <h2 id="Contents">Contents</h2>
 <table width="554" border="0" style="vertical-align:top" >
   <tr>
@@ -34,9 +46,9 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Literal Values">Literal Values</a></li>
       <li><a href="#Importing Triples">Importing Triples</a></li>
 	  <li><a href="#Exporting Triples">Exporting Triples</a></li>      
+      <li><a href="#Datasets and Contexts">Datasets and Contexts</a></li>
     </ul></td>
     <td width="295"><ul>
-      <li><a href="#Datasets and Contexts">Datasets and Contexts</a></li>
       <li><a href="#Namespaces">Namespaces</a></li>
       <li><a href="#Free Text Search">Free Text Search</a></li>
       <li><a href="#Ask, Describe, and Construct Queries">Ask, Describe, and Construct Queries</a></li>
@@ -47,6 +59,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Loading Prolog Rules">Loading Prolog Rules</a> </li>
       <li><a href="#RDFS++ Inference">RDFS++ Inference</a> </li>
       <li><a href="#Geospatial Search">Geospatial Search</a> </li>
+      <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
     </ul>
     <p>&nbsp;</p></td>
   </tr>
@@ -82,8 +95,11 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 :new-http-catalog ("c:/tmp/scratch")
 :client-prolog t </pre>
   If you use a different port number, you will need to change the value of the AG_PORT variable at the top of tutorial_examples.py.
- It defaults to 8080. 
-  <li>To update AllegroGraph Server with recent patches, open a connection to the Internet. Run <strong>update.exe</strong>, which you will find the the AllegroGraph installation directory. This automatically downloads and installs all current patches. </li>
+ It defaults to 8080. <br>
+ <br>
+ NOTE: On Windows Vista and Windows 7 systems, you must edit this file with elevated privileges. To do this, either start a Command Prompt with&nbsp; the context menu item &quot;Run as Administrator&quot; then edit the file using a text editor launched in that shell, or run your favorite editor with &quot;Run as Administrator&quot;. If you do not edit with elevated privileges, the file will look like it was saved successfully but the changes will not be seen by the service when it is started. This produces a &quot;cannot connect to server&quot; error message. 
+
+  <li>To update AllegroGraph Server with recent patches, open a connection to the Internet. Run <strong>updater.exe</strong>, which you will find the AllegroGraph installation directory. This automatically downloads and installs all current patches. </li>
   <li>On a Windows computer, the AllegroGraph Server runs as a Windows service. You have to restart this service to load the updates. Beginning at the Windows <strong>Start </strong>button, navigate this path: <br>
     <br>
   Start &gt; Settings &gt; Control Panel &gt; Administrative Tools &gt; Services. <br>
@@ -97,6 +113,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 
  
   <a href="http://python.cx.hu/python-cjson/python-cjson-1.0.3x6.win32-py2.5.exe">python-cjson-1.0.3x6.win32-py2.5.exe.</a> It will add files to the default Python directory structure.</li>
+  <li>It is also necessary to augment Python 2.5 with the Pycurl package. Download and run the installation file, <a href="http://pycurl.sourceforge.net/download/pycurl-ssl-7.18.2.win32-py2.5.exe">pycurl-ssl-7.18.2.win32-py2.5.exe.</a> It will add a small directory to your default Python directory structure. </li>
   <li>
     Link the Python software to the AllegroGraph Python API by setting a PYTHONPATH environment variable. For the free edition of AllegroGraph, the path value is:
       <pre>PYTHONPATH=C:\Program Files\AllegroGraphFJE32\python</pre>
@@ -169,7 +186,8 @@ In Windows XP, you can set an environment variable by
   <li>Predicate: The second field contains the URI identifying a property of this resource, such as its color or size, or a relationship between this resource and another one, such as parentage or ownership. </li>
   <li>Object: The third field is the value of the property. It could be a literal value, such as &quot;red,&quot; or the URI of a linked resource. </li>
   </ul>
-  <li>A &quot;quint&quot; is a triple with an added &quot;context&quot; field, which is used to subdivide a repository into groups of related triples,.and a &quot;tripleID&quot; field. AllegroGraph Server implements triples as quints behind the scenes. The fourth and fifth fields are often ignored, however, so we speak casually of &quot;triples,&quot; and sometimes of &quot;quads,&quot; when it would be more rigorous to call them all &quot;quints.&quot; </li>
+  <li>A &quot;quad&quot; is a triple with an added &quot;context&quot; field, which is used to divide the repository into &quot;subgraphs.&quot; This context or subgraph is just a URI label that appears in the fourth field of related triples. </li>
+  <li>A &quot;quint&quot; is a quad with fifth field used for the &quot;tripleID.&quot; AllegroGraph Server implements all triples as quints behind the scenes. The fourth and fifth fields are often ignored, however, so we speak casually of &quot;triples,&quot; and sometimes of &quot;quads,&quot; when it would be more rigorous to call them all &quot;quints.&quot; </li>
   <li>A &quot;resource description &quot; is defined as a collection of triples that all have the same URI in the subject field. In other words, the triples all describe attributes of the same thing.</li>
   <li>A &quot;statement&quot; is a client-side Python object that describes a triple (quad, quint).&nbsp; </li>
 </ul>
@@ -179,7 +197,7 @@ In Windows XP, you can set an environment variable by
       <ul>
         <li>A &quot;catalog&quot; is a list of repositories owned by an AllegroGraph server.</li>
         <li>A &quot;repository&quot; is a collection of triples within a Catalog, stored and indexed on a hard disk.</li>
-        <li>A &quot;context&quot; is a subset of the triples in a repository. </li>
+        <li>A &quot;context&quot; is a subgraph of the triples in a repository. </li>
         <li>If contexts are not in use, the triples are stored in the &quot;null&quot; context. </li>
         <li>If contexts are being used, the &quot;null&quot; context is not available. </li>
       </ul>      </td>
@@ -199,7 +217,7 @@ this diagram:</p>
   </tr>
 </table>
 
-<p>The example first connects to an AllegroGraph Server by providing the endpoint (host IP address and port number) of an already-launched AllegroGraph server.. This creates a client-side server object, which can access the AllegroGraph server's list of available catalogs through the <strong>listCatalogs()</strong> method:. </p>
+<p>The example first connects to an AllegroGraph Server by providing the endpoint (host IP address and port number) of an already-launched AllegroGraph server. This creates a client-side server object, which can access the AllegroGraph server's list of available catalogs through the <strong>listCatalogs()</strong> method:. </p>
 <pre class="input">def test1(accessMode=Repository.RENEW):
     server = AllegroGraphServer(path=&quot;localhost&quot;, port=&quot;8080&quot;)
     print &quot;Available catalogs&quot;, server.listCatalogs()
@@ -255,7 +273,7 @@ are executed by 'add' and 'remove' methods belonging to the connection object, w
 <p>Before asserting a triple, we have to generate the URI values for the subject, predicate and object fields. The Python API to AllegroGraph Server predefines a number of classes and predicates for the RDF, RDFS, XSD, and OWL ontologies.  RDF.TYPE is one of the predefined predicates we will use. </p>
 <p>
 The 'add' and 'remove' methods take an optional 'contexts' argument that
-specifies one or more contexts that are the the target of triple assertions
+specifies one or more contexts that are the target of triple assertions
 and retractions.  When the context is omitted, triples are asserted/retracted
 to/from the null context.  In the example below, facts about Alice and Bob
 reside in the null context.
@@ -722,7 +740,7 @@ called the connection method <strong>registerFreeTextPredicate()</strong> to reg
     conn.setNamespace('ex', exns)<br>    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o<br>    WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }<br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate(); </pre>
 <p>There is no need to include a prefix declaration for the 'fti' nickname. That is because 'fti' included among the built-in namespace/nickname mappings in AllegroGraph.</p>
 <p>When we execute our SPARQL query, it matches the "Alice" within the literal "Alice B. Toklas" because that literal occurs in a triple having the registered <strong>fullname</strong> predicate, but it does not match the "Alice" in the literal "Alice in Wonderland" because the <strong>booktitle</strong> predicate was not registered for text indexing. This query returns <em>all triples</em> of a resource that had a successful match in at least one object value. </p>
-<pre class="input">    print &quot;Found %i query results&quot; % result.tupleCount    <br>    count = 0<br>    for bindingSet in result:<br>        print bindingSet<br>        count += 1<br>        if count &gt; 5: break</pre>
+<pre class="input">    print &quot;Found %i query results&quot; % len(result)    <br>    count = 0<br>    for bindingSet in result:<br>        print bindingSet<br>        count += 1<br>        if count &gt; 5: break</pre>
 <p>The output of this loop is:</p>
 <pre class="output">Found 2 query results<br>{'p': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 's': 'http://example.org/people/alice1', 'o': 'http://example.org/people/Person'}
 {'p': 'http://example.org/people/fullname', 's': 'http://example.org/people/alice1', 'o': '&quot;Alice B. Toklas&quot;'}</pre>
@@ -801,7 +819,7 @@ def test15():<br>    conn = test1()<br>    conn.clear()</pre>
 <p>Next we need to set up the URIs for Alice, Bob, Carol and the predicate &quot;age&quot;. </p>
 <pre class="input">
     alice = conn.createURI(namespace=exns, localname=&quot;alice&quot;)<br>    bob = conn.createURI(namespace=exns, localname=&quot;bob&quot;)<br>    carol = conn.createURI(namespace=exns, localname=&quot;carol&quot;)    <br>    age = conn.createURI(namespace=exns, localname=&quot;age&quot;)    </pre>
-<p>In this step, we use the connection's createRange() method to generate a range object with limits 30 and </p>
+<p>In this step, we use the connection's createRange() method to generate a range object with limits 30 and 50:</p>
 <pre class="input">    range = conn.createRange(30, 50)</pre>
 <p>The next two lines are essential to the experiment, but you can take your pick of which one to use. The range comparison requires that all of the matching values must have the same datatype. In this case, the values must all be ints. The connection object lets us force this uniformity on the data through the <strong>registerDatatypeMapping()</strong> method. This conversion comes in two versions. You can force all values of a specific predicate to be internally represented as one datatype, as we do here: </p>
 <pre class="input">
@@ -810,7 +828,7 @@ def test15():<br>    conn = test1()<br>    conn.clear()</pre>
 <p>We can also map one datatype into another. In this line, all values represented in the XMLSchema as INTs will be treated as ints in Python. </p>
 <pre class="input">
     if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType=&quot;int&quot;)    </pre>
-<p>If we turn off both mappings, the range comparison fails with internal errors. Why? Because we the example deliberately uses inconsistent data. </p>
+<p>If we turn off both mappings, the range comparison fails with internal errors. Why? Because the example deliberately uses inconsistent data. </p>
 <pre class="input">    conn.add(alice, age, 42)
     conn.add(bob, age, 24) <br>    conn.add(carol, age, &quot;39&quot;) 
 </pre>
@@ -865,7 +883,7 @@ Federated Apples: pippin mcintosh reddelicious</pre>
 <p>This is the query.&nbsp; This query locates all the &quot;man&quot; resources, and retrieves their first and last names. </p>
 <pre class="input">
     queryString2 = &quot;&quot;&quot;<br>    (select (?first ?last)<br>            (man ?person)<br>            (q ?person !kdy:first-name ?first)<br>            (q ?person !kdy:last-name ?last)<br>            )<br>    &quot;&quot;&quot;</pre>
-<p>Here we performt he query and retrieve the result object.&nbsp; </p>
+<p>Here we perform the query and retrieve the result object.&nbsp; </p>
 <pre class="input">
     tupleQuery2 = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString2)<br>    result = tupleQuery2.evaluate();     </pre>
 <p>The result object contains multiple bindingSets.&nbsp; We can iterate over them to print out the values. </p>
@@ -1126,5 +1144,307 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <pre class="output">(&lt;http://example.org/people/london&gt;, &lt;http://example.org/people/geolocation&gt;, 
 &quot;+513159.49909-0000459.99970&quot;^^&lt;http://franz.com/ns/allegrograph/3.0/geospatial/spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)</pre>
 <p>AllegroGraph returns the location of London, but not the nearby Amsterdam.</p>
+<h2 id="Social Network Analysis">Social Network Analysis  (test21())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>AllegroGraph includes sophisticated algorithms for social-network analysis (SNA). It can examine an RDF graph of relationships among people (or similar entities, such as businesses) and discover:</p>
+<ul>
+  <li>Cliques of mutually-supporting individuals.</li>
+  <li>The importance of a person within a clique. </li>
+  <li>Paths from one individual to another.</li>
+  <li>Bottlenecks where information flow might be controlled or break down. </li>
+</ul>
+<p>This section has multiple subsections:</p>
+<ul>
+  <li><a href="#Example Network">Example Network</a></li>
+  <li><a href="#Setting Up the Example">Setting Up the Example</a></li>
+  <li><a href="#Creating an Environment">Creating an Environment</a></li>
+    <li><a href="#Creating SNA Generators">Creating SNA Generators</a></li>
+    <li><a href="#Creating Neighbor Matrices">Creating Neighbor Matrices</a></li>
+    <li><a href="#Deleting Generators and Matrices">Deleting Generators and Matrices</a></li>
+    <li><a href="#SNA Search - Ego Group">SNA Search - Ego Group</a></li>
+    <li><a href="#SNA Search - Path from A to B">SNA Search - Path from A to B</a></li>
+    <li><a href="#Graph Measures">Graph Measures</a></li>
+    <li><a href="#Cliques">Cliques</a></li>
+    <li><a href="#Actor Centrality">Actor Centrality</a></li> 
+</ul>
+<p>Most (but not all) of AllegroGraph's SNA features can be accessed from Python. We access them in multiple ways:</p>
+<ul>
+  <li>The Python API to AllegroGraph contains setup functions that let you create an SNA environment ready for queries.</li>
+  <li>From Python, we can issue Prolog queries to AllegroGraph. Some of the SNA functions have Prolog equivalents that can be called directly from a query. These are explored in the sections below. </li>
+  <li>Within a Prolog query, we can open a window into Lisp and reach for the AllegroGraph's Lisp SNA functions. </li>
+</ul>
+<h3 id="Example Network">Example Network</h3>
+<p>The example file for this exercise is <strong>lesmis.rdf</strong>. It contains resources representing 80 characters from Victor Hugo's <em>Les Miserables</em>, a novel about Jean Valjean's search for redemption in 17th-century Paris. </p>
+<p>The raw data behind the model measured the strength of relationships by counting the number of book chapters where two characters were both present. The five-volume novel has 365 chapters, so it was possible to create a relationship network that had some interesting features. This is a partial display of the graph in <a href="http://www.franz.com/agraph/gruff/index.lhtml">Franz's Gruff graphical browser</a>. </p>
+<p><img src="lesmismap.jpg" width="768" height="426"> </p>
+<p>There are four possible relationships between any two characters. </p>
+<ul>
+  <li><strong>No direct connection</strong>. (They never appeared in the same chapter.) AllegroGraph can locate indirect connections through their mutual acquaintances.</li>
+  <li><span class="style1">Barely knows</span>. The characters barely know each other.</li>
+  <li><span class="style2">Knows</span>. The two characters appear together in 15 or more chapters.</li>
+  <li><span class="style3">Knows well</span>. The two characters appear together in 25 or more chapters. </li>
+</ul>
+<p>(The Gruff illustrations were made from a parallel repository in which the resources were altered to display the character's name in the graph node rather than his URI. That file is called lemisNames.rdf.) </p>
+<h3 id="Setting Up the Example">Setting Up the Example</h3>
+<p>The SNA examples are in function <strong>test21() </strong>in <strong>tutorial_examples.py</strong>. This exercise begins by borrowing a connection object from an earlier example, and then clearing it so we can start fresh:</p>
+<pre class="input">    conn = test1();
+    conn.clear() </pre>
+<p>The next step is to load the lesmis.rdf file and index the triples.</p>
+<pre class="input">    path1 = "./lesmis.rdf"
+    print "Load Les Miserables triples."
+    conn.addFile(path1, None, format=RDFFormat.RDFXML);
+    conn.indexTriples(all=True)</pre>
+
+<p>There are three predicates of interest in the Les Miserables repository. We need to create their URIs and bind them for later use. These are the <strong>knows, barely_knows,</strong> and <strong>knows_well</strong> predicates. </p>
+<pre class="input">    # Create URIs for relationship predicates.
+    lmns = "http://www.franz.com/lesmis#"
+    conn.setNamespace('lm', lmns)
+    knows = conn.createURI(lmns, "knows")
+    barely_knows = conn.createURI(lmns, "barely_knows")
+    knows_well = conn.createURI(lmns, "knows_well")
+</pre>
+<p>We need to bind URIs for two characters: Valjean and Bossuet.  Any analysis of <em>Les Miserables</em> will involve Valjean. Bossuet is someone who &quot;barely knows&quot; Valjean, but the two characters are linked through multiple characters who are more strongly connected. We will ask AllegroGraph to find paths from Valjean to Bossuet.</p>
+<pre class="input">    # Create URIs for some characters.
+    valjean = conn.createURI(lmns, "character11")
+    bossuet = conn.createURI(lmns, "character64")
+</pre>
+<h3 id="Creating an Environment">Creating an Environment</h3>
+<p>We're going to use Prolog queries, so we'll need an &quot;environment&quot; for the queries, just like in our example of <a href="#Loading Prolog Rules">Prolog rules</a>. The Prolog queries and the SNA generators (below) must reside in the same environment. We also need to set the rule language. </p>
+<pre class="input">    conn.deleteEnvironment(&quot;LesMiserables&quot;) ## start fresh 
+    conn.createEnvironment(&quot;LesMiserables&quot;) 
+    conn.setEnvironment(&quot;LesMiserables&quot;) 
+    conn.setRuleLanguage(QueryLanguage.PROLOG)</pre>
+<h3 id="Creating SNA Generators">Creating SNA Generators</h3>
+<p>The SNA functions use &quot;generators&quot; to describe the relationships  we want to analyze. A generator encapsulates a list of predicates to use in social network analysis. It also describes the directions in which each predicate is interesting. </p>
+<p>In an RDF graph, two resources are linked by a single triple, sometimes called a &quot;resource-valued predicate.&quot; This triple has a resource URI in the <em>subject</em> position, and a different one in the <em>object</em> position. For instance:</p>
+<pre>    (&lt;Cosette&gt;, knows_well, &lt;Valjean&gt;)</pre>
+<p>This triple  is a one-way link unless we tell the generator to treat it as bidirectional. This is frequently necessary in RDF data, where inverse relations are often implied but not explicitly declared as triples. </p>
+<p>For this exercise, we will declare three generators:</p>
+<ul>
+  <li>&quot;intimates&quot; uses <strong>knows_well</strong> as a bidirectional predicate.</li>
+  <li>&quot;associates&quot; uses <strong>knows</strong> and <strong>knows_well</strong> as bidirectional predicates.</li>
+  <li>&quot;everyone&quot; uses <strong>barely_knows</strong>, <strong>knows</strong>, and <strong>knows_well</strong> as bidirectional predicates. </li>
+</ul>
+<p>"Intimates" takes a narrow view of persons who know one another quite well. "Associates" follows both strong and medium relationships. "Everyone" follows all relationships, even the weak ones. This provides three levels of resolution for our analysis.</p>
+<p>In addition, we'll define a dummy generator (emptyGen) just so we can demonstrate how to delete it.</p>
+<p>First we'll see how many generators are already in this environment. The connection object's <strong>listSNAGenerators()</strong> method returns an empty list. </p>
+<pre class=input>    print &quot;SNA generators known (should be none): '%s'&quot; % (conn.listSNAGenerators())</pre>
+<pre class=output>SNA generators known (should be none): '[]'
+</pre>
+<p>The connection object's <strong>registerSNAGenerator()</strong> method asks for a generator name (any label), and then for one or more predicates of interest. Each predicate should be assigned to the &quot;subjectOf&quot; direction, the &quot;objectOf&quot; direction, or the &quot;undirected&quot; direction (both ways at once). In addition, you may specify a &quot;generator query,&quot; which is a Prolog &quot;select&quot; query that lets you be more specific about the links you want to analyze. </p>
+<p>&quot;Intimates&quot; follows &quot;knows_well&quot; links only, but it treats them as bidirectional. If Cosette knows Valjean, then we'll assume that Valjean knows Cosette. </p>
+<pre class=input>    conn.registerSNAGenerator(&quot;intimates&quot;, subjectOf=None, objectOf=None, <br>        undirected=knows_well, generator_query=None)</pre>
+<p>&quot;Associates&quot; follows &quot;knows&quot; and &quot;knows_well&quot; links. </p>
+<pre class="input">
+    conn.registerSNAGenerator(&quot;associates&quot;, subjectOf=None, objectOf=None, <br>        undirected=[knows, knows_well], generator_query=None)
+</pre>
+<p>&quot;Everyone&quot; follows all three relationship links. </p>
+<pre class="input">    conn.registerSNAGenerator(&quot;everyone&quot;, subjectOf=None, objectOf=None, <br>        undirected=[knows, knows_well, barely_knows], 
+        generator_query=None)</pre>
+<p>And one more generator, &quot;emptyGen,&quot; that we will use to demonstrate how to delete a generator. </p>		
+<pre class="input">    conn.registerSNAGenerator(&quot;emptyGen&quot;, subjectOf=None, objectOf=None, undirected=None, generator_query=None)<br>    print &quot;SNA generators known (should be four): '%s'&quot; % (conn.listSNAGenerators())</pre>
+
+<p>When we run this part of the example, the connection object's <strong>listSNAGenerators()</strong> method detects four generators:</p>
+<pre class=output>SNA generators known (should be four): '['emptyGen', 'everyone', 'associates', 'intimates']'
+</pre>
+<h3 id="Creating Neighbor Matrices">Creating Neighbor Matrices</h3>
+<p>A generator provides a powerful and flexible tool for examining a graph, but it performs repeated queries against the repository in order to extract the subgraph appropriate to your query. If your data is static, the generator will extract the same subgraph each time you use it. It is better to run the generator once and store the results for quick retrieval. </p>
+<p>That is the purpose of  a &quot;neighbor matrix.&quot; This is a persistent, in-memory cache of a generator's output. You can substitute the matrix for the generator in AllegroGraph's SNA functions. </p>
+<p>The advantage of using a matrix instead of a generator is a many-fold increase in speed. This benefit is especially visible if you are searching for paths between two nodes in your graph. The exact difference in speed is difficult to estimate because there can be complex trade-offs and scaling issues to consider, but it is easy to try the experiment and observe the effect. </p>
+<p>To create a matrix, use the connection object's <strong>registerNeighborMatrix()</strong> method. You must supply a matrix name (any symbol), the name of the generator, the URI of a resource to serve as the starting point, and a maximum depth. The idea is to place limits on the subgraph so that the search algorithms can operate in a restricted space rather than forcing them to analyze the entire repository. </p>
+<p>In the following excerpt, we are creating four matrices to match the four generators we created. In this example, &quot;matrix1&quot; is the matrix for generator &quot;intimates,&quot; and so forth. </p>
+<pre class="input">    print &quot;Neighbor matrices known (should be none): '%s'&quot; % (conn.listNeighborMatrices())<br>    conn.registerNeighborMatrix(&quot;matrix1&quot;, &quot;intimates&quot;, valjean, max_depth=2)<br>    conn.registerNeighborMatrix(&quot;matrix2&quot;, &quot;associates&quot;, valjean, max_depth=2)<br>    conn.registerNeighborMatrix(&quot;matrix3&quot;, &quot;everyone&quot;, valjean, max_depth=2)<br>    conn.registerNeighborMatrix(&quot;emptyMat&quot;, &quot;emptyGen&quot;, valjean, max_depth=2)<br>
+    print &quot;Neighbor matrices known (should be four): '%s'&quot; % (conn.listNeighborMatrices())
+</pre>
+<pre class="output">Neighbor matrices known (should be none): '[]'
+Neighbor matrices known (should be four): '['emptyMat', 'matrix3', 'matrix2', 'matrix1']'
+</pre>
+<p>A matrix is a static snapshot of the generator's output. If your data changes, the matrix will need to be rebuilt. For this, use the connection object's <strong>rebuildNeighborMatrix()</strong> method, and tell it the name of the matrix: </p>	
+<pre class="input">    conn.rebuildNeighborMatrix(&quot;matrix1&quot;)  <br>    print &quot;Rebuilt one matrix.  Neighbor matrices known (should be four): '%s'&quot; % (conn.listNeighborMatrices()) </pre>
+<pre class="output">Rebuilt one matrix.  Neighbor matrices known (should still be four): '['emptyMat', 'matrix3', 'matrix2', 'matrix1']'</pre>
+<h3 id="Deleting Generators and Matrices">Deleting Generators and Matrices</h3>
+<p>Generators do not occupy much memory, but if your application creates a lot of them it is considered good practice to delete them afterward. Use the connection object's <strong>deleteSNAGenerator()</strong> method: </p>
+<pre class="input">    conn.deleteSNAGenerator("emptyGen")
+    print "Deleted one generator. SNA generators known: '%s'" % (conn.listSNAGenerators())
+</pre>
+<pre class="output">Deleted one generator. SNA generators known (should be three): '['everyone', 'associates', 'intimates']'</pre>
+<p>There is also a <strong>deleteNeighborMatrix()</strong> method. Unlike generators, matrices occupy significant amounts of memory. Each matrix should be deleted when you are done with it. </p>
+<pre class="input">    conn.deleteNeighborMatrix(&quot;emptyMat&quot;)<br>    print &quot;Deleted one matrix. Neighbor matrices known (should be three): '%s'&quot; % (conn.listNeighborMatrices())
+</pre><pre class="output">Deleted one matrix. Neighbor matrices known (should be three): '['matrix3', 'matrix2', 'matrix1']'</pre>
+<h3 id="SNA Search - Ego Group"><strong>SNA Search - Ego Group</strong></h3>
+<p>Our first search will enumerate Valjean's &quot;ego group members.&quot; This is the set of nodes (characters) that can be found by following the interesting predicates out from Valjean's node of the graph to some specified depth. We'll use the &quot;associates&quot; generator (&quot;knows&quot; and &quot;knows_well&quot;) to specify the predicates, and we'll impose a depth limit of one link. This is the group we expect to find:</p>
+<p><img src="snaEgoGroup.jpg" width="599" height="203"></p>
+<p>The following Python code sends a Prolog query to AllegroGraph and returns the result to Python. </p>
+<pre class="input">    print "Valjean's ego group (using associates)."
+    queryString = """
+    (select (?member ?name)
+      (ego-group-member !lm:character11 1 associates ?member)
+      (q ?member !dc:title ?name))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print &quot;Found %i query results&quot; % len(result)      <br>    for bindingSet in result:
+        p = bindingSet.getValue("member")
+        n = bindingSet.getValue("name")
+        print "%s %s" % (p, n)
+</pre>
+<p>This is the iconic block of code that is repeated in the SNA examples, below, with minor variations in the display of bindingSet values. To save virtual trees, we'll focus more tightly on the Prolog query from this point on:</p>
+<pre class="input">    (select (?member ?name)
+      (ego-group-member !lm:character11 1 associates ?member)
+      (q ?member !dc:title ?name))
+</pre>
+<p>In this example, <strong>ego-group-member</strong> is an AllegroGraph SNA function that has been adapted for use in Prolog queries. There is a list of such functions on the <a href="http://www.franz.com/agraph/support/documentation/current/reference-guide.html#sna">AllegroGraph documentation reference page</a>. </p>
+<p>The query will execute <strong>ego-group-member</strong>, using Valjean (character11) as the starting point, following the predicates described in &quot;associates,&quot; to a depth of 1 link. It binds each matching node to <strong>?member</strong>. Then, for each binding of ?member, the query looks for the member's <strong>dc:title</strong> triple, and binds the member's <strong>?name</strong>.  The query returns multiple results, where each result is a (?member ?name) pair. The result object is passed back to Python, where we can iterate over the results and print out their values. </p>
+<p>This is the output of the example:</p>
+<pre class="output">Valjean's ego group (using associates).
+Found 8 query results
+&lt;http://www.franz.com/lesmis#character27&gt; "Javert"
+&lt;http://www.franz.com/lesmis#character24&gt; "MmeThenardier"
+&lt;http://www.franz.com/lesmis#character25&gt; "Thenardier"
+&lt;http://www.franz.com/lesmis#character28&gt; "Fauchelevent"
+&lt;http://www.franz.com/lesmis#character11&gt; "Valjean"
+&lt;http://www.franz.com/lesmis#character26&gt; "Cosette"
+&lt;http://www.franz.com/lesmis#character23&gt; "Fantine"
+&lt;http://www.franz.com/lesmis#character55&gt; "Marius"</pre>
+<p>If you compare this list with the Gruff-generated image of Valjean's ego group, you'll see that AllegroGraph has found all eight expected nodes. You might be surprised that Valjean is regarded as a member of his <em>own</em> ego group, but that is a logical result of the definition of &quot;ego group.&quot; The ego group is the set of all nodes within a certain depth of the starting point, and certainly the starting point must be is a member of that set. </p>
+<p>We can perform the same search using a neighbor matrix, simply by substituting &quot;matrix2&quot; for &quot;associates&quot; in the query:</p>
+<pre class="input">    (select (?member ?name)
+      (ego-group-member !lm:character11 1 <strong>matrix2</strong> ?member)
+      (q ?member !dc:title ?name))
+</pre>
+<p>This produces the same set of result nodes, but under the right circumstances the matrix would run a lot faster than the generator. </p>
+<p>This variation returns Valjean's ego group as a single list:</p>
+<pre class="input">    (select ?group
+      (ego-group !lm:character11 1 associates ?group))</pre>
+  The result in the Python interaction window is: 
+<pre class="output">Valjean's ego group in one list depth 1 (using associates).
+"({character27} {character24} {character25} {character28} {character11}
+ {character26} {character23} {character55})"</pre>
+ <h3 id="SNA Search - Path from A to B">SNA Search - Path from A to B</h3>
+<p>In the following examples, we explore the graph for the shortest path from Valjean to Bossuet, using the three generators to place restrictions on the quality of the path. These are the relevant paths between these two characters:</p>
+ <img src="pathsValBos.jpg" width="913" height="254"> 
+<p>Our first query asks AllegroGraph to use <strong>intimates</strong> to find the shortest possible path between Valjean and Bossuet that is composed entirely of &quot;knows_well&quot; links. Those would be the green arrows in the diagram above. The <strong>breadth-first-search-paths</strong> function asks for a start node and an end node, a generator, an optional maximum path length, and a variable to bind to the resulting path(s). </p>
+<pre class="input">    (select ?path
+      (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))</pre>
+<p>It is easy to examine the diagram and see that there is no such path. Valjean and Bossuet are not well-acquainted, and do not have any chain of well-acquainted mutual friends. AllegroGraph lets us know that.</p>
+<pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using intimates.
+Found 0 query results</pre>
+<p>This time we'll broaden the criteria. What is the shortest path from Valjean to Bossuet, using <strong>associates</strong>? We can follow either &quot;knows_well&quot; or &quot;knows&quot; links across the graph. Those are the green and the blue links in the diagram. </p>
+<pre class="input">(select ?path
+      (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))</pre>
+<p>Although there are multiple such paths, there are only two that are &quot;shortest&quot; paths. </p>
+<pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using associates.
+Found 2 query results
+"({character11} {character55} {character62} {character64})"
+"({character11} {character55} {character58} {character64})"</pre>
+<p>These are the paths &quot;Valjean &gt; Marius &gt; Enjolras &gt; Bossuet&quot; and &quot;Valjean &gt; Marius &gt; Courfeyrac &gt; Bossuet.&quot; AllegroGraph returns two paths because they are of equal length. If one of the paths had been shorter, it would have returned only the short path. </p>
+<p>Our third query asks for the shortest path from Valjean to Bossuet using <strong>everyone</strong>, which means that &quot;barely-knows&quot; links are permitted in addition to &quot;knows&quot; and &quot;knows_well&quot; links. </p>
+<pre class="input">    (select ?path
+      (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
+</pre>
+<p>This time AllegroGraph returns a single, short path:</p>
+<pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using everyone.
+Found 1 query results
+"({character11} {character64})"</pre>
+<p>This is the &quot;barely-knows&quot; link directly from from Valjean to Bossuet. </p>
+<p>The Prolog select query can also use <strong>depth-first-search-paths()</strong> and <strong>bidirectional-search-paths()</strong>. Their syntax is essentially identical to that shown above. </p>
+<h3 id="Graph Measures">Graph Measures</h3>
+<p>AllegroGraph provides several utility functions that measure the characteristics of a node, such as the number of connections it has to other nodes, and its importance as a communication path in a clique. </p>
+<p>For instance, we can use the <strong>nodal-degree</strong> function to ask how many nodal neighbors Valjean has, using <strong>everyone</strong> to catalog all the nodes connected to Valjean by &quot;knows,&quot; &quot;barely_knows&quot;, and &quot;knows_well&quot; predicates. There are quite a few of them:</p>
+<p><img src="allLinksValjean.jpg" width="720" height="341"> </p>
+<p>The nodal-degree function requires the URI of the target node (Valjean is character11), the generator, and a variable to bind the returned value to. </p>
+<pre class="input">    print &quot;\nHow many neighbors are around Valjean? (should be 36).&quot;<br>    queryString = &quot;&quot;&quot;<br>    (select ?neighbors<br>      (nodal-degree !lm:character11 everyone ?neighbors))<br>      &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();<br>    for bindingSet in result:<br>        p = bindingSet.getValue(&quot;neighbors&quot;)<br>        print &quot;%s&quot; % (p)<br>        print &quot;%s&quot; % <strong>p.toPython()</strong></pre>
+<p>Note that this function returns a string that describes an integer, which in its raw form is difficult for Python to use. We convert the raw value to a Python integer using the <strong>.toPython() </strong>method that is available to all literal values in the Python API to AllegroGraph. This example prints out both the string value and the converted number.</p>
+<pre class="output">How many neighbors are around Valjean? (should be 36).
+"36"^^&lt;http://www.w3.org/2001/XMLSchema#integer&gt;
+36</pre>
+<p>If you want to see the names of these neighbors, you can use either the <strong>ego-group-member</strong> function described earlier on this page, or the <strong>nodal-neighbors</strong> function shown below:</p>
+<pre class="input">
+    (select (?name)
+      (nodal-neighbors !lm:character11 everyone ?member)
+      (q ?member !dc:title ?name))
+</pre>
+<p>This example enumerates all immediate neighbors of Valjean and returns their names:
+<pre class="output">Who are Valjean's neighbors? (using everyone).
+"Isabeau",  "Labarre",  "Cochepaille",  "Marguerite",  "Babet",  "Woman2",  <br>"Enjolras",  "Chenildieu",  "Toussaint",  "MmeThenardier",  "Gavroche",  <br>"Bossuet",  "MotherInnocent",  "Gueulemer",  "Simplice",  "Fauchelevent",  <br>"MmeMagloire",  "Claquesous",  "Bamatabois",  "Woman1",  "Thenardier",  <br>"Marius",  "Cosette",  "MlleBaptistine",  "Montparnasse",  "MlleGillenormand",  <br>"Gervais",  "Brevet",  "Champmathieu",  "Fantine",  "Judge",  "Gillenormand",  <br>"Javert",  "MmeDeR",  "Scaufflaire",  "Myriel",  </pre>
+
+<p>Another descriptive statistic is <strong>graph-density</strong>, which measures the density of connections within a subgraph. </p>
+<p>For instance, this is Valjeans ego group with all <strong>associates</strong>  included. </p>
+<p><img src="graphDensity.jpg" width="806" height="297"> </p>
+<p>Only 9 of 28 possible links are in place in this subgraph, so the graph density is 0.32. The following query asks AllegroGraph to calculate this figure for Valjean's ego group:</p>
+<pre class="input">
+    (select ?density
+      (ego-group !lm:character11 1 associates ?group)
+      (graph-density ?group associates ?density))
+</pre>
+<p>We used the<strong> ego-group</strong> function to return a list of Valjean's ego group members, bound to the variable <strong>?group</strong>, and then we used ?group to feed that subgraph to the <strong>graph-density</strong> function. The return value, <strong>?density</strong>, came back as a string describing a float, and had to be converted to a Python float using <strong>.toPython()</strong>.</p>
+<pre class="output">Graph density of Valjean's ego group? (using associates).
+"3.2142857e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
+3.2142857e-1</pre>
+<h3 id="Cliques">Cliques</h3>
+<p>A &quot;clique&quot; is a subgraph where every node is connected to every other node by predicates specified in some generator. AllegroGraph, using everyone (&quot;knows,&quot; &quot;knows_well,&quot; and &quot;barely_knows&quot;), found that Valjean participates in 239 cliques! </p>
+<p><img src="valjeanBigClique.jpg" width="859" height="301"> </p>
+<p>It is counterintuitive that a &quot;clique&quot; should be composed mainly of people who &quot;barely_know&quot; each other, so let's try the same experiment using &quot;associates,&quot; which restricts the cliques to people Valjean &quot;knows&quot; or &quot;knows_well.&quot; In this case, AllegroGraph returns two cliques. One contains Valjean, Cosette, and Marius. The other contains Valjean and the Thenardiers. </p>
+<p><img src="valjeanSmallCliques.jpg" width="397" height="248"> </p>
+<p>This is the query that finds Valjean's &quot;associates&quot; cliques:</p>
+<pre class="input">
+    (select ?clique
+      (clique !lm:character11 associates ?clique))
+</pre>
+
+
+
+<p>AllegroGraph returns two cliques:</p>
+<pre class="output">Valjean's cliques? Should be two (using associates).
+Number of cliques: 2
+"({character11} {character26} {character55})"
+"({character11} {character25} {character24})"</pre>
+<p>The first list is the clique with Marius and Cosette. The second one represents the Thernardier clique. </p>
+<h3 id="Actor Centrality">Actor Centrality </h3>
+<p>AllegroGraph lets us measure the relative importance of a node in a subgraph using the <strong>actor-degree-centrality()</strong> function. For instance, it should be obvious that Valjean is very &quot;central&quot; to his own ego group (depth of one link), because he is linked directly too all other links in the subgraph. In that case he is linked to 7 of 7 possible nodes, and his actor-degree-centrality value is 7/7 = 1. </p>
+<p>However, we can regenerate Valjean's ego group using a depth of 2. This adds three nodes that are not directly connected to Valjean. How &quot;central&quot; is he then?</p>
+<p><img src="valjeanActorCentrality.jpg" width="875" height="303"> </p>
+<p>In this subgraph, Valjean's actor-degree-centrality is 0.70, meaning that he is connected to 70% of the nodes in the subgraph. </p>
+<p>This example asks AllegroGraph to generate the expanded ego group, and then to measure Valjean's actor-degree-centrality:</p>
+<pre class="input">
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (actor-degree-centrality !lm:character11 ?group associates ?centrality))
+</pre>
+<p>Note that we asked <strong>ego-group()</strong> to explore to a depth of two links, and then fed its result (<strong>?group</strong>) to <strong>actor-degree-centrality()</strong>. This is the output:</p>
+<pre class="output">Valjean's centrality to his ego group at depth 2 (using associates).
+"7.0e-1"^^<http://www.w3.org/2001/XMLSchema#double>
+7.0e-1</pre>
+<p>This confirms our expectation that Valjean's actor-degree-centrality should be 0.70 in this circumstance.</p>
+<p>We can also measure actor centrality by calculating the average path length from a given node to the other nodes of the subgraph. This is called <strong>actor-closeness-centrality</strong>. For instance, we can calculate the average path length from Valjean to the ten nodes of his ego group (using associates and depth 2). Then we take the inverse of the average, so that bigger values will be &quot;more central.&quot; </p>
+<p><img src="valjeanActorClosenessCentrality.jpg" width="875" height="303"> </p>
+<p>The actor-closeness-centrality for Marius is 0.60, showing that Valjean is more central and important to the group than is Marius. </p>
+<p>This example calculates Valjean's <strong>actor-closeness-centrality</strong> for the associates ego group of depth 2. </p>
+<pre class="input">
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (actor-closeness-centrality !lm:character11 ?group associates ?centrality))
+</pre>
+<pre class="output">Valjean's actor-closeness-centrality to his ego group at depth 2 (using associates).
+"7.692308e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
+7.692308e-1</pre>
+<p>That is the expected value of 0.769. </p>
+<p>Another approach to centrality is to count the number of information paths that are &quot;controlled&quot; by a specific node. This is called<strong> actor-betweenness-centrality</strong>. For instance, there are 45 possible &quot;shortest paths&quot; between pairs of nodes in Valjean's associates depth-2 ego group. Valjean can act as an information valve, potentially cutting off communication on 34 of these 45 paths. Therefore, he controls 75% of the communication in the group. </p>
+<p><img src="valjeanActorBetweenCentrality.jpg" width="875" height="303"></p>
+<p>This example calculates Valjean's actor-betweenness-centrality:</p>
+<pre class="input">
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (actor-betweenness-centrality !lm:character11 ?group associates ?centrality))
+</pre>
+
+<pre class="output">Valjean's actor-betweenness-centrality to his ego group at depth 2 (using associates).
+"7.5555557e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
+7.5555557e-1</pre>
+<p>That's the expected result of 0.755. </p>
+<p><font color="#CCCCCC">September 25, 2009 </font><font size="-3"></font></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
 </body>
 
