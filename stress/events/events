@@ -47,31 +47,41 @@ from franz.openrdf.repository.repository import Repository
 from franz.openrdf.vocabulary import XMLSchema, RDF
 from franz.openrdf.model import Literal, Statement, URI, ValueFactory
 
-NS = 'http://franz.com/events#';
+class Defaults:
+    # The namespace
+    NS = 'http://franz.com/events#';
 
-# Number of worker processes
-LOAD_WORKERS = 24
-QUERY_WORKERS = 24
+    # Number of worker processes
+    LOAD_WORKERS = 24
+    QUERY_WORKERS = 24
 
-# Time to run queries in minutes
-QUERY_TIME = 10
+    # Time to run queries in minutes
+    QUERY_TIME = 10
 
-# Size of the Events
-EVENT_SIZE = 50
+    # Size of the Events
+    EVENT_SIZE = 50
 
-# Events per commit in bulk load phase
-BULK_EVENTS = 250
+    # Events per commit in bulk load phase
+    BULK_EVENTS = 250
 
-# Goal store size
-SIZE = (10**9)
+    # Goal store size
+    SIZE = (10**9)
+
+    # The catalog name
+    CATALOG = 'tests'
+
+    # The repository name
+    REPOSITORY = 'events_test'
+
+# The program options
+OPT = None
 
 LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
+AG_USER = os.environ.get('AGRAPH_USER', 'test')
+AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
 PROG = sys.argv[0]
-
-# Reduce the number of times we need to round-trip to the server for blank nodes
-ValueFactory.BLANK_NODE_AMOUNT = BULK_EVENTS * 4
 
 def trace(output):
     print output
@@ -81,9 +91,9 @@ def connect(access_mode=Repository.OPEN):
     """
     Connect is called to connect to a store.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
-    catalog = server.openCatalog('tests')
-    repository = catalog.getRepository('events_test', access_mode)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(OPT.CATALOG)
+    repository = catalog.getRepository(OPT.REPOSITORY, access_mode)
     repository.initialize()
     if access_mode is Repository.RENEW:
         repository.registerDatatypeMapping(datatype=XMLSchema.DATETIME,
@@ -105,11 +115,10 @@ class PredInfo(namedtuple('PredInfo', 'uri generator')):
         assert callable(generator)
 
         if not isinstance(uri, URI):
-            uri = URI(namespace=NS, localname=uri)
+            uri = URI(namespace=OPT.NS, localname=uri)
         uri = uri.toNTriples()
         
         return tuple.__new__(cls, (uri, generator)) 
-
 
 # Define some generators
 class RandomDate(object):
@@ -191,17 +200,17 @@ random_delivery.types = ('Mail', 'FedEx', 'UPS', 'Truck Freight')
 def random_money():
     return Literal(round(random.uniform(0.01, 10000.00), 2)).toNTriples()
 
-def random_uri(prefix, limit=int(SIZE/1000)):
-    # Striving for 1000 ids per prefix (e.g. customer), so by default there
-    # are SIZE/1000 ids
-    return URI(namespace=NS,
-        localname='%s-%d' % (prefix, random.randrange(limit))).toNTriples()
+def random_uri(prefix, limit):
+    return URI(namespace=OPT.NS,
+        localname='%s-%d' % (prefix, random.randrange(int(limit)))).toNTriples()
 
 def random_customer():
-    return random_uri('Customer')
+    # Striving for 1000 ids per prefix (e.g. customer) when SIZE is 1 billion,
+    # so by default there are SIZE/1000 ids
+    return random_uri('Customer', OPT.SIZE/1000)
 
 def random_account():
-    return random_uri('Account')
+    return random_uri('Account', OPT.SIZE/1000)
 
 def random_action():
     fn = random_action
@@ -216,95 +225,96 @@ def random_handling():
 random_handling.handling = ('Nothing', 'Past Due Notice', 'Collections') 
 
 def type_uri(label):
-    return URI(namespace=NS, localname=label).toNTriples()
+    return URI(namespace=OPT.NS, localname=label).toNTriples()
 
-INTERACTION = [
-    PredInfo(RDF.TYPE, lambda: type_uri('CustomerInteraction')),
-    PredInfo('EventTimeStamp', random_datetime),
-    PredInfo('EntityId', random_int),
-    PredInfo('OriginatingSystem', lambda: '"CRM"'),
-    PredInfo('Agent', random_name),
-    PredInfo('Direction', random_direction),
-    PredInfo('DoneInOne', random_bool),
-    PredInfo('EndDate', random_datetime),
-    PredInfo('FeeBased', random_bool),
-    PredInfo('InteractionId', random_int),
-    PredInfo('Origin', random_origin),
-    PredInfo('PayOption', random_payoption),
-    PredInfo('ReasonLevel1', random_int),
-    PredInfo('ReasonLevel2', random_int),
-    PredInfo('OriginatingSystem', random_int),
-    PredInfo('Result', random_int)
-    ]
+# The list of events to generate
+EVENTS = None
 
-INVOICE = [
-    PredInfo(RDF.TYPE, lambda: type_uri('Invoice')),
-    PredInfo('EventTimeStamp', random_datetime),
-    PredInfo('AccountId', random_account),
-    PredInfo('OriginatingSystem', lambda: '"Invoicing"'), 
-    PredInfo('DueDate', random_datetime),
-    PredInfo('Action', random_action),
-    PredInfo('TotalAmountDue', random_money),
-    PredInfo('AmountDueHandling', random_handling),
-    PredInfo('LegalInvoiceNumber', random_int),
-    PredInfo('PreviousBalanceAmount', random_money),
-    PredInfo('TotalFinanceActivites', random_money),
-    PredInfo('BillDate', random_date),
-    PredInfo('TotalUsageCharges', random_money),
-    PredInfo('TotalRecurringCharges', random_money),
-    PredInfo('TotalOneTimeCharges', random_money)
-    ]
+def initialize_events():
+    global EVENTS
 
-PAYMENT = [
-    PredInfo(RDF.TYPE, lambda: type_uri('AccountPayment')),
-    PredInfo('EventTimeStamp', random_datetime),
-    PredInfo('AccountId', random_account),
-    PredInfo('OriginatingSystem', lambda: '"Ordering"'),
-    PredInfo('SubscriberId', random_customer),
-    PredInfo('InvoiceId', random_int),
-    PredInfo('PaymentAmount', random_money),
-    PredInfo('OriginalAmount', random_money),
-    PredInfo('AmountDue', random_money),
-    PredInfo('DepositDate', random_datetime),
-    PredInfo('PaymentType', random_payoption),
-    PredInfo('OriginalPostedAmount', random_money),
-    PredInfo('PaymentTarget', lambda: random_uri('PaymentTarget', 100)),
-    PredInfo('DepositDesignation',
-        lambda: random_uri('DepositDesignation', 100)),
-    PredInfo('BusinessEntity', lambda: random_uri('BusinessUnit', 100))
-    ]
+    interaction = [
+        PredInfo(RDF.TYPE, lambda: type_uri('CustomerInteraction')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('EntityId', random_int),
+        PredInfo('OriginatingSystem', lambda: '"CRM"'),
+        PredInfo('Agent', random_name),
+        PredInfo('Direction', random_direction),
+        PredInfo('DoneInOne', random_bool),
+        PredInfo('EndDate', random_datetime),
+        PredInfo('FeeBased', random_bool),
+        PredInfo('InteractionId', random_int),
+        PredInfo('Origin', random_origin),
+        PredInfo('PayOption', random_payoption),
+        PredInfo('ReasonLevel1', random_int),
+        PredInfo('ReasonLevel2', random_int),
+        PredInfo('OriginatingSystem', random_int),
+        PredInfo('Result', random_int)]
 
-PURCHASE = [
-    PredInfo(RDF.TYPE, lambda: type_uri('Purchase')),
-    PredInfo('EventTimeStamp', random_datetime),
-    PredInfo('AccountId', random_account),
-    PredInfo('OriginatingSystem', lambda: '"Sales"'),
-    PredInfo('PurchaseDate', random_datetime),
-    PredInfo('PurchaseAmount', random_money),
-    PredInfo('InvoiceID', random_int),
-    PredInfo('ProductID', lambda: random_uri('Product')), 
-    PredInfo('LegalInvoiceNumber', random_int),
-    PredInfo('PreviousBalanceAmount', random_money),
-    PredInfo('DeliveredVia', random_delivery),
-    PredInfo('PaidVia', random_payoption),
-    PredInfo('CCApprovalNumber', random_int),
-    PredInfo('TotalRecurringCharges', random_money),
-    PredInfo('TotalOneTimeCharges', random_money)
-    ]
+    invoice = [
+        PredInfo(RDF.TYPE, lambda: type_uri('Invoice')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('AccountId', random_account),
+        PredInfo('OriginatingSystem', lambda: '"Invoicing"'), 
+        PredInfo('DueDate', random_datetime),
+        PredInfo('Action', random_action),
+        PredInfo('TotalAmountDue', random_money),
+        PredInfo('AmountDueHandling', random_handling),
+        PredInfo('LegalInvoiceNumber', random_int),
+        PredInfo('PreviousBalanceAmount', random_money),
+        PredInfo('TotalFinanceActivites', random_money),
+        PredInfo('BillDate', random_date),
+        PredInfo('TotalUsageCharges', random_money),
+        PredInfo('TotalRecurringCharges', random_money),
+        PredInfo('TotalOneTimeCharges', random_money)]
 
-def pad_events(event):
-    pred_format = event[0].generator() + '-%d'
+    payment = [
+        PredInfo(RDF.TYPE, lambda: type_uri('AccountPayment')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('AccountId', random_account),
+        PredInfo('OriginatingSystem', lambda: '"Ordering"'),
+        PredInfo('SubscriberId', random_customer),
+        PredInfo('InvoiceId', random_int),
+        PredInfo('PaymentAmount', random_money),
+        PredInfo('OriginalAmount', random_money),
+        PredInfo('AmountDue', random_money),
+        PredInfo('DepositDate', random_datetime),
+        PredInfo('PaymentType', random_payoption),
+        PredInfo('OriginalPostedAmount', random_money),
+        PredInfo('PaymentTarget', lambda: random_uri('PaymentTarget', 100)),
+        PredInfo('DepositDesignation',
+            lambda: random_uri('DepositDesignation', 100)),
+        PredInfo('BusinessEntity', lambda: random_uri('BusinessUnit', 100))]
 
-    for i in range(len(event), EVENT_SIZE):
-        event.append(PredInfo(pred_format % i, random_int))
+    purchase = [
+        PredInfo(RDF.TYPE, lambda: type_uri('Purchase')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('AccountId', random_account),
+        PredInfo('OriginatingSystem', lambda: '"Sales"'),
+        PredInfo('PurchaseDate', random_datetime),
+        PredInfo('PurchaseAmount', random_money),
+        PredInfo('InvoiceID', random_int),
+        PredInfo('ProductID', lambda: random_uri('Product', OPT.SIZE/1000)), 
+        PredInfo('LegalInvoiceNumber', random_int),
+        PredInfo('PreviousBalanceAmount', random_money),
+        PredInfo('DeliveredVia', random_delivery),
+        PredInfo('PaidVia', random_payoption),
+        PredInfo('CCApprovalNumber', random_int),
+        PredInfo('TotalRecurringCharges', random_money),
+        PredInfo('TotalOneTimeCharges', random_money)]
 
-    assert len(event) == EVENT_SIZE
+    def pad_events(event):
+        pred_format = event[0].generator() + '-%d'
 
-    return event
+        for i in range(len(event), OPT.EVENT_SIZE):
+            event.append(PredInfo(pred_format % i, random_int))
 
-EVENTS = map(pad_events, [INTERACTION, INVOICE, PAYMENT, PURCHASE])
+        assert len(event) == OPT.EVENT_SIZE
+        return event
 
-def random_event(conn, storage):
+    EVENTS = map(pad_events, [interaction, invoice, payment, purchase])
+
+def random_event(conn, storage, index):
     event = random.choice(EVENTS)
 
     # A customer URI for the quad's graph
@@ -313,10 +323,11 @@ def random_event(conn, storage):
     # Groups the event triples via an anonymous node
     bnode = conn.createBNode().toNTriples()
 
-    for index, info in enumerate(event):
-        storage[index] = [bnode, info.uri, info.generator(), customer]
+    for info in event:
+        storage[index] = (bnode, info.uri, info.generator(), customer)
+        index += 1
 
-    return storage
+    return index
 
 def buggy_version():
     """There is a bug in Python versions <= 2.6.2"""
@@ -350,7 +361,6 @@ class LoadPhase:
 
 class PhaseParameters(object):
     def __init__(self, date_range, events_in_commit, triples):
-        random_datetime.range = date_range
         object.__init__(self)
         self.date_range = date_range
         self.events_in_commit = events_in_commit
@@ -358,18 +368,14 @@ class PhaseParameters(object):
 
     @property
     def commits(self):
-        return int(self.triples / (self.events_in_commit * EVENT_SIZE))
+        return int(self.triples / (self.events_in_commit * OPT.EVENT_SIZE))
 
     @property
     def commits_per_worker(self):
-        return int(self.commits / LOAD_WORKERS)
+        return int(self.commits / OPT.LOAD_WORKERS)
 
-PhaseParams = [
-    PhaseParameters(BaselineRange, 1, SIZE/10),
-    PhaseParameters(BulkRange, BULK_EVENTS, (SIZE*9)/10),
-    PhaseParameters(WithQueryRange, 1, SIZE/10),
-    PhaseParameters(DeleteRange, BULK_EVENTS, SIZE/10)]
-
+# The Phase Parameters
+PHASE_PARAMS = None
 
 # The work queues for loading and querying
 loadq = None
@@ -388,27 +394,24 @@ def load_events(proc_num):
             return None
 
     def load_phase(phase):
-        params = PhaseParams[phase]
-        storage = [None]*EVENT_SIZE
-        quads = [None]*(EVENT_SIZE*params.events_in_commit)
+        params = PHASE_PARAMS[phase]
+        random_datetime.range = params.date_range
+        quads = [None]*(OPT.EVENT_SIZE*params.events_in_commit)
 
         status_size = 1000 if params.events_in_commit == 1 else 250
 
         count = 0
         errors = 0
-
         for commit in range(params.commits_per_worker):
             index = 0
             for event in range(params.events_in_commit):
-                event_quads = random_event(conn, storage)
-                quads[index:index+EVENT_SIZE] = event_quads
-                index += EVENT_SIZE
+                index = random_event(conn, quads, index)
 
             if commit > 0 and commit % status_size == 0:
                 trace('loader(%d) [%s]: Status - %d triples loaded so far '
                       'at %s triples per commit, %d loading errors.' % (
                       proc_num, datetime.now(), count,
-                      EVENT_SIZE*params.events_in_commit, errors))
+                      OPT.EVENT_SIZE*params.events_in_commit, errors))
 
             try:
                 conn.mini_repository.addStatements(quads)
@@ -421,13 +424,14 @@ def load_events(proc_num):
             
         trace('loader(%d) [%s]: Loading done - %d triples at %s triples '
             'per commit, %d loading errors.' % (proc_num, datetime.now(),
-            count, EVENT_SIZE*params.events_in_commit, errors))
+            count, OPT.EVENT_SIZE*params.events_in_commit, errors))
         sys.stdout.flush()
         loadq.task_done()
 
     def delete_phase():
-        params = PhaseParams[LoadPhase.delete]
-        timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
+        params = PHASE_PARAMS[LoadPhase.delete]
+        timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp'
+            ).toNTriples()
         limit = params.events_in_commit
 
         interval = timedelta(seconds=24*60*60)
@@ -449,6 +453,7 @@ def load_events(proc_num):
             try:
                 count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
                     ).evaluate(count=True)
+
                 assert count <= limit
                 events += count
 
@@ -463,7 +468,7 @@ def load_events(proc_num):
                 traceback.print_exc()
 
         trace('loader(%d) [%s]: Found %d events (%d triples) to delete.' % (
-            proc_num, datetime.now(), events, events * EVENT_SIZE))
+            proc_num, datetime.now(), events, events * OPT.EVENT_SIZE))
         
         loadq.task_done()
 
@@ -499,7 +504,7 @@ def query_events(proc_num):
         except Empty:
             return None
 
-    timestamp = URI(namespace=NS, localname='EventTimeStamp').toNTriples()
+    timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp').toNTriples()
 
     def random_query():
         # Pick a random customer
@@ -530,8 +535,7 @@ def query_events(proc_num):
                 SELECT ?event ?pred ?obj {
                  GRAPH %s {
                    ?event %s ?time .
-                   FILTER (?time <= %s)
-                   FILTER (?time >= %s)
+                   FILTER (%s <= ?time && ?time <= %s)
                  }
                  {?event ?pred ?obj}
                 }""" % (customer, timestamp, start_nt, end_nt)
@@ -576,7 +580,20 @@ def main():
     """
     The parent main process.
     """
-    global loadq
+    global loadq, PHASE_PARAMS
+
+    initialize_events()
+
+    # Reduce the number of times we need to round-trip to the server
+    # for blank nodes
+    ValueFactory.BLANK_NODE_AMOUNT = OPT.BULK_EVENTS * 4
+
+    # Initialize the Phase Parameters
+    PHASE_PARAMS = [
+        PhaseParameters(BaselineRange, 1, OPT.SIZE/10),
+        PhaseParameters(BulkRange, OPT.BULK_EVENTS, (OPT.SIZE*9)/10),
+        PhaseParameters(WithQueryRange, 1, OPT.SIZE/10),
+        PhaseParameters(DeleteRange, OPT.BULK_EVENTS, OPT.SIZE/10)]
 
     # Renewing the repository
     trace('%s [%s]: Renewing the repository.' % (PROG, datetime.now()))
@@ -584,28 +601,28 @@ def main():
     triples = conn.size()
 
     trace('%s [%s]: Testing with %d loading, %d querying processes.' % (
-        PROG, datetime.now(), LOAD_WORKERS, QUERY_WORKERS))
+        PROG, datetime.now(), OPT.LOAD_WORKERS, OPT.QUERY_WORKERS))
     
     # Create the work queue
-    loadq = JoinableQueue(maxsize=LOAD_WORKERS)
+    loadq = JoinableQueue(maxsize=OPT.LOAD_WORKERS)
 
     # Start the loading processes
-    for proc_num in range(LOAD_WORKERS):
+    for proc_num in range(OPT.LOAD_WORKERS):
         p = Process(target=load_events, args=(proc_num,))
         p.start()
 
     def load_phase(phase):
-        params = PhaseParams[phase]
+        params = PHASE_PARAMS[phase]
         triples_start = conn.size()
         phase_time = time.time()
 
         # Tell the processes what to do (We only need one deletion process)
-        proc_count = 1 if phase == LoadPhase.delete else LOAD_WORKERS
+        proc_count = 1 if phase == LoadPhase.delete else OPT.LOAD_WORKERS
         for proc_num in range(proc_count):
             loadq.put(phase)
 
         if phase == LoadPhase.last:
-            for proc_num in range(LOAD_WORKERS):
+            for proc_num in range(OPT.LOAD_WORKERS):
                 loadq.put(LoadPhase.die)
 
             # Signal that there is no more work for the queue
@@ -617,7 +634,7 @@ def main():
         triples_end = conn.size()
         triples = triples_end - triples_start
         phase_time = time.time() - phase_time
-        commits = triples/(params.events_in_commit*EVENT_SIZE)
+        commits = triples/(params.events_in_commit*OPT.EVENT_SIZE)
         trace('%s [%s]: %d total triples processed in %s seconds '
             ' (%s triples/second, %s commits/second). '
             'Store contains %d triples.' % (
@@ -626,15 +643,15 @@ def main():
 
     def begin_queries():
         global queryq
-        queryq = JoinableQueue(maxsize=QUERY_WORKERS)
+        queryq = JoinableQueue(maxsize=OPT.QUERY_WORKERS)
         
         # Start the query processes
-        for proc_num in range(QUERY_WORKERS):
+        for proc_num in range(OPT.QUERY_WORKERS):
             p = Process(target=query_events, args=(proc_num,))
             p.start()
 
     def end_queries():
-        for proc_num in range(QUERY_WORKERS):
+        for proc_num in range(OPT.QUERY_WORKERS):
             queryq.put('Stop')
 
         # Signal that there is no more work for the queue
@@ -643,21 +660,21 @@ def main():
 
     total_time = time.time()
     trace('%s [%s]: Phase 1: Baseline %d triple commits.' % (
-        PROG, datetime.now(), EVENT_SIZE))
+        PROG, datetime.now(), OPT.EVENT_SIZE))
     load_phase(LoadPhase.baseline)
 
     trace('%s [%s]: Phase 2: Grow store to about %d triples.' % (
-        PROG, datetime.now(), SIZE))
+        PROG, datetime.now(), OPT.SIZE))
     load_phase(LoadPhase.bulk)
 
     trace('%s [%s]: Phase 3: Perform %d triple commits.' %
-        (PROG, datetime.now(), EVENT_SIZE))
+        (PROG, datetime.now(), OPT.EVENT_SIZE))
     load_phase(LoadPhase.with_query)
 
     trace('%s [%s]: Phase 4: Perform customer/date range queries for '
-        '%d minutes.' % (PROG, datetime.now(), QUERY_TIME))
+        '%d minutes.' % (PROG, datetime.now(), OPT.QUERY_TIME))
     begin_queries()
-    time.sleep(QUERY_TIME*60)
+    time.sleep(OPT.QUERY_TIME*60)
     end_queries()
 
     trace('%s [%s]: Phase 5: Shrink store by 1 month.' % (
@@ -675,4 +692,47 @@ def main():
 
 
 if __name__ == '__main__':
+    from optparse import OptionParser
+
+    usage = 'Usage: %prog [options]\n\n' \
+        'Environment Variables Consulted:\n' \
+        'AGRAPH_HOST [default=localhost]\n' \
+        'AGRAPH_PORT [default=10035]\n' \
+        'AGRAPH_USER [default=test]\n' \
+        'AGRAPH_PASSWORD [default=xyzzy]'
+
+    parser = OptionParser(usage=usage, version="%prog 1.0")
+    parser.add_option('-s', '--size', default=Defaults.SIZE,
+        type='int', dest='SIZE', metavar='SIZE',
+        help='SIZE triple limit for bulk load [default=%default]')
+    parser.add_option('-l', '--load', default=Defaults.LOAD_WORKERS,
+        type='int', dest='LOAD_WORKERS', metavar='LOAD',
+        help='use LOAD number of loading processes [default=%default]')
+    parser.add_option('-q', '--query', default=Defaults.QUERY_WORKERS,
+        type='int', dest='QUERY_WORKERS', metavar='QUERY',
+        help='use QUERY number of querying processes [default=%default]')
+    parser.add_option('-n', '--namespace', default=Defaults.NS,
+        dest='NS', metavar='NAMESPACE',
+        help='use NAMESPACE for the store\'s URIs [default=%default]')
+    parser.add_option('-t', '--time', default=Defaults.QUERY_TIME,
+        type='int', dest='QUERY_TIME', metavar='MINUTES',
+        help='MINUTES time limit for query phase [default=%default]')
+    parser.add_option('-e', '--event', default=Defaults.EVENT_SIZE,
+        type='int', dest='EVENT_SIZE', metavar='EVENT_SIZE',
+        help='each event will contain EVENT_SIZE number of triples '
+            '[default=%default]')
+    parser.add_option('-b', '--bulk', default=Defaults.BULK_EVENTS,
+        type='int', dest='BULK_EVENTS', metavar='BULK_EVENTS',
+        help='commit BULK_EVENTS number of events per commit during bulk load '
+            '[default=%default]')
+    parser.add_option('-c', '--catalog', default=Defaults.CATALOG,
+        dest='CATALOG', metavar='CATALOG',
+        help='CATALOG name on server [default=%default]')
+    parser.add_option('-r', '--repository', default=Defaults.REPOSITORY,
+        dest='REPOSITORY', metavar='REPOSITORY',
+        help='REPOSITORY name in the CATALOG [default=%defaults]')
+
+    options, args = parser.parse_args()
+    OPT = options
+    del args
     main()
