@@ -52,8 +52,8 @@ class Defaults:
     NS = 'http://franz.com/events#';
 
     # Number of worker processes
-    LOAD_WORKERS = 24
-    QUERY_WORKERS = 24
+    LOAD_WORKERS = 20
+    QUERY_WORKERS = 8
 
     # Time to run queries in minutes
     QUERY_TIME = 10
@@ -304,10 +304,10 @@ def initialize_events():
         PredInfo('TotalOneTimeCharges', random_money)]
 
     def pad_events(event):
-        pred_format = event[0].generator() + '-%d'
+        pred_format = event[0].generator()[:-1] + 'Pad-%d>'
 
         for i in range(len(event), OPT.EVENT_SIZE):
-            event.append(PredInfo(pred_format % i, random_int))
+            event.append(PredInfo(URI(uri=pred_format % i), random_int))
 
         assert len(event) == OPT.EVENT_SIZE
         return event
@@ -432,7 +432,7 @@ def load_events(proc_num):
         params = PHASE_PARAMS[LoadPhase.delete]
         timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp'
             ).toNTriples()
-        limit = params.events_in_commit
+        limit = 9*(10**5)/OPT.EVENT_SIZE
 
         interval = timedelta(seconds=24*60*60)
         start, end = params.date_range.start, params.date_range.end
