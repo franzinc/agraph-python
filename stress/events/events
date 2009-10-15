@@ -73,6 +73,12 @@ class Defaults:
     # The repository name
     REPOSITORY = 'events_test'
 
+    # The starting phase
+    PHASE = 1
+
+    # OPEN OR RENEW
+    OPEN = False
+
 # The program options
 OPT = None
 
@@ -135,7 +141,7 @@ BaselineRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0),
                            datetime(2008, 2, 1, 0, 0, 0))
 BulkRange = RandomDate(datetime(2008, 2, 1, 0, 0, 0),
                        datetime(2009, 1, 1, 0, 0, 0))
-WithQueryRange = RandomDate(datetime(2009, 1, 1, 0, 0, 0),
+SmallCommitsRange = RandomDate(datetime(2009, 1, 1, 0, 0, 0),
                             datetime(2009, 2, 1, 0, 0, 0))
 DeleteRange = RandomDate(BaselineRange.start,
                          BaselineRange.end - timedelta(seconds=1))
@@ -356,7 +362,7 @@ else:
     from multiprocessing import JoinableQueue
 
 class LoadPhase:
-    baseline, bulk, with_query, delete, die = range(5)
+    start, baseline, bulk, small_commits, query, delete, die = range(7)
     last = delete
 
 class PhaseParameters(object):
@@ -398,7 +404,8 @@ def load_events(proc_num):
         random_datetime.range = params.date_range
         quads = [None]*(OPT.EVENT_SIZE*params.events_in_commit)
 
-        status_size = 1000 if params.events_in_commit == 1 else 250
+        status_size = 50 if params.events_in_commit == 1 else 25
+        start_time = time.time()
 
         count = 0
         errors = 0
@@ -408,10 +415,15 @@ def load_events(proc_num):
                 index = random_event(conn, quads, index)
 
             if commit > 0 and commit % status_size == 0:
-                trace('loader(%d) [%s]: Status - %d triples loaded so far '
-                      'at %s triples per commit, %d loading errors.' % (
-                      proc_num, datetime.now(), count,
-                      OPT.EVENT_SIZE*params.events_in_commit, errors))
+                end_time = time.time()
+                trace('loader(%d) [%s]: Loading Status - %d triples loaded so '
+                    'far at %s triples per commit (%s commits/sec over last '
+                    '%d commits), %d loading errors.' % (
+                    proc_num, datetime.now(), count,
+                    OPT.EVENT_SIZE*params.events_in_commit,
+                    status_size/(end_time - start_time), status_size,
+                    errors))
+                start_time = end_time
 
             try:
                 conn.mini_repository.addStatements(quads)
@@ -472,25 +484,37 @@ def load_events(proc_num):
         
         loadq.task_done()
 
-    with connect().session(True, 3600) as conn:
+    def get_phase(expected):
         phase = dequeue()
-        assert phase == LoadPhase.baseline
-        load_phase(phase)
-        
-        phase = dequeue()
-        assert phase == LoadPhase.bulk
-        load_phase(phase)
 
-        phase = dequeue()
-        assert phase == LoadPhase.with_query
-        load_phase(phase)
-
-        phase = dequeue()
-        if phase == LoadPhase.delete:
-            delete_phase()
+        while phase not in expected:
+            # Put it back
+            loadq.put(phase)
+            loadq.task_done()
+            time.sleep(1)
             phase = dequeue()
 
-        assert phase == LoadPhase.die
+        return phase
+
+    with connect().session(True, max(3600, OPT.QUERY_TIME*60)) as conn:
+        if OPT.PHASE <= LoadPhase.baseline:
+            phase = get_phase([LoadPhase.baseline])
+            load_phase(phase)
+        
+        if OPT.PHASE <= LoadPhase.bulk:
+            phase = get_phase([LoadPhase.bulk])
+            load_phase(phase)
+
+        if OPT.PHASE <= LoadPhase.small_commits:
+            phase = get_phase([LoadPhase.small_commits])
+            load_phase(phase)
+
+        if OPT.PHASE <= LoadPhase.die:
+            phase = get_phase([LoadPhase.delete, LoadPhase.die])
+            if phase == LoadPhase.delete:
+                delete_phase()
+                phase = get_phase([LoadPhase.die])
+
         loadq.task_done()
 
     conn.close()
@@ -527,6 +551,7 @@ def query_events(proc_num):
         if language is QueryLanguage.PROLOG:
             queryString = """
                   (select (?event ?pred ?obj)
+                    (:use-planner nil)
                     (q- ?event !%s (? !%s !%s) !%s)
                     (q- ?event ?pred ?obj))""" % (
                         timestamp, start_nt, end_nt, customer)
@@ -555,7 +580,9 @@ def query_events(proc_num):
 
         return count
 
-    the_time = time.time()
+    status_size = 10
+    start_time = the_time = time.time()
+    sub_count = 0
     queries = 0
     count = 0
     restarts = 0
@@ -567,13 +594,26 @@ def query_events(proc_num):
             restarts += 1
         queries += 1
 
+        if queries % status_size == 0:
+            end_time = time.time()
+            sub_count = count - sub_count
+            trace('query(%d) [%s]: Querying status - %d triple results '
+                'returned for %d queries in %s seconds (%s queries/second, '
+                '%s triples per query), %d queries aborted.' % (proc_num,
+                datetime.now(), sub_count, status_size,
+                end_time-start_time, status_size/(end_time-start_time),
+                sub_count/status_size, restarts))
+            start_time = end_time
+            sub_count = count
+            
+
     conn.close()
     queryq.task_done()
 
     the_time = time.time() - the_time
     trace('query(%d) [%s]: Querying done - %d triple results returned for %d '
-        'queries in %d seconds (%s queries/second, %s triples per query), '
-        ' %d query aborted.' % (proc_num, datetime.now(), count, queries,
+        'queries in %s seconds (%s queries/second, %s triples per query), '
+        ' %d queries aborted.' % (proc_num, datetime.now(), count, queries,
         the_time, queries/the_time, count/queries, restarts))
 
 def main():
@@ -590,18 +630,22 @@ def main():
 
     # Initialize the Phase Parameters
     PHASE_PARAMS = [
+        None,
         PhaseParameters(BaselineRange, 1, OPT.SIZE/10),
         PhaseParameters(BulkRange, OPT.BULK_EVENTS, (OPT.SIZE*9)/10),
-        PhaseParameters(WithQueryRange, 1, OPT.SIZE/10),
+        PhaseParameters(SmallCommitsRange, 1, OPT.SIZE/10),
+        None,
         PhaseParameters(DeleteRange, OPT.BULK_EVENTS, OPT.SIZE/10)]
 
-    # Renewing the repository
-    trace('%s [%s]: Renewing the repository.' % (PROG, datetime.now()))
-    conn = connect(Repository.RENEW)
+    # Renew/Open the repository
+    trace('%s [%s]: %s %s:%s.' % (PROG, datetime.now(),
+        "Opening" if OPT.OPEN else "Renewing", OPT.CATALOG, OPT.REPOSITORY))
+    conn = connect(Repository.OPEN if OPT.OPEN else Repository.RENEW)
     triples = conn.size()
 
-    trace('%s [%s]: Testing with %d loading, %d querying processes.' % (
-        PROG, datetime.now(), OPT.LOAD_WORKERS, OPT.QUERY_WORKERS))
+    trace('%s [%s]: Testing with %d loading, %d querying processes. '
+        'Repository contains %d triples.' % (
+        PROG, datetime.now(), OPT.LOAD_WORKERS, OPT.QUERY_WORKERS, triples))
     
     # Create the work queue
     loadq = JoinableQueue(maxsize=OPT.LOAD_WORKERS)
@@ -634,9 +678,9 @@ def main():
         triples_end = conn.size()
         triples = triples_end - triples_start
         phase_time = time.time() - phase_time
-        commits = triples/(params.events_in_commit*OPT.EVENT_SIZE)
+        commits = abs(triples/(params.events_in_commit*OPT.EVENT_SIZE))
         trace('%s [%s]: %d total triples processed in %s seconds '
-            ' (%s triples/second, %s commits/second). '
+            '(%s triples/second, %s commits/second). '
             'Store contains %d triples.' % (
             PROG, datetime.now(), triples, phase_time, triples/phase_time,
             commits/phase_time, triples_end))
@@ -659,36 +703,43 @@ def main():
         queryq.join()
 
     total_time = time.time()
-    trace('%s [%s]: Phase 1: Baseline %d triple commits.' % (
-        PROG, datetime.now(), OPT.EVENT_SIZE))
-    load_phase(LoadPhase.baseline)
+    if OPT.PHASE <= LoadPhase.baseline:
+        trace('%s [%s]: Phase 1: Baseline %d triple commits.' % (
+            PROG, datetime.now(), OPT.EVENT_SIZE))
+        load_phase(LoadPhase.baseline)
 
-    trace('%s [%s]: Phase 2: Grow store to about %d triples.' % (
-        PROG, datetime.now(), OPT.SIZE))
-    load_phase(LoadPhase.bulk)
+    if OPT.PHASE <= LoadPhase.bulk:
+        trace('%s [%s]: Phase 2: Grow store to about %d triples.' % (
+            PROG, datetime.now(), OPT.SIZE))
+        load_phase(LoadPhase.bulk)
 
-    trace('%s [%s]: Phase 3: Perform %d triple commits.' %
-        (PROG, datetime.now(), OPT.EVENT_SIZE))
-    load_phase(LoadPhase.with_query)
+    if OPT.PHASE <= LoadPhase.small_commits:
+        trace('%s [%s]: Phase 3: Perform %d triple commits.' %
+            (PROG, datetime.now(), OPT.EVENT_SIZE))
+        load_phase(LoadPhase.small_commits)
 
-    trace('%s [%s]: Phase 4: Perform customer/date range queries for '
-        '%d minutes.' % (PROG, datetime.now(), OPT.QUERY_TIME))
-    begin_queries()
-    time.sleep(OPT.QUERY_TIME*60)
-    end_queries()
+    if OPT.PHASE <= LoadPhase.query:
+        trace('%s [%s]: Phase 4: Perform customer/date range queries with %d '
+            'processes for %d minutes.' % (PROG, datetime.now(),
+            OPT.QUERY_WORKERS, OPT.QUERY_TIME))
+        begin_queries()
+        time.sleep(OPT.QUERY_TIME*60)
+        end_queries()
 
-    trace('%s [%s]: Phase 5: Shrink store by 1 month.' % (
-        PROG, datetime.now()))
-    load_phase(LoadPhase.delete)
+    if OPT.PHASE <= LoadPhase.delete:
+        trace('%s [%s]: Phase 5: Shrink store by 1 month.' % (
+            PROG, datetime.now()))
+        load_phase(LoadPhase.delete)
     
     # Display the results
     total_time = time.time() - total_time
-    triples = conn.size() - triples
+    triples_end = conn.size()
+    triples = triples_end - triples
     conn.close()
 
     trace('%s [%s]: Test completed in %s total seconds - '
-        'store contains %d triples.' % (PROG, datetime.now(),
-        total_time, triples))
+        'store contains %d triples (%d triples added/removed).' %
+        (PROG, datetime.now(), total_time, triples_end, triples))
 
 
 if __name__ == '__main__':
@@ -731,6 +782,12 @@ if __name__ == '__main__':
     parser.add_option('-r', '--repository', default=Defaults.REPOSITORY,
         dest='REPOSITORY', metavar='REPOSITORY',
         help='REPOSITORY name in the CATALOG [default=%defaults]')
+    parser.add_option('-p', '--phase', default=Defaults.PHASE,
+        dest='PHASE', metavar='PHASE', type='int',
+        help='Run the test starting at phase PHASE [default=%defaults]')
+    parser.add_option('-o', '--open', default=Defaults.OPEN,
+        dest='OPEN', metavar='OPEN', action="store_true",
+        help='OPEN the repository instead of RENEWING it [default=%defaults]')
 
     options, args = parser.parse_args()
     OPT = options
