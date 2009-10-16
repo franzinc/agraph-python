@@ -26,7 +26,6 @@ def cleanup():
 def testBasics():
   rep.addStatement("<a>", "<p>", '"a"', "<c1>")
   rep.addStatement("<b>", "<p>", '"b"', "<c2>")
-  assert 2 == rep.getSize()
   eq(["<c1>", "<c2>"], sorted(rep.listContexts()))
   eq(1, len(rep.getStatements(context="<c1>")))
   eq(2, len(rep.getStatements(pred="<p>")))
@@ -106,7 +105,7 @@ def testFederation():
 
 @with_setup(cleanup)
 def testTemporal():
-    rep.addMappedType("<time>", "date-time")
+    rep.addMappedType("<time>", "<http://www.w3.org/2001/XMLSchema#dateTime>")
     rep.addStatement("<x>", "<happened>", "\"2009-09-28T17:41:39\"^^<time>")
     rep.addStatement("<y>", "<happened>", "\"2009-09-28T18:22:00\"^^<time>")
     rep.addStatement("<z>", "<happened>", "\"2009-09-28T17:02:41\"^^<time>")

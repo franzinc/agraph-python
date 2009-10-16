@@ -153,10 +153,10 @@ class Repository:
         self.mini_repository.registerFreeTextPredicate("<%s>" % uri)
         
     def _translate_inlined_type(self, the_type):
-        if the_type == 'int': return 'int'
-        if the_type == 'datetime': return "date-time"
-        if the_type == 'date': return 'date'
-        if the_type == "float": return "double-float"
+        if the_type == 'int': return '<http://www.w3.org/2001/XMLSchema#int>'
+        if the_type == 'datetime': return "<http://www.w3.org/2001/XMLSchema#dateTime>"
+        if the_type == 'date': return '<http://www.w3.org/2001/XMLSchema#date>'
+        if the_type == "float": return "<http://www.w3.org/2001/XMLSchema#double>"
         raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
                 "'int', 'float', and 'datetime'" % the_type)
         
@@ -173,17 +173,13 @@ class Repository:
         if predicate:
             if not nativeType:
                 raise IllegalArgumentException("Missing 'nativeType' parameter in call to 'registerDatatypeMapping'")
-            lispType = self._translate_inlined_type(nativeType)
-            #mapping = [predicate, lispType, "predicate"]
-            self.mapped_predicates[predicate] = lispType
+            xsdType = self._translate_inlined_type(nativeType)
+            self.mapped_predicates[predicate] = xsdType
+            self.mini_repository.addMappedPredicate("<%s>" % predicate, xsdType)            
         elif datatype: 
-            lispType = self._translate_inlined_type(nativeType or datatype)
-            #mapping = [datatype, lispType, "datatype"]
-            self.mapped_datatypes[datatype] = lispType
-        if predicate:
-            self.mini_repository.addMappedPredicate("<%s>" % predicate, lispType)            
-        else:
-            self.mini_repository.addMappedType("<%s>" % datatype, lispType)
+            xsdType = self._translate_inlined_type(nativeType or datatype)
+            self.mapped_datatypes[datatype] = xsdType
+            self.mini_repository.addMappedType("<%s>" % datatype, xsdType)
         
     def shutDown(self):
         """

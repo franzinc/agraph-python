@@ -230,8 +230,8 @@ class Repository(Service):
     def listMappedTypes(self):
         return jsonRequest(self, "GET", "/mapping/type")
 
-    def addMappedType(self, type, primitiveType):
-        nullRequest(self, "POST", "/mapping/type", urlenc(type=type, primitiveType=primitiveType))
+    def addMappedType(self, type, encoding):
+        nullRequest(self, "POST", "/mapping/type", urlenc(type=type, encoding=encoding))
 
     def deleteMappedType(self, type):
         nullRequest(self, "DELETE", "/mapping/type", urlenc(type=type))
@@ -239,9 +239,9 @@ class Repository(Service):
     def listMappedPredicates(self):
         return jsonRequest(self, "GET", "/mapping/predicate")
 
-    def addMappedPredicate(self, predicate, primitiveType):
+    def addMappedPredicate(self, predicate, encoding):
         nullRequest(self, "POST", "/mapping/predicate",
-                    urlenc(predicate=predicate, primitiveType=primitiveType))
+                    urlenc(predicate=predicate, encoding=encoding))
 
     def deleteMappedPredicate(self, predicate):
         nullRequest(self, "DELETE", "/mapping/predicate", urlenc(predicate=predicate))
