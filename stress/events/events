@@ -416,12 +416,14 @@ def load_events(proc_num):
 
             if commit > 0 and commit % status_size == 0:
                 end_time = time.time()
+                tpc = OPT.EVENT_SIZE*params.events_in_commit
                 trace('loader(%d) [%s]: Loading Status - %d triples loaded so '
-                    'far at %s triples per commit (%s commits/sec over last '
-                    '%d commits), %d loading errors.' % (
-                    proc_num, datetime.now(), count,
-                    OPT.EVENT_SIZE*params.events_in_commit,
-                    status_size/(end_time - start_time), status_size,
+                    'far at %s triples per commit (%s commits/sec, %s triples/'
+                    'sec over last %d commits), %d loading errors.' % (
+                    proc_num, datetime.now(), count, tpc,
+                    status_size/(end_time - start_time),
+                    tpc*status_size/(end_time - start_time),
+                    status_size,
                     errors))
                 start_time = end_time
 
