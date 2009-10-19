@@ -143,7 +143,9 @@ BulkRange = RandomDate(datetime(2008, 2, 1, 0, 0, 0),
                        datetime(2009, 1, 1, 0, 0, 0))
 SmallCommitsRange = RandomDate(datetime(2009, 1, 1, 0, 0, 0),
                             datetime(2009, 2, 1, 0, 0, 0))
-DeleteRange = RandomDate(BaselineRange.start,
+DeleteRangeOne = RandomDate(BaselineRange.start,
+                         datetime(2008, 1, 16, 0, 0, 0) - timedelta(seconds=1))
+DeleteRangeTwo = RandomDate(datetime(2008, 1, 16, 0, 0, 0),
                          BaselineRange.end - timedelta(seconds=1))
 FullDateRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0),
                            datetime(2009, 2, 1, 0, 0, 0))
@@ -362,8 +364,9 @@ else:
     from multiprocessing import JoinableQueue
 
 class LoadPhase:
-    start, baseline, bulk, small_commits, query, delete, die = range(7)
-    last = delete
+    start, baseline, bulk, small_commits, query, delete_one,\
+        delete_two, die = range(8)
+    last = delete_one
 
 class PhaseParameters(object):
     def __init__(self, date_range, events_in_commit, triples):
@@ -442,8 +445,8 @@ def load_events(proc_num):
         sys.stdout.flush()
         loadq.task_done()
 
-    def delete_phase():
-        params = PHASE_PARAMS[LoadPhase.delete]
+    def delete_phase(phase):
+        params = PHASE_PARAMS[phase]
         timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp'
             ).toNTriples()
         limit = 9*(10**5)/OPT.EVENT_SIZE
@@ -512,9 +515,10 @@ def load_events(proc_num):
             load_phase(phase)
 
         if OPT.PHASE <= LoadPhase.die:
-            phase = get_phase([LoadPhase.delete, LoadPhase.die])
-            if phase == LoadPhase.delete:
-                delete_phase()
+            phase = get_phase([LoadPhase.delete_one, LoadPhase.delete_two,
+                LoadPhase.die])
+            if phase in [LoadPhase.delete_one, LoadPhase.delete_two]:
+                delete_phase(phase)
                 phase = get_phase([LoadPhase.die])
 
         loadq.task_done()
@@ -637,7 +641,8 @@ def main():
         PhaseParameters(BulkRange, OPT.BULK_EVENTS, (OPT.SIZE*9)/10),
         PhaseParameters(SmallCommitsRange, 1, OPT.SIZE/10),
         None,
-        PhaseParameters(DeleteRange, OPT.BULK_EVENTS, OPT.SIZE/10)]
+        PhaseParameters(DeleteRangeOne, OPT.BULK_EVENTS, OPT.SIZE/10),
+        PhaseParameters(DeleteRangeTwo, OPT.BULK_EVENTS, OPT.SIZE/10)]
 
     # Renew/Open the repository
     trace('%s [%s]: %s %s:%s.' % (PROG, datetime.now(),
@@ -663,9 +668,12 @@ def main():
         phase_time = time.time()
 
         # Tell the processes what to do (We only need one deletion process)
-        proc_count = 1 if phase == LoadPhase.delete else OPT.LOAD_WORKERS
-        for proc_num in range(proc_count):
-            loadq.put(phase)
+        if phase != LoadPhase.delete_one:
+            for proc_num in range(OPT.LOAD_WORKERS):
+                loadq.put(phase)
+        else:
+            loadq.put(LoadPhase.delete_one)
+            loadq.put(LoadPhase.delete_two)
 
         if phase == LoadPhase.last:
             for proc_num in range(OPT.LOAD_WORKERS):
@@ -728,10 +736,10 @@ def main():
         time.sleep(OPT.QUERY_TIME*60)
         end_queries()
 
-    if OPT.PHASE <= LoadPhase.delete:
+    if OPT.PHASE <= LoadPhase.delete_one:
         trace('%s [%s]: Phase 5: Shrink store by 1 month.' % (
             PROG, datetime.now()))
-        load_phase(LoadPhase.delete)
+        load_phase(LoadPhase.delete_one)
     
     # Display the results
     total_time = time.time() - total_time
