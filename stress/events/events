@@ -753,7 +753,8 @@ def main():
 
 
 if __name__ == '__main__':
-    from optparse import OptionParser
+    from copy import copy
+    from optparse import OptionParser, Option, OptionValueError
 
     usage = 'Usage: %prog [options]\n\n' \
         'Environment Variables Consulted:\n' \
@@ -762,10 +763,29 @@ if __name__ == '__main__':
         'AGRAPH_USER [default=test]\n' \
         'AGRAPH_PASSWORD [default=xyzzy]'
 
-    parser = OptionParser(usage=usage, version="%prog 1.0")
+    def check_human_size(option, opt, value):
+        try:
+            if value[-1] == 'm':
+                value = float(value[:-1])*10**6
+            elif value[-1] == 'b':
+                value = float(value[:-1])*10**9
+            elif value[-1] == 't':
+                value = float(value[:-1])*10**12
+
+            return int(value)
+        except ValueError:
+            raise OptionValueError(
+                "option %s: invalid human-readable size value: %r" % (opt, value))
+
+    class EventsOption(Option):
+        TYPES = Option.TYPES + ('human_size',)
+        TYPE_CHECKER = copy(Option.TYPE_CHECKER)
+        TYPE_CHECKER['human_size'] = check_human_size
+    
+    parser = OptionParser(option_class=EventsOption, usage=usage, version="%prog 1.0")
     parser.add_option('-s', '--size', default=Defaults.SIZE,
-        type='int', dest='SIZE', metavar='SIZE',
-        help='SIZE triple limit for bulk load [default=%default]')
+        type='human_size', dest='SIZE', metavar='SIZE',
+        help='SIZE triple limit for bulk load (e.g. 100m, 2b, 1.5t) [default=%default]')
     parser.add_option('-l', '--load', default=Defaults.LOAD_WORKERS,
         type='int', dest='LOAD_WORKERS', metavar='LOAD',
         help='use LOAD number of loading processes [default=%default]')
