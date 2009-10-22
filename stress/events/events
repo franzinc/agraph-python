@@ -28,19 +28,22 @@ An event store stress tests.
 """
 
 from __future__ import with_statement
+from Queue import Empty
 try:
-    from multiprocessing import Process
+    from multiprocessing import Process, Queue
 except:
     assert False, \
         "Use Python 2.6 or install http://pypi.python.org/pypi/multiprocessing/"
-from Queue import Empty
+from contextlib import contextmanager
 from datetime import datetime, timedelta
+import locale, os, random, subprocess, sys, time, traceback
+
+sys.path.append(os.path.join(os.getcwd(), '../../src2'))
+
 try:
     from collections import namedtuple
 except ImportError:
     from franz.openrdf.util.namedtuple import namedtuple
-import os, random, sys, time, traceback
-
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.repository.repository import Repository
@@ -89,8 +92,10 @@ AG_USER = os.environ.get('AGRAPH_USER', 'test')
 AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
 PROG = sys.argv[0]
 
-def trace(output):
-    print output
+def trace(formatter, values=None):
+    if values:
+        formatter = locale.format_string(formatter, values, grouping=True)
+    print formatter
     sys.stdout.flush()
 
 def connect(access_mode=Repository.OPEN):
@@ -421,8 +426,8 @@ def load_events(proc_num):
                 end_time = time.time()
                 tpc = OPT.EVENT_SIZE*params.events_in_commit
                 trace('loader(%d) [%s]: Loading Status - %d triples loaded so '
-                    'far at %s triples per commit (%s commits/sec, %s triples/'
-                    'sec over last %d commits), %d loading errors.' % (
+                    'far at %s triples per commit (%f commits/sec, %f triples/'
+                    'sec over last %d commits), %d loading errors.', (
                     proc_num, datetime.now(), count, tpc,
                     status_size/(end_time - start_time),
                     tpc*status_size/(end_time - start_time),
@@ -434,13 +439,13 @@ def load_events(proc_num):
                 conn.mini_repository.addStatements(quads)
                 count += len(quads)
             except Exception:
-                trace('loader(%d) [%s]: Error adding quads...' % (
+                trace('loader(%d) [%s]: Error adding quads...', (
                     proc_num, datetime.now()))
                 errors += 1
                 traceback.print_exc()
             
         trace('loader(%d) [%s]: Loading done - %d triples at %s triples '
-            'per commit, %d loading errors.' % (proc_num, datetime.now(),
+            'per commit, %d loading errors.', (proc_num, datetime.now(),
             count, OPT.EVENT_SIZE*params.events_in_commit, errors))
         sys.stdout.flush()
         loadq.task_done()
@@ -475,16 +480,18 @@ def load_events(proc_num):
                 events += count
 
                 if count == 0:
+                    trace('loader(%d) [%s]: Finished deleting %s.', (
+                        proc_num, datetime.now(), start.date()))
                     start = eod
                     start_nt = Literal(start).toNTriples()
                     eod = start + interval
                     eod_nt = Literal(eod).toNTriples()
             except Exception:
-                trace('loader(%d) [%s]: Error deleting triples...\n%s' % (
+                trace('loader(%d) [%s]: Error deleting triples...\n%s', (
                     proc_num, datetime.now(), queryString))
                 traceback.print_exc()
 
-        trace('loader(%d) [%s]: Found %d events (%d triples) to delete.' % (
+        trace('loader(%d) [%s]: Found %d events (%d triples) to delete.', (
             proc_num, datetime.now(), events, events * OPT.EVENT_SIZE))
         
         loadq.task_done()
@@ -525,7 +532,7 @@ def load_events(proc_num):
 
     conn.close()
 
-def query_events(proc_num):
+def query_events(proc_num, resultq):
     conn = connect()
 
     def dequeue():
@@ -579,7 +586,7 @@ def query_events(proc_num):
             # During huge bulk deletions, some queries may be invalidated
             # and a error returned to indicate they should be rerun. Keep
             # track of it if this happens.
-            trace('query(%d) [%s]: Error executing query:\n%s\n' % (
+            trace('query(%d) [%s]: Error executing query:\n%s\n', (
                 proc_num, datetime.now(), queryString))
             traceback.print_exc()
             count = -1
@@ -592,35 +599,56 @@ def query_events(proc_num):
     queries = 0
     count = 0
     restarts = 0
-    while dequeue() is None:
+
+    # Run the query at least once
+    stop = None
+    while stop is None:
         result = random_query()
         if result >= 0:
             count += result
         else:
             restarts += 1
+
         queries += 1
+        stop = dequeue()
 
         if queries % status_size == 0:
             end_time = time.time()
             sub_count = count - sub_count
             trace('query(%d) [%s]: Querying status - %d triple results '
-                'returned for %d queries in %s seconds (%s queries/second, '
-                '%s triples per query), %d queries aborted.' % (proc_num,
+                'returned for %d queries in %f seconds (%f queries/second, '
+                '%f triples per query), %d queries aborted.', (proc_num,
                 datetime.now(), sub_count, status_size,
                 end_time-start_time, status_size/(end_time-start_time),
                 sub_count/status_size, restarts))
             start_time = end_time
             sub_count = count
             
-
-    conn.close()
-    queryq.task_done()
-
     the_time = time.time() - the_time
     trace('query(%d) [%s]: Querying done - %d triple results returned for %d '
-        'queries in %s seconds (%s queries/second, %s triples per query), '
-        ' %d queries aborted.' % (proc_num, datetime.now(), count, queries,
+        'queries in %f seconds (%f queries/second, %f triples per query), '
+        ' %d queries aborted.', (proc_num, datetime.now(), count, queries,
         the_time, queries/the_time, count/queries, restarts))
+
+    conn.close()
+    resultq.put((queries, count, the_time))
+    queryq.task_done()
+
+
+@contextmanager
+def monitor(phase):
+    """
+    Start and end the monitor for a phase.
+    """
+    try:
+        subprocess.call(['./monitor.sh', 'start', phase])
+    except OSError:
+        pass
+    yield
+    try:
+        subprocess.call(['./monitor.sh', 'end'])
+    except OSError:
+        pass
 
 def main():
     """
@@ -645,17 +673,17 @@ def main():
         PhaseParameters(DeleteRangeTwo, OPT.BULK_EVENTS, OPT.SIZE/10)]
 
     # Renew/Open the repository
-    trace('%s [%s]: %s %s:%s.' % (PROG, datetime.now(),
+    trace('%s [%s]: %s %s:%s.', (PROG, datetime.now(),
         "Opening" if OPT.OPEN else "Renewing", OPT.CATALOG, OPT.REPOSITORY))
     conn = connect(Repository.OPEN if OPT.OPEN else Repository.RENEW)
     triples = conn.size()
 
     trace('%s [%s]: Testing with %d loading, %d querying processes. '
-        'Repository contains %d triples.' % (
+        'Repository contains %d triples.', (
         PROG, datetime.now(), OPT.LOAD_WORKERS, OPT.QUERY_WORKERS, triples))
     
     # Create the work queue
-    loadq = JoinableQueue(maxsize=OPT.LOAD_WORKERS)
+    loadq = JoinableQueue(OPT.LOAD_WORKERS)
 
     # Start the loading processes
     for proc_num in range(OPT.LOAD_WORKERS):
@@ -689,22 +717,25 @@ def main():
         triples = triples_end - triples_start
         phase_time = time.time() - phase_time
         commits = abs(triples/(params.events_in_commit*OPT.EVENT_SIZE))
-        trace('%s [%s]: %d total triples processed in %s seconds '
-            '(%s triples/second, %s commits/second). '
-            'Store contains %d triples.' % (
+        trace('%s [%s]: %d total triples processed in %f seconds '
+            '(%f triples/second, %f commits/second). '
+            'Store contains %d triples.', (
             PROG, datetime.now(), triples, phase_time, triples/phase_time,
             commits/phase_time, triples_end))
 
-    def begin_queries():
+    @contextmanager
+    def run_queries():
         global queryq
-        queryq = JoinableQueue(maxsize=OPT.QUERY_WORKERS)
-        
+        queryq = JoinableQueue(OPT.QUERY_WORKERS)
+        resultq = Queue(OPT.QUERY_WORKERS)
+
         # Start the query processes
         for proc_num in range(OPT.QUERY_WORKERS):
-            p = Process(target=query_events, args=(proc_num,))
+            p = Process(target=query_events, args=(proc_num, resultq))
             p.start()
 
-    def end_queries():
+        yield
+
         for proc_num in range(OPT.QUERY_WORKERS):
             queryq.put('Stop')
 
@@ -712,34 +743,54 @@ def main():
         queryq.close()
         queryq.join()
 
+        queries = 0
+        triples = 0
+        phase_time = 0
+
+        for proc_num in range(OPT.QUERY_WORKERS):
+            result = resultq.get()
+            queries += result[0]
+            triples += result[1]
+            phase_time = max(phase_time, result[2])
+
+        trace('%s [%s]: %d total triples returned over %d queries in '
+            '%f seconds (%f triples/second, %f queries/second, '
+            '%f triples/query). ', (PROG, datetime.now(), triples, queries,
+            phase_time, triples/phase_time, queries/phase_time,
+            triples/queries))
+
     total_time = time.time()
     if OPT.PHASE <= LoadPhase.baseline:
-        trace('%s [%s]: Phase 1: Baseline %d triple commits.' % (
-            PROG, datetime.now(), OPT.EVENT_SIZE))
-        load_phase(LoadPhase.baseline)
+        with monitor('phase-1'):
+            trace('%s [%s]: Phase 1: Baseline %d triple commits.', (
+                PROG, datetime.now(), OPT.EVENT_SIZE))
+            load_phase(LoadPhase.baseline)
 
     if OPT.PHASE <= LoadPhase.bulk:
-        trace('%s [%s]: Phase 2: Grow store to about %d triples.' % (
-            PROG, datetime.now(), OPT.SIZE))
-        load_phase(LoadPhase.bulk)
+        with monitor('phase-2'):
+            trace('%s [%s]: Phase 2: Grow store to about %d triples.', (
+                PROG, datetime.now(), OPT.SIZE))
+            load_phase(LoadPhase.bulk)
 
     if OPT.PHASE <= LoadPhase.small_commits:
-        trace('%s [%s]: Phase 3: Perform %d triple commits.' %
-            (PROG, datetime.now(), OPT.EVENT_SIZE))
-        load_phase(LoadPhase.small_commits)
+        with monitor('phase-3'):
+            trace('%s [%s]: Phase 3: Perform %d triple commits.',
+                (PROG, datetime.now(), OPT.EVENT_SIZE))
+            load_phase(LoadPhase.small_commits)
 
     if OPT.PHASE <= LoadPhase.query:
-        trace('%s [%s]: Phase 4: Perform customer/date range queries with %d '
-            'processes for %d minutes.' % (PROG, datetime.now(),
-            OPT.QUERY_WORKERS, OPT.QUERY_TIME))
-        begin_queries()
-        time.sleep(OPT.QUERY_TIME*60)
-        end_queries()
+        with monitor('phase-4'):
+            trace('%s [%s]: Phase 4: Perform customer/date range queries '
+                'with %d processes for %d minutes.', (PROG, datetime.now(),
+                OPT.QUERY_WORKERS, OPT.QUERY_TIME))
+            with run_queries():
+                time.sleep(OPT.QUERY_TIME*60)
 
     if OPT.PHASE <= LoadPhase.delete_one:
-        trace('%s [%s]: Phase 5: Shrink store by 1 month.' % (
-            PROG, datetime.now()))
-        load_phase(LoadPhase.delete_one)
+        with monitor('phase-5'):
+            trace('%s [%s]: Phase 5: Shrink store by 1 month.', (
+                PROG, datetime.now()))
+            load_phase(LoadPhase.delete_one)
     
     # Display the results
     total_time = time.time() - total_time
@@ -747,14 +798,16 @@ def main():
     triples = triples_end - triples
     conn.close()
 
-    trace('%s [%s]: Test completed in %s total seconds - '
-        'store contains %d triples (%d triples added/removed).' %
+    trace('%s [%s]: Test completed in %f total seconds - '
+        'store contains %d triples (%d triples added/removed).',
         (PROG, datetime.now(), total_time, triples_end, triples))
 
 
 if __name__ == '__main__':
     from copy import copy
     from optparse import OptionParser, Option, OptionValueError
+
+    locale.setlocale(locale.LC_ALL, '')
 
     usage = 'Usage: %prog [options]\n\n' \
         'Environment Variables Consulted:\n' \
@@ -766,11 +819,13 @@ if __name__ == '__main__':
     def check_human_size(option, opt, value):
         try:
             if value[-1] == 'm':
-                value = float(value[:-1])*10**6
+                value = locale.atof(value[:-1])*10**6
             elif value[-1] == 'b':
-                value = float(value[:-1])*10**9
+                value = locale.atof(value[:-1])*10**9
             elif value[-1] == 't':
-                value = float(value[:-1])*10**12
+                value = locale.atof(value[:-1])*10**12
+            else:
+                value = locale.atoi(value)
 
             return int(value)
         except ValueError:
@@ -785,7 +840,7 @@ if __name__ == '__main__':
     parser = OptionParser(option_class=EventsOption, usage=usage, version="%prog 1.0")
     parser.add_option('-s', '--size', default=Defaults.SIZE,
         type='human_size', dest='SIZE', metavar='SIZE',
-        help='SIZE triple limit for bulk load (e.g. 100m, 2b, 1.5t) [default=%default]')
+        help='SIZE triple limit for bulk load (e.g. 10,000, 100m, 2b, 1.5t) [default=%default]')
     parser.add_option('-l', '--load', default=Defaults.LOAD_WORKERS,
         type='int', dest='LOAD_WORKERS', metavar='LOAD',
         help='use LOAD number of loading processes [default=%default]')
