@@ -101,7 +101,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     # The "Expect:" is there to suppress "Expect: 100-continue"
     # behaviour that is the default in libcurl when posting large
     # bodies.
-    headers = ["Connection: Keep-Alive", "Accept: " + accept, "Expect:"]
+    headers = ["Connection: keep-alive", "Accept: " + accept, "Expect:"]
     if callback: headers.append("Connection: close")
     if contentType and postbody: headers.append("Content-Type: " + contentType)
     curl.setopt(pycurl.HTTPHEADER, headers)
