@@ -228,12 +228,13 @@ this diagram:</p>
 <pre class="output">&gt;&gt;&gt; test1()
 Defining connnection to AllegroGraph server -- host:'localhost' port:8080
 Available catalogs ['/', 'scratch']</pre>
-<p>In the next line of test1(), we use the <strong>openCatalog()</strong> method to create a client-side catalog object. This object has methods such as <strong>getName()</strong> and <strong>listRepositories()</strong> that we can use to investigate the catalogs on the AllegroGraph server.. When we look inside the &quot;scratch&quot; catalog, we can see which repositories are available:</p>
+<p>This output says that the server has two catalogs, the default <strong>rootCatalog, '/'</strong>, and a named catalog 'scratch' that someone has created for some experimentation.</p>
+<p>In the next line of test1(), we use the <strong>server.openCatalog()</strong> method to create a client-side catalog object. In this example we will connect to the default rootCatalog by calling openCatalog() with no arguments. When we look inside the root catalog, we can see which repositories are available:</p>
 <pre class="input">
-    catalog = server.openCatalog('scratch') 
+    catalog = server.openCatalog() 
     print &quot;Available repositories in catalog '%s': %s&quot; % (catalog.getName(), catalog.listRepositories()) </pre>
 <p>The corresponding output lists the available repositories.  (When you run the examples, you may see a different list of repositories.)</p>
-<pre class="output">Available repositories in catalog 'scratch': ['agraph_test', 'greenthings', 'redthings', 'rainbowthings']  </pre>
+<pre class="output">Available repositories in catalog 'None': ['tutorial']  </pre>
 <p>The next step is to create a client-side repository object representing the respository we wish to open, by calling the
 <strong>getRepository()</strong> method of the catalog object. We have to provide the name of the desired repository (<strong>agraph_test</strong> in this case), and select one of four access modes:</p>
 <ul>

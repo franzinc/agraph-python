@@ -53,7 +53,8 @@ def test1(accessMode=Repository.RENEW):
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     print "Available catalogs", server.listCatalogs()
-    catalog = server.openCatalog('scratch')  
+##    catalog = server.openCatalog('scratch')  ## named catalog
+    catalog = server.openCatalog()             ## default rootCatalog
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
     myRepository = catalog.getRepository("agraph_test", accessMode)
     myRepository.initialize()
@@ -1248,7 +1249,7 @@ def test22():
 	
 if __name__ == '__main__':
     choices = [i for i in range(1,22)]
-    #choices = [22]   
+    #choices = [10]   
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
