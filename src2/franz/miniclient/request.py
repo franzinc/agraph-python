@@ -106,7 +106,10 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
 def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json"):
     if rowreader is None:
         status, body = makeRequest(obj, method, url, body, accept, contentType)
-        if (status == 200): return cjson.decode(body)
+        if (status == 200):
+            if accept in ('application/json', 'text/integer', "application/x-quints+json"):
+                body = cjson.decode(body)
+            return body
         else: raise RequestError(status, body)
     else:
         def raiseErr(status, message): raise RequestError(status, message)

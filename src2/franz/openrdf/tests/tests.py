@@ -864,8 +864,9 @@ def test_getJDBCStatements():
 
     assert len(rows) <= 10
 
-## (triple-id default-graph subscript geospatial longitude latitude
-##  telephone-number blank-node literal-language literal-typed literal
-##  literal-short node resource single-float double-float gyear time
-##  date-time date long-88 long short int byte unsigned-long-88
-##  unsigned-long unsigned-short unsigned-int unsigned-byte)
+def test_delete_mapping():
+    conn = test1()
+    conn.repository.mini_repository.deleteMappedType(XMLSchema.DATETIME)
+    a_time = conn.createLiteral('1984-12-06T09:00:00.250', datatype=XMLSchema.DATETIME)   
+    conn.addTriple('<http://franz.com/example#this>',
+        '<http://franz.com/example#hasDate>', a_time)
