@@ -1282,13 +1282,15 @@ def test_temporal():
         ).evaluate(count=True)
     assert count == 2, '%s\nResult was %d, should be 2.' % (queryString, count)
 
+    lower = the_range.getLowerBound().toNTriples().replace('"^^', 'Z"^^')
+    upper = the_range.getUpperBound().toNTriples().replace('"^^', 'Z"^^')
 
     queryString = """
         SELECT ?event ?time WHERE {
           ?event %s ?time .
           FILTER (?time <= %s) }""" % (
             pred.toNTriples(),
-            the_range.getUpperBound().toNTriples())
+            upper)
 
     results = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString
         ).evaluate()
@@ -1301,7 +1303,7 @@ def test_temporal():
           ?event %s ?time .
           FILTER (?time >= %s) }""" % (
             pred.toNTriples(),
-            the_range.getLowerBound().toNTriples())
+            lower)
 
     results = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString
         ).evaluate()
@@ -1314,9 +1316,8 @@ def test_temporal():
           ?event %s ?time .
           FILTER (?time >= %s && ?time <= %s) }""" % (
             pred.toNTriples(),
-            the_range.getLowerBound().toNTriples(),
-            the_range.getUpperBound().toNTriples())
-
+            lower, upper)
+    
     results = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString
         ).evaluate()
 

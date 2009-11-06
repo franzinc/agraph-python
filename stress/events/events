@@ -866,13 +866,13 @@ if __name__ == '__main__':
         help='CATALOG name on server [default=%default]')
     parser.add_option('-r', '--repository', default=Defaults.REPOSITORY,
         dest='REPOSITORY', metavar='REPOSITORY',
-        help='REPOSITORY name in the CATALOG [default=%defaults]')
+        help='REPOSITORY name in the CATALOG [default=%default]')
     parser.add_option('-p', '--phase', default=Defaults.PHASE,
         dest='PHASE', metavar='PHASE', type='int',
-        help='Run the test starting at phase PHASE [default=%defaults]')
+        help='Run the test starting at phase PHASE [default=%default]')
     parser.add_option('-o', '--open', default=Defaults.OPEN,
         dest='OPEN', metavar='OPEN', action="store_true",
-        help='OPEN the repository instead of RENEWING it [default=%defaults]')
+        help='OPEN the repository instead of RENEWING it [default=%default]')
 
     options, args = parser.parse_args()
     OPT = options

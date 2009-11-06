@@ -9,6 +9,10 @@ class Pool:
         global curlPool
         pid = os.getpid()
 
+        # There might be a race to create the pool, but
+        # it probably isn't worth a lock. If two are created
+        # the first one assigned to curlPool will just
+        # lose a reference and be deleted - not a big deal.
         if curlPool is None or curlPool.pid != pid:
             curlPool = Pool(pycurl.Curl, pid)
 
@@ -23,11 +27,17 @@ class Pool:
     def get(self):
         self.lock.acquire()
         try:
-            if len(self.pool): return self.pool.pop()
-            else: return self.create()
+            value = self.pool.pop()
+        except IndexError:
+            value = None
         finally:
             self.lock.release()
+
+        # Create new ones outside the lock
+        return value or self.create()
+
     def put(self, value):
+        value.reset()
         self.lock.acquire()
         try:
             self.pool.append(value)
@@ -81,7 +91,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
 
     #curl.setopt(pycurl.TIMEOUT, 45)
 
-    if obj.user and obj.password:
+    if obj.user is not None and obj.password is not None:
         curl.setopt(pycurl.USERPWD, "%s:%s" % (obj.user, obj.password))
         curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
     if not url.startswith("http:"): url = obj.url + url
