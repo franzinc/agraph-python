@@ -37,7 +37,9 @@ class Pool:
         return value or self.create()
 
     def put(self, value):
-        value.reset()
+        # Be compatible wih pycurl versions < 7.19.0
+        if hasattr(value, 'reset'):
+            value.reset()
         self.lock.acquire()
         try:
             self.pool.append(value)
