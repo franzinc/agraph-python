@@ -19,7 +19,13 @@ CURRENT_DIRECTORY = os.getcwd()
 
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '8080'))
-
+AG_CATALOG = 'scratch'
+# AG_CATALOG = ''
+AG_REPOSITORY = 'pythontutorial'
+AG_USER = 'test'
+AG_PASSWORD = 'xyzzy'
+# AG_USER = 'anonymous'
+# AG_PASSWORD = ''
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
@@ -42,7 +48,7 @@ def test0():
     """
     print "Starting example test0()."
     print "Current working directory is '%s'" % (os.getcwd())
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     print "Available catalogs", server.listCatalogs()
 
 def test1(accessMode=Repository.RENEW):
@@ -51,12 +57,12 @@ def test1(accessMode=Repository.RENEW):
     """
     print "Starting example test1()."
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     print "Available catalogs", server.listCatalogs()
-##    catalog = server.openCatalog('scratch')  ## named catalog
+##    catalog = server.openCatalog(AG_CATALOG)  ## named catalog
     catalog = server.openCatalog()             ## default rootCatalog
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
-    myRepository = catalog.getRepository("agraph_test", accessMode)
+    myRepository = catalog.getRepository(AG_REPOSITORY, accessMode)
     myRepository.initialize()
     connection = myRepository.getConnection()
     print "Repository %s is up!  It contains %i statements." % (
@@ -113,6 +119,9 @@ def test3():
             result.close();
     finally:
         conn.close();
+        myRepository = conn.repository
+        myRepository.shutDown()
+
         
 def test4():
     conn = test2()
@@ -129,7 +138,9 @@ def test4():
     resultSet = conn.getJDBCStatements(alice, None, None)
     while resultSet.next():        
         print "   ", resultSet.getValue(2), "   ", resultSet.getString(2)  
-    conn.close()
+        conn.close();
+        myRepository = conn.repository
+        myRepository.shutDown()
                
 def test5():
     """
@@ -220,12 +231,14 @@ def test5():
         s = bindingSet[0]
         p = bindingSet[1]
         print "%s %s" % (s, p)
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 def test6():
     print "Starting example test6()."
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
-    catalog = server.openCatalog('scratch')  
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(AG_CATALOG)  
     myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
     myRepository.initialize()
     conn = myRepository.getConnection()
@@ -264,7 +277,9 @@ def test7():
     for i, bindingSet in enumerate(result):
         print bindingSet[0], bindingSet[1]
     conn.closeSession()
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 import urlparse
 
@@ -285,14 +300,18 @@ def test8():
     rdfxmlfWriter = RDFXMLWriter(outputFile2)    
     conn.export(rdfxmlfWriter, context)
     conn.closeSession()
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 def test9():
     print "Starting example test9()."
     conn = test6()
     conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
     conn.closeSession()
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 def test10():
     """
@@ -361,7 +380,9 @@ def test10():
     print "Query over the null context."
     for bindingSet in result:
         print bindingSet.getRow()
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
     
 def test11():
     """
@@ -385,7 +406,9 @@ def test11():
     print    
     for bindingSet in result:
         print bindingSet[0], bindingSet[1], bindingSet[2]
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 def test12():
     """
@@ -462,7 +485,9 @@ def test12():
         print bindingSet
         count += 1
         if count > 5: break
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 
 def test13():
@@ -493,7 +518,9 @@ def test13():
     result = describeQuery.evaluate(); 
     print "Describe result"
     for st in result: print st 
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
     
 def test14():
     """
@@ -513,7 +540,9 @@ def test14():
     print "Facts about Bob:"    
     result = tupleQuery.evaluate()
     for r in result: print r  
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
     
 def test15():
     """
@@ -539,11 +568,12 @@ def test15():
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
-    print "foo"
     rows = conn.getStatements(None, age, range)
     for r in rows:
         print r 
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 def test16():
     """
@@ -554,12 +584,12 @@ def test16():
         print "\n%s Apples:\t" % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    catalog = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy').openCatalog('scratch') 
+    catalog = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD).openCatalog(AG_CATALOG) 
     ## create two ordinary stores, and one federated store: 
-    redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
-    greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
-    #rainbowConn = (catalog.getRepository("rainbowthings", Repository.RENEW)
-    #                     .addFederatedTripleStores(["redthings", "greenthings"]).initialize().getConnection())
+    redConn = catalog.getRepository("redthingspy", Repository.RENEW).initialize().getConnection()
+    greenConn = greenRepository = catalog.getRepository("greenthingspy", Repository.RENEW).initialize().getConnection()
+    ## rainbowConn = (catalog.getRepository("rainbowthingspy", Repository.RENEW)
+    ##                     .addFederatedTripleStores(["redthingspy", "greenthingspy"]).initialize().getConnection())
     ex = "http://www.demo.com/example#"
     ## add a few triples to the red and green stores:
     redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
@@ -568,14 +598,20 @@ def test16():
     greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
     redConn.setNamespace('ex', ex)
     greenConn.setNamespace('ex', ex)
-    #rainbowConn.setNamespace('ex', ex)        
+    ## rainbowConn.setNamespace('ex', ex)        
     queryString = "select ?s where { ?s rdf:type ex:Apple }"
     ## query each of the stores; observe that the federated one is the union of the other two:
     pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
-    #pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
+    ## pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
     redConn.close()
     greenConn.close()
+    redRepository = redConn.repository
+    redRepository.shutDown()
+    greenRepository = greenConn.repository
+    greenRepository.shutDown()
+    ## rainbowRepository = rainbowConn.repository
+    ## rainbowRepository.shutDown()
 
 def test17():
     """
@@ -609,7 +645,9 @@ def test17():
         l = bindingSet.getValue("last")
         print "%s %s" % (f, l)
     conn.closeSession()
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 def test18():
     """
@@ -630,7 +668,9 @@ def test18():
         u = bindingSet.getValue("uncle")
         print "%s is the uncle of %s." % (u, p)
     conn.closeSession()
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
         
 def test19():
     ## Examples of RDFS++ inference.  Was originally example 2A.
@@ -728,7 +768,9 @@ def test19():
     ## And we can search for rdf:type child.
     print "Who are the children?  Inference ON."
     for s in conn.getStatements(None, RDF.TYPE, child, None, True): print s
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
     
 def test20():
     """
@@ -786,7 +828,9 @@ def test20():
     print polygon2
     print "Locate entities within polygon2."
     for r in conn.getStatements(None, location, polygon2) : print r
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 
 def test21():
@@ -796,8 +840,8 @@ def test21():
     print "Starting example test21()."
     print "Current working directory is '%s'" % (os.getcwd())
 
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
-    catalog = server.openCatalog('scratch')  
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(AG_CATALOG)  
     myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
     myRepository.initialize()
     conn = myRepository.getConnection()
@@ -1108,7 +1152,9 @@ def test21():
         print "%s" % (p.toPython())
 
     conn.closeSession()
-    conn.close()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 
 def test22():
     """
@@ -1117,8 +1163,8 @@ def test22():
     """	
 	Create common session and dedicated session.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
-    catalog = server.openCatalog('scratch')  
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(AG_CATALOG)  
     myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
     myRepository.initialize()
     common = myRepository.getConnection()
@@ -1246,10 +1292,12 @@ def test22():
     dedicated.closeSession()
     dedicated.close()
     common.close()
+    repository = dedicated.repository
+    repository.shutDown()
 	
 if __name__ == '__main__':
     choices = [i for i in range(1,22)]
-    #choices = [10]   
+    #choices = [16]   
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
