@@ -102,6 +102,9 @@ class Catalog(object):
         
     def getName(self):
         return self.short_name
+
+    def deleteRepository(self, name):
+        return self.mini_catalog.deleteRepository(name)
     
     def listRepositories(self):
         """

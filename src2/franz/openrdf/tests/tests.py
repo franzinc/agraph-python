@@ -1335,3 +1335,15 @@ def test_blanknodes():
     value_factory = conn.getValueFactory()
     assert len(value_factory.unusedBNodeIds) + 1 == ValueFactory.BLANK_NODE_AMOUNT
     
+def test_delete_repository():
+    """
+    Test deleting a Repository.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    store = 'for_deletion'
+    catalog = server.openCatalog(CATALOG)
+    myRepository = catalog.getRepository(store, Repository.RENEW)
+    myRepository.initialize()
+    myRepository.shutDown()
+    catalog.deleteRepository(store)
+    assert store not in catalog.listRepositories()

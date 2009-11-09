@@ -37,9 +37,12 @@ class Pool:
         return value or self.create()
 
     def put(self, value):
-        # Be compatible wih pycurl versions < 7.19.0
-        if hasattr(value, 'reset'):
-            value.reset()
+        # We could call value.reset() here before returning the curl object
+        # to the pool for pycurl version >= 7.19.0 if the C code for reset
+        # actually incremented the reference on the returned None object.
+        # As the C code is now, if called, the refcount on None eventually
+        # goes to zero after enough requests and the Python interpretor
+        # dies a quick death.
         self.lock.acquire()
         try:
             self.pool.append(value)
