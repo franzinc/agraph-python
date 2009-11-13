@@ -249,7 +249,7 @@ Available catalogs ['/', 'scratch']</pre>
 <p>Repository.RENEW is the default setting for the test1() function of tutorial_examples_40.py. It can be overridden by calling 
   test1() with the appropriate argument, such as test1(Repository.OPEN).</p>
 <pre class="input">
-    myRepository = catalog.getRepository(&quot;agraph_test&quot;, accessMode)
+    myRepository = catalog.getRepository(AG_REPOSITORY, accessMode)
     myRepository.initialize()</pre>
 <p>A new or renewed repository must be initialized, using the <strong>initialize()</strong> method of the repository object. If you try to initialize a respository twice you get a warning message in the Python window but no exception. </p>
 <p>The goal of all this object-building has been to create a client-side connection object, whose methods let us manipulate the triples of the repository. The repository object's <strong>getConnection()</strong> method returns this connection object. </p>
@@ -524,7 +524,7 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
   '16' for the 'context' context argument, and the number '28' for the null context
   (None) argument. </p>
 <p>The test6() function of tutorial_examples_40.py creates a <a href="#Dedicated Session">dedicated session</a> connection to AllegroGraph, using methods you have seen before, plus the Connection object's <strong>openSession()</strong> method: </p>
-<pre class="input">def test6():<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() </pre>
+<pre class="input">def test6():<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() </pre>
 <p>The dedicated session is not immediately pertinent to the examples in this section, but will become important in later examples that reuse this connection to demonstrate <a href="#Prolog Rule Queries">Prolog Rules</a> and <a href="#Social Network Analysis">Social Network Analysis</a>. </p>
 <p>The variables path1 and path2 are bound to the RDF/XML and NTriples files, respectively. </p>
 <pre class="input">    path1 = &quot;./vc-db-1.rdf&quot;    <br>    path2 = &quot;./kennedy.ntriples&quot;                </pre>
@@ -1188,7 +1188,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <p>(The Gruff illustrations were made from a parallel repository in which the resources were altered to display the character's name in the graph node rather than his URI. That file is called<strong> lemisNames.rdf</strong>.) </p>
 <h3 id="Setting Up the Example">Setting Up the Example</h3>
 <p>The SNA examples are in function <strong>test21() </strong>in <strong>tutorial_examples_40.py</strong>. This exercise begins by creating a <a href="#Dedicated Session">dedicated session</a> for the SNA Prolog queries to operation within. These are the same initializing steps we have used in previous examples, plus <strong>conn.openSession()</strong> to create a dedicated connection. </p>
-<pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'username', 'password')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() # SNA requires dedicated session.
+<pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'username', 'password')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() # SNA requires dedicated session.
 </pre>
 <p>The next step is to load the lesmis.rdf file.</p>
 <pre class="input">    path1 = "./lesmis.rdf"
@@ -1428,7 +1428,7 @@ Number of cliques: 2
 <p>&quot;Rollback&quot; means to discard the contents of the dedicated session. It also makes all common-session triples visible in the dedicated session. </p>
 <p>&quot;Closing&quot; the dedicated session deletes all uncommitted triples, and all rules, generators and matrices that were created in the dedicated session. Rules, generators and matrices cannot be committed. They persist as long as the dedicated session persists, and are deleted when the dedicated session is closed.</p>
 <p>Example test22() performs some simple data manipulations on a dedicated session to demonstrate the rollback and commit features. It begins by creating a connection to a repository (the common session), and a second connection to a dedicated session. To do that, all you need is a second connection object, and invoke its <strong>openSession()</strong> method. </p>
-<pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, Repository.RENEW)<br>    myRepository.initialize()<br>    common = myRepository.getConnection()<br>    dedicated = myRepository.getConnection()<br>    dedicated.openSession()  # open dedicated session </pre>
+<pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    common = myRepository.getConnection()<br>    dedicated = myRepository.getConnection()<br>    dedicated.openSession()  # open dedicated session </pre>
 <p>We'll reuse the Kennedy and Les Miserables data. The Les Miserables data goes in the common session, and the Kennedy data goes in the dedicated session. </p>
 <pre class="input">    path1 = &quot;./kennedy.ntriples&quot;<br>    path2 = &quot;./lesmis.rdf&quot;                <br>    baseURI = &quot;http://example.org/example/local&quot;<br>    ## read kennedy triples into the dedicated session:<br>    print &quot;Load 1214 kennedy.ntriples into dedicated session.&quot;<br>    dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)<br>    ## read lesmis triples into the common session:<br>    print &quot;Load 916 lesmis triples into the common session.&quot;<br>    common.addFile(path2, baseURI, format=RDFFormat.RDFXML, context=None);</pre>
 <p>The two sessions should now have independent content. When we look in the common session we should see only Les Miserables triples. The dedicated session could contain only Kennedy triples. We set up a series of simple tests similar to this one:</p>
