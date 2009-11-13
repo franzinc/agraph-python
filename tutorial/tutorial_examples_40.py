@@ -182,7 +182,7 @@ def test5():
         statements = conn.getStatements(None, None, obj)
         for s in statements:
             print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
+    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"']:
         print "Query triples matching '%s'." % obj
         queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
         SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}""" % obj
@@ -239,7 +239,7 @@ def test6():
     print "Starting example test6()."
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     catalog = server.openCatalog(AG_CATALOG)  
-    myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
+    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
     myRepository.initialize()
     conn = myRepository.getConnection()
     conn.openSession()  # open dedicated session to support Prolog queries in test17/18
@@ -575,43 +575,6 @@ def test15():
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test16():
-    """
-    Federated triple stores.
-    """
-    print "Starting example test16()."
-    def pt(kind, rows):
-        print "\n%s Apples:\t" % kind.capitalize(),
-        for r in rows: print r[0].getLocalName(),
-    
-    catalog = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD).openCatalog(AG_CATALOG) 
-    ## create two ordinary stores, and one federated store: 
-    redConn = catalog.getRepository("redthingspy", Repository.RENEW).initialize().getConnection()
-    greenConn = greenRepository = catalog.getRepository("greenthingspy", Repository.RENEW).initialize().getConnection()
-    ## rainbowConn = (catalog.getRepository("rainbowthingspy", Repository.RENEW)
-    ##                     .addFederatedTripleStores(["redthingspy", "greenthingspy"]).initialize().getConnection())
-    ex = "http://www.demo.com/example#"
-    ## add a few triples to the red and green stores:
-    redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
-    redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
-    greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
-    greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
-    redConn.setNamespace('ex', ex)
-    greenConn.setNamespace('ex', ex)
-    ## rainbowConn.setNamespace('ex', ex)        
-    queryString = "select ?s where { ?s rdf:type ex:Apple }"
-    ## query each of the stores; observe that the federated one is the union of the other two:
-    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
-    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
-    ## pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
-    redConn.close()
-    greenConn.close()
-    redRepository = redConn.repository
-    redRepository.shutDown()
-    greenRepository = greenConn.repository
-    greenRepository.shutDown()
-    ## rainbowRepository = rainbowConn.repository
-    ## rainbowRepository.shutDown()
 
 def test17():
     """
@@ -842,7 +805,7 @@ def test21():
 
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     catalog = server.openCatalog(AG_CATALOG)  
-    myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
+    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
     myRepository.initialize()
     conn = myRepository.getConnection()
     conn.openSession() # SNA requires dedicated session.
@@ -1165,7 +1128,7 @@ def test22():
     """
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     catalog = server.openCatalog(AG_CATALOG)  
-    myRepository = catalog.getRepository("agraph_test", Repository.RENEW)
+    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
     myRepository.initialize()
     common = myRepository.getConnection()
     dedicated = myRepository.getConnection()
@@ -1297,7 +1260,7 @@ def test22():
 	
 if __name__ == '__main__':
     choices = [i for i in range(1,22)]
-    #choices = [5]   
+    #choices = [16]   
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -1317,7 +1280,7 @@ if __name__ == '__main__':
         elif choice == 13: test13()  
         elif choice == 14: test14()                                                                                         
         elif choice == 15: test15()    
-        elif choice == 16: test16()            
+##        elif choice == 16: test16()            
         elif choice == 17: test17()                    
         elif choice == 18: test18()                                                             
         elif choice == 19: test19() 
@@ -1325,5 +1288,5 @@ if __name__ == '__main__':
         elif choice == 21: test21()
         elif choice == 22: test22()
         else:
-            print "No such test exists."
+            print "Not applicable to this release."
     
