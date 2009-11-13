@@ -1,11 +1,11 @@
 
-VERSION = 1.0
+VERSION = 1.0m1
 
 DISTDIR = agraph-4.0m1-client-python-$(VERSION)
 
 TARNAME = $(DISTDIR).tar.gz
 
-FILES = .project .pydevproject .settings src2 stress tutorial windows-support
+FILES = src2 stress tutorial windows-support
 
 default: dist
 
