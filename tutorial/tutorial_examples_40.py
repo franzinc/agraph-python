@@ -19,7 +19,7 @@ CURRENT_DIRECTORY = os.getcwd()
 
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '8080'))
-AG_CATALOG = 'scratch'
+AG_CATALOG = 'python-catalog'
 # AG_CATALOG = ''
 AG_REPOSITORY = 'pythontutorial'
 AG_USER = 'test'
@@ -1297,7 +1297,7 @@ def test22():
 	
 if __name__ == '__main__':
     choices = [i for i in range(1,22)]
-    #choices = [16]   
+    #choices = [5]   
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
