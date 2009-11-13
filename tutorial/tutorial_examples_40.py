@@ -182,7 +182,7 @@ def test5():
         statements = conn.getStatements(None, None, obj)
         for s in statements:
             print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
+    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"']:
         print "Query triples matching '%s'." % obj
         queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
         SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}""" % obj
@@ -1325,5 +1325,5 @@ if __name__ == '__main__':
         elif choice == 21: test21()
         elif choice == 22: test22()
         else:
-            print "No such test exists."
+            print "Not applicable to this release."
     
