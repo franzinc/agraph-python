@@ -18,7 +18,7 @@ import os, urllib, datetime, time
 CURRENT_DIRECTORY = os.getcwd() 
 
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
-AG_PORT = int(os.environ.get('AGRAPH_PORT', '8080'))
+AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_CATALOG = 'python-catalog'
 # AG_CATALOG = ''
 AG_REPOSITORY = 'pythontutorial'
