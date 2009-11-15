@@ -213,24 +213,6 @@ def test5():
     statements = conn.getStatements(None, None, '"1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>')
     for s in statements:
         print s
-    ## Search for triples of type xsd:date using SPARQL query.
-    print "Use SPARQL to find triples where the value matches a specific xsd:date."
-    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    result = tupleQuery.evaluate();    
-    for bindingSet in result:
-        s = bindingSet[0]
-        p = bindingSet[1]
-        print "%s %s" % (s, p)
-    ## Search for triples of type xsd:datetime using SPARQL query.
-    print "Use SPARQL to find triples where the value matches a specific xsd:dateTime."
-    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    result = tupleQuery.evaluate();    
-    for bindingSet in result:
-        s = bindingSet[0]
-        p = bindingSet[1]
-        print "%s %s" % (s, p)
     conn.close();
     myRepository = conn.repository
     myRepository.shutDown()
