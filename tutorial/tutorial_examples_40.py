@@ -182,7 +182,7 @@ def test5():
         statements = conn.getStatements(None, None, obj)
         for s in statements:
             print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"']:
+    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
         print "Query triples matching '%s'." % obj
         queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
         SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}""" % obj
@@ -213,6 +213,24 @@ def test5():
     statements = conn.getStatements(None, None, '"1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>')
     for s in statements:
         print s
+    ## Search for triples of type xsd:date using SPARQL query.
+    print "Use SPARQL to find triples where the value matches a specific xsd:date."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+    ## Search for triples of type xsd:datetime using SPARQL query.
+    print "Use SPARQL to find triples where the value matches a specific xsd:dateTime."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
     conn.close();
     myRepository = conn.repository
     myRepository.shutDown()
@@ -557,6 +575,43 @@ def test15():
     myRepository = conn.repository
     myRepository.shutDown()
 
+def test16():
+    """
+    Federated triple stores.
+    """
+    print "Starting example test16()."
+    def pt(kind, rows):
+        print "\n%s Apples:\t" % kind.capitalize(),
+        for r in rows: print r[0].getLocalName(),
+    
+    catalog = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD).openCatalog(AG_CATALOG) 
+    ## create two ordinary stores, and one federated store: 
+    redConn = catalog.getRepository("redthingspy", Repository.RENEW).initialize().getConnection()
+    greenConn = greenRepository = catalog.getRepository("greenthingspy", Repository.RENEW).initialize().getConnection()
+    ## rainbowConn = (catalog.getRepository("rainbowthingspy", Repository.RENEW)
+    ##                     .addFederatedTripleStores(["redthingspy", "greenthingspy"]).initialize().getConnection())
+    ex = "http://www.demo.com/example#"
+    ## add a few triples to the red and green stores:
+    redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
+    redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
+    greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
+    greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
+    redConn.setNamespace('ex', ex)
+    greenConn.setNamespace('ex', ex)
+    ## rainbowConn.setNamespace('ex', ex)        
+    queryString = "select ?s where { ?s rdf:type ex:Apple }"
+    ## query each of the stores; observe that the federated one is the union of the other two:
+    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
+    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
+    ## pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
+    redConn.close()
+    greenConn.close()
+    redRepository = redConn.repository
+    redRepository.shutDown()
+    greenRepository = greenConn.repository
+    greenRepository.shutDown()
+    ## rainbowRepository = rainbowConn.repository
+    ## rainbowRepository.shutDown()
 
 def test17():
     """
@@ -1242,7 +1297,7 @@ def test22():
 	
 if __name__ == '__main__':
     choices = [i for i in range(1,22)]
-    #choices = [16]   
+    #choices = [5]   
     for choice in choices:
         print "\n==========================================================================="
         print "Test Run Number ", choice, "\n"
@@ -1262,7 +1317,7 @@ if __name__ == '__main__':
         elif choice == 13: test13()  
         elif choice == 14: test14()                                                                                         
         elif choice == 15: test15()    
-##        elif choice == 16: test16()            
+        elif choice == 16: test16()            
         elif choice == 17: test17()                    
         elif choice == 18: test18()                                                             
         elif choice == 19: test19() 
@@ -1270,5 +1325,5 @@ if __name__ == '__main__':
         elif choice == 21: test21()
         elif choice == 22: test22()
         else:
-            print "Not applicable to this release."
+            print "No such test exists."
     
