@@ -35,27 +35,27 @@ def verify(expressionValue, targetValue, quotedExpression, testNum):
     raise an exception, or print a message advertising the failure.
     """
     if not expressionValue == targetValue:
-        message = ("Diagnostic failure in test %s.  Expression '%s' returns '%s' where '%s' expected." %
+        message = ("Diagnostic failure in example %s.  Expression '%s' returns '%s' where '%s' expected." %
                     (testNum, quotedExpression, expressionValue, targetValue))
         if RAISE_EXCEPTION_ON_VERIFY_FAILURE:
             raise Exception(message)
         else:
             print "BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP \n   ", message
 
-def test0():
+def example0():
     """
     Can we connect to AG?
     """
-    print "Starting example test0()."
+    print "Starting example example0()."
     print "Current working directory is '%s'" % (os.getcwd())
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     print "Available catalogs", server.listCatalogs()
 
-def test1(accessMode=Repository.RENEW):
+def example1(accessMode=Repository.RENEW):
     """
-    Tests getting the repository up.  Is called by the other tests to do the startup.
+    Tests getting the repository up.  Is called by the other examples to do the startup.
     """
-    print "Starting example test1()."
+    print "Starting example1()."
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     print "Available catalogs", server.listCatalogs()
@@ -70,9 +70,9 @@ def test1(accessMode=Repository.RENEW):
     return connection
 
     
-def test2():
-    conn = test1()
-    print "Starting example test2()."
+def example2():
+    conn = example1()
+    print "Starting example2()."
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     ## create some resources and literals to make statements out of
     alice = conn.createURI("http://example.org/people/alice")
@@ -100,9 +100,9 @@ def test2():
     conn.add(bob, name, bobsName)    
     return conn
     
-def test3():    
-    conn = test2()
-    print "Starting example test3()."
+def example3():    
+    conn = example2()
+    print "Starting example3()."
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     print "SPARQL query for all triples in repository."
     try:
@@ -123,9 +123,9 @@ def test3():
         myRepository.shutDown()
 
         
-def test4():
-    conn = test2()
-    print "Starting example test4()."
+def example4():
+    conn = example2()
+    print "Starting example4()."
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     alice = conn.createURI("http://example.org/people/alice")
     print "Searching for Alice using getStatements():"
@@ -142,13 +142,13 @@ def test4():
         myRepository = conn.repository
         myRepository.shutDown()
                
-def test5():
+def example5():
     """
     Typed Literals
     """
-    print "Starting example test5()."
+    print "Starting example5()."
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
-    conn = test1()
+    conn = example1()
     conn.clear()
     exns = "http://example.org/people/"
     alice = conn.createURI("http://example.org/people/alice")
@@ -235,14 +235,14 @@ def test5():
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test6():
-    print "Starting example test6()."
+def example6():
+    print "Starting example6()."
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     catalog = server.openCatalog(AG_CATALOG)  
     myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
     myRepository.initialize()
     conn = myRepository.getConnection()
-    conn.openSession()  # open dedicated session to support Prolog queries in test17/18
+    conn.openSession()  # open dedicated session to support Prolog queries in example17/18
     # The following paths are relative to os.getcwd(), the working directory.
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     # If you get a "file not found" error, use os.chdir("your directory path") to 
@@ -262,11 +262,11 @@ def test6():
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
-    return conn # to chain to other tests
+    return conn # to chain to other examples
         
-def test7():    
-    conn = test6()
-    print "Starting example test7()."
+def example7():    
+    conn = example6()
+    print "Starting example7()."
     print "Match all and print subjects and contexts"
     result = conn.getStatements(None, None, None, None, limit=25)
     for row in result: print row.getSubject(), row.getContext()
@@ -283,9 +283,9 @@ def test7():
 
 import urlparse
 
-def test8():
-    conn = test6()
-    print "Starting example test8()."
+def example8():
+    conn = example6()
+    print "Starting example8()."
     context = conn.createURI("http://example.org#vcards")
     outputFile = "/tmp/temp.nt"
     #outputFile = None
@@ -304,21 +304,21 @@ def test8():
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test9():
-    print "Starting example test9()."
-    conn = test6()
+def example9():
+    print "Starting example9()."
+    conn = example6()
     conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
     conn.closeSession()
     conn.close();
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test10():
+def example10():
     """
     Datasets and multiple contexts
     """
-    print "Starting example test10()."
-    conn = test1()
+    print "Starting example10()."
+    conn = example1()
     exns = "http://example.org/people/"
     alice = conn.createURI(namespace=exns, localname="alice")
     bob = conn.createURI(namespace=exns, localname="bob")
@@ -384,12 +384,12 @@ def test10():
     myRepository = conn.repository
     myRepository.shutDown()
     
-def test11():
+def example11():
     """
     Namespaces
     """
-    print "Starting example test11()."
-    conn = test1()
+    print "Starting example11()."
+    conn = example1()
     exns = "http://example.org/people/"
     alice = conn.createURI(namespace=exns, localname="alice")
     person = conn.createURI(namespace=exns, localname="Person")
@@ -410,12 +410,12 @@ def test11():
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test12():
+def example12():
     """
     Text search
     """
-    print "Starting example test12()."
-    conn = test1()
+    print "Starting example12()."
+    conn = example1()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
     conn.registerFreeTextPredicate(namespace=exns, localname='fullname')
@@ -490,12 +490,12 @@ def test12():
     myRepository.shutDown()
 
 
-def test13():
+def example13():
     """
     Ask, Construct, and Describe queries 
     """
-    print "Starting example test13()."
-    conn = test2()
+    print "Starting example13()."
+    conn = example2()
     conn.setNamespace('ex', "http://example.org/people/")
     conn.setNamespace('ont', "http://example.org/ontology/")
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
@@ -522,12 +522,12 @@ def test13():
     myRepository = conn.repository
     myRepository.shutDown()
     
-def test14():
+def example14():
     """
     Parametric queries
     """
-    print "Starting example test14()."
-    conn = test2()
+    print "Starting example14()."
+    conn = example2()
     alice = conn.createURI("http://example.org/people/alice")
     bob = conn.createURI("http://example.org/people/bob")
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
@@ -544,12 +544,12 @@ def test14():
     myRepository = conn.repository
     myRepository.shutDown()
     
-def test15():
+def example15():
     """
     Range matches
     """
-    print "Starting example test15()."
-    conn = test1()
+    print "Starting example15()."
+    conn = example1()
     conn.clear()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
@@ -575,11 +575,11 @@ def test15():
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test16():
+def example16():
     """
     Federated triple stores.
     """
-    print "Starting example test16()."
+    print "Starting example16()."
     def pt(kind, rows):
         print "\n%s Apples:\t" % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
@@ -613,13 +613,13 @@ def test16():
     ## rainbowRepository = rainbowConn.repository
     ## rainbowRepository.shutDown()
 
-def test17():
+def example17():
     """
     Prolog queries
     """
-    print "Starting example test17()."
-    conn = test6()  # Obtain dedicated connection from test6()
-    # end of test6()
+    print "Starting example17()."
+    conn = example6()  # Obtain dedicated connection from example6()
+    # end of example6()
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setRuleLanguage(QueryLanguage.PROLOG)
     rules1 = """
@@ -649,12 +649,12 @@ def test17():
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test18():
+def example18():
     """
     Loading Prolog rules
     """
-    print "Starting example test18()."
-    conn = test6()  # loads data and return dedicated session
+    print "Starting example18()."
+    conn = example6()  # loads data and return dedicated session
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
     conn.setRuleLanguage(QueryLanguage.PROLOG)
@@ -672,10 +672,10 @@ def test18():
     myRepository = conn.repository
     myRepository.shutDown()
         
-def test19():
+def example19():
     ## Examples of RDFS++ inference.  Was originally example 2A.
-    conn = test1()
-    print "Starting example test19()."
+    conn = example1()
+    print "Starting example19()."
     ## Create URIs for Bob and Robert (and kids) 
     robert = conn.createURI("http://example.org/people/robert")
     roberta = conn.createURI("http://example.org/people/roberta")
@@ -772,13 +772,13 @@ def test19():
     myRepository = conn.repository
     myRepository.shutDown()
     
-def test20():
+def example20():
     """
     GeoSpatial Reasoning
     """
-    conn = test1();
+    conn = example1();
     conn.clear()
-    print "Starting example test20()."
+    print "Starting example20()."
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
     alice = conn.createURI(exns, "alice")
@@ -833,11 +833,11 @@ def test20():
     myRepository.shutDown()
 
 
-def test21():
+def example21():
     """
     Social Network Analysis Reasoning
     """
-    print "Starting example test21()."
+    print "Starting example21()."
     print "Current working directory is '%s'" % (os.getcwd())
 
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
@@ -1156,7 +1156,7 @@ def test21():
     myRepository = conn.repository
     myRepository.shutDown()
 
-def test22():
+def example22():
     """
     Test of dedicated session Commit/Rollback
     """
@@ -1300,30 +1300,30 @@ if __name__ == '__main__':
     choices = [5]   
     for choice in choices:
         print "\n==========================================================================="
-        print "Test Run Number ", choice, "\n"
-        if choice == 0: test0()
-        elif choice == 1: test1()
-        elif choice == 2: test2()
-        elif choice == 3: test3()
-        elif choice == 4: test4()    
-        elif choice == 5: test5()        
-        elif choice == 6: test6()            
-        elif choice == 7: test7()                
-        elif choice == 8: test8()                
-        elif choice == 9: test9()                        
-        elif choice == 10: test10()                            
-        elif choice == 11: test11()
-        elif choice == 12: test12()                                                                                   
-        elif choice == 13: test13()  
-        elif choice == 14: test14()                                                                                         
-        elif choice == 15: test15()    
-        elif choice == 16: test16()            
-        elif choice == 17: test17()                    
-        elif choice == 18: test18()                                                             
-        elif choice == 19: test19() 
-        elif choice == 20: test20()  
-        elif choice == 21: test21()
-        elif choice == 22: test22()
+        print "Example Run Number ", choice, "\n"
+        if choice == 0: example0()
+        elif choice == 1: example1()
+        elif choice == 2: example2()
+        elif choice == 3: example3()
+        elif choice == 4: example4()    
+        elif choice == 5: example5()        
+        elif choice == 6: example6()            
+        elif choice == 7: example7()                
+        elif choice == 8: example8()                
+        elif choice == 9: example9()                        
+        elif choice == 10: example10()                            
+        elif choice == 11: example11()
+        elif choice == 12: example12()                                                                                   
+        elif choice == 13: example13()  
+        elif choice == 14: example14()                                                                                         
+        elif choice == 15: example15()    
+        elif choice == 16: example16()            
+        elif choice == 17: example17()                    
+        elif choice == 18: example18()                                                             
+        elif choice == 19: example19() 
+        elif choice == 20: example20()  
+        elif choice == 21: example21()
+        elif choice == 22: example22()
         else:
-            print "No such test exists."
+            print "This example is not available in the current release."
     

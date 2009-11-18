@@ -76,7 +76,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
     <td width="625"><img src="allegrographdiagram.jpg" width="617" height="412"></td>
   </tr>
 </table>
-<p>Each lesson in <strong>tutorial_examples_40.py</strong> is encapsulated in a Python function, named testN(), where N ranges from 0 to 21 (or more). The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
+<p>Each lesson in <strong>tutorial_examples_40.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 21 (or more). The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
 <!-- Commented out until new procedures become clear. 
 <h2 id="PrerequisitesLinux">Prerequisites (Windows) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <table border="1">
@@ -209,36 +209,36 @@ In Windows XP, you can set an environment variable by
   </tr>
 </table>
   <p>&nbsp;</p>
-  <h2 id="Creating a Repository">Creating a Repository (test1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The first task is to our AllegroGraph Server and open a repository. This task is implemented in<strong> test1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
-<p>In <strong>test1()</strong> we build a chain of Python objects,  ending in a&quot;connection&quot; object that lets us manipulate triples in a specific repository. The overall process of generating the connection object follows 
+  <h2 id="Creating a Repository">Creating a Repository (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>The first task is to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
+<p>In <strong>example1()</strong> we build a chain of Python objects,  ending in a&quot;connection&quot; object that lets us manipulate triples in a specific repository. The overall process of generating the connection object follows 
 this diagram:</p>
   <table width="809" border="0">
   <tr>
-    <td width="378"><p>The test1() function opens (or creates) a repository by building a series of client-side objects, culminating in a &quot;connection&quot; object. The connection object will be passed to other functions in tutorial_examples_40.py. </p>
+    <td width="378"><p>The example1() function opens (or creates) a repository by building a series of client-side objects, culminating in a &quot;connection&quot; object. The connection object will be passed to other functions in tutorial_examples_40.py. </p>
       <p>The connection object contains the methods that let us manipulate triples in a specific repository. </p></td>
     <td width="421"><img src="createconnectionobject.jpg" width="448" height="212"></td>
   </tr>
 </table>
 
 <p>The example first connects to an AllegroGraph Server by providing the endpoint (host IP address and port number) of an already-launched AllegroGraph server. This creates a client-side server object, which can access the AllegroGraph server's list of available catalogs through the <strong>listCatalogs()</strong> method:. </p>
-<pre class="input">def test1(accessMode=Repository.RENEW):
+<pre class="input">def example1(accessMode=Repository.RENEW):
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'user', 'password')
     print &quot;Available catalogs&quot;, server.listCatalogs()
 </pre>
 <p>This is the output so far:</p>
-<pre class="output">&gt;&gt;&gt; test1()
+<pre class="output">&gt;&gt;&gt; example1()
 Defining connnection to AllegroGraph server -- host:'localhost' port:8080
 Available catalogs ['/', 'scratch']</pre>
 <p>This output says that the server has two catalogs, the default <strong>rootCatalog, '/'</strong>, and a named catalog 'scratch' that someone has created for some experimentation.</p>
-<p>In the next line of test1(), we use the <strong>server.openCatalog()</strong> method to create a client-side catalog object. In this example we will connect to the default rootCatalog by calling openCatalog() with no arguments. When we look inside the root catalog, we can see which repositories are available:</p>
+<p>In the next line of example1(), we use the <strong>server.openCatalog()</strong> method to create a client-side catalog object. In this example we will connect to the default rootCatalog by calling openCatalog() with no arguments. When we look inside the root catalog, we can see which repositories are available:</p>
 <pre class="input">
     catalog = server.openCatalog() 
     print &quot;Available repositories in catalog '%s': %s&quot; % (catalog.getName(), catalog.listRepositories()) </pre>
 <p>The corresponding output lists the available repositories.  (When you run the examples, you may see a different list of repositories.)</p>
 <pre class="output">Available repositories in catalog 'None': ['tutorial']  </pre>
 <p>The next step is to create a client-side repository object representing the respository we wish to open, by calling the
-<strong>getRepository()</strong> method of the catalog object. We have to provide the name of the desired repository (<strong>agraph_test</strong> in this case), and select one of four access modes:</p>
+<strong>getRepository()</strong> method of the catalog object. We have to provide the name of the desired repository (<strong>AG_REPOSITORY,</strong> bound to <strong>python-tutorial </strong> in this case), and select one of four access modes:</p>
 <ul>
   <li><strong>Repository.RENEW</strong> clears the contents of an existing repository before opening. If the indicated repository does not exist, 
   it creates one. </li>
@@ -246,8 +246,8 @@ Available catalogs ['/', 'scratch']</pre>
   <li><strong>Repository.ACCESS</strong> opens an existing repository, or creates a new one if the repository is not found.</li>
   <li><strong>Repository.CREATE</strong> creates a new repository, or throws an exception if one by that name already exists.</li>
 </ul>
-<p>Repository.RENEW is the default setting for the test1() function of tutorial_examples_40.py. It can be overridden by calling 
-  test1() with the appropriate argument, such as test1(Repository.OPEN).</p>
+<p>Repository.RENEW is the default setting for the example1() function of tutorial_examples_40.py. It can be overridden by calling 
+  example1() with the appropriate argument, such as example1(Repository.OPEN).</p>
 <pre class="input">
     myRepository = catalog.getRepository(AG_REPOSITORY, accessMode)
     myRepository.initialize()</pre>
@@ -258,22 +258,22 @@ Available catalogs ['/', 'scratch']</pre>
     print &quot;Repository %s is up! It contains %i statements.&quot; % (
     myRepository.getDatabaseName(), connection.size())
     return connection</pre>
- <p>The <strong>size()</strong> method of the connection object returns how many triples are present. In the test1() function, this number should always be zero because we &quot;renewed&quot; the repository. This is the output in the Python window: </p>
-<pre class="output">   Repository agraph_test is up! It contains 0 statements.
+ <p>The <strong>size()</strong> method of the connection object returns how many triples are present. In the example1() function, this number should always be zero because we &quot;renewed&quot; the repository. This is the output in the Python window: </p>
+<pre class="output">   Repository pythontutorial is up! It contains 0 statements.
    &lt;franz.openrdf.repository.repositoryconnection.RepositoryConnection object at 0x0127D710&gt;
  &gt;&gt;&gt; </pre>
-<p>The last line is the pointer to the new connection object. This is the value returned by test1() when it is called by other functions in tutorial_examples_40.py. The other functions then use the connection object to access the repository. </p>
-<h2 id="Asserting and Retracting Triples">Asserting and Retracting Triples (test2()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>The last line is the pointer to the new connection object. This is the value returned by example1() when it is called by other functions in tutorial_examples_40.py. The other functions then use the connection object to access the repository. </p>
+<h2 id="Asserting and Retracting Triples">Asserting and Retracting Triples (example2()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 
 
 
 <p>
 
-In example test2(), we show how
+In example example2(), we show how
 to create resources describing two
 people, Bob and Alice, by asserting individual triples into the respository. The example also retracts and replaces a triple.  Assertions and retractions to the triple store
-are executed by 'add' and 'remove' methods belonging to the connection object, which we obtain by calling the test1() function (described above).
+are executed by 'add' and 'remove' methods belonging to the connection object, which we obtain by calling the example1() function (described above).
 </p>
 <p>Before asserting a triple, we have to generate the URI values for the subject, predicate and object fields. The Python API to AllegroGraph Server predefines a number of classes and predicates for the RDF, RDFS, XSD, and OWL ontologies.  RDF.TYPE is one of the predefined predicates we will use. </p>
 <p>
@@ -283,9 +283,9 @@ and retractions.  When the context is omitted, triples are asserted/retracted
 to/from the background graph.  In the example below, facts about Alice and Bob
 reside in the background graph.
 </p>
-<p>The test2() function begins by calling test1() to create the appropriate connection object, which is bound to the variable <strong>conn</strong>. </p>
-<pre class="input">def test2():
-    conn = test1()
+<p>The example2() function begins by calling example1() to create the appropriate connection object, which is bound to the variable <strong>conn</strong>. </p>
+<pre class="input">def example2():
+    conn = example1()
 </pre>
  <p>The next step is to begin assembling the URIs we will need for the new triples. The createURI() method generates a URI from a string. These are the subject URIs identifying the resources &quot;Bob&quot; and &quot;Alice&quot;:</p>
  <pre class="input">
@@ -339,11 +339,11 @@ Triple count:  4
 Triple count:  3
 &lt;franz.openrdf.repository.repositoryconnection.RepositoryConnection object at 0x01466830&gt;</pre>
  
- <h2 id="A SPARQL Query">A SPARQL Query (test3()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+ <h2 id="A SPARQL Query">A SPARQL Query (example3()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>SPARQL stands for  the &quot;<a href="http://www.w3.org/TR/rdf-sparql-query/">SPARQL Protocol and RDF Query Language</a>,&quot; a recommendation of the <a href="http://www.w3.org/">World Wide Web Consortium (W3C)</a>. SPARQL is a query language for retrieving RDF triples. </p>
- <p>Our next example illustrates how to evaluate a SPARQL query. This is the simplest query, the one that returns all triples. Note that test3() continues with the four triples created in test2(). </p>
- <pre class="input">def test3():    
-    conn = test2()
+ <p>Our next example illustrates how to evaluate a SPARQL query. This is the simplest query, the one that returns all triples. Note that example3() continues with the four triples created in example2(). </p>
+ <pre class="input">def example3():    
+    conn = example2()
     try:
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
 </pre>
@@ -377,14 +377,14 @@ http://example.org/people/bob http://example.org/ontology/name "Bob"
             result.close();
     finally:
         conn.close();</pre>
-<h2 id="Statement Matching">Statement Matching (test4()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Statement Matching">Statement Matching (example4()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 <p>
 The getStatements() method of the connection object provides a simple way to perform unsophisticated queries. This method lets you enter a mix of required values and wildcards, and retrieve all matching triples. (If you need to perform sophisticated tests and comparisons you should use the SPARQL query instead.)</p>
 <p>
 Below, we illustrate two kinds of 'getStatement' calls.  The first mimics
-traditional Sesame syntax, and returns a Statement object at each iteration. This is the <strong>test4()</strong> function of tutorial_examples_40.py. It begins by calling test2() to create a connection object and populate the agraph_test repository with four triples describing Bob and Alice. We're going to search for triples that mention Alice, so we have to create an &quot;Alice&quot; URI  to use in the search pattern: </p>
-<pre class="input">def test4():<br>    conn = test2()<br>    alice = conn.createURI(&quot;http://example.org/people/alice&quot;)
+traditional Sesame syntax, and returns a Statement object at each iteration. This is the <strong>example4()</strong> function of tutorial_examples_40.py. It begins by calling example2() to create a connection object and populate the <strong>pythontutorial</strong> repository with four triples describing Bob and Alice. We're going to search for triples that mention Alice, so we have to create an &quot;Alice&quot; URI  to use in the search pattern: </p>
+<pre class="input">def example4():<br>    conn = example2()<br>    alice = conn.createURI(&quot;http://example.org/people/alice&quot;)
 </pre>
 <p> Now we search for triples with Alice's URI in the subject position.  The &quot;None&quot; values are wildcards for the predicate and object positions of the triple. </p>
 <pre class="input">    print &quot;Searching for Alice using getStatements():&quot;
@@ -398,16 +398,16 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 (&lt;http://example.org/people/alice&gt;, &lt;http://example.org/ontology/name&gt;, &quot;Alice&quot;) </pre>
 <p>At this point it is good form to close the respositoryResponse object because they occupy memory and are rarely reused in most programs. </p>
 <pre class="input">	statements.close()</pre>
-<p>The test4() example continues with a second, more efficient way to perform simple retrievals. The second syntax borrows a trick from the JDBC API commonly used to access relational databases. The <strong>getJDBCStatements()</strong> method returns a ResultSet object that lets us iterate over the returned triples. A resultSet iterator does not materialize objects unless forced to. In this example it materializes only the object values of the returned triples. The <strong>getValue()</strong> method forces materialization of a resource or literal as an object, while the <strong>getString()</strong> call returns a string without creating an object. Developers who care about minimizing garbage will prefer to use the getJDBCStatements()' call, and they will usually call getString() in preference to getValue().</p>
+<p>The example4() example continues with a second, more efficient way to perform simple retrievals. The second syntax borrows a trick from the JDBC API commonly used to access relational databases. The <strong>getJDBCStatements()</strong> method returns a ResultSet object that lets us iterate over the returned triples. A resultSet iterator does not materialize objects unless forced to. In this example it materializes only the object values of the returned triples. The <strong>getValue()</strong> method forces materialization of a resource or literal as an object, while the <strong>getString()</strong> call returns a string without creating an object. Developers who care about minimizing garbage will prefer to use the getJDBCStatements()' call, and they will usually call getString() in preference to getValue().</p>
 <pre class="input">    print &quot;Same thing using JDBC:&quot;<br>    resultSet = conn.getJDBCStatements(alice, None, None)<br>    while resultSet.next():        <br>        print &quot;   &quot;, resultSet.getValue(2), &quot;   &quot;, resultSet.getString(2)  </pre>
 <p>The output is:</p>
 <pre class="output">Same thing using JDBC:
     &lt;http://example.org/ontology/Person&gt; http://example.org/ontology/Person
     &quot;Alice&quot;    Alice  </pre>
-<h2 id="Literal Values">Literal Values (test5())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The next example, <strong>test5()</strong>, illustrates some variations on what we have seen so far.  The example creates and asserts typed literal values, including  language-specific literals.</p>
-<p>First, test5() obtains a connection object from test1(), and then clears the repository of all existing triples. </p>
-<pre class="input">def test5():<br>    conn = test1()<br>    conn.clear()
+<h2 id="Literal Values">Literal Values (example5())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>The next example, <strong>example5()</strong>, illustrates some variations on what we have seen so far.  The example creates and asserts typed literal values, including  language-specific literals.</p>
+<p>First, example5() obtains a connection object from example1(), and then clears the repository of all existing triples. </p>
+<pre class="input">def example5():<br>    conn = example1()<br>    conn.clear()
 </pre>
 <p>For sake of coding efficiency, it is good practice to create variables for namespace strings. We'll use this namespace again and again in the following lines. </p>
 <pre class="input">    exns = &quot;http://example.org/people/&quot;
@@ -488,7 +488,7 @@ Retrieve triples matching '&quot;Rouge&quot;@fr'. [French string matches French 
     for s in statements:<br>        print s</pre>
 <pre class="output">Match triples having specific DATE value.<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/birthdate&gt;, &quot;1984-12-06&quot;^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;)
 </pre>
-<h2 id="Importing Triples">Importing Triples (test6() and test7()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Importing Triples">Importing Triples (example6() and example7()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 The Python API client can load triples in either RDF/XML format or  NTriples format.  The example below calls the connection object's <strong>add()</strong> method to load 
 an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both methods work, but the best practice is to use addFile(). </p>
@@ -523,8 +523,8 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
   argument, it returns the total number of triples in the repository.  Below, it returns the number
   '16' for the 'context' context argument, and the number '28' for the null context
   (None) argument. </p>
-<p>The test6() function of tutorial_examples_40.py creates a <a href="#Dedicated Session">dedicated session</a> connection to AllegroGraph, using methods you have seen before, plus the Connection object's <strong>openSession()</strong> method: </p>
-<pre class="input">def test6():<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() </pre>
+<p>The example6() function of tutorial_examples_40.py creates a <a href="#Dedicated Session">dedicated session</a> connection to AllegroGraph, using methods you have seen before, plus the Connection object's <strong>openSession()</strong> method: </p>
+<pre class="input">def example6():<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() </pre>
 <p>The dedicated session is not immediately pertinent to the examples in this section, but will become important in later examples that reuse this connection to demonstrate <a href="#Prolog Rule Queries">Prolog Rules</a> and <a href="#Social Network Analysis">Social Network Analysis</a>. </p>
 <p>The variables path1 and path2 are bound to the RDF/XML and NTriples files, respectively. </p>
 <pre class="input">    path1 = &quot;./vc-db-1.rdf&quot;    <br>    path2 = &quot;./kennedy.ntriples&quot;                </pre>
@@ -541,16 +541,16 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
            and   %i kennedy triples in context '%s'.&quot; % <br>           (conn.size(context), context, conn.size('null'), 'null')<br>    return conn</pre>
 <p>The output of this report was:</p>
 <pre class="output">After loading, repository contains 16 vcard triples in context 'http://example.org#vcards'<br>    and   1214 kennedy triples in context 'null'. </pre>
-<p>The SPARQL query below is found in test7() of tutorial_examples_40.py. It borrows the same triples we loaded in test6(), above, and runs two unconstrained retrievals. The first uses getStatement, and prints out the subject URI and context of each triple. </p>
-<pre class="input">def test7():    <br>    conn = test6()<br>    print &quot;Match all and print subjects and contexts&quot;<br>    result = conn.getStatements(None, None, None, None, limit=25)<br>    for row in result: print row.getSubject(), row.getContext()</pre>
+<p>The SPARQL query below is found in example7() of tutorial_examples_40.py. It borrows the same triples we loaded in example6(), above, and runs two unconstrained retrievals. The first uses getStatement, and prints out the subject URI and context of each triple. </p>
+<pre class="input">def example7():    <br>    conn = example6()<br>    print &quot;Match all and print subjects and contexts&quot;<br>    result = conn.getStatements(None, None, None, None, limit=25)<br>    for row in result: print row.getSubject(), row.getContext()</pre>
 <p>This loop prints out a mix of triples from the null context and from the #vcards context. We set a limit of 25 triples because the Kennedy dataset contains over a thousand triples. </p>
 <p>The following loop, however, does not produce the same results. This is a SPARQL query that should match all available triples, printing out the subject and context of each triple: </p>
 <pre class="input">    print &quot;\nSame thing with SPARQL query (can't retrieve triples in the null context)&quot;<br>    queryString = &quot;SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate();<br>    for i, bindingSet in enumerate(result):<br>        print bindingSet[0], bindingSet[1]<br>    conn.close()</pre>
 <p>In this case, the loop prints out only eight triples. These are the eight from the #vcards context. The SPARQL query is not able to access the null context when a non-null context is also present. </p>
-<h2 id="Exporting Triples">Exporting Triples (test8() and test9()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Exporting Triples">Exporting Triples (example8() and example9()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The next examples show how to write triples out to a file in either NTriples format or RDF/XML format. The output of either format may be optionally redirected to standard output (the Python command window) for inspection.</p>
-<p>Example test8() begins by obtaining a connection object from test6(). This means the repository contains v-card triples in the <strong>#vcards</strong> context, and Kennedy family tree triples in the<strong> null </strong>context. </p>
-<pre class="input">def test8():<br>    conn = test6()</pre>
+<p>Example example8() begins by obtaining a connection object from example6(). This means the repository contains v-card triples in the <strong>#vcards</strong> context, and Kennedy family tree triples in the<strong> null </strong>context. </p>
+<pre class="input">def example8():<br>    conn = example6()</pre>
 <p>In this example, we'll export the triples in the #vcards context. </p>
 <pre class="input">    context = conn.createURI(&quot;http://example.org#vcards&quot;)</pre>
 <p>To write triples in
@@ -566,15 +566,15 @@ The <strong>export()</strong> method writes
   then triples from all of those contexts will be written to<em> the same file</em>.  Since the
 triples are "mixed together" in the file, the context information is not recoverable. If the context argument is omitted, all triples in the store are written out, and again all context information is lost. </p>
 <p>Finally, if the objective is to write out a filtered set of triples,
-  the <strong>exportStatements()</strong> method can be used.  The example below (from<strong> test9()</strong>) writes
+  the <strong>exportStatements()</strong> method can be used.  The example below (from<strong> example9()</strong>) writes
   out all RDF:TYPE declaration triples to standard output. </p>
 <pre class="input">
 conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
 </pre>
 
-<h2 id="Datasets and Contexts">Datasets and Contexts (test10()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Datasets and Contexts">Datasets and Contexts (example10()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
-We have already seen contexts at work when loading and saving files.  In test10() we provide more realistic examples of contexts, and we introduce the dataset object. A dataset is a list of contexts that should all be searched simultaneously. </p>
+We have already seen contexts at work when loading and saving files.  In example10() we provide more realistic examples of contexts, and we introduce the dataset object. A dataset is a list of contexts that should all be searched simultaneously. </p>
 <p>To set up the example, we create six statements, and add two
   of each to three different contexts: context1, context2, and the null context. The process of setting up the six statements follows the same pattern as we used in the previous examples: </p>
 <pre class="input">
@@ -658,7 +658,7 @@ for bindingSet in result:
 <pre class="output">Query over the null context.<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']
 ['&lt;http://example.org/people/ted&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Ted&quot;']</pre>
 
-<h2 id="Namespaces">Namespaces (test11()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Namespaces">Namespaces (example11()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 A <i>namespace</i> is that portion of a URI that preceeds the last '#',
 '/', or ':' character, inclusive.  The remainder of a URI is called the
@@ -682,8 +682,8 @@ setNamespace() method of the connection object registers a new namespace.  In th
 below, we first register the 'ex' prefix, and then submit the SPARQL query.
 It is legal, although not recommended, to redefine the built-in prefixes RDF, etc..
 </p>
-<p>The example test11() begins by borrowing a connection object from test1(). </p>
-<pre class="input">def test11():<br>    conn = test1()</pre>
+<p>The example example11() begins by borrowing a connection object from example1(). </p>
+<pre class="input">def example11():<br>    conn = example1()</pre>
 <p>We need a namespace string (bound to the variable <strong>exns</strong>) to use when generating the <strong>alice</strong> and <strong>person</strong> URIs. </p>
 <pre class="input">
     exns = &quot;http://example.org/people/&quot;<br>    alice = conn.createURI(namespace=exns, localname=&quot;alice&quot;)<br>    person = conn.createURI(namespace=exns, localname=&quot;Person&quot;)</pre>
@@ -709,7 +709,7 @@ SELECT ?s
 WHERE { ?s rdf:type ex:person } 
 </pre>
 
-<h2 id="Free Text Search">Free Text Search (test12()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Free Text Search">Free Text Search (example12()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 It is common for users to build RDF applications that combine
 some form of "keyword search" with their queries. For example, a user
@@ -717,9 +717,9 @@ might want to retrieve all triples for which the string "Alice" appears
 as a word within the third (object) argument to the triple.  AllegroGraph
 provides a capability for including free text matching within a SPARQL
 query.  It requires, however, that you register the predicates that will participate in text searches so they can be indexed. </p>
-<p> The example test12() begins by borrowing the connection object from test1(). Then it creates a namespace string and registers the namespace with the connection object, as in the previous example. </p>
-<pre class="input">def test12():<br>    conn = test1()<br>    exns = &quot;http://example.org/people/&quot;<br>    conn.setNamespace('ex', exns)</pre>
-<p>We have to register the predicates that will participate in text indexing. In the test12() example below, we have
+<p> The example example12() begins by borrowing the connection object from example1(). Then it creates a namespace string and registers the namespace with the connection object, as in the previous example. </p>
+<pre class="input">def example12():<br>    conn = example1()<br>    exns = &quot;http://example.org/people/&quot;<br>    conn.setNamespace('ex', exns)</pre>
+<p>We have to register the predicates that will participate in text indexing. In the example12() example below, we have
 called the connection method <strong>registerFreeTextPredicate()</strong> to register the predicate "http://example.org/people/fullname" for text indexing. Generating the predicate's URI is a separate step. </p>
 <pre class="input">
     conn.registerFreeTextPredicate(namespace=exns, localname='fullname')<br>    fullname = conn.createURI(namespace=exns, localname=&quot;fullname&quot;)    </pre>
@@ -756,16 +756,16 @@ called the connection method <strong>registerFreeTextPredicate()</strong> to reg
 <p>This query returns two triples, but they are not quite the same as before:</p>
 <pre class="output">Substring match for 'lic'<br>Found 2 query results<br>{'p': 'http://example.org/people/fullname', 's': 'http://example.org/people/alice1', 'o': '&quot;Alice B. Toklas&quot;'}<br>{'p': 'http://example.org/people/title', 's': 'http://example.org/people/book1', 'o': '&quot;Alice in Wonderland&quot;'} </pre>
 <p>As you can see, the regex match found &quot;lic&quot; in &quot;Alice in Wonderland,&quot; which was not a registered free-text predicate. It made this match by doing a string comparison against every object value in the triple store. Even though you can streamline the SPARQL query considerably by writing more restrictive patterns, this is still inherently less efficient than using the indexed approach. </p>
-<h2 id="Ask, Describe, and Construct Queries">Ask, Describe, and Construct Queries (test13())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>SPARQL provides alternatives to the standard SELECT query. Example test13() exercises these alternatives to show how AllegroGraph Server handles them. </p>
+<h2 id="Ask, Describe, and Construct Queries">Ask, Describe, and Construct Queries (example13())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>SPARQL provides alternatives to the standard SELECT query. Example example13() exercises these alternatives to show how AllegroGraph Server handles them. </p>
 <ul>
   <li>    SELECT: Returns all, or a subset of, the variables bound in a query pattern match. </li>
   <li>CONSTRUCT: Returns an RDF graph constructed by substituting variables in a set of triple templates. </li>
   <li>ASK: Returns a boolean indicating whether a query pattern matches or not. </li>
   <li>DESCRIBE: Returns an RDF graph that describes the resources found. </li>
 </ul>
-<p>The example begins by borrowing a connection object from test2(). Then it registers two namespaces for use in the SPARQL queries.:
-<pre class="input">def test13():<br>    conn = test2()<br>    conn.setNamespace('ex', &quot;http://example.org/people/&quot;)<br>    conn.setNamespace('ont', &quot;http://example.org/ontology/&quot;)</pre>
+<p>The example begins by borrowing a connection object from example2(). Then it registers two namespaces for use in the SPARQL queries.:
+<pre class="input">def example13():<br>    conn = example2()<br>    conn.setNamespace('ex', &quot;http://example.org/people/&quot;)<br>    conn.setNamespace('ont', &quot;http://example.org/ontology/&quot;)</pre>
 <p>The example begins with an unconstrained SELECT query so we can see what triples are available for matching. </p>
 <pre class="input">
     queryString = &quot;&quot;&quot;select ?s ?p ?o where { ?s ?p ?o} &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate();<br>    print &quot;SELECT result&quot;<br>    for r in result: print r     </pre>
@@ -788,11 +788,11 @@ The DESCRIBE query returns a &quot;graph,&quot; meaning all triples of the match
 <p>The output of this loop is:</p>
 <pre class="output">Describe result<br>(&lt;http://example.org/people/alice&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/ontology/Person&gt;)
 (&lt;http://example.org/people/alice&gt;, &lt;http://example.org/ontology/name&gt;, &quot;Alice&quot;)</pre>
-<h2 id="Parametric Queries">Parametric Queries (test14())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Parametric Queries">Parametric Queries (example14())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
  <p>The Python API to AllegroGraph Server lets you set up a SPARQL query and then fix the value of one of the query variables prior to matching the triples. This is more efficient than testing for the same value in the body of the query. </p>
- <p>In <strong>test14()</strong> we set up two-triple resources for Bob and Alice, and then use an unconstrained SPARQL query to retrieve the triples. Normally this query would find all four triples, but by binding the subject value ahead of time, we can retrieve the &quot;Bob&quot; triples separately from the &quot;Alice&quot; triples.</p>
- <p>The example begins by borrowing a connection object from test2(). This means there are already Bob and Alice resources in the repository. We do need to recreate the URIs for the two resources, however. </p>
- <pre class="input">def test14():<br>    conn = test2()<br>    alice = conn.createURI(&quot;http://example.org/people/alice&quot;)<br>    bob = conn.createURI(&quot;http://example.org/people/bob&quot;)</pre>
+ <p>In <strong>example14()</strong> we set up two-triple resources for Bob and Alice, and then use an unconstrained SPARQL query to retrieve the triples. Normally this query would find all four triples, but by binding the subject value ahead of time, we can retrieve the &quot;Bob&quot; triples separately from the &quot;Alice&quot; triples.</p>
+ <p>The example begins by borrowing a connection object from example2(). This means there are already Bob and Alice resources in the repository. We do need to recreate the URIs for the two resources, however. </p>
+ <pre class="input">def example14():<br>    conn = example2()<br>    alice = conn.createURI(&quot;http://example.org/people/alice&quot;)<br>    bob = conn.createURI(&quot;http://example.org/people/bob&quot;)</pre>
 <p>The SPARQL query is the simple, unconstrained query that returns all triples. We use <strong>prepareTupleQuery()</strong> to create the query object. </p>
 <pre class="input">
     queryString = &quot;&quot;&quot;select ?s ?p ?o where { ?s ?p ?o} &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)</pre>
@@ -809,11 +809,11 @@ The DESCRIBE query returns a &quot;graph,&quot; meaning all triples of the match
  The output of this loop is:
  <pre class="output">Facts about Bob:<br>{'p': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 's': 'http://example.org/people/bob', 'o': 'http://example.org/ontology/Person'}
 {'p': 'http://example.org/ontology/name', 's': 'http://example.org/people/bob', 'o': '&quot;Bob&quot;'}</pre>
- <h2 id="Range Matches">Range Matches (test15())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
- <p>Example test15() demonstrates how to set up a query that matches a range of values. In this case, we'll retrieve all people between 30 and 50 years old (inclusive). We can accomplish this using the connection object's <strong>createRange()</strong> method. </p>
- <p>This example begins by getting a connection object from test1(), and then clearing the repository of the existing triples. </p>
+ <h2 id="Range Matches">Range Matches (example15())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+ <p>Example example15() demonstrates how to set up a query that matches a range of values. In this case, we'll retrieve all people between 30 and 50 years old (inclusive). We can accomplish this using the connection object's <strong>createRange()</strong> method. </p>
+ <p>This example begins by getting a connection object from example1(), and then clearing the repository of the existing triples. </p>
  <pre class="input">
-def test15():<br>    conn = test1()<br>    conn.clear()</pre>
+def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <p>Then we register a namespace to use in the query. </p>
 <pre class="input">
     exns = &quot;http://example.org/people/&quot;<br>    conn.setNamespace('ex', exns)</pre>
@@ -866,13 +866,13 @@ def test15():<br>    conn = test1()<br>    conn.clear()</pre>
 <pre class="output">Red Apples:	mcintosh reddelicious <br>Green Apples: pippin
 Federated Apples: pippin mcintosh reddelicious</pre>
 -->
-<h2 id="Prolog Rule Queries">Prolog Rule Queries (test17())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Prolog Rule Queries">Prolog Rule Queries (example17())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph Server lets us load Prolog backward-chaining rules to make query-writing simpler.&nbsp; The Prolog rules let us write the queries in terms of higher-level concepts.&nbsp; When a query refers to one of these concepts, Prolog rules become active in the background to determine if the concept is valid in the current context.&nbsp; </p>
 <p>For instance, in this example the query says that the matching resource must be a &quot;man&quot;.&nbsp; A Prolog rule examines the matching resources to see which of them are persons who are male.&nbsp; The query can proceed for those resources. The rules provide a level of abstraction that makes the queries simpler to express. </p>
-<p>The test17() example begins by borrowing a connection object from example test6(), which contains the Kennedy family tree.&nbsp; Note that test6() creates a <a href="#Dedicated Session">dedicated session</a> for the rules to operate in, using the Connection object's <strong>openSession()</strong> method. Python rules cannot be loaded into the AllegroGraph common back end. </p>
-<pre class="input">conn.openSession(); # in test6()</pre>
+<p>The example17() example begins by borrowing a connection object from example example6(), which contains the Kennedy family tree.&nbsp; Note that example6() creates a <a href="#Dedicated Session">dedicated session</a> for the rules to operate in, using the Connection object's <strong>openSession()</strong> method. Python rules cannot be loaded into the AllegroGraph common back end. </p>
+<pre class="input">conn.openSession(); # in example6()</pre>
 <p>This converts the connection to a &quot;dedicated&quot; connection. After that step, all of the code is exactly the same as when using the common back end.</p>
-<pre class="input">def test17():<br>    conn = test6()  #obtain dedicated connection from test6()</pre>
+<pre class="input">def example17():<br>    conn = example6()  #obtain dedicated connection from example6()</pre>
 <p>We will need the same namespace as we used in the Kennedy example. </p>
 <pre class="input">
     conn.setNamespace(&quot;kdy&quot;, &quot;http://www.franz.com/simple#&quot;)</pre>
@@ -896,8 +896,8 @@ Federated Apples: pippin mcintosh reddelicious</pre>
 <pre class="output">&quot;Robert&quot; &quot;Kennedy&quot;<br>&quot;Alfred&quot; &quot;Tucker&quot;<br>&quot;Arnold&quot; &quot;Schwarzenegger&quot;<br>&quot;Paul&quot; &quot;Hill&quot;<br>&quot;John&quot; &quot;Kennedy&quot;</pre>
 <p>It is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeDedicated()</pre>
-<h2 id="Loading Prolog Rules">Loading Prolog Rules (test18())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>Example <strong>test18()</strong> demonstrates how to load a file of Prolog rules into the Python API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from test6().&nbsp; After loading a file of rules (<strong>relative_rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
+<h2 id="Loading Prolog Rules">Loading Prolog Rules (example18())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>Example <strong>example18()</strong> demonstrates how to load a file of Prolog rules into the Python API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from example6().&nbsp; After loading a file of rules (<strong>relative_rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
 <pre class="input">(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))</pre>
 <p>The problem is that the triple store contains no information about uncles.&nbsp; The rules will have to deduce this relationship by finding paths across the RDF graph..&nbsp; </p>
 <p>What's an &quot;uncle,&quot; then?&nbsp; Here's a rule that can recognize uncles:</p>
@@ -915,8 +915,8 @@ Federated Apples: pippin mcintosh reddelicious</pre>
 <pre class="input">(&lt;-- (man ?person)<br>    (q ?person !rltv:sex !rltv:male)<br>    (q ?person !rdf:type !rltv:person))</pre>
 <p>A &quot;man&quot; is a person who is male.&nbsp; These patterns both match triples in the repository.&nbsp; </p>
 <p>The<strong> relative_rules.txt</strong> file contains many more Prolog rules describing relationships, including transitive relationships like &quot;ancestor&quot; and &quot;descendant.&quot; Please examine this file for more ideas about how to use rules with AllegroGraph. </p>
-<p>The <strong>test18()</strong> example begins by borrowing a connection object from test6(), which means the Kennedy family tree is already loaded into the repository, and we are dealing with a <a href="#Dedicated Session">dedicated session</a>. &nbsp; </p>
-<pre class="input">def test18():<br>    conn = test6()</pre>
+<p>The <strong>example18()</strong> example begins by borrowing a connection object from example6(), which means the Kennedy family tree is already loaded into the repository, and we are dealing with a <a href="#Dedicated Session">dedicated session</a>. &nbsp; </p>
+<pre class="input">def example18():<br>    conn = example6()</pre>
 <p>We need these two namespaces because they are used in the query and in the file of rules. </p>
 <pre class="input">
     conn.setNamespace(&quot;kdy&quot;, &quot;http://www.franz.com/simple#&quot;)<br>    conn.setNamespace(&quot;rltv&quot;, &quot;http://www.franz.com/simple#&quot;)  </pre>
@@ -937,10 +937,10 @@ Federated Apples: pippin mcintosh reddelicious</pre>
 <p>As before, it is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeDedicated()</pre>
 
-<h2 id="RDFS++ Inference">RDFS++ Inference (test19())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="RDFS++ Inference">RDFS++ Inference (example19())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The great promise of the semantic web is that we can use RDF metadata to combine information from multiple sources into a single, common model.&nbsp; The great problem of the semantic web is that it is so difficult to recognize when two resource descriptions from different sources actually represent the same thing.&nbsp; This problem arises because there is no uniform or universal way to generate URIs identifying resources.&nbsp; As a result, we may create two resources, Bob and Robert, that actually represent the same person. </p>
 <p>This problem has generated much creativity in the field. One way to approach the problem is through inference.&nbsp; There are certain relationships and circumstances where an inference engine can deduce that two resource descriptions actually represent one thing, and then automatically merge the descriptions.&nbsp; AllegroGraph's <a href="http://www.franz.com/agraph/support/documentation/3.0.1/reasoner-tutorial.html">inference engine</a> can be turned on or off each time you run a query against the triple store.&nbsp; </p>
-<p>In example test19(), we will create four resources: Bob, with son Bobby, and Robert with daughter Roberta.&nbsp; </p>
+<p>In example example19(), we will create four resources: Bob, with son Bobby, and Robert with daughter Roberta.&nbsp; </p>
 <p><img src="inferenceSetup.jpg" width="448" height="101"></p>
 <p>First we have to set up the data. We begin by generating four URIs for the new resources. </p>
 <pre class="input">    ## Create URIs for Bob and Robert (and kids) 
@@ -1053,14 +1053,14 @@ Who are the parents?  Inference ON.
 (&lt;http://example.org/people/bobby&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://exmaple.org/ontology/Child&gt;)
 (&lt;http://example.org/people/roberta&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://exmaple.org/ontology/Child&gt;)</pre>
 <p>Bobby and Roberta are the children.&nbsp;  </p>
-<h2 id="Geospatial Search">Geospatial Search (test20())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Geospatial Search">Geospatial Search (example20())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph provides the ability to locate resources within a geospatial coordinate system. You can set up either a flat (X,Y Cartesian) or spherical (latitude, longitude) system. The systems are two-dimensional only. (There is no Z or altitude dimension available). </p>
 <p>The purpose of the geospatial representation is to efficiently find all entities that are located within a specific circular, rectangular or polygonal area. </p>
 <h3>Cartesian System </h3>
 <p>A Cartesian system is a flat (X,Y) plane. Locations are designated by (X,Y) pairs. At this time, AllegroGraph does not support real-world measurement units (km, miles, latitude, etc.,) in the Cartesian system. </p>
 <p>The first example uses a Cartesian (X,Y) system that is 100 units square, and contains three people located at various points along the X = Y diagonal.</p>
 <p><img src="gepCartesian.jpg" width="417" height="333"> </p>
-<p>The example is in the function test20(). After establishing a connection, it begins by creating URIs for the three people.</p>
+<p>The example is in the function example20(). After establishing a connection, it begins by creating URIs for the three people.</p>
 <pre class="input">    exns = &quot;http://example.org/people/&quot;<br>    conn.setNamespace('ex', exns)<br>    alice = conn.createURI(exns, &quot;alice&quot;)<br>    bob = conn.createURI(exns, &quot;bob&quot;)<br>    carol = conn.createURI(exns, &quot;carol&quot;)</pre>
 <p>Then we have the connection object generate a rectangular coordinate system for us to use. A rectangular (Cartesian) system can be used to represent anything that can be plotted using (X,Y) coordinates, such as the location of transistors on a silicon chip. </p>
 <pre>    conn.createRectangularSystem(scale=10, xMax=100, yMax=100) 
@@ -1147,7 +1147,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <pre class="output">(&lt;http://example.org/people/london&gt;, &lt;http://example.org/people/geolocation&gt;, 
 &quot;+513159.49909-0000459.99970&quot;^^&lt;http://franz.com/ns/allegrograph/3.0/geospatial/spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)</pre>
 <p>AllegroGraph returns the location of London, but not the nearby Amsterdam.</p>
-<h2 id="Social Network Analysis">Social Network Analysis  (test21())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Social Network Analysis">Social Network Analysis  (example21())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph includes sophisticated algorithms for social-network analysis (SNA). It can examine an RDF graph of relationships among people (or similar entities, such as businesses) and discover:</p>
 <ul>
   <li>Cliques of mutually-supporting individuals.</li>
@@ -1187,7 +1187,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 </ul>
 <p>(The Gruff illustrations were made from a parallel repository in which the resources were altered to display the character's name in the graph node rather than his URI. That file is called<strong> lemisNames.rdf</strong>.) </p>
 <h3 id="Setting Up the Example">Setting Up the Example</h3>
-<p>The SNA examples are in function <strong>test21() </strong>in <strong>tutorial_examples_40.py</strong>. This exercise begins by creating a <a href="#Dedicated Session">dedicated session</a> for the SNA Prolog queries to operation within. These are the same initializing steps we have used in previous examples, plus <strong>conn.openSession()</strong> to create a dedicated connection. </p>
+<p>The SNA examples are in function <strong>example21() </strong>in <strong>tutorial_examples_40.py</strong>. This exercise begins by creating a <a href="#Dedicated Session">dedicated session</a> for the SNA Prolog queries to operation within. These are the same initializing steps we have used in previous examples, plus <strong>conn.openSession()</strong> to create a dedicated connection. </p>
 <pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'username', 'password')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() # SNA requires dedicated session.
 </pre>
 <p>The next step is to load the lesmis.rdf file.</p>
@@ -1419,7 +1419,7 @@ Number of cliques: 2
 "7.5555557e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
 7.5555557e-1</pre>
 <p>That's the expected result of 0.755. </p>
-<h2 id="Dedicated Session">Dedicated Session (test22())</h2>
+<h2 id="Dedicated Session">Dedicated Session (example22())</h2>
 <p>Most of the time, multiple AllegroGraph users pool triples in a common session. Their data may be segregated into multiple contexts (subgraphs) for convenience, but in fact any part of this data may be retrieved by any of the users.</p>
 <p>There are situations where a little more security is required. You may open a &quot;dedicated session&quot; and populate it with triples that the other users cannot view. These triples may be searched and manipulated in the usual ways, but do not become visible to other users until you &quot;commit&quot; them to the common session. </p>
 <p>In order to open a dedicated session, the user must have &quot;session&quot; privileges with AllegroGraph Server. This is an elevated level of privilege. Therefore certain features that also require an elevated level of trust are required to use dedicated sessions. For instance, Prolog rules and Social Network Analysis functions cannot be run in the common session. You must open a dedicated session in order to use them. </p>
@@ -1427,7 +1427,7 @@ Number of cliques: 2
 <p>&quot;Commit&quot; means to make the triples in the dedicated session visible in the common session. At the time of the commit, triples in the common session are also made visible to queries in the dedicated session. The two sessions are &quot;synched up&quot; by the commit. </p>
 <p>&quot;Rollback&quot; means to discard the contents of the dedicated session. It also makes all common-session triples visible in the dedicated session. </p>
 <p>&quot;Closing&quot; the dedicated session deletes all uncommitted triples, and all rules, generators and matrices that were created in the dedicated session. Rules, generators and matrices cannot be committed. They persist as long as the dedicated session persists, and are deleted when the dedicated session is closed.</p>
-<p>Example test22() performs some simple data manipulations on a dedicated session to demonstrate the rollback and commit features. It begins by creating a connection to a repository (the common session), and a second connection to a dedicated session. To do that, all you need is a second connection object, and invoke its <strong>openSession()</strong> method. </p>
+<p>Example example22() performs some simple data manipulations on a dedicated session to demonstrate the rollback and commit features. It begins by creating a connection to a repository (the common session), and a second connection to a dedicated session. To do that, all you need is a second connection object, and invoke its <strong>openSession()</strong> method. </p>
 <pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    common = myRepository.getConnection()<br>    dedicated = myRepository.getConnection()<br>    dedicated.openSession()  # open dedicated session </pre>
 <p>We'll reuse the Kennedy and Les Miserables data. The Les Miserables data goes in the common session, and the Kennedy data goes in the dedicated session. </p>
 <pre class="input">    path1 = &quot;./kennedy.ntriples&quot;<br>    path2 = &quot;./lesmis.rdf&quot;                <br>    baseURI = &quot;http://example.org/example/local&quot;<br>    ## read kennedy triples into the dedicated session:<br>    print &quot;Load 1214 kennedy.ntriples into dedicated session.&quot;<br>    dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)<br>    ## read lesmis triples into the common session:<br>    print &quot;Load 916 lesmis triples into the common session.&quot;<br>    common.addFile(path2, baseURI, format=RDFFormat.RDFXML, context=None);</pre>
