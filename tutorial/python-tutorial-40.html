@@ -37,8 +37,8 @@ creating, querying and maintaining RDF data, and for managing the stored triples
     <td width="249"><ul>
       <li><a href="#Overview">Overview</a></li>
 <!--      <li><a href="#PrerequisitesWindows">Prerequisites (Windows)</a> </li>
-      <li><a href="#PrerequisitesLinux">Prerequisites (Linux)</a></li>
--->      <li><a href="#Terminology">Terminology</a></li>
+-->      <li><a href="#PrerequisitesLinux">Prerequisites (Linux)</a></li>
+      <li><a href="#Terminology">Terminology</a></li>
       <li><a href="#Creating a Repository">Creating a Repository</a></li>
       <li><a href="#Asserting and Retracting Triples">Asserting and Retracting Triples</a></li>
       <li><a href="#A SPARQL Query">A SPARQL Query</a></li>
@@ -133,54 +133,9 @@ In Windows XP, you can set an environment variable by
   <li>Start the ActivePython 2.5 PythonWin editor. Navigate this path:  <strong>Start</strong> button &gt; Programs &gt; ActiveState ActivePython 2.5 &gt;  PythonWin Editor. </li>
   <li>In the PythonWin editor, open the File menu, select Run, and browse to the location of the tutorial_examples_40.py file. It will be in the AllegroGraph\python subdirectory. Run this file. This loads and runs the Python tutorial examples.</li>
 </ol>
-<h2 id="PrerequisitesLinux">Prerequisites (Linux) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The tutorial examples can be run on a Linux system, running AllegroGraph and Python on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using this procedure:</p>
-<ol>
-  <li> There are two Linux versions of AllegroGraph: 32-bit (x86) and 64-bit (x86-64). This example uses the 64-bit version. AllegroGraph is distributed both as an RPM and a tar.gz file. This example uses the RPM file.&nbsp; <a href="http://www.franz.com/agraph/downloads/">Download the appropriate AllegroGraph Free Server Edition </a> as directed by <a href="mailto:support@franz.com">Franz customer support</a>. In this example, the file was agraph-4.0-1.x86_64.rpm. </li>
-  <li>
-    Use the Red Hat Package Manager (RPM) to install the AllegroGraph package.
-     
-<pre class="input"># rpm -i agraph-4.0-1.x86_64.rpm
-</pre>
-  </li>
-  <li>
-     Set up AllegroGraph as a service that runs automatically at startup.
-     
-       <pre class="input"># chkconfig --add agraph</pre>
-  </li>
-  <li>Start the AllegroGraph service.<br>
-    <pre class="input"># service agraph start</pre>
-  </li>
-  <li> Edit the agraph.cfg configuration file. 
-
-
- You'll find it in the agraph-fje-4.0 subdirectory.&nbsp; The rpm's default <br>
-&nbsp;&nbsp;&nbsp; location for this subdirectory is &quot;/usr/lib/agraph-fje-4.0&quot;.  Set the following parameters to the indicated values.
-      <pre>       :new-http-port 8080
-       :new-http-catalog ("/tmp/scratch")
-       :client-prolog t</pre>
-  </li>
-  <li>You'll have to restart the AllegroGraph Server to force it to load the edited configuration file. <br>
-    <pre class="input"># service agraph restart</pre>
-  </li>
-  <li>If Python is not pre-installed on your Linux system, you'll have to download and install it as a module. See the Python <a href="http://www.python.org/download/">download page.</a> </li>
-  <li>AllegroGraph requires the Python cjson and pycurl libraries. 
-
-
- Please see your distributions documentation on how to install these libraries.&nbsp; On a redhat-based distribution you can use the following: <br>
-    <pre class="input"># yum install python-cjson python-pycurl</pre>
-    or 
-
-
- on a debian based system:<br>
-    <pre class="input"># apt-get install python-cjson python-pycurl</pre>
-  If your distribution does not offer these libraries then installation from source is recommended. </li>
-  <li>To test the installation, navigate to the /agraph-fje-4.0/python/ directory and run the tutorial file.<br>
-    <pre class="input"># python tutorial_examples_40.py</pre>
-    The command window will fill with output from the example functions described below. 
-  </li>
-</ol>
 -->
+<h2 id="PrerequisitesLinux">Prerequisites (Linux) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using the procedure posted on <a href="http://www.franz.com/agraph/support/documentation/4.0m1/server-installation.html">this webpage</a>. </p>
 <h2 id="Terminology">Terminology&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>We need to clarify some terminology before proceeding. </p>
 <ul>
