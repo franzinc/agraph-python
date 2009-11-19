@@ -87,7 +87,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>&nbsp;</p>
 <ol>
   <li>Download an AllegroGraph 3.2 installation file (agraph-3.2-windows.exe). The free edition is available <a href="http://www.franz.com/downloads/clp/ag_survey">here.</a> For the licensed edition please contact <a href="mailto:support@franz.com">Franz customer support</a> for a download link and authorizing key. </li>
-  <li>Run the agraph-3.2-windows.exe to install AllegroGraph. The default installation directory is C:\Program Files\AllegroGraphFJE32 for the free edition, or c:\Program Files\AllegroGraphJEE32 for the licensed edition.</li>
+  <li>Run the agraph-3.2-windows.exe to install AllegroGraph. The default installation directory is C:\Program Files\AllegroGraphFSE32 for the free edition, or c:\Program Files\AllegroGraphSEE32 for the licensed edition.</li>
   <li>Create a scratch directory for AllegroGraph to use for disk-based data storage. In this tutorial the directory is c:\tmp\scratch. If you elect to use a different location, the configuration and example files will have to be modified in the same way.</li>
   <li>
   Edit the <strong>agraph.cfg</strong> configuration file. You'll find it in the AllegroGraph installation directory. Set the following parameters to the indicated values. 
@@ -116,9 +116,9 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <li>It is also necessary to augment Python 2.5 with the Pycurl package. Download and run the installation file, <a href="http://pycurl.sourceforge.net/download/pycurl-ssl-7.18.2.win32-py2.5.exe">pycurl-ssl-7.18.2.win32-py2.5.exe.</a> It will add a small directory to your default Python directory structure. </li>
   <li>
     Link the Python software to the AllegroGraph Python API by setting a PYTHONPATH environment variable. For the free edition of AllegroGraph, the path value is:
-      <pre>PYTHONPATH=C:\Program Files\AllegroGraphFJE32\python</pre>
+      <pre>PYTHONPATH=C:\Program Files\AllegroGraphFSE32\python</pre>
 For the licensed edition of AllegroGraph, the path value is:
-      <pre>PYTHONPATH=C:\Program Files\AllegroGraphJEE32\python</pre>
+      <pre>PYTHONPATH=C:\Program Files\AllegroGraphSEE32\python</pre>
 In Windows XP, you can set an environment variable by 
 
 
@@ -150,8 +150,8 @@ In Windows XP, you can set an environment variable by
   <li> Edit the agraph.cfg configuration file. 
 
 
- You'll find it in the agraph-fje-3.2 subdirectory.&nbsp; The rpm's default <br>
-&nbsp;&nbsp;&nbsp; location for this subdirectory is &quot;/usr/lib/agraph-fje-3.2&quot;.  Set the following parameters to the indicated values.
+ You'll find it in the agraph-fse-3.2 subdirectory.&nbsp; The rpm's default <br>
+&nbsp;&nbsp;&nbsp; location for this subdirectory is &quot;/usr/lib/agraph-fse-3.2&quot;.  Set the following parameters to the indicated values.
       <pre>       :new-http-port 8080
        :new-http-catalog ("/tmp/scratch")
        :client-prolog t</pre>
@@ -171,7 +171,7 @@ In Windows XP, you can set an environment variable by
  on a debian based system:<br>
     <pre class="input"># apt-get install python-cjson python-pycurl</pre>
   If your distribution does not offer these libraries then installation from source is recommended. </li>
-  <li>To test the installation, navigate to the /agraph-fje-3.2/python/ directory and run the tutorial file.<br>
+  <li>To test the installation, navigate to the /agraph-fse-3.2/python/ directory and run the tutorial file.<br>
     <pre class="input"># python tutorial_examples.py</pre>
     The command window will fill with output from the example functions described below. 
   </li>
