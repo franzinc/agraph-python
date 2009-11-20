@@ -249,13 +249,13 @@ def example6():
     # point to the location of the data files. For AG Free Edition on Windows:
     #os.chdir("C:\Program Files\AllegroGraphFJE32\python")
     print "Current working directory is '%s'" % (os.getcwd())
-    path1 = "./vc-db-1.rdf"    
-    path2 = "./kennedy.ntriples"                
+    path1 = "./python-vcards.rdf"    
+    path2 = "./python-kennedy.ntriples"                
     baseURI = "http://example.org/example/local"
     context = conn.createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read kennedy triples into the null context:
-    print "Load kennedy.ntriples."
+    print "Load python-kennedy.ntriples."
     conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
     print "Load vcards triples."
@@ -847,7 +847,7 @@ def example21():
     conn = myRepository.getConnection()
     conn.openSession() # SNA requires dedicated session.
 
-    path1 = "./lesmis.rdf"
+    path1 = "./python-lesmis.rdf"
     print "\nLoad Les Miserables triples."
     conn.addFile(path1, None, format=RDFFormat.RDFXML);
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
@@ -1176,11 +1176,11 @@ def example22():
     """
 	Load LasMis into common session, Kennedy into dedicated session.
     """
-    path1 = "./kennedy.ntriples"
-    path2 = "./lesmis.rdf"                
+    path1 = "./python-kennedy.ntriples"
+    path2 = "./python-lesmis.rdf"                
     baseURI = "http://example.org/example/local"
     ## read kennedy triples into the dedicated session:
-    print "Load 1214 kennedy.ntriples into dedicated session."
+    print "Load 1214 python-kennedy.ntriples into dedicated session."
     dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read lesmis triples into the common session:
     print "Load 916 lesmis triples into the common session."
@@ -1263,7 +1263,7 @@ def example22():
 		Look for LesMis in dedicated session, should find it.
     """
     ## read kennedy triples into the dedicated session:
-    print "\nReload 1214 kennedy.ntriples into dedicated session."
+    print "\nReload 1214 python-kennedy.ntriples into dedicated session."
     dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     print "\nCommitting contents of dedicated session."
     dedicated.commit()
@@ -1297,7 +1297,7 @@ def example22():
 	
 if __name__ == '__main__':
     #choices = [i for i in range(1,22)]
-    choices = [5]   
+    choices = [22]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
