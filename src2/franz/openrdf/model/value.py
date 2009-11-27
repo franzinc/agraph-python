@@ -125,7 +125,7 @@ class BNode(Resource):
         return isinstance(other, BNode) and self.getId() == other.getId()
     
     def __hash__(self):
-        return self.idString.__hash__()
+        return hash(self.id)
     
     def toNTriples(self):
         return "_:%s" % self.id
