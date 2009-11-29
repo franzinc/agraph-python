@@ -334,6 +334,15 @@ class Repository(Service):
         nullRequest(self, "PUT", "/neighborMatrices/" + urllib.quote(name) + "?" +
                     urlenc(group=group, depth=depth, generator=generator))
 
+    def getTripleCacheSize(self):
+        return jsonRequest(self, "GET", "/tripleCache") or False
+
+    def disableTripleCache(self):
+        nullRequest(self, "DELETE", "/tripleCache")
+
+    def enableTripleCache(self, size=None):
+        nullRequest(self, "PUT", "/tripleCache?" + urlenc(size=size))
+
     sessionAlive = None
     
     def openSession(self, autocommit=False, lifetime=None):
