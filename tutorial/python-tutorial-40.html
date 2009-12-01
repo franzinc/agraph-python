@@ -852,7 +852,7 @@ Federated Apples: pippin mcintosh reddelicious</pre>
 <p>It is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeDedicated()</pre>
 <h2 id="Loading Prolog Rules">Loading Prolog Rules (example18())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>Example <strong>example18()</strong> demonstrates how to load a file of Prolog rules into the Python API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from example6().&nbsp; After loading a file of rules (<strong>relative_rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
+<p>Example <strong>example18()</strong> demonstrates how to load a file of Prolog rules into the Python API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from example6().&nbsp; After loading a file of rules (<strong>python-rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
 <pre class="input">(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))</pre>
 <p>The problem is that the triple store contains no information about uncles.&nbsp; The rules will have to deduce this relationship by finding paths across the RDF graph..&nbsp; </p>
 <p>What's an &quot;uncle,&quot; then?&nbsp; Here's a rule that can recognize uncles:</p>
@@ -1018,7 +1018,7 @@ Who are the parents?  Inference ON.
 <p>The example is in the function example20(). After establishing a connection, it begins by creating URIs for the three people.</p>
 <pre class="input">    exns = &quot;http://example.org/people/&quot;<br>    conn.setNamespace('ex', exns)<br>    alice = conn.createURI(exns, &quot;alice&quot;)<br>    bob = conn.createURI(exns, &quot;bob&quot;)<br>    carol = conn.createURI(exns, &quot;carol&quot;)</pre>
 <p>Then we have the connection object generate a rectangular coordinate system for us to use. A rectangular (Cartesian) system can be used to represent anything that can be plotted using (X,Y) coordinates, such as the location of transistors on a silicon chip. </p>
-<pre>    conn.createRectangularSystem(scale=10, xMax=100, yMax=100) 
+<pre class="input">    conn.createRectangularSystem(scale=10, xMax=100, yMax=100) 
 </pre>
 <p>The size of the coordinate system is determined by the <strong>xMin, xMax, yMin</strong> and <strong>yMax</strong> parameters. The minimum values default to zero, so this system is 0 to 100 in the X dimension, and 0 to 100 in the Y dimension. </p>
 <p>The <strong>scale</strong> parameter influences how the coordinate data is stored and retrieved, and impacts search performance. The  task is to locate the people who are within a specific region. As a rule of thumb, set the scale parameter to approximately the same value as the height (Y-axis) of your typical search region. You can be off by a factor of ten without impacting performance too badly, but if your application will search regions that are orders of magnitude different in size, you'll want to create multiple coordinate systems that are scaled for different sized search regions. In this case, our search region is about 20 units high (Y), and we have set the scale parameter to 10 units. That's close enough.</p>
@@ -1053,7 +1053,7 @@ Who are the parents?  Inference ON.
 <pre class="input">    polygon1 = conn.createPolygon([(10,40), (50,10), (35,40), (50,70)]) 
 </pre>
 <p><img src="geoPolygon1.jpg" width="423" height="330"></p>
-<p>When we ask what people are within polygon1, AllegroGraph finds Alice.</p>
+<p>When we ask which people are within polygon1, AllegroGraph finds Alice.</p>
 <pre class="input">    for r in conn.getStatements(None, location, polygon1) : print r 
 </pre>
 <pre class="output">(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/location&gt;, 

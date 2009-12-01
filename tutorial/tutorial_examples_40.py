@@ -658,7 +658,7 @@ def example18():
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
     conn.setRuleLanguage(QueryLanguage.PROLOG)
-    path = "./relative_rules.txt"
+    path = "./python-rules.txt"
     conn.loadRules(path)
     queryString = """(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -784,6 +784,7 @@ def example20():
     alice = conn.createURI(exns, "alice")
     bob = conn.createURI(exns, "bob")
     carol = conn.createURI(exns, "carol")
+    print "\nCARTESIAN COORDINATE SYSTEM"
     conn.createRectangularSystem(scale=1, xMax=100, yMax=100)
     location = conn.createURI(exns, "location")
     #conn.registerDatatypeMapping(predicate=location, nativeType="int")   
@@ -792,18 +793,19 @@ def example20():
     conn.add(bob, location, conn.createCoordinate(40, 40))
     conn.add(carol, location, conn.createCoordinate(50, 50)) 
     box1 = conn.createBox(20, 40, 20, 40) 
-    print box1
-    print "Find people located within box1."
+    #print box1
+    print "\nFind people located within box1."
     for r in conn.getStatements(None, location, box1) : print r
     circle1 = conn.createCircle(35, 35, radius=10)  
-    print circle1
-    print "Find people located within circle1."
+    #print circle1
+    print "\nFind people located within circle1."
     for r in conn.getStatements(None, location, circle1) : print r 
     polygon1 = conn.createPolygon([(10,40), (50,10), (35,40), (50,70)])
-    print polygon1
-    print "Find people located within polygon1."
+    #print polygon1
+    print "\nFind people located within polygon1."
     for r in conn.getStatements(None, location, polygon1) : print r
     # now we switch to a LatLong (spherical) coordinate system
+    print "\nSPHERICAL COORDINATE SYSTEM"
     #latLongGeoType = conn.createLatLongSystem(scale=5) #, unit='km')
     latLongGeoType = conn.createLatLongSystem(scale=5, unit='degree')
     amsterdam = conn.createURI(exns, "amsterdam")
@@ -817,16 +819,16 @@ def example20():
     conn.add(sanfrancisto, location, conn.createCoordinate(37.783333, -122.433334)) 
     conn.add(salvador, location, conn.createCoordinate(13.783333, -88.45))   
     box2 = conn.createBox( 25.0, 50.0, -130.0, -70.0) 
-    print box2
-    print "Locate entities within box2."
+    #print box2
+    print "\nLocate entities within box2."
     for r in conn.getStatements(None, location, box2) : print r    
     circle2 = conn.createCircle(19.3994, -99.08, 2000, unit='km')
-    print circle2
-    print "Locate entities within circle2."
+    #print circle2
+    print "\nLocate entities within circle2."
     for r in conn.getStatements(None, location, circle2) : print r
     polygon2 = conn.createPolygon([(51.0, 2.00),(60.0, -5.0),(48.0,-12.5)])
-    print polygon2
-    print "Locate entities within polygon2."
+    #print polygon2
+    print "\nLocate entities within polygon2."
     for r in conn.getStatements(None, location, polygon2) : print r
     conn.close();
     myRepository = conn.repository
@@ -1296,8 +1298,8 @@ def example22():
     repository.shutDown()
 	
 if __name__ == '__main__':
-    #choices = [i for i in range(1,22)]
-    choices = [22]   
+    choices = [i for i in range(1,22)]
+    #choices = [20]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
