@@ -111,8 +111,7 @@ class RepositoryConnection(object):
         """
         Embed 'queryString' into a query object which can be
         executed against the RDF storage.  'queryString' must be a SELECT
-        query.  The result of query
-        execution is an iterator of tuples.
+        query.  The result of query execution is an iterator of tuples.
         """
         query = TupleQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setConnection(self)
@@ -122,8 +121,8 @@ class RepositoryConnection(object):
         """
         Parse 'queryString' into a query object which can be
         executed against the RDF storage.  'queryString' must be a CONSTRUCT
-        or DESCRIBE query.  The result of query
-        execution is an iterator of statements/quads.
+        or DESCRIBE query.  The result of query execution is an iterator of
+        statements/quads.
         """
         query = GraphQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setConnection(self)        
@@ -291,10 +290,8 @@ class RepositoryConnection(object):
         if isinstance(object, GeoSpatialRegion):
             return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit)
         else:
-            #MINITIMER = datetime.datetime.now()
             stringTuples = self._get_mini_repository().getStatements(subj, pred, obj, cxt,
                  infer=includeInferred, limit=limit, tripleIDs=tripleIDs)
-            #print "mini elapsed time  " +  str(datetime.datetime.now() - MINITIMER)
             return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
 
     def getStatementsById(self, ids):

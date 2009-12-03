@@ -78,10 +78,6 @@ class AllegroGraphServer(object):
             catalog = Catalog(name, self._client)
 
         return catalog
-        
-        #miniCatalog = self._client.openCatalogByName(name)
-        #catalog = Catalog(name, miniCatalog, self)
-        #return catalog
 
     def getInitfile(self):
         """

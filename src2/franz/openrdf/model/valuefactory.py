@@ -27,7 +27,7 @@ from __future__ import absolute_import
 from .value import Value, BNode, URI
 from .literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
 from .statement import Statement
-from ..vocabulary import XMLSchema
+from ..vocabulary.xmlschema import XMLSchema
 
 class ValueFactory(object):
     """

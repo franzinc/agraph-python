@@ -213,7 +213,7 @@ class Query(object):
             conn.removeQuads(quads)
         self.count_temporaries("AFTER " + insert_or_retract)
     
-    def evaluate_generic_query(self, count=False):
+    def evaluate_generic_query(self, count=False, accept=None):
         """
         Evaluate a SPARQL or PROLOG or COMMON_LOGIC query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
@@ -236,12 +236,12 @@ class Query(object):
             query = splicePrefixesIntoQuery(self.queryString, conn)
             response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings,
-                                            checkVariables=self.checkVariables, count=count)            
+                                            checkVariables=self.checkVariables, count=count, accept=accept)
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
             query = expandPrologQueryPrefixes(self.queryString, conn)
-            response = mini.evalPrologQuery(query, infer=self.includeInferred, count=count)
+            response = mini.evalPrologQuery(query, infer=self.includeInferred, count=count, accept=accept)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
             query, contexts, auxiliary_input_bindings, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
                                     preferred_language=self.preferred_execution_language, contexts=namedContexts)
