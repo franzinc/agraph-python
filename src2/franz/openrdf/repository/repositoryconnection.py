@@ -905,7 +905,7 @@ class RepositoryConnection(object):
         """
         return self.repository.updateFreeTextIndexing()
 
-    def openSession(self, autocommit=False, lifetime=None):
+    def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         """
         Open a session.
 
@@ -915,13 +915,16 @@ class RepositoryConnection(object):
 
         lifetime is an integer specifying the time to live in seconds of 
         the session.
+
+        If loadinitfile is True, then the current initfile will be loaded
+        for you when the session starts.
         """
         miniRep = self._get_mini_repository()
         if miniRep == self.repository.mini_repository:
             # Don't use the shared mini_repository for a session
             miniRep = self.mini_repository = copy.copy(self.repository.mini_repository)
 
-        return miniRep.openSession(autocommit, lifetime)
+        return miniRep.openSession(autocommit, lifetime, loadinitfile)
 
     def closeSession(self):
         """
@@ -933,7 +936,7 @@ class RepositoryConnection(object):
         return miniRep.closeSession()
 
     @contextmanager
-    def session(self,  autocommit=False, lifetime=None):
+    def session(self,  autocommit=False, lifetime=None, loadinitfile=False):
         """
         A session context manager for use with the 'with' statement:
 
@@ -949,8 +952,11 @@ class RepositoryConnection(object):
 
         lifetime is an integer specifying the time to live in seconds of 
         the session.
+
+        If loadinitfile is True, then the current initfile will be loaded
+        for you when the session starts.
         """
-        self.openSession(autocommit, lifetime)
+        self.openSession(autocommit, lifetime, loadinitfile)
         yield self
         self.closeSession()
 

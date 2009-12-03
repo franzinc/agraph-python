@@ -96,7 +96,7 @@ class AllegroGraphServer(object):
         be shut down, so that subsequent requests will be handled by
         back-ends that include the new code.
         """
-        return self._client.setInitFile(content, restart)
+        return self._client.setInitfile(content, restart)
 
 
 class FederatedCatalog(object):
@@ -166,23 +166,29 @@ class Catalog(object):
         if access_verb == Repository.RENEW:
             if exists:
                 self.deleteRepository(name)
-            self.createRepository(name)                    
-        elif access_verb == Repository.CREATE:
+            return self.createRepository(name)
+
+        if access_verb == Repository.CREATE:
             if exists:
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
                     name)
-            self.createRepository(name)
-        elif access_verb == Repository.OPEN:
+            return self.createRepository(name)
+
+        if access_verb == Repository.OPEN:
             if not exists:
                 raise ServerException(
                     "Can't open a triple store named '%s' because there is none.", name)
-        elif access_verb == Repository.ACCESS:
+
+            return Repository(self, name, self.mini_catalog.getRepository(name))
+
+        if access_verb == Repository.ACCESS:
             if not exists:
-                self.createRepository(name)      
+                return self.createRepository(name)
+
         return Repository(self, name, self.mini_catalog.getRepository(name))
 
     def createRepository(self, name):
-        return self.mini_catalog.createRepository(name)
+        return Repository(self, name, self.mini_catalog.createRepository(name))
 
 

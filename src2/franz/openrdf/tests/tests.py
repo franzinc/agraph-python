@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import with_statement
 
+from ..exceptions import RequestError
 from ..sail.allegrographserver import AllegroGraphServer
 from ..repository.repository import Repository
 from ...miniclient import repository
@@ -14,6 +15,8 @@ from ..rio.rdfformat import RDFFormat
 from ..rio.rdfwriter import  NTriplesWriter
 from ..rio.rdfxmlwriter import RDFXMLWriter
 from ..model import Literal, Statement, URI, ValueFactory
+
+from nose.tools import eq_, assert_raises
 
 import os, urllib, datetime, time, locale
 
@@ -556,7 +559,7 @@ def test16():
         assert len(rows) == expected
     
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
-    catalog = server.openCatalog()
+    catalog = server.openCatalog(CATALOG)
     federated = server.openCatalog(server.FEDERATED)
     ## create two ordinary stores, and one federated store: 
     try:
@@ -564,8 +567,8 @@ def test16():
     finally:
         pass
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
-    greenConn = greenRepository = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
-    federated.createRepository("rainbowthings", repos=[ "redthings", "greenthings"])
+    greenConn = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
+    federated.createRepository("rainbowthings", repos=[ CATALOG + ":redthings", CATALOG + ":greenthings"])
     rainbowConn = federated.getRepository("rainbowthings").initialize().getConnection()
     ## add a few triples to the red and green stores:
     ex = "http://www.demo.com/example#"
@@ -1518,3 +1521,27 @@ def test_construct_query():
     results = query.evaluate()
     assert len(results)
     trace('\n'.join([unicode(result) for result in results]))
+
+
+def test_session_loadinitfile():
+    """
+    Test starting a session with loadinitfile True.
+    """
+    # Basically ripped off from the miniclient tests.
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    conn = connect()
+    for x in range(0, 10):
+        conn.mini_repository.addStatement("<http:%d>" % x, "<http:before>", "<http:%d>" % (x + 1))
+        conn.mini_repository.addStatement("<http:%d>" % (x + 1), "<http:after>", "<http:%d>" % x)
+    eq_([["<http:2>"]], conn.mini_repository.evalPrologQuery("(select ?x (q- ?x !<http:before> !<http:3>))")["values"])
+    server.setInitfile("(<-- (after-after ?a ?b) (q- ?a !<http:after> ?x) (q- ?x !<http:after> ?b))")
+    print server.getInitfile()
+    eq_([["<http:5>"]], conn.mini_repository.evalPrologQuery("(select ?x (after-after ?x !<http:3>))")["values"])
+
+    with conn.session(autocommit=True, loadinitfile=True) as session:
+        eq_([["<http:5>"]], session.mini_repository.evalPrologQuery("(select ?x (after-after ?x !<http:3>))")["values"])
+    
+    with conn.session(autocommit=True, loadinitfile=False) as session:
+        assert_raises(RequestError, session.mini_repository.evalPrologQuery, ("(select ?x (after-after ?x !<http:3>))",))
+
+    server.setInitfile(None)

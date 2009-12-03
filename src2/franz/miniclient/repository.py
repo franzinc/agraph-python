@@ -349,14 +349,15 @@ class Repository(Service):
 
     sessionAlive = None
     
-    def openSession(self, autocommit=False, lifetime=None):
+    def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         if self.sessionAlive: return
         self.oldUrl = self.url
-        self.url = jsonRequest(self, "POST", "/session?" + urlenc(autoCommit=autocommit, lifetime=lifetime))
+        self.url = jsonRequest(self, "POST", "/session?" + urlenc(autoCommit=autocommit,
+            lifetime=lifetime, loadInitFile=loadinitfile))
         alive = self.sessionAlive = threading.Event()
         def pingSession():
             while True:
-                stop = alive.wait(lifetime - 60 if lifetime else 250)
+                stop = alive.wait(max(lifetime - 60, lifetime) if lifetime else 250)
                 if alive.isSet(): return
                 try: nullRequest(self, "GET", "/session/ping")
                 except Exception: return
