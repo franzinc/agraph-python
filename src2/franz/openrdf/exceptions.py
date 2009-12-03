@@ -30,9 +30,6 @@ class IllegalOptionException(Exception):
 class IllegalArgumentException (Exception):
     pass
 
-class InitializationException(Exception):
-    pass
-
 class IllegalStateException (Exception):
     pass
 

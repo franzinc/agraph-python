@@ -70,7 +70,7 @@ class Client(Catalog):
         return self._instanceFromUrl(Repository, self.url + "/federated/" + urllib.quote(id))
 
     def createFederation(self, id, urls=[], repos=[]):
-        """Pass URLs for remote stores, 'renoname' or 'catname:reponame'
+        """Pass URLs for remote stores, 'reponame' or 'catname:reponame'
         for local ones."""
         nullRequest(self, "PUT", "/federated/" + urllib.quote(id) + "?" +
                     urlenc(url=urls, repo=repos))
@@ -333,6 +333,15 @@ class Repository(Service):
         """group is a list of nodes, generator the name of an SNA generator."""
         nullRequest(self, "PUT", "/neighborMatrices/" + urllib.quote(name) + "?" +
                     urlenc(group=group, depth=depth, generator=generator))
+
+    def getTripleCacheSize(self):
+        return jsonRequest(self, "GET", "/tripleCache") or False
+
+    def disableTripleCache(self):
+        nullRequest(self, "DELETE", "/tripleCache")
+
+    def enableTripleCache(self, size=None):
+        nullRequest(self, "PUT", "/tripleCache?" + urlenc(size=size))
 
     sessionAlive = None
     

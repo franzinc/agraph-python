@@ -28,6 +28,7 @@ from .value import Value, URI
 from ..exceptions import IllegalArgumentException
 from ..util import strings
 from ..vocabulary import XMLSchema
+from ..util import strings
 
 import datetime
 from collections import defaultdict
@@ -178,10 +179,12 @@ class Literal(Value):
         raise NotImplementedError("calendarValue")
 
     def toNTriples(self):
-        """Return an ntriples syntax for this Literal"""
+        """
+        Return an NTriples representation for this Literal.
+        """
         sb = []
         sb.append('"')
-        sb.append(strings.escape_double_quotes(self.getLabel()))
+        sb.append(strings.encode_ntriple_string(self.getLabel()))
         sb.append('"')
         if self.language:
             sb.append('@')
@@ -190,6 +193,7 @@ class Literal(Value):
             sb.append("^^")
             sb.append(self.datatype.toNTriples())
         return ''.join(sb)
+
 
 ###############################################################################
 ## Automatic conversion from Literal to Python object
@@ -268,7 +272,8 @@ class GeoCoordinate(CompoundLiteral):
         self.unit = unit
         self.geoType = geoType
     
-    def __str__(self): return "|COOR|(%i, %i)" % (self.xcoor, self.ycoor)
+    def __str__(self):
+        return "|COOR|(%i, %i)" % (self.xcoor, self.ycoor)
     
 class GeoSpatialRegion(CompoundLiteral):
     pass

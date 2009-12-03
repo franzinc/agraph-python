@@ -36,7 +36,6 @@ class ValueFactory(object):
     BLANK_NODE_AMOUNT = 10    
     def __init__(self, store):
         self.store = store
-        self.store.getConnection().setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
         self.unusedBNodeIds = []
         
     def getUnusedBNodeId(self):

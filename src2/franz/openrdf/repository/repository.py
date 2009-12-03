@@ -25,8 +25,7 @@
 from __future__ import absolute_import
 
 from franz import miniclient
-from ..exceptions import InitializationException, IllegalArgumentException,\
-     ServerException
+from ..exceptions import IllegalArgumentException, ServerException
 from ..model import URI, ValueFactory
 from .repositoryconnection import RepositoryConnection
 
@@ -49,16 +48,11 @@ class Repository:
     CREATE = 'CREATE'
     REPLACE = 'REPLACE'
 
-    def __init__(self, catalog, database_name, access_verb):
-        self.catalog = catalog
-        self.mini_catalog = catalog.mini_catalog
-        self.mini_repository = None
+    def __init__(self, catalog, database_name, repository):
+        self.mini_repository = repository
         self.database_name = database_name
-        self.access_verb = access_verb.upper()
         ## system state fields:
         self.value_factory = None
-        self.is_initialized = False
-        self.federated_triple_stores = None
         self.mapped_predicates = {}
         self.mapped_datatypes = {}
          
@@ -68,80 +62,14 @@ class Repository:
         interfacing with.
         """ 
         return self.database_name
-    
-    def _create_triple_store(self, name):
-        miniCat = self.mini_catalog
-        if self.federated_triple_stores:
-            miniCat.federateTripleStores(name, [urllib.quote_plus(ts) for ts in self.federated_triple_stores])
-        else:
-            miniCat.createRepository(name)
-          
-    def _attach_to_mini_repository(self):
-        """
-        Create a mini-repository and execute a RENEW, OPEN, CREATE, or ACCESS.
         
-        TODO: FIGURE OUT WHAT 'REPLACE' DOES
-        """
-        name = urllib.quote_plus(self.database_name)
-        miniCat = self.mini_catalog
-        exists = name in miniCat.listRepositories();
-        if self.access_verb == Repository.RENEW:
-            if exists:
-                ## not nice, since someone else probably has it open:
-                miniCat.deleteRepository(name)
-            self._create_triple_store(name)                    
-        elif self.access_verb == Repository.CREATE:
-            if exists:
-                raise ServerException(
-                    "Can't create triple store named '%s' because a store with that name already exists.",
-                    name)
-            self._create_triple_store(name)
-        elif self.access_verb == Repository.OPEN:
-            if not exists:
-                raise ServerException(
-                    "Can't open a triple store named '%s' because there is none.", name)
-        elif self.access_verb == Repository.ACCESS:
-            if not exists:
-                self._create_triple_store(name)      
-        self.mini_repository = miniCat.getRepository(name)
-
     def initialize(self):
         """
         Initializes this repository. A repository needs to be initialized before
         it can be used.  Return 'self' (so that we can chain this call if we like).
         """
-        if self.is_initialized:
-            raise InitializationException("A repository cannot be initialized twice.")
-        self._attach_to_mini_repository()
-        ## EXPERIMENTATION WITH INITIALIZING AN ENVIRONMENT.  DIDN'T LOOK RIGHT - RMM
-#        self.environment = self.mini_repository.createEnvironment()
-#        print "ENV", self.environment
-#        self.mini_repository.deleteEnvironment(self.environment)
-#        print "ENV AfTER", self.mini_repository.listEnvironments()
-
-        ## tricky: 'Literal' can be called before ValueFactory is initialized, causing
-        ## it to break.  Here we make sure its up:
-        self.getValueFactory()
-        self.is_initialized = True
-        return self    
-    
-    def addFederatedTripleStores(self, tripleStoreNames):
-        """
-        Make this repository a federated store that includes the stores named in
-        'tripleStoreNames'.  This call must precede the call to 'initialize'.  It
-        may be called multiple times.        
-        """
-        if self.is_initialized:
-            raise InitializationException("Federated triples stores must be added prior to calling 'initialize'.")
-        if not self.access_verb in [Repository.CREATE, Repository.RENEW]:
-            raise InitializationException("Adding federated triple stores requires a CREATE or RENEW access option.\n" +
-                                          "The current access is set to '%s'." % self.access_verb)
-        if not self.federated_triple_stores:
-            self.federated_triple_stores = set([])
-        for ts in tripleStoreNames:
-            self.federated_triple_stores.add(ts)
         return self
-        
+
     def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
         """
         Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index
@@ -189,7 +117,6 @@ class Repository:
         TODO: WE COULD PRESUMABLY ADD SOME LOGIC TO MAKE A RESTART POSSIBLE, ALTHOUGH
         THE ACCESS OPTION MIGHT NOT MAKE SENSE THE SECOND TIME AROUND (KILLING THAT IDEA!)
         """
-        self.mini_catalog = None
         self.mini_repository = None
 
     def isWritable(self):

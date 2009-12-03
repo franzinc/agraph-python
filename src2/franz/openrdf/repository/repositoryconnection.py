@@ -86,6 +86,7 @@ class RepositoryConnection(object):
         self.mini_repository = repository.mini_repository
         self.is_closed = False
         self.ruleLanguage = None
+        self.setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
         
     def _get_mini_repository(self):
         return self.mini_repository
@@ -377,22 +378,26 @@ class RepositoryConnection(object):
         'format' is RDFFormat.NTRIPLES or RDFFormat.RDFXML, and 'context' optionally specifies
         which context the triples will be loaded into.
         """
-        if isinstance(filePath, file):
-            filePath = os.path.abspath(filePath.name)
-        elif isinstance(filePath, str):
-            if not filePath.startswith('/') and not filePath.lower().startswith('c:') and not filePath.lower().startswith("http:"):
-                ## looks like its a relative file path; test to see if there is a local file that matches.
-                ## If so, generate an absolute path name to enable AG server to read it:
-                if os.path.exists(os.path.abspath(filePath)):
-                    filePath = os.path.abspath(filePath)
         if isinstance(context, (list, tuple)):
             if len(context) > 1:
                 raise IllegalArgumentException("Multiple contexts passed to 'addFile': %s" % context)
             context = context[0] if context else None
         contextString = self._context_to_ntriples(context, none_is_mini_null=True)
-        if format == RDFFormat.NTRIPLES or filePath.lower().endswith('.nt'):
+
+        if isinstance(filePath, file):
+            filePath = os.path.abspath(filePath.name)
+        elif isinstance(filePath, basestring):
+            fileDrive = os.path.splitdrive(filePath)[0]
+            if not filePath.startswith('/') and not fileDrive and not filePath[:5].lower() == "http:":
+                ## looks like its a relative file path; test to see if there is a local file that matches.
+                ## If so, generate an absolute path name to enable AG server to read it:
+                testPath = os.path.abspath(os.path.expanduser(filePath))
+                if os.path.exists(testPath):
+                    filePath = testPath
+        fileExt = os.path.splitext(filePath)[1].lower()
+        if format == RDFFormat.NTRIPLES or fileExt in ['.nt', '.ntriples']:
             self._get_mini_repository().loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide)
-        elif format == RDFFormat.RDFXML or filePath.lower().endswith('.rdf') or filePath.lower().endswith('.owl'):
+        elif format == RDFFormat.RDFXML or fileExt in ['.rdf', '.owl']:
             self._get_mini_repository().loadFile(filePath, 'rdf/xml', context=contextString, baseURI=base, serverSide=serverSide)
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)

@@ -18,7 +18,7 @@
 ##The Original Code is the AllegroGraph Java Client interface.
 ##
 ##The Original Code was written by Franz Inc.
-##Copyright (C) 2006 Franz Inc.  All Rights Reserved.
+##Copyright (C) 2009 Franz Inc.  All Rights Reserved.
 ##
 ##***** END LICENSE BLOCK *****
 
@@ -33,79 +33,123 @@ READ_ONLY = 'READ_ONLY'
 
 LEGAL_OPTION_TYPES = {READ_ONLY: bool,}
 
-# * A Sesame Sail contains RDF data that can be queried and updated.
-# * Access to the Sail can be acquired by opening a connection to it.
-# * This connection can then be used to query and/or update the contents of the
-# * repository. Depending on the implementation of the repository, it may or may
-# * not support multiple concurrent connections.
-# * <p>
-# * Please note that a Sail needs to be initialized before it can be used
-# * and that it should be shut down before it is discarded/garbage collected.
 class AllegroGraphServer(object):
     """
-    Connects to a remote AllegroGraph HTTP Server
+    Connects to an AllegroGraph HTTP Server
     """
+    FEDERATED = 'federated'
 
-#    EXPECTED_UNIQUE_RESOURCES = "EXPECTED_UNIQUE_RESOURCES"
-#    WITH_INDICES = "WITH_INDICES"
-#    INCLUDE_STANDARD_PARTS = "INCLUDE_STANDARD_PARTS"
-#    INDIRECT_HOST = "INDIRECT_HOST"
-#    INDIRECT_PORT = "INDIRECT_PORT"
-    
     def __init__(self, host, port=10035, user=None, password=None, **options):
-        self.host = host
-        self.client = miniserver.Client("http://%s:%d" % (host, port), user, password)
-        self.open_catalogs = []
-        self.options = options
-        self.translated_options = None
+        self._client = miniserver.Client("http://%s:%d" % (host, port), user, password)
 
-    def _get_address(self):
-        return "http://%s:%s" % (self.host, self.port)
-    
-    def getHost(self):
-        return self.host
+    @property
+    def url(self):
+        """Return the server's URL."""
+        return self._client.url
 
-    def getOptions(self):
-        return self.options
-    
-    def _long_catalog_name_to_short_name(self, longName):
-        pos = longName.rfind('/')
-        shortName = urllib.unquote_plus(longName[pos + 1:])
-        return shortName
+    @property
+    def version(self):
+        """Return the server's version as a string."""
+        return self._client.getVersion()
 
     def listCatalogs(self):
-        return self.client.listCatalogs()
+        catalogs = self._client.listCatalogs()
+        catalogs.append(AllegroGraphServer.FEDERATED)
+        return catalogs
     
     def openCatalog(self, name=None):
         """
         Open a catalog by name. Pass None to open the root catalog.
-        """
+        Pass 'federated' to open the virtual catalog of federations.
+        """       
+        # Allow for None and '' (or anything else that evaluates to False) to
+        # mean the root catalog.
+        if not name:
+            name = None
+            
         cats = self.listCatalogs()
         if not name in cats:
-            raise ServerException("There is no catalog named '%s' (found %s)" % (name, str(cats)))
-        for cat in self.open_catalogs:
-            if cat.getName() == name:
-                return cat
-        miniCatalog = self.client.openCatalogByName(name)
-        catalog = Catalog(name, miniCatalog, self)
+            raise ServerException("There is no catalog named '%s' (found %s)"
+                % (name, cats))
+
+        if name == AllegroGraphServer.FEDERATED:
+            catalog = FederatedCatalog(AllegroGraphServer.FEDERATED, self._client)
+        else:
+            catalog = Catalog(name, self._client)
+
         return catalog
+        
+        #miniCatalog = self._client.openCatalogByName(name)
+        #catalog = Catalog(name, miniCatalog, self)
+        #return catalog
+
+    def getInitfile(self):
+        """
+        Retrieve the contents of the server initialization file.
+
+        The initialization file is a collection of Common Lisp code
+        that is executed in every back-end as it is created.
+        """
+        return self._client.getInitfile()
+
+    def setInitfile(self, content=None, restart=True):
+        """
+        Replace the current initialization file contents with the
+        'content' string or remove if None. `restart`, which defaults
+        to true, specifies whether any running shared back-ends should
+        be shut down, so that subsequent requests will be handled by
+        back-ends that include the new code.
+        """
+        return self._client.setInitFile(content, restart)
+
+
+class FederatedCatalog(object):
+    """
+    Container of multiple federated repositories (triple stores).
+    """
+    def __init__(self, name, client):
+        self.mini_catalog = client
+        self._name = name
+        
+    def getName(self):
+        """Return the catalog name."""
+        return self._name
+    
+    name = property(getName)
+
+    def listRepositories(self):
+        """
+        Return a list of names of repositories (triple stores) managed by
+        this catalog.
+        """
+        return self.mini_catalog.listFederations()
+    
+    def deleteRepository(self, name):
+        return self.mini_catalog.deleteFederation(name)
+    
+    def getRepository(self, name, access_verb=Repository.OPEN):
+        access_verb = access_verb.upper()
+        assert access_verb == Repository.OPEN, "Only OPEN is allowed on getRepository for a federated Repository."
+        return Repository(self, name, self.mini_catalog.getFederation(name))
+
+    def createRepository(self, name, urls=[], repos=[]):
+        return Repository(self, name, self.mini_catalog.createFederation(name, urls, repos))
+
 
 class Catalog(object):
     """
     Container of multiple repositories (triple stores).
     """
-    def __init__(self, short_name, mini_catalog, server):
-        self.server = server
-        self.mini_catalog = mini_catalog
-        self.short_name = short_name
-        self.is_closed = False
-        
-    def getName(self):
-        return self.short_name
+    def __init__(self, name, client):
+        self.mini_catalog = client.openCatalogByName(name)
+        self._name = name
 
-    def deleteRepository(self, name):
-        return self.mini_catalog.deleteRepository(name)
+    def getName(self):
+        """Return the catalog name."""
+        return self._name
     
+    name = property(getName)
+
     def listRepositories(self):
         """
         Return a list of names of repositories (triple stores) managed by
@@ -113,10 +157,36 @@ class Catalog(object):
         """
         return self.mini_catalog.listRepositories()
     
-    def getRepository(self, name, access_verb):
-        return Repository(self, name, access_verb)
+    def deleteRepository(self, name):
+        return self.mini_catalog.deleteRepository(name)
     
-    def close(self):
-        if not self.is_closed:
-            self.server.open_catalogs.remove(self)
-            self.is_closed = True
+    def getRepository(self, name, access_verb):
+        """
+        Create a mini-repository and execute a RENEW, OPEN, CREATE, or ACCESS.
+        """
+        access_verb = access_verb.upper()
+        name = urllib.quote_plus(name)
+        exists = name in self.listRepositories();
+        if access_verb == Repository.RENEW:
+            if exists:
+                self.deleteRepository(name)
+            self.createRepository(name)                    
+        elif access_verb == Repository.CREATE:
+            if exists:
+                raise ServerException(
+                    "Can't create triple store named '%s' because a store with that name already exists.",
+                    name)
+            self.createRepository(name)
+        elif access_verb == Repository.OPEN:
+            if not exists:
+                raise ServerException(
+                    "Can't open a triple store named '%s' because there is none.", name)
+        elif access_verb == Repository.ACCESS:
+            if not exists:
+                self.createRepository(name)      
+        return Repository(self, name, self.mini_catalog.getRepository(name))
+
+    def createRepository(self, name):
+        return self.mini_catalog.createRepository(name)
+
+

@@ -46,7 +46,10 @@ def testSparql():
   eq(True, rep.evalSparqlQuery("ask {<http:a> ?x \"19\"}"))
   eq(False, rep.evalSparqlQuery("ask {<http:a> ?x \"20\"}"))
 
-@with_setup(cleanup)
+def cleanup_prolog():
+    client.setInitfile(None)
+
+@with_setup(cleanup, cleanup_prolog)
 def testProlog():
   for x in range(0, 10):
     rep.addStatement("<http:%d>" % x, "<http:before>", "<http:%d>" % (x + 1))
