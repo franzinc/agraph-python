@@ -60,7 +60,7 @@ class Repository:
         return jsonRequest(self, "GET", "/writeable")
 
     def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
-                        bindings=None, planner=None, checkVariables=None, count=False):
+                        bindings=None, planner=None, checkVariables=None, count=False, accept=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -68,22 +68,26 @@ class Repository:
         lists of lists of terms. CONSTRUCT and DESCRIBE return a list
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
-        if (bindings is not None):
+        if accept is None:
+            accept="text/integer" if count else "application/json"
+        if bindings is not None:
             bindings = "".join(["&$" + urllib.quote(a) + "=" + urllib.quote(b.encode("utf-8")) for a, b in bindings.items()])
         return jsonRequest(self, "GET", self.url,
                            urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
                                   environment=self.environment, planner=planner,
                                   checkVariables=checkVariables) + (bindings or ""),
                            rowreader=callback and RowReader(callback),
-                           accept="text/integer" if count else "application/json")
+                           accept=accept)
 
-    def evalPrologQuery(self, query, infer=False, callback=None, limit=None, context=None, count=False):
+    def evalPrologQuery(self, query, infer=False, callback=None, limit=None, context=None, count=False, accept=None):
         """Execute a Prolog query. Returns a {names, values} object."""
+        if accept is None:
+            accept="text/integer" if count else "application/json"
         return jsonRequest(self, "POST", self.url,
                            urlenc(query=query, infer=infer, queryLn="prolog", environment=self.environment,
                                   limit=limit, context=context),
                            rowreader=callback and RowReader(callback),
-                           accept="text/integer" if count else "application/json")
+                           accept=accept)
 
     def definePrologFunctors(self, definitions):
         """Add Prolog functors to the environment. Takes a string

@@ -47,29 +47,13 @@ class QueryResult(object):
 ##
 #############################################################################
 
-class GraphQueryResult(QueryResult):
+class GraphQueryResult(QueryResult, RepositoryResult):
     """
-    A graph query result is an iterator of Statement's.  This is incredibly inefficient.    
+    A graph query result is an iterator over the Statements.
     """
     def __init__(self, string_tuples):
         QueryResult.__init__(self)
-        self.result = RepositoryResult(string_tuples)
-    
-    def __iter__(self):
-        return self.result
-    
-    def close(self):
-        """
-        Shut down the iterator, to insure that resources are free'd up.
-        """
-        self.result.close()
-        
-    def next(self):
-        """
-        Return the next Statement in the answer, if there is one.  Otherwise,
-        raise StopIteration exception.
-        """
-        return self.result.next()
+        RepositoryResult.__init__(self, string_tuples)
 
 
 class TupleQueryResult(QueryResult):
@@ -222,12 +206,15 @@ class ListBindingSet(object):
         d = {}
         for i in range(len(self.variable_names)):
             v = self[i]
-            if strings_dict: v = str(v)
+            if strings_dict: v = unicode(v)
             d[self.variable_names[i]] = v
         return d
         
     def __str__(self):
-        return str(self._toDict(strings_dict=True))
+        return unicode(self).encode('utf-8')
+
+    def __unicode__(self):
+        return unicode(self._toDict(strings_dict=True))
     
 
 #############################################################################

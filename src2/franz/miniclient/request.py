@@ -73,8 +73,9 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     # The "Expect:" is there to suppress "Expect: 100-continue"
     # behaviour that is the default in libcurl when posting large
     # bodies.
-    headers = ["Connection: Keep-Alive", "Accept: " + accept, "Expect:"]
+    headers = ["Connection: keep-alive", "Accept: " + accept, "Expect:"]
     if contentType and postbody: headers.append("Content-Type: " + contentType)
+    if callback: headers.append("Connection: close")
     curl.setopt(pycurl.HTTPHEADER, headers)
     curl.setopt(pycurl.ENCODING, "") # which means 'any encoding that curl supports'
 
@@ -106,7 +107,10 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
 def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json"):
     if rowreader is None:
         status, body = makeRequest(obj, method, url, body, accept, contentType)
-        if (status == 200): return cjson.decode(body)
+        if (status == 200):
+            if accept in ('application/json', 'text/integer', "application/x-quints+json"):
+                body = cjson.decode(body)
+            return body
         else: raise RequestError(status, body)
     else:
         def raiseErr(status, message): raise RequestError(status, message)

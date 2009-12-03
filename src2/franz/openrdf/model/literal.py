@@ -27,7 +27,7 @@ from __future__ import absolute_import
 from .value import Value, URI
 from ..exceptions import IllegalArgumentException
 from ..util import strings
-from ..vocabulary import XMLSchema
+from ..vocabulary.xmlschema import XMLSchema
 
 import datetime
 from collections import defaultdict

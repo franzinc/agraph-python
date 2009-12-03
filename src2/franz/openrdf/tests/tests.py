@@ -12,8 +12,17 @@ from ..query.dataset import Dataset
 from ..rio.rdfformat import RDFFormat
 from ..rio.rdfwriter import  NTriplesWriter
 from ..rio.rdfxmlwriter import RDFXMLWriter
+from ..model import URI, Literal
 
-import os, urllib, datetime, time
+import os, urllib, datetime, time, locale
+
+locale.setlocale(locale.LC_ALL, '')
+
+def trace(formatter, values=None, stamp=False):
+    prefix = '\ntests [%s]:' % (datetime.datetime.now()) if stamp else '\n'
+    if values:
+        formatter = locale.format_string(formatter, values, grouping=True)
+    print prefix, formatter
 
 CURRENT_DIRECTORY = os.path.dirname(__file__)
 
@@ -864,8 +873,145 @@ def test_getJDBCStatements():
 
     assert len(rows) <= 10
 
-## (triple-id default-graph subscript geospatial longitude latitude
-##  telephone-number blank-node literal-language literal-typed literal
-##  literal-short node resource single-float double-float gyear time
-##  date-time date long-88 long short int byte unsigned-long-88
-##  unsigned-long unsigned-short unsigned-int unsigned-byte)
+def test_delete_mapping():
+    conn = test1()
+    conn.repository.mini_repository.deleteMappedType(XMLSchema.DATETIME)
+    a_time = conn.createLiteral('1984-12-06T09:00:00.250', datatype=XMLSchema.DATETIME)   
+    conn.addTriple('<http://franz.com/example#this>',
+        '<http://franz.com/example#hasDate>', a_time)
+
+class URIs:
+    ## Create URIs for Bob and Robert (and kids) 
+    robert = URI('http://example.org/people/robert')
+    roberta = URI('http://example.org/people/roberta')
+    bob = URI('http://example.org/people/bob')
+    bobby = URI('http://example.org/people/bobby')
+
+    ## create name and child predicates, and Person class.
+    name = URI('http://example.org/ontology/name')
+    fatherOf = URI('http://example.org/ontology/fatherOf')
+    person = URI('http://example.org/ontology/Person')
+
+    hasChild = URI('http://example.org/ontology/hasChild')
+
+    pointBlank = URI('http://example.org/ontology/pointBlank')
+
+def setup():
+    conn = test1()
+
+    ## Bob is the same person as Robert
+    conn.add(URIs.bob, OWL.SAMEAS, URIs.robert)
+
+    ## Robert, Bob, and children are people
+    conn.add(URIs.robert, RDF.TYPE, URIs.person)
+    conn.add(URIs.roberta, RDF.TYPE, URIs.person)
+    conn.add(URIs.bob, RDF.TYPE, URIs.person)
+    conn.add(URIs.bobby, RDF.TYPE, URIs.person)
+
+    ## They all have names.
+    conn.add(URIs.robert, URIs.name, Literal('Robert'))
+    conn.add(URIs.roberta, URIs.name, Literal('Roberta'))
+    conn.add(URIs.bob, URIs.name, Literal('Bob'))
+    conn.add(URIs.bobby, URIs.name, Literal('Bobby'))
+
+    ## robert has a child
+    conn.add(URIs.robert, URIs.fatherOf, URIs.roberta)
+    ## bob has a child
+    conn.add(URIs.bob, URIs.fatherOf, URIs.bobby)
+
+    # Add some blank nodes
+    conn.add(conn.createBNode(), URIs.pointBlank, conn.createBNode())
+    conn.add(conn.createBNode(), URIs.pointBlank, conn.createBNode())
+    conn.add(conn.createBNode(), URIs.pointBlank, conn.createBNode())
+    
+    return conn
+
+def test_query_blank_node():
+    """Try using blank node from one query in a second query."""
+    conn = setup()
+    trace('Finding blank node subjects...')
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL, 'SELECT * WHERE { ?subject %s _:object . }' %
+        (URIs.pointBlank))
+
+    results = query.evaluate()
+    
+    # Pick one to use
+    result = results.next()['subject']
+    
+    trace(unicode(result))
+
+    trace('Attempting to query using SPARQL with binding...')
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL, 'SELECT * WHERE { ?subject %s ?object . }' %
+        (URIs.pointBlank))
+    query.setBinding('subject', result)
+    output = ' '.join([unicode(result) for result in query.evaluate()])
+    trace(output)
+    assert len(output)
+
+def test_setInferencing():
+    """prepareTupleQuery/setInferencing usage"""
+    conn = setup()
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL, 'SELECT * WHERE { %s %s ?child . }' %
+        (URIs.robert, URIs.fatherOf.toNTriples()))
+
+    ## List the children of Robert with inference ON. The owl:sameAs
+    ## link combines the children of Bob with those of Robert.
+    trace('Querying children of Robert, inference ON')
+    query.setIncludeInferred(True)
+    results = query.evaluate()
+    on_len = len(results)
+    trace(' '.join([unicode(result) for result in results]))
+
+    ## List the children of Robert with inference OFF.
+    query.setIncludeInferred(False)
+    trace('Querying children of Robert, inferencing OFF')
+    results = query.evaluate()
+    off_len = len(results)
+    trace(' '.join([unicode(result) for result in results]))
+    assert on_len > off_len
+
+def test_json_xml_response():
+    """Test JSON and other result formats from SPARQL"""
+    conn = setup()
+    query = conn.prepareQuery(QueryLanguage.SPARQL, 'SELECT * WHERE { %s %s ?child . }' %
+        (URIs.robert, URIs.fatherOf.toNTriples()))
+
+    ## List the children of Robert with inference ON. The owl:sameAs
+    ## link combines the children of Bob with those of Robert.
+    trace('Querying children of Robert w/ SPARQL, inference ON, application/sparql-results+xml')
+    query.setIncludeInferred(True)
+    trace(query.evaluate_generic_query(accept='application/sparql-results+xml'))
+
+    trace('Querying children of Robert w/ SPARQL, inference ON, application/sparql-results+json')
+    trace(query.evaluate_generic_query(accept='application/sparql-results+json'))
+
+    query = conn.prepareQuery(QueryLanguage.PROLOG, '(select ?child (q !%s !%s ?child))' %
+        (URIs.robert, URIs.fatherOf.toNTriples()))
+
+    trace('Querying children of Robert w/ PROLOG, inference ON, application/sparql-results+xml')
+    query.setIncludeInferred(True)
+    trace(query.evaluate_generic_query(accept='application/sparql-results+xml'))
+
+    trace('Querying children of Robert w/ PROLOG, inference ON, application/sparql-results+json')
+    trace(query.evaluate_generic_query(accept='application/sparql-results+json'))
+
+def test_construct_query():
+    """Test whether Construct Query"""
+    conn = setup()
+    query = conn.prepareGraphQuery(QueryLanguage.SPARQL,
+        'CONSTRUCT { ?p %s ?child . } WHERE { ?p ?relationship ?child . }' % 
+        URIs.hasChild)
+    query.setBinding('relationship', URIs.fatherOf)
+    query.setIncludeInferred(True)
+
+    trace('Trying a CONSTRUCT query with inferred ON')
+    results = query.evaluate()
+    assert len(results)
+    trace('\n'.join([unicode(result) for result in results]))
+
+    query.setIncludeInferred(False)
+
+    trace('Trying a CONSTRUCT query with inferred OFF')
+    results = query.evaluate()
+    assert len(results)
+    trace('\n'.join([unicode(result) for result in results]))
