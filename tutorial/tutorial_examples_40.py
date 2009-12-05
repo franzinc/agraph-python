@@ -161,7 +161,8 @@ def example5():
     rouge = conn.createLiteral('Rouge', language="fr")
     fortyTwo = conn.createLiteral('42', datatype=XMLSchema.INT)
     fortyTwoInteger = conn.createLiteral('42', datatype=XMLSchema.LONG)     
-    fortyTwoUntyped = conn.createLiteral('42')
+    fortyTwoUntyped = conn.createLiteral('42')  # creates string
+    #fortyTwoUntyped = conn.createLiteral(42) # creates int
     date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
     time = conn.createLiteral('1984-12-06T09:00:00', datatype=XMLSchema.DATETIME)   
     weightFloat = conn.createLiteral('20.5', datatype=XMLSchema.FLOAT)
@@ -1000,10 +1001,11 @@ def example21():
         p = bindingSet.getValue("path")
         print "%s" % (p)
 
-    print "\nShortest depth-first paths connecting Valjean to Bossuet? with associates (should be two)."
+    # Note that depth-first-search-paths are not guaranteed to be "the shortest path."
+    print "\nReturn depth-first path connecting Valjean to Bossuet with associates (should be one)."
     queryString = """
     (select ?path
-      (depth-first-search-paths !lm:character11 !lm:character64 associates ?path))
+      (depth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
@@ -1054,9 +1056,11 @@ def example21():
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
+    count = 0
     for bindingSet in result:
+        count = count + 1
         n = bindingSet.getValue("name")
-        print "%s, " % (n),
+        print "%s. %s " % (count,n.toPython())
 
     print "\nGraph density of Valjean's ego group? (using associates)."
     queryString = """
@@ -1152,6 +1156,103 @@ def example21():
         p = bindingSet.getValue("centrality")
         print "%s" % (p)
         print "%s" % (p.toPython())
+
+    #  "Group centrality measures the cohesion a group relative to
+    #  some measure of actor-centrality. `group-degree-centrality measures
+    #  group cohesion by finding the maximum actor centrality in the group,
+    #  summing the difference between this and each other actor's degree
+    #  centrality and then normalizing. It ranges from 0 (when all actors have
+    #  equal degree) to 1 (when one actor is connected to every other and no
+    #  other actors have connections."
+    
+    print "\nGroup-degree-centrality of Valjean's ego group at depth 1 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 1 associates ?group)
+      (group-degree-centrality ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "Centrality: %s" % (p.toPython())
+
+    print "\nGroup-degree-centrality of Valjean's ego group at depth 2 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (group-degree-centrality ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "Centrality: %s" % (p.toPython())
+
+    #  "Group centrality measures the cohesion a group relative to
+    #  some measure of actor-centrality. `group-closeness-centrality` is
+    #  measured by first finding the actor whose `closeness-centrality`
+    #  is maximized and then summing the difference between this maximum
+    #  value and the [actor-closeness-centrality][] of all other actors.
+    #  This value is then normalized so that it ranges between 0 and 1."
+    print "\nGroup-closeness-centrality of Valjean's ego group at depth 1 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 1 associates ?group)
+      (group-closeness-centrality ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "Centrality: %s" % (p.toPython())
+
+    print "\nGroup-closeness-centrality of Valjean's ego group at depth 2 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (group-closeness-centrality ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "Centrality: %s" % (p.toPython())
+
+    #  "Group centrality measures the cohesion a group relative to
+    #  some measure of actor-centrality. `group-betweenness-centrality` is
+    #  measured by first finding the actor whose `betweenness-centrality`
+    #  is maximized and then summing the difference between this maximum
+    #  value and the [actor-betweenness-centrality][] of all other actors.
+    #  This value is then normalized so that it ranges between 0 and 1.
+
+    print "\nGroup-betweenness-centrality of Valjean's ego group at depth 1 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 1 associates ?group)
+      (group-betweenness-centrality ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "Centrality: %s" % (p.toPython())
+
+    print "\nGroup-betweenness-centrality of Valjean's ego group at depth 2 (using associates)."
+    queryString = """
+    (select (?centrality)
+      (ego-group !lm:character11 2 associates ?group)
+      (group-betweenness-centrality ?group associates ?centrality))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    for bindingSet in result:
+        p = bindingSet.getValue("centrality")
+        print "Centrality: %s" % (p.toPython())
+		
+
+
+
 
     conn.closeSession()
     conn.close();
@@ -1298,8 +1399,8 @@ def example22():
     repository.shutDown()
 	
 if __name__ == '__main__':
-    choices = [i for i in range(1,22)]
-    #choices = [20]   
+    #choices = [i for i in range(1,22)]
+    choices = [21]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"

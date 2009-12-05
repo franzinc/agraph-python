@@ -1122,6 +1122,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
     <li><a href="#Graph Measures">Graph Measures</a></li>
     <li><a href="#Cliques">Cliques</a></li>
     <li><a href="#Actor Centrality">Actor Centrality</a></li> 
+    <li><a href="#Group Centrality">Group Centrality</a></li> 
 </ul>
 <p>Most (but not all) of AllegroGraph's SNA features can be accessed from Python. We access them in multiple ways:</p>
 <ul>
@@ -1196,7 +1197,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <p>That is the purpose of  a &quot;neighbor matrix.&quot; This is a persistent, in-memory cache of a generator's output. You can substitute the matrix for the generator in AllegroGraph's SNA functions. </p>
 <p>The advantage of using a matrix instead of a generator is a many-fold increase in speed. This benefit is especially visible if you are searching for paths between two nodes in your graph. The exact difference in speed is difficult to estimate because there can be complex trade-offs and scaling issues to consider, but it is easy to try the experiment and observe the effect. </p>
 <p>To create a matrix, use the connection object's <strong>registerNeighborMatrix()</strong> method. You must supply a matrix name (any symbol), the name of the generator, the URI of a resource to serve as the starting point, and a maximum depth. The idea is to place limits on the subgraph so that the search algorithms can operate in a restricted space rather than forcing them to analyze the entire repository. </p>
-<p>In the following excerpt, we are creating four matrices to match the four generators we created. In this example, &quot;matrix1&quot; is the matrix for generator &quot;intimates,&quot; and so forth. </p>
+<p>In the following excerpt, we are creating three matrices to match the three generators we created. In this example, &quot;matrix1&quot; is the matrix for generator &quot;intimates,&quot; and so forth. </p>
 <pre class="input">    conn.registerNeighborMatrix(&quot;matrix1&quot;, &quot;intimates&quot;, valjean, max_depth=2)<br>    conn.registerNeighborMatrix(&quot;matrix2&quot;, &quot;associates&quot;, valjean, max_depth=2)<br>    conn.registerNeighborMatrix(&quot;matrix3&quot;, &quot;everyone&quot;, valjean, max_depth=2)</pre>
 <p>A matrix is a static snapshot of the output of a generator.  If your data is dynamic, you should regenerate the matrix at intervals.</p>
 
@@ -1248,14 +1249,14 @@ Found 8 query results
 <p>This variation returns Valjean's ego group as a single list:</p>
 <pre class="input">    (select ?group
       (ego-group !lm:character11 1 associates ?group))</pre>
-  The result in the Python interaction window is: 
+            The result in the Python interaction window is: 
 <pre class="output">Valjean's ego group in one list depth 1 (using associates).
 "({character27} {character24} {character25} {character28} {character11}
  {character26} {character23} {character55})"</pre>
  <h3 id="SNA Search - Path from A to B">SNA Search - Path from A to B</h3>
 <p>In the following examples, we explore the graph for the shortest path from Valjean to Bossuet, using the three generators to place restrictions on the quality of the path. These are the relevant paths between these two characters:</p>
  <img src="pathsValBos.jpg" width="913" height="254"> 
-<p>Our first query asks AllegroGraph to use <strong>intimates</strong> to find the shortest possible path between Valjean and Bossuet that is composed entirely of &quot;knows_well&quot; links. Those would be the green arrows in the diagram above. The <strong>breadth-first-search-paths</strong> function asks for a start node and an end node, a generator, an optional maximum path length, and a variable to bind to the resulting path(s). </p>
+<p>Our first query asks AllegroGraph to use <strong>intimates</strong> to find the shortest possible path between Valjean and Bossuet that is composed entirely of &quot;knows_well&quot; links. Those would be the green arrows in the diagram above. The <strong>breadth-first-search-paths</strong> function asks for a start node and an end node, a generator, an optional maximum path length, and a variable to bind to the resulting path(s). Valjean is character11, and Bossuet is character64.</p>
 <pre class="input">    (select ?path
       (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))</pre>
 <p>It is easy to examine the diagram and see that there is no such path. Valjean and Bossuet are not well-acquainted, and do not have any chain of well-acquainted mutual friends. AllegroGraph lets us know that.</p>
@@ -1279,7 +1280,13 @@ Found 2 query results
 Found 1 query results
 "({character11} {character64})"</pre>
 <p>This is the &quot;barely-knows&quot; link directly from from Valjean to Bossuet. </p>
-<p>The Prolog select query can also use <strong>depth-first-search-paths()</strong> and <strong>bidirectional-search-paths()</strong>. Their syntax is essentially identical to that shown above. </p>
+<p>The Prolog select query can also use <strong>depth-first-search-path()</strong> and <strong>bidirectional-search-paths()</strong>. Their syntax is essentially identical to that shown above. These algorithms offer different efficiencies:</p>
+<ul>
+  <li>Breadth-first and bidirectional searches explore all paths by incrementing the search radius until a success is achieved. This guarantees that the returned path(s) will be &quot;shortest&quot; paths. They return one or more paths of equal lengths. </li>
+  <li>Depth-first search tries to bypass the costly expansion of all paths by exploring each path to its end, and aborting the search when it locates a successful path. There is no implication that this path is the &quot;shortest&quot; path through the graph. </li>
+</ul>
+<p>In addition, the depth-first algorithm uses less memory than the others, so a depth-first search may succeed when a breadth-first search would run out of memory. </p>
+
 <h3 id="Graph Measures">Graph Measures</h3>
 <p>AllegroGraph provides several utility functions that measure the characteristics of a node, such as the number of connections it has to other nodes, and its importance as a communication path in a clique. </p>
 <p>For instance, we can use the <strong>nodal-degree</strong> function to ask how many nodal neighbors Valjean has, using <strong>everyone</strong> to catalog all the nodes connected to Valjean by &quot;knows,&quot; &quot;barely_knows&quot;, and &quot;knows_well&quot; predicates. There are quite a few of them:</p>
@@ -1291,14 +1298,9 @@ Found 1 query results
 "36"^^&lt;http://www.w3.org/2001/XMLSchema#integer&gt;
 36</pre>
 <p>If you want to see the names of these neighbors, you can use either the <strong>ego-group-member</strong> function described earlier on this page, or the <strong>nodal-neighbors</strong> function shown below:</p>
-<pre class="input">
-    (select (?name)
-      (nodal-neighbors !lm:character11 everyone ?member)
-      (q ?member !dc:title ?name))
-</pre>
-<p>This example enumerates all immediate neighbors of Valjean and returns their names:
-<pre class="output">Who are Valjean's neighbors? (using everyone).
-"Isabeau",  "Labarre",  "Cochepaille",  "Marguerite",  "Babet",  "Woman2",  <br>"Enjolras",  "Chenildieu",  "Toussaint",  "MmeThenardier",  "Gavroche",  <br>"Bossuet",  "MotherInnocent",  "Gueulemer",  "Simplice",  "Fauchelevent",  <br>"MmeMagloire",  "Claquesous",  "Bamatabois",  "Woman1",  "Thenardier",  <br>"Marius",  "Cosette",  "MlleBaptistine",  "Montparnasse",  "MlleGillenormand",  <br>"Gervais",  "Brevet",  "Champmathieu",  "Fantine",  "Judge",  "Gillenormand",  <br>"Javert",  "MmeDeR",  "Scaufflaire",  "Myriel",  </pre>
+<pre class="input">    print &quot;\nWho are Valjean's neighbors? (using everyone).&quot;<br>    queryString = &quot;&quot;&quot;<br>    (select (?name)<br>      (nodal-neighbors !lm:character11 everyone ?member)<br>      (q ?member !dc:title ?name))<br>      &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();<br>    count = 0<br>    for bindingSet in result:<br>        count = count + 1<br>        n = bindingSet.getValue(&quot;name&quot;)<br>        print &quot;%s. %s &quot; % (count,n.toPython())</pre>
+<p>This example enumerates all immediate neighbors of Valjean and returns their names. This example prints a numbered list with 36 entries:
+<pre class="output">Who are Valjean's neighbors? (using everyone).<br>1. Isabeau <br>2. Fantine <br>3. Labarre <br>4. Bossuet <br>5. Brevet ...</pre>
 
 <p>Another descriptive statistic is <strong>graph-density</strong>, which measures the density of connections within a subgraph. </p>
 <p>For instance, this is Valjean's ego group with all <strong>associates</strong>  included. </p>
@@ -1350,7 +1352,7 @@ Number of cliques: 2
 <p>This confirms our expectation that Valjean's actor-degree-centrality should be 0.70 in this circumstance.</p>
 <p>We can also measure actor centrality by calculating the average path length from a given node to the other nodes of the subgraph. This is called <strong>actor-closeness-centrality</strong>. For instance, we can calculate the average path length from Valjean to the ten nodes of his ego group (using associates and depth 2). Then we take the inverse of the average, so that bigger values will be &quot;more central.&quot; </p>
 <p><img src="valjeanActorClosenessCentrality.jpg" width="875" height="303"> </p>
-<p>The actor-closeness-centrality for Marius is 0.60, showing that Valjean is more central and important to the group than is Marius. </p>
+<p>The actor-closeness-centrality for Valjean is 0.769. For Marius it is 0.60, showing that Valjean is more central and important to the group than is Marius. </p>
 <p>This example calculates Valjean's <strong>actor-closeness-centrality</strong> for the associates ego group of depth 2. </p>
 <pre class="input">
     (select (?centrality)
@@ -1374,6 +1376,35 @@ Number of cliques: 2
 "7.5555557e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
 7.5555557e-1</pre>
 <p>That's the expected result of 0.755. </p>
+<h3 id="Group Centrality">Group Centrality</h3>
+<p>Group-centrality measures express the &quot;cohesiveness&quot; of a group. There are three group-centrality measures in AllegroGraph: <strong>group-degree-centrality()</strong>, <strong>group-closeness-centrality()</strong>, and <strong>group-betweenness-centrality()</strong>.</p>
+<p>To demonstrate these measures, we'll use Valjean's ego group, first at radius 1 and then at radius 2. As you recall, the smaller ego group is radially symmetrical, but the larger one is quite lop-sided. That makes the smaller group &quot;more cohesive&quot; than the larger one.</p>
+<p> <strong>Group-degree-centrality()</strong> measures 
+group cohesion by finding the maximum actor centrality in the group, 
+summing the difference between this and each other actor's degree 
+centrality, and then normalizing. It ranges from 0 (when all actors have 
+equal degree) to 1 (when one actor is connected to every other and no 
+other actors have connections.</p>
+<p>The prolog query takes this form:</p>
+<pre class="input"> (select (?centrality)
+   (ego-group !lm:character11 1 associates ?group)
+   (group-degree-centrality ?group associates ?centrality))</pre>
+<p>The query first generates Valjean's (character11) ego group at radius 1, and binds that list of characters to ?group. Then it calls group-degree-centrality() on the group and returns the answer as ?centrality. </p>
+<p>The group-degree-centrality for Valjean's radius-1 ego group is 0.129. When we expand to radius 2, the group-degree-centrality drops to 0.056. The larger group is less cohesive than the smaller one. </p>
+<p>The following examples were all generated from queries that strongly resemble the one above. </p>
+<p> <strong>Group-closeness-centrality()</strong> is 
+measured by first finding the actor whose `closeness-centrality` <br>
+is maximized and then summing the difference between this maximum 
+value and the actor-closeness-centrality of all other actors. 
+This value is then normalized so that it ranges between 0 and 1. </p>
+<p>The group-closeness-centrality of Valjean's smaller ego group is 0.073. The expanded ego group has a group-closeness-centrality of 0.032. Again, the larger group is less cohesive.</p>
+<p> Group-betweenness-centrality() is 
+measured by first finding the actor whose actor-betweenness-centrality<br>
+is maximized and then summing the difference between this maximum 
+value and the actor-betweenness-centrality of all other actors. 
+This value is then normalized so that it ranges between 0 and 1.  </p>
+<p>Valjean's smaller ego group has a group-betweenness-centrality of 0.904. The value for the larger ego group is 0.704. Even by this measure, the larger group is less cohesive. </p>
+<p>&nbsp; </p>
 <h2 id="Dedicated Session">Dedicated Session (example22())</h2>
 <p>Most of the time, multiple AllegroGraph users pool triples in a common session. Their data may be segregated into multiple contexts (subgraphs) for convenience, but in fact any part of this data may be retrieved by any of the users.</p>
 <p>There are situations where a little more security is required. You may open a &quot;dedicated session&quot; and populate it with triples that the other users cannot view. These triples may be searched and manipulated in the usual ways, but do not become visible to other users until you &quot;commit&quot; them to the common session. </p>
@@ -1447,7 +1478,7 @@ Number of cliques: 2
 <p>Remember that when you are done with a session or connection, it is appropriate to close it:</p>
 <pre class="input">    dedicated.closeSession()<br>    dedicated.close()<br>    common.close()</pre>
 <p>This recovers resources that would otherwise remain bound. </p>
-<p><font color="#CCCCCC">November 16, 2009 4.0 M2 release</font></p>
+<p><font color="#CCCCCC">December 05, 2009 4.0 M2 release</font></p>
 <p>&nbsp;</p>
 </body>
 
