@@ -1399,8 +1399,8 @@ def example22():
     repository.shutDown()
 	
 if __name__ == '__main__':
-    #choices = [i for i in range(1,22)]
-    choices = [21]   
+    choices = [i for i in range(1,22)]
+    #choices = [21]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
