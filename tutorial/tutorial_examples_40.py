@@ -611,10 +611,7 @@ def example16():
     pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
     pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3) 
-    try:
-        federated.deleteRepository("rainbowthings")
-    finally:
-        pass
+    federated.deleteRepository("rainbowthings")
     redConn.close()
     greenConn.close()
     redRepository = redConn.repository

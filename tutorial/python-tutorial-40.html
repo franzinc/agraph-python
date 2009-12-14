@@ -899,7 +899,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 	bob = conn.createURI(&quot;http://example.org/people/bob&quot;)
 	bobby = conn.createURI(&quot;http://example.org/people/bobby&quot;)
 </pre>
-The next step is to create URIs for the predicates we'll need (<em>name</em> and <em>child</em>), plus one for the Person class. <br>
+The next step is to create URIs for the predicates we'll need (<em>name</em> and <em>fatherOf</em>), plus one for the Person class. <br>
 <pre class="input">    ## create name and child predicates, and Person class.<br>    name = conn.createURI(&quot;http://example.org/ontology/name&quot;)<br>    fatherOf = conn.createURI(&quot;http://example.org/ontology/fatherOf&quot;)<br>    person = conn.createURI(&quot;http://example.org/ontology/Person&quot;)
 </pre>
 The names of the four people will be literal values. <br>
@@ -935,7 +935,7 @@ This is a simple getStatements() search asking for the children of Robert, with 
 (&lt;http://example.org/people/robert&gt;, &lt;http://example.org/ontology/fatherOF&gt;, &lt;http://example.org/people/roberta&gt;)
 (&lt;http://example.org/people/robert&gt;, &lt;http://example.org/ontology/fatherOf&gt;, &lt;http://example.org/people/bobby&gt;)
 </pre>
-<p>Note that with inference ON, Robert suddenly has two children because Bob's child has been included.&nbsp; Also note that the final triple (robert hasChild bobby) has been inferred.&nbsp; The inference engine has determined that this triple logically must be true, even though it does not appear in the repository. </p>
+<p>Note that with inference ON, Robert suddenly has two children because Bob's child has been included.&nbsp; Also note that the final triple (robert fatherOf bobby) has been inferred.&nbsp; The inference engine has determined that this triple logically must be true, even though it does not appear in the repository. </p>
 <h3>InverseOf</h3>
 <p>We can reuse the Robert family tree to see how the inference engine can deduce the presence of inverse relationships. </p>
 <p>Up to this point in this tutorial, we have created new predicates simply by creating a URI and using it in the predicate position of a triple.&nbsp; This time we need to create a predicate<em> resource</em> so we can set an attribute of that resource.&nbsp; We're going to declare that the <strong>hasFather</strong> predicate is the <strong>owl:inverseOf</strong> the existing fatherOf predicate. </p>
