@@ -5,7 +5,7 @@ DISTDIR = agraph-client-python-$(VERSION)
 
 TARNAME = $(DISTDIR).tar.gz
 
-FILES = src2 stress tutorial windows-support
+FILES = LICENSE src2 stress tutorial windows-support
 
 default: dist
 
