@@ -168,6 +168,12 @@ class Repository:
         """
         self._get_mini_repository().indexStatements(all=all)
 
+    def updateFreeTextIndexing(self):
+        return self._get_mini_repository().updateFreeTextIndexing()
+
+    def listFreeTextPredicates(self):
+        return self._get_mini_repository().listFreeTextPredicates()
+
     def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
         """
         Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index
@@ -175,8 +181,10 @@ class Repository:
         triples/statements.  This is needed to make the  fti:match  operator
         work properly.
         """
-        uri = uri or (namespace + localname)
-        self._get_mini_repository().registerFreeTextPredicate("<%s>" % uri)
+        uri = str(uri) or (namespace + localname)
+        if not uri.startswith('<'):
+            uri = '<' + uri + '>'
+        self._get_mini_repository().registerFreeTextPredicate(uri)
         
     def _translate_inlined_type(self, type):
         if type == "int": return "int"

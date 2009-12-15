@@ -62,6 +62,8 @@ def test1(accessMode=Repository.RENEW):
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), connection.size())
     return connection
+
+connect = test1
     
 def test2():
     conn = test1()
@@ -1015,3 +1017,23 @@ def test_construct_query():
     results = query.evaluate()
     assert len(results)
     trace('\n'.join([unicode(result) for result in results]))
+
+def test_freetext():
+    """
+    Test registering a free text predicate, then doing a SPARQL query on it.
+    """
+    conn = connect()
+    pred = URI('http://www.franz.com/has_name')
+    conn.registerFreeTextPredicate(pred)
+    print 'Registered List:', conn.listFreeTextPredicates()
+    conn.addTriple('<http://www.franz.com/contractor#1>', pred, 'Ross Jekel')
+
+    for statement in conn.evalFreeTextSearch('Ross'):
+        print 'The Statement:', statement
+
+    results = conn.prepareTupleQuery(QueryLanguage.SPARQL,
+        'SELECT ?something WHERE { ?something fti:match "Ross Jekel". }').evaluate()
+
+    assert len(results)
+    for result in results:
+        print 'The Query Result:', result
