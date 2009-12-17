@@ -887,12 +887,6 @@ class RepositoryConnection(object):
         """
         return self.repository.listFreeTextPredicates()
         
-    def updateFreeTextIndexing(self):
-        """
-        Request that the server update the free-text index.
-        """
-        return self.repository.updateFreeTextIndexing()
-
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         """
         Open a session.
