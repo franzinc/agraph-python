@@ -1522,7 +1522,6 @@ def test_construct_query():
     assert len(results)
     trace('\n'.join([unicode(result) for result in results]))
 
-
 def test_session_loadinitfile():
     """
     Test starting a session with loadinitfile True.
@@ -1545,3 +1544,23 @@ def test_session_loadinitfile():
         assert_raises(RequestError, session.mini_repository.evalPrologQuery, ("(select ?x (after-after ?x !<http:3>))",))
 
     server.setInitfile(None)
+
+def test_freetext():
+    """
+    Test registering a free text predicate, then doing a SPARQL query on it.
+    """
+    conn = connect()
+    pred = URI('http://www.franz.com/has_name')
+    conn.registerFreeTextPredicate(pred)
+    print 'Registered List:', conn.listFreeTextPredicates()
+    conn.addTriple('<http://www.franz.com/contractor#1>', pred, 'Ross Jekel')
+
+    for statement in conn.evalFreeTextSearch('Ross'):
+        print 'The Statement:', statement
+
+    results = conn.prepareTupleQuery(QueryLanguage.SPARQL,
+        'SELECT ?something WHERE { ?something fti:match "Ross Jekel". }').evaluate()
+
+    assert len(results)
+    for result in results:
+        print 'The Query Result:', result
