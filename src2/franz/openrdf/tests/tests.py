@@ -928,7 +928,7 @@ def test22():
 
         print "\nValjean's ego group in one list depth 1 (using associates)."
         queryString = """
-        (select ?group
+        (select (?group)
           (ego-group !lm:character11 1 associates ?group))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -940,7 +940,7 @@ def test22():
 
         print "\nValjean's ego group in one list depth 2 (using associates)."
         queryString = """
-        (select ?group
+        (select (?group)
           (ego-group !lm:character11 2 associates ?group))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -952,7 +952,7 @@ def test22():
 
         print "\nValjean's ego group in one list depth 3 (using associates)."
         queryString = """
-        (select ?group
+        (select (?group)
           (ego-group !lm:character11 3 associates ?group))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -965,7 +965,7 @@ def test22():
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet using intimates."
         queryString = """
-        (select ?path
+        (select (?path)
           (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -977,7 +977,7 @@ def test22():
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet using associates."
         queryString = """
-        (select ?path
+        (select (?path)
           (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -989,7 +989,7 @@ def test22():
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet using everyone."
         queryString = """
-        (select ?path
+        (select (?path)
           (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1001,7 +1001,7 @@ def test22():
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet? with associates (should be two)."
         queryString = """
-        (select ?path
+        (select (?path)
           (breadth-first-search-paths !lm:character11 !lm:character64 associates ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1013,7 +1013,7 @@ def test22():
 
         print "\nShortest depth-first paths connecting Valjean to Bossuet? with associates (should be two)."
         queryString = """
-        (select ?path
+        (select (?path)
           (depth-first-search-paths !lm:character11 !lm:character64 associates ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1024,7 +1024,7 @@ def test22():
 
         print "\nShortest bidirectional paths connecting Valjean to Bossuet with associates (should be two)."
         queryString = """
-        (select ?path
+        (select (?path)
           (bidirectional-search-paths !lm:character11 !lm:character64 associates ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1035,7 +1035,7 @@ def test22():
 
         print "\nNodal degree of Valjean (should be seven)."
         queryString = """
-        (select ?degree
+        (select (?degree)
           (nodal-degree !lm:character11 associates ?degree))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1047,7 +1047,7 @@ def test22():
 
         print "\nHow many neighbors are around Valjean? (should be 36)."
         queryString = """
-        (select ?neighbors
+        (select (?neighbors)
           (nodal-degree !lm:character11 everyone ?neighbors))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1071,7 +1071,7 @@ def test22():
 
         print "\nGraph density of Valjean's ego group? (using associates)."
         queryString = """
-        (select ?density
+        (select (?density)
           (ego-group !lm:character11 1 associates ?group)
           (graph-density ?group associates ?density))
           """
@@ -1084,7 +1084,7 @@ def test22():
 
         print "\nValjean's cliques? Should be two (using associates)."
         queryString = """
-        (select ?clique
+        (select (?clique)
           (clique !lm:character11 associates ?clique))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1491,7 +1491,7 @@ def test_json_xml_response():
     trace('Querying children of Robert w/ SPARQL, inference ON, application/sparql-results+json')
     trace(query.evaluate_generic_query(accept='application/sparql-results+json'))
 
-    query = conn.prepareQuery(QueryLanguage.PROLOG, '(select ?child (q !%s !%s ?child))' %
+    query = conn.prepareQuery(QueryLanguage.PROLOG, '(select (?child) (q !%s !%s ?child))' %
         (URIs.robert, URIs.fatherOf.toNTriples()))
 
     trace('Querying children of Robert w/ PROLOG, inference ON, application/sparql-results+xml')
@@ -1532,16 +1532,16 @@ def test_session_loadinitfile():
     for x in range(0, 10):
         conn.mini_repository.addStatement("<http:%d>" % x, "<http:before>", "<http:%d>" % (x + 1))
         conn.mini_repository.addStatement("<http:%d>" % (x + 1), "<http:after>", "<http:%d>" % x)
-    eq_([["<http:2>"]], conn.mini_repository.evalPrologQuery("(select ?x (q- ?x !<http:before> !<http:3>))")["values"])
+    eq_([["<http:2>"]], conn.mini_repository.evalPrologQuery("(select (?x) (q- ?x !<http:before> !<http:3>))")["values"])
     server.setInitfile("(<-- (after-after ?a ?b) (q- ?a !<http:after> ?x) (q- ?x !<http:after> ?b))")
     print server.getInitfile()
-    eq_([["<http:5>"]], conn.mini_repository.evalPrologQuery("(select ?x (after-after ?x !<http:3>))")["values"])
+    eq_([["<http:5>"]], conn.mini_repository.evalPrologQuery("(select (?x) (after-after ?x !<http:3>))")["values"])
 
     with conn.session(autocommit=True, loadinitfile=True) as session:
-        eq_([["<http:5>"]], session.mini_repository.evalPrologQuery("(select ?x (after-after ?x !<http:3>))")["values"])
+        eq_([["<http:5>"]], session.mini_repository.evalPrologQuery("(select (?x) (after-after ?x !<http:3>))")["values"])
     
     with conn.session(autocommit=True, loadinitfile=False) as session:
-        assert_raises(RequestError, session.mini_repository.evalPrologQuery, ("(select ?x (after-after ?x !<http:3>))",))
+        assert_raises(RequestError, session.mini_repository.evalPrologQuery, ("(select (?x) (after-after ?x !<http:3>))",))
 
     server.setInitfile(None)
 

@@ -54,9 +54,9 @@ def testProlog():
   for x in range(0, 10):
     rep.addStatement("<http:%d>" % x, "<http:before>", "<http:%d>" % (x + 1))
     rep.addStatement("<http:%d>" % (x + 1), "<http:after>", "<http:%d>" % x)
-  eq([["<http:2>"]], rep.evalPrologQuery("(select ?x (q- ?x !<http:before> !<http:3>))")["values"])
+  eq([["<http:2>"]], rep.evalPrologQuery("(select (?x) (q- ?x !<http:before> !<http:3>))")["values"])
   client.setInitfile("(<-- (after-after ?a ?b) (q- ?a !<http:after> ?x) (q- ?x !<http:after> ?b))")
-  eq([["<http:5>"]], rep.evalPrologQuery("(select ?x (after-after ?x !<http:3>))")["values"])
+  eq([["<http:5>"]], rep.evalPrologQuery("(select (?x) (after-after ?x !<http:3>))")["values"])
 
 @with_setup(cleanup)
 def testGeo():
@@ -90,7 +90,7 @@ def testSession():
     rep.openSession()
     rep.addStatement("<a>", "<b>", "<c>")
     rep.definePrologFunctors("(<-- (b ?a ?b) (q- ?a !<b> ?b))")
-    rep.evalPrologQuery("(select ?x (b ?x !<c>))")
+    rep.evalPrologQuery("(select (?x) (b ?x !<c>))")
     rep.commit()
     rep.closeSession()
     eq(1, rep.getSize())
