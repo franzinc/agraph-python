@@ -918,7 +918,7 @@ def example21():
 
     print "\nValjean's ego group in one list depth 1 (using associates)."
     queryString = """
-    (select ?group
+    (select (?group)
       (ego-group !lm:character11 1 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -930,7 +930,7 @@ def example21():
 
     print "\nValjean's ego group in one list depth 2 (using associates)."
     queryString = """
-    (select ?group
+    (select (?group)
       (ego-group !lm:character11 2 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -942,7 +942,7 @@ def example21():
 
     print "\nValjean's ego group in one list depth 3 (using associates)."
     queryString = """
-    (select ?group
+    (select (?group)
       (ego-group !lm:character11 3 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -955,7 +955,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using intimates."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -967,7 +967,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using associates."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -979,7 +979,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using everyone."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -991,7 +991,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet? with associates (should be two)."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 associates ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1004,7 +1004,7 @@ def example21():
     # Note that depth-first-search-paths are not guaranteed to be "the shortest path."
     print "\nReturn depth-first path connecting Valjean to Bossuet with associates (should be one)."
     queryString = """
-    (select ?path
+    (select (?path)
       (depth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1015,7 +1015,7 @@ def example21():
 
     print "\nShortest bidirectional paths connecting Valjean to Bossuet with associates (should be two)."
     queryString = """
-    (select ?path
+    (select (?path)
       (bidirectional-search-paths !lm:character11 !lm:character64 associates ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1026,7 +1026,7 @@ def example21():
 
     print "\nNodal degree of Valjean (should be seven)."
     queryString = """
-    (select ?degree
+    (select (?degree)
       (nodal-degree !lm:character11 associates ?degree))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1038,7 +1038,7 @@ def example21():
 
     print "\nHow many neighbors are around Valjean? (should be 36)."
     queryString = """
-    (select ?neighbors
+    (select (?neighbors)
       (nodal-degree !lm:character11 everyone ?neighbors))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1064,7 +1064,7 @@ def example21():
 
     print "\nGraph density of Valjean's ego group? (using associates)."
     queryString = """
-    (select ?density
+    (select (?density)
       (ego-group !lm:character11 1 associates ?group)
       (graph-density ?group associates ?density))
       """
@@ -1077,7 +1077,7 @@ def example21():
 
     print "\nValjean's cliques? Should be two (using associates)."
     queryString = """
-    (select ?clique
+    (select (?clique)
       (clique !lm:character11 associates ?clique))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
