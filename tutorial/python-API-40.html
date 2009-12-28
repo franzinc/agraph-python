@@ -43,15 +43,17 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>The AllegroGraphServer  object represents a remote AllegroGraph server on the network.&nbsp; It is used to inventory and access the catalogs of that server.</p>
 <p> Source: \AllegroGraphDirectory\python\franz\openrdf\sail\allegrographserver.py.</p>
 <h3>Constructor</h3>
-<p>AllegroGraphServer(self, host, port=4567)</p>
+<p>AllegroGraphServer(self, host, port=10035,user=None,password=None)</p>
 <ul>
   <li><em>host</em> is a string describing the network path to the AllegroGraph server. No default. </li>
-  <li><em>port</em> is a string containing the AllegroGraph HTTP port on the server. It defaults to &quot;4567&quot;. </li>
+  <li><em>port</em> is a string containing the AllegroGraph HTTP port on the server. It defaults to &quot;10035&quot;.</li>
+  <li><em>user</em> is an AllegroGraph user name.</li>
+  <li><em>password</em> is the user's password.  </li>
 </ul>
 <dl>
   <dt>Example:</dt>
 </dl>
-<pre>    server = AllegroGraphServer(path=&quot;localhost&quot;, port=&quot;8080&quot;) </pre>
+<pre>    server = AllegroGraphServer(path=&quot;localhost&quot;, port=&quot;8080&quot;, user=&quot;test&quot;, password=&quot;pw&quot;) </pre>
 <h3>Methods</h3>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;"  >
   <tr>
@@ -59,12 +61,28 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <td width="634">Returns a string containing the path to the host server. </td>
   </tr>
   <tr>
+    <td>getInitfile(self)</td>
+    <td>Retrieve the contents of the server initialization file. </td>
+  </tr>
+  <tr>
       <td>listCatalogs(self)</td>
       <td>Returns a string containing the names of the server's catalogs. </td>
   </tr>
   <tr>
-      <td>openCatalog(self, shortName)</td>
-      <td>Returns a <a href="#Catalog Class">Catalog</a> object. <em>shortName</em> is one of the catalog names from listCatalogs(). Called with no arguments, it defaults to the rootCatalog described in the AllegroGraph configuration file. </td>
+      <td>openCatalog(self, name=None)</td>
+      <td>Returns a <a href="#Catalog Class">Catalog</a> object. <em>Name</em> is one of the catalog names from listCatalogs() or &quot;None&quot; to open the rootCatalog described in the AllegroGraph configuration file. </td>
+  </tr>
+  <tr>
+    <td>setInitfile(self, content=None, restart=True)</td>
+    <td>Replace the current initialization file contents with the content string or remove if None. Restart specifies whether to shut down any current running back ends, so that subsequent requests will be handled by back ends that have loaded the new init file. </td>
+  </tr>
+  <tr>
+    <td>url(self)</td>
+    <td>Return the server's URL. </td>
+  </tr>
+  <tr>
+    <td>version(self)</td>
+    <td>Return the server's version as a string. </td>
   </tr>
 
 </table>
@@ -72,11 +90,10 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>A Catalog object is a container for multiple repositories.&nbsp; </p>
 <p>Source: \AllegroGraphDirectory\python\franz\openrdf\sail\allegrographserver.py.</p>
 <h3>Constructor</h3>
-<p>Catalog(self, short_name, mini_catalog, server) </p>
+<p>Catalog(self, name, client) </p>
 <ul>
-  <li><em>short_name</em> is the name of the catalog from <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.listCatalogs(). </li>
-  <li><em>mini_catalog</em> is an internal data structure supplied by the <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.openCatalog() method. </li>
-  <li><em>server</em> is the <a href="#AllegroGraphServer Class">AllegroGraphServer</a> object that called this constructor. </li>
+  <li><em>name</em> is the name of the catalog from <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.listCatalogs(). </li>
+  <li><em>client</em> is an internal data structure supplied by the <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.openCatalog() method. </li>
 </ul>
 <p>Example:&nbsp; Best practice is to invoke the Catalog constructor using <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.openCatalog(), which supplies the specialized arguments needed by the Catalog contructor.</p>
 <pre>    catalog = server.openCatalog('scratch') </pre>
@@ -85,6 +102,14 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <tr>
       <td valign="top">close(self)</td>
       <td>Closes the Catalog.&nbsp; It is a &quot;best practice&quot; to close Catalogs when you are finished with them.</td>
+  </tr>
+  <tr>
+    <td valign="top">createRepository(self, name)</td>
+    <td>Creates a new Repository within the Catalog. <em>name</em> is a string identifying the repository. </td>
+  </tr>
+  <tr>
+    <td valign="top">deleteRepository(self, name) </td>
+    <td>Deletes the named Respository from the Catalog. </td>
   </tr>
   <tr>
       <td width="168" valign="top">getName(self)</td>
@@ -117,18 +142,12 @@ Forgetting the latter can result in loss of data (depending on the Repository
 implementation)! </p>
 <p>Source: \AllegroGraphDirectory\python\franz\openrdf\repository\repository.py.</p>
 <h3>Constructor</h3>
-<p>Repository(self, catalog, database_name, access_verb)</p>
+<p>Repository(self, catalog, database_name, repository)</p>
 <ul>
   <li><em>catalog</em> is the <a href="#Catalog Class">Catalog</a> object that created this Repository using <a href="#Catalog Class">Catalog</a>.getRepository(). </li>
   <li><em>repository_name</em> is the name of a repository from <a href="#Catalog Class">Catalog</a>.listRepositories(). </li>
-  <li><em>access_verb</em> is one of the following: </li>
-<ul>
-  <li><strong>Repository.RENEW</strong> clears the contents of an existing repository before opening. If the indicated repository does not exist, 
-  it creates one. </li>
-  <li><strong>Repository.OPEN</strong> opens an existing repository, or throws an exception if the repository is not found. </li>
-  <li><strong>Repository.ACCESS</strong> opens an existing repository, or creates a new one if the repository is not found.</li>
-  <li><strong>Repository.CREATE</strong> creates a new repository, or throws an exception if one by that name already exists.</li>
-</ul></ul>
+  <li><em>repository</em> is the name of a mini-repository (an internal structure). </li>
+</ul>
 <p>Example:&nbsp; Best practice is to invoke the Repository constructor using <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.getRepository(), which supplies the specialized arguments needed by the Repository contructor.</p>
 <pre>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, accessMode)</pre>
 <h3>Methods</h3>
@@ -165,6 +184,10 @@ implementation)! </p>
       <td> Checks whether this Repository is writable, i.e. if the data contained in this store can be changed. </td>
   </tr>
   <tr>
+    <td valign="top">listFreeTextPredicates(self)</td>
+    <td>Returns a list of predicates that have been identified for free-text indexing. </td>
+  </tr>
+  <tr>
       <td valign="top">registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None)</td>
       <td><p>Register an inlined datatype. <em>Predicate</em> is the URI of predicate used in the triple store. <em>Datatype</em> may be one of: XMLSchema.INT, XMLSchema.LONG, XMLSchema.FLOAT, XMLSchema.DATE, and XMLSchema.DATETIME.&nbsp; <em>NativeType</em> may be &quot;int&quot;, &quot;datetime&quot;, or &quot;float&quot;.</p>
               <p> You must supply <em>nativeType</em> and either <em>predicate</em> or <em>datatype</em>. </p>
@@ -181,7 +204,7 @@ implementation)! </p>
   </tr>
 </table>
 <h2 id="RepositoryConnection Class">RepositoryConnection Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The RepositoryConnection class is the main interface for updating data in and performing queries on a <a href="#Repository Class">Repository</a>. By default, a RespositoryConnection is in autoCommit mode, meaning  that each operation corresponds to a single transaction on the underlying triple store. autoCommit can be switched off, in which case it is up to the user to  handle transaction commit/rollback. Note that care should be taking to always  properly close a RepositoryConnection after one is finished with it, to free  up resources and avoid unnecessary locks.<br>
+<p>The RepositoryConnection class is the main interface for updating data in and performing queries on a <a href="#Repository Class">Repository</a>. By default, a RespositoryConnection is in autoCommit mode, meaning  that each operation corresponds to a single transaction on the underlying triple store. autoCommit can be switched off, in which case it is up to the user to  handle transaction commit/rollback. Note that care should be taken to always  properly close a RepositoryConnection after one is finished with it, to free  up resources and avoid unnecessary locks.<br>
   <br>
   Several methods take a <em>vararg</em> argument that optionally specifies a (set of)  context(s) on which the method should operate. (A context is the URI of a subgraph.) Note that a <em>vararg</em> parameter  is optional, it can be completely left out of the method call, in which case  a method either operates on a provided statement's context (if one of the  method parameters is a statement or collection of statements), or operates on  the repository as a whole, completely ignoring context. A <em>vararg</em> argument may  also be null (cast to Resource) meaning that the method operates on those  statements which have no associated context only.</p>
 <p>Source: \AllegroGraphDirectory\python\franz\openrdf\repository\repositoryconnection.py.</p>
@@ -191,7 +214,7 @@ implementation)! </p>
 <p>Example: The best practice is to use the <a href="#Repository Class">Repository</a>.getConnection() method, which supplies the <em>repository</em> parameter to the construction method. .</p>
 <pre>&nbsp;&nbsp;&nbsp; connection = myRepository.getConnection()</pre>
 <h3>General Connection Methods</h3>
-<p>This table contains the repositoryConnection methods that create, maintain, search, and delete triple stores. There are following tables that list special methods for <a href="#Free Text Search Methods">Free Text Search</a>, <a href="#Prolog Rule Inference Methods">Prolog Rule Inference</a>, <a href="#Geospatial Reasoning Methods">Geospatial Reasoning</a>, and <a href="#Social Network Analysis Methods">Social Network Analysis</a>. </p>
+<p>This table contains the repositoryConnection methods that create, maintain, search, and delete triple stores. There are following tables that list special methods for <a href="#Free Text Search Methods">Free Text Search</a>, <a href="#Prolog Rule Inference Methods">Prolog Rule Inference</a>, <a href="#Geospatial Reasoning Methods">Geospatial Reasoning</a>, <a href="#Social Network Analysis Methods">Social Network Analysis,</a> <a href="#Transactions">Transactions</a> and <a href="#SPOGI">Subject Triples Caching</a>. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
       <td valign="top">add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False)</td>
@@ -225,9 +248,9 @@ implementation)! </p>
       <td>Add the supplied <em>triples_or_quads</em> to this repository. Each triple can be a list or a tuple of Values.<em> context</em> is the URI of a subgraph, which will be stored in the fourth field of the &quot;triple,&quot; defaulting to ALL_CONTEXTS. If <em>ntriples</em> is True, then the triples or quads are assumed to contain valid ntriples strings, and they are passed to the server with no conversion. The default value is False. </td>
   </tr>
   <tr>
-      <td valign="top">clear(self, contexts=None)</td>
+      <td valign="top">clear(self, contexts=ALL_CONTEXTS)</td>
       <td>Removes all statements from the designated list of <em>contexts</em> (subgraphs) in the repository. If 
-              <em>contexts</em> is None (the default), it clears the repository of all statements. </td>
+              <em>contexts</em> is ALL_CONTEXTS (the default), it clears the repository of all statements. </td>
   </tr>
   <tr>
       <td valign="top">clearNamespaces(self)</td>
@@ -362,6 +385,14 @@ limit=None)</td>
 <p>The following repositoryConnection method supports free-text indexing in AllegroGraph. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
+    <td valign="top">evalFreeTextSearch(self, pattern, infer=False, callback=None,limit=None</td>
+    <td>Return an array of statements for the given free-text pattern search.</td>
+  </tr>
+  <tr>
+    <td valign="top">listFreeTextPredicates(self)</td>
+    <td>List the predicates that are used for free-text indexing.</td>
+  </tr>
+  <tr>
     <td valign="top">registerFreeTextPredicate(self, uri=None, namespace=None, localname=None)</td>
     <td>You must supply either the<em> uri</em> parameter or both <em>namespace</em> and <em>localname</em>. Register a predicate <em>uri</em> (or alternately generate the URI by concatenating <em>namespace</em>+<em>localname</em>).&nbsp; This tells the <a href="#Repository Class">Repository</a> to index text keywords from string values of this predicate in the triple store. This makes text search possible on this predicate. </td>
   </tr>
@@ -414,6 +445,14 @@ For use with a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
     <td valign="top">createRectangularSystem(self, scale=1, unit=None, xMin=0, xMax=None, yMin=0, yMax=None)</td>
     <td>Create a Cartesian coordinate system for geospatial location matching. <em>scale</em> should be your estimate of the Y size of a typical search region. <em>unit </em>must be None. <em>xMin</em> and <em>xMax</em> are the left and right edges of the rectangle. <em>yMin</em> and <em>yMax</em> are the bottom and top edges of the rectangle. </td>
   </tr>
+  <tr>
+    <td valign="top">getGeoType(self)</td>
+    <td>Returns what type of geospatial object it is. </td>
+  </tr>
+  <tr>
+    <td valign="top">setGeoType(self)</td>
+    <td>Sets the geoType of a geospatial object. </td>
+  </tr>
 </table>
 <h3 id="Social Network Analysis Methods">Social Network Analysis Methods</h3>
 <p>The following repositoryConnection methods support Social Network Analysis in AllegroGraph. The Python API to the Social Network Analysis methods of AllegroGraph requires Prolog queries, and therefore must be run in a <a href="#Dedicated Back End">Dedicated Back End</a>. </p>
@@ -436,25 +475,31 @@ that defines the edges.<br>
 For use in a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
   </tr>
 </table>
-<p>&nbsp;</p>
 
-<h3 id="Dedicated Back End">Dedicated Back End </h3>
-<p>Most of the time, multiple AllegroGraph users pool triples in a common back end. Their data may be segregated into multiple contexts, but any part of this data may be retrieved by any of the users.</p>
-<p>There are situations where a little more security is required. You may open a &quot;dedicated back end&quot; at any time and populate it with triples that the other users cannot view. These triples may be searched and manipulated in the usual ways, but do not become visible to other users until you &quot;commit&quot; them to the shared triple store. </p>
-<p>A dedicated back end also provides a secure &quot;sandbox&quot; for running Prolog queries and rules, including those used in Social Network Analysis. Prolog queries can reach into Lisp, and therefore must be contained so that they cannot be used to bypass server security. The dedicated back end provides a safe environment in which to run these features. </p>
-<p>Rollback removes these triples from the dedicated back end, leaving it empty. Closing the dedicated back end deletes all uncommitted triples, all rules, generators and matrices that were created in the dedicated back end. Rules, generators and matrices cannot be committed. They persist as long as the dedicated back end persists, and are deleted when the dedicated back end is closed. </p>
+
+<h3 id="Transactions">Transactions</h3>
+<p>AllegroGraph lets you set up a special RepositoryConnection (a &quot;session&quot;) that supports transaction semantics. You can add statements to this session until you accumulate all the triples you need for a specific transaction. Then you can commit the triples in a single act. Up to that moment the triples will not be visible to other users of the repository.</p>
+<p>If anything interrupts the accumulation of triples building to the transaction, you can roll back the session. This discards all of the uncommitted triples and resynchronizes the session with the repository as a whole. </p>
+<p>Closing the session deletes all uncommitted triples, all rules, generators and matrices that were created in the session. Rules, generators and matrices cannot be committed. They persist as long as the session persists. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
-    <td valign="top">openDedicated(self)</td>
-    <td>Open a dedicated back end connection. </td>
+    <td valign="top">openSession(self)</td>
+    <td>Open a dedicated session. </td>
   </tr>
   <tr>
-    <td valign="top">closeDedicated(self)</td>
+    <td valign="top">closeSession(self)</td>
     <td>Close a dedicated back end connection. </td>
   </tr>
   <tr>
-    <td valign="top">dedicated(self)</td>
-    <td>A dedicated connection context manager for use iwt the 'with' statement. Automatically calls openDedicated() at block start and closeDedicated() at block end. </td>
+    <td valign="top">session(self,  autocommit=False, lifetime=None, loadinitfile=False)</td>
+    <td><p>A dedicated connection context manager for use with the 'with' statement. Automatically calls openSession() at block start and closeSession() at block end. </p>
+    <p> If autocommit is True, commits are done on each request, otherwise 
+you will need to call commit() or rollback() as appropriate for your 
+application.</p>
+    <p> lifetime is an integer specifying the time to live in seconds of <br>
+  the session.</p>
+    <p> If loadinitfile is True, then the current initfile will be loaded<br>
+  for you when the session starts.</p></td>
   </tr>
   <tr>
     <td valign="top">commit(self)</td>
@@ -465,9 +510,26 @@ For use in a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
     <td>Rolls back changes on a dedicated connection. </td>
   </tr>
 </table>
-<p>&nbsp; </p>
-
-
+<h3 id="SPOGI">Subject Triples Caching </h3>
+<p>You can enable subject triple caching to speed up queries where the same subject URI appears in multiple patterns. The first time AllegroGraph retrieves triples for a specific resource, it caches the triples in memory. Subsequent query patterns that ask for the same subject URI can retrieve the matching triples very quickly from the cache. The cache has a size limit and automatically rolls over as that limit is exceeded.</p>
+<table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+    <tr>
+        <td valign="top">enableSubjectTriplesCache(self, size=None)</td>
+      <td>Maintain a cache of size 'size' that caches, for each accessed 
+resource, quads where the resource appears in subject position. 
+This can accelerate the performance of certain types of queries. 
+The size is the maximum number of subjects whose triples will be cached. 
+Default is 100,000.</td>
+    </tr>
+    <tr>
+      <td valign="top">disableSubjectTriplesCache(self)</td>
+      <td>Turn of caching. </td>
+    </tr>
+    <tr>
+      <td valign="top">getSubjectTriplesCacheSize(self)</td>
+      <td>Return the current size of the subject triples cache.</td>
+    </tr>
+</table>
 
 <h2 id="Query Class">Query Class&nbsp;(and Subclasses) &nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The Query class is 
@@ -544,7 +606,7 @@ non-instantiable. It is an abstract class from which the three query subclasses 
 <p>TupleQuery uses all the methods of the <a href="#Query Class">Query</a> class, plus one more: </p>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
-        <td valign="top">evaluate(self, jdbc=False)</td>
+        <td valign="top">evaluate(self, jdbc=False, count=False)</td>
         <td>Execute the embedded query against the RDF store. Return 
 an iterator that produces for each step a tuple of values 
 (resources and literals) corresponding to the variables 
@@ -661,7 +723,7 @@ operation.</td>
 </table>
 <p>&nbsp;</p>
 <h2 id="ValueFactory Class">ValueFactory Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>A ValueFactory is a factory for creating URIs, blank nodes, literals and <a href="#Statement Class">Statement</a>s.&nbsp; In the AllegroGraph Python interface, the ValueFactory class would be regarded as obsolete.&nbsp; Its functions have been subsumed by the expanded capability of the ResponseConnection class. It is documented here for the convenience of the person who is porting an application from Aduma Sesame. &nbsp; </p>
+<p>A ValueFactory is a factory for creating URIs, blank nodes, literals and <a href="#Statement Class">Statement</a>s.&nbsp; In the AllegroGraph Python interface, the ValueFactory class would be regarded as obsolete.&nbsp; Its functions have been subsumed by the expanded capability of the RepositoryConnection class. It is documented here for the convenience of the person who is porting an application from Aduma Sesame. &nbsp; </p>
 <p>Source: \AllegroGraphDirectory\python\franz\openrdf\model\valuefactory.py.</p>
 <h3>Constructor</h3>
 <p>ValueFactory(self, store)</p>
@@ -689,6 +751,7 @@ operation.</td>
     </tr>
 </table>
 <p></p>
-<p>&nbsp;  </p>
+<p>&nbsp;</p>
+<p>&nbsp;   </p>
 </body>
 
