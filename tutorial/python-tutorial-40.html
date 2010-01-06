@@ -54,7 +54,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Ask, Describe, and Construct Queries">Ask, Describe, and Construct Queries</a></li>
       <li><a href="#Parametric Queries">Parametric Queries</a></li>
       <li><a href="#Range Matches">Range Matches</a></li>
-<!--      <li><a href="#Federated Repositories">Federated Repositories</a></li>  -->
+      <li><a href="#Federated Repositories">Federated Repositories</a></li>  
 	  <li><a href="#Prolog Rule Queries">Prolog Rule Queries</a></li>
       <li><a href="#Loading Prolog Rules">Loading Prolog Rules</a> </li>
       <li><a href="#RDFS++ Inference">RDFS++ Inference</a> </li>
@@ -796,31 +796,26 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <pre class="output">(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)
 (&lt;http://example.org/people/carol&gt;, &lt;http://example.org/people/age&gt;, &quot;39&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)</pre>
 <p>It has matched 42 and &quot;39&quot;, but not 24. </p>
-<!-- Federated repositories are not supported in AG 4.0 alpha.
-<h2 id="Federated Repositories">Federated Repositories (test16())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+
+<h2 id="Federated Repositories">Federated Repositories (example16())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph lets you split up your triples among repositories on multiple servers and then search them all in parallel. To do this we query a single &quot;federated&quot; repository that automatically distributes the queries to the secondary repositories and combines the results. From the point of view of your Python code, it looks like you are working with a single repository. </p>
-<p>The test16() example begins by defining a small output function that we'll use at the end of the lesson. It prints out responses from different repositories. This example is about red apples and green apples, so the output function talks about apples. </p>
-<pre class="input">def test16():<br>    def pt(kind, rows):<br>        print &quot;\n%s Apples:\t&quot; % kind.capitalize(),<br>        for r in rows: print r[0].getLocalName(),</pre>
+<p>Example16() begins by defining a small output function that we'll use at the end of the lesson. It prints out responses from different repositories. This example is about red apples and green apples, so the output function talks about apples. </p>
+<pre class="input">def example16():<br>    def pt(kind, rows, expected):<br>        print &quot;\n%s Apples:\t&quot; % kind.capitalize(),<br>        for r in rows: print r[0].getLocalName(),</pre>
 <p>In the next block of code, we open connections to a redRepository and a greenRepository on the local server. In a typical federation scenario, these respositories would be distributed across multiple servers. </p>
-<pre class="input">
-    catalog = AllegroGraphServer(&quot;localhost&quot;, port=8080).openCatalog('scratch') <br>    ## create two ordinary stores, and one federated store: <br>    redConn = catalog.getRepository(&quot;redthings&quot;, Repository.RENEW).initialize().getConnection()<br>    greenConn = greenRepository = catalog.getRepository(&quot;greenthings&quot;, Repository.RENEW).initialize().getConnection()
-</pre>
+<pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog(AG_CATALOG)<br>    ## create two ordinary stores, and one federated store: <br>    redConn = catalog.getRepository(&quot;redthings&quot;, Repository.RENEW).initialize().getConnection()<br>    greenConn = catalog.getRepository(&quot;greenthings&quot;, Repository.RENEW).initialize().getConnection()</pre>
 <p>Now we create a &quot;federated&quot; respository, which is connected to the distributed repositories at the back end. </p>
 <pre class="input">
-<br>    rainbowConn = (catalog.getRepository(&quot;rainbowthings&quot;, Repository.RENEW)<br>                  .addFederatedTripleStores([&quot;redthings&quot;, &quot;greenthings&quot;]).initialize().getConnection())<br>
-</pre>
-<p>The next step is to populate the Red and Green repositories with a few triples. </p>
-<pre class="input">
-    ex = &quot;http://www.demo.com/example#&quot;<br>    ## add a few triples to the red and green stores:<br>    redConn.add(redConn.createURI(ex+&quot;mcintosh&quot;), RDF.TYPE, redConn.createURI(ex+&quot;Apple&quot;))<br>    redConn.add(redConn.createURI(ex+&quot;reddelicious&quot;), RDF.TYPE, redConn.createURI(ex+&quot;Apple&quot;))    <br>    greenConn.add(greenConn.createURI(ex+&quot;pippin&quot;), RDF.TYPE, greenConn.createURI(ex+&quot;Apple&quot;))<br>    greenConn.add(greenConn.createURI(ex+&quot;kermitthefrog&quot;), RDF.TYPE, greenConn.createURI(ex+&quot;Frog&quot;))</pre>
+    federated = server.openCatalog(server.FEDERATED)<br>    try:<br>        federated.deleteRepository(&quot;rainbowthings&quot;)<br>    finally:<br>        pass<br>    federated.createRepository(&quot;rainbowthings&quot;, repos=[ AG_CATALOG + &quot;:redthings&quot;, AG_CATALOG + &quot;:greenthings&quot;])<br>    rainbowConn = federated.getRepository(&quot;rainbowthings&quot;).initialize().getConnection()</pre>
 <p>It is necessary to register the &quot;ex&quot; namespace in all three repositories so we can use it in the upcoming query. </p>
-<pre class="input">    redConn.setNamespace('ex', ex)<br>    greenConn.setNamespace('ex', ex)<br>    rainbowConn.setNamespace('ex', ex)        </pre>
+<pre class="input">    ex = &quot;http://www.demo.com/example#&quot;<br>    redConn.setNamespace('ex', ex)<br>    greenConn.setNamespace('ex', ex)<br>    rainbowConn.setNamespace('ex', ex)        </pre>
+<p>The next step is to populate the Red and Green repositories with a few triples. </p>
+<pre class="input">    redConn.add(redConn.createURI(ex+&quot;mcintosh&quot;), RDF.TYPE, redConn.createURI(ex+&quot;Apple&quot;))<br>    redConn.add(redConn.createURI(ex+&quot;reddelicious&quot;), RDF.TYPE, redConn.createURI(ex+&quot;Apple&quot;))    <br>    greenConn.add(greenConn.createURI(ex+&quot;pippin&quot;), RDF.TYPE, greenConn.createURI(ex+&quot;Apple&quot;))<br>    greenConn.add(greenConn.createURI(ex+&quot;kermitthefrog&quot;), RDF.TYPE, greenConn.createURI(ex+&quot;Frog&quot;))</pre>
 <p>Now we write a query that retrieves Apples from the Red repository, the Green repository, and the federated repository, and prints out the results. </p>
 <pre class="input">
     queryString = &quot;select ?s where { ?s rdf:type ex:Apple }&quot;<br>    ## query each of the stores; observe that the federated one is the union of the other two:<br>    pt(&quot;red&quot;, redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())<br>    pt(&quot;green&quot;, greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())<br>    pt(&quot;federated&quot;, rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) </pre>
 <p>The output is shown below. The federated response combines the individual responses. </p>
-<pre class="output">Red Apples:	mcintosh reddelicious <br>Green Apples: pippin
-Federated Apples: pippin mcintosh reddelicious</pre>
--->
+<pre class="output">Red Apples:   reddelicious mcintosh <br>Green Apples:   pippin <br>Federated Apples:   reddelicious mcintosh pippin</pre>
+
 <h2 id="Prolog Rule Queries">Prolog Rule Queries (example17())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph Server lets us load Prolog backward-chaining rules to make query-writing simpler.&nbsp; The Prolog rules let us write the queries in terms of higher-level concepts.&nbsp; When a query refers to one of these concepts, Prolog rules become active in the background to determine if the concept is valid in the current context.&nbsp; </p>
 <p>For instance, in this example the query says that the matching resource must be a &quot;man&quot;.&nbsp; A Prolog rule examines the matching resources to see which of them are persons who are male.&nbsp; The query can proceed for those resources. The rules provide a level of abstraction that makes the queries simpler to express. </p>
@@ -904,7 +899,7 @@ Federated Apples: pippin mcintosh reddelicious</pre>
 	bob = conn.createURI(&quot;http://example.org/people/bob&quot;)
 	bobby = conn.createURI(&quot;http://example.org/people/bobby&quot;)
 </pre>
-The next step is to create URIs for the predicates we'll need (<em>name</em> and <em>child</em>), plus one for the Person class. <br>
+The next step is to create URIs for the predicates we'll need (<em>name</em> and <em>fatherOf</em>), plus one for the Person class. <br>
 <pre class="input">    ## create name and child predicates, and Person class.<br>    name = conn.createURI(&quot;http://example.org/ontology/name&quot;)<br>    fatherOf = conn.createURI(&quot;http://example.org/ontology/fatherOf&quot;)<br>    person = conn.createURI(&quot;http://example.org/ontology/Person&quot;)
 </pre>
 The names of the four people will be literal values. <br>
@@ -940,7 +935,7 @@ This is a simple getStatements() search asking for the children of Robert, with 
 (&lt;http://example.org/people/robert&gt;, &lt;http://example.org/ontology/fatherOF&gt;, &lt;http://example.org/people/roberta&gt;)
 (&lt;http://example.org/people/robert&gt;, &lt;http://example.org/ontology/fatherOf&gt;, &lt;http://example.org/people/bobby&gt;)
 </pre>
-<p>Note that with inference ON, Robert suddenly has two children because Bob's child has been included.&nbsp; Also note that the final triple (robert hasChild bobby) has been inferred.&nbsp; The inference engine has determined that this triple logically must be true, even though it does not appear in the repository. </p>
+<p>Note that with inference ON, Robert suddenly has two children because Bob's child has been included.&nbsp; Also note that the final triple (robert fatherOf bobby) has been inferred.&nbsp; The inference engine has determined that this triple logically must be true, even though it does not appear in the repository. </p>
 <h3>InverseOf</h3>
 <p>We can reuse the Robert family tree to see how the inference engine can deduce the presence of inverse relationships. </p>
 <p>Up to this point in this tutorial, we have created new predicates simply by creating a URI and using it in the predicate position of a triple.&nbsp; This time we need to create a predicate<em> resource</em> so we can set an attribute of that resource.&nbsp; We're going to declare that the <strong>hasFather</strong> predicate is the <strong>owl:inverseOf</strong> the existing fatherOf predicate. </p>
@@ -1478,7 +1473,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Remember that when you are done with a session or connection, it is appropriate to close it:</p>
 <pre class="input">    dedicated.closeSession()<br>    dedicated.close()<br>    common.close()</pre>
 <p>This recovers resources that would otherwise remain bound. </p>
-<p><font color="#CCCCCC">December 05, 2009 4.0 M2 release</font></p>
+<p><font color="#CCCCCC">December 14, 2009 4.0 M2 release</font></p>
 <p>&nbsp;</p>
 </body>
 
