@@ -32,7 +32,7 @@ from ..util import strings
 
 import datetime
 from collections import defaultdict
-
+from copy import copy
 
 def datatype_from_python(value, datatype):
     """
@@ -44,28 +44,35 @@ def datatype_from_python(value, datatype):
 
     ## careful: test for 'bool' must precede test for 'int':
     if isinstance(value, bool):
-        return str(value), datatype or XMLSchema.BOOLEAN
+        return unicode(value).lower(), datatype or XMLSchema.BOOLEAN
+
+    if isinstance(value, long):
+        return unicode(value), datatype or XMLSchema.INTEGER
 
     if isinstance(value, int):
-        return str(value), datatype or XMLSchema.INT
+        return unicode(value), datatype or XMLSchema.LONG
 
     if isinstance(value, float):
-        return str(value), datatype or XMLSchema.FLOAT
+        return unicode(value), datatype or XMLSchema.DOUBLE
 
     if isinstance(value, datetime.datetime):
-        ## TODO: NEED TO ADD TIMEZONE VALUE??:
-        value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## truncate microseconds  
-        return value, datatype or XMLSchema.DATETIME
+        if value.utcoffset() is not None:
+            value = copy(value)
+            value = value.replace(tzinfo=None) - value.utcoffset()
+        str_value = value.isoformat() + 'Z'
+        return str_value, datatype or XMLSchema.DATETIME
 
     if isinstance(value, datetime.time):
-        value = value.strftime(Literal.ISO_FORMAT_WITH_T) ## UNTESTED
-        return str(value), datatype or XMLSchema.TIME
+        if value.utcoffset() is not None:
+            value = copy(value)
+            value = value.replace(tzinfo=None) - value.utcoffset()
+        str_value = value.isoformat() + 'Z'
+        return str_value, datatype or XMLSchema.TIME
 
     if isinstance(value, datetime.date):
-        value = value.strftime(Literal.ISO_FORMAT)
-        return str(value), datatype or XMLSchema.DATE
+        return value.isoformat(), datatype or XMLSchema.DATE
 
-    return str(value), datatype
+    return unicode(value), datatype
 
 
 class Literal(Value):
@@ -79,9 +86,6 @@ class Literal(Value):
         # Uses the properties to set the real values
         self.label, self.datatype = datatype_from_python(label, datatype)
         self.language = language
-
-    ISO_FORMAT_WITH_T = "%Y-%m-%dT%H:%M:%S"
-    ISO_FORMAT = "%Y-%m-%d"
 
     def getDatatype(self):
         """The URI representing the datatype for this literal, if there is one""" 
@@ -152,21 +156,24 @@ class Literal(Value):
     
     def booleanValue(self):
         """Convert to bool"""
-        return bool(self._label)
+        return bool(self._label.capitalize())
     
     def dateValue(self):
         """Convert to date"""
-        return datetime.datetime.strptime(self._label, "%Y-%m-%d").date()
+        label = self._label
+        if label.endswith('Z'):
+            label = label[:-1]
+        return datetime.datetime.strptime(label, "%Y-%m-%d").date()
 
     def datetimeValue(self):
         """Convert to datetime"""
-        return datetime.datetime.strptime(self._label, Literal.ISO_FORMAT_WITH_T)
+        return _parse_iso(self._label)
 
     def timeValue(self):
         """Convert to time"""
-        ## THIS IS GOING TO BREAK:
-        return datetime.time(self._label)
-
+        # Making this easy by picking a someone arbitrary date (that had a leap second just in case)
+        # and reusing _parse_iso
+        return _parse_iso('2008-12-31T' + self._label).time()
     
     ## Returns the {@link XMLGregorianCalendar} value of this literal. A calendar
     ## representation can be given for literals whose label conforms to the
@@ -210,7 +217,9 @@ class Literal(Value):
 XSDToPython = defaultdict(lambda: Literal.getValue, [
                 (XMLSchema.INT.uri, Literal.intValue),
                 (XMLSchema.FLOAT.uri, Literal.floatValue), 
-                (XMLSchema.LONG.uri, Literal.longValue),
+                (XMLSchema.DOUBLE.uri, Literal.floatValue), 
+                (XMLSchema.LONG.uri, Literal.intValue),
+                (XMLSchema.INTEGER.uri, Literal.longValue),
                 (XMLSchema.BOOLEAN.uri, Literal.booleanValue),
                 (XMLSchema.DATETIME.uri, Literal.datetimeValue),
                 (XMLSchema.DATE.uri, Literal.dateValue),
@@ -313,3 +322,166 @@ class GeoPolygon(GeoSpatialRegion):
     
     def __str__(self): return "|Polygon|%s" % self.vertices
     
+# The code below this line is modifed from the fixed_datetime.py file
+# which can be found here:
+#
+# http://blog.twinapex.fi/2008/06/30/relativity-of-time-shortcomings-in-python-datetime-and-workaround/
+#
+# We don't wish to be dependant on pytz or monkeypatch datetime, so only
+# portions were used.
+
+# Copyright (c) 2008, Red Innovation Ltd., Finland
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of Red Innovation nor the names of its contributors 
+#       may be used to endorse or promote products derived from this software 
+#       without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY RED INNOVATION ``AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL RED INNOVATION BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+def _parse_iso(timestamp):
+    """Parses the given ISO 8601 compatible timestamp string 
+    and converts it to fixed_datetime.datetime. The timestamp
+    must conform to following formats:
+
+         - the format is DATE SEP TIME TIMEZONE without
+           any intervening spaces.
+
+         - the date must be in format YYYY-MM-DD
+
+         - the time may be either
+             * HH:MM:SS,FFFF
+             * HH:MM,FFFF
+             * HH,FFFF
+           FFFF is the fractional part. Decimal point can be
+           used too.
+
+         - the time zone must be either Z, -HH:MM or +HH:MM
+
+         - the date and time must be separated either by
+           whitespace or single T letter
+
+         - the separators - and : may all be omitted, or
+           must all be present.
+
+         Examples (Unix Epoch):
+
+             1970-01-01T00:00:00Z 
+             1970-01-01T00Z 
+             1969-12-31 19,5-04:30
+             19700101T030000+0300
+    """
+    timestamp = timestamp.strip()
+    
+    m = _parse_iso.parser.match(timestamp)
+    if not m:
+        raise ValueError("Not a proper ISO 8601 timestamp!")
+
+    year  = int(m.group('year'))
+    month = int(m.group('month'))
+    day   = int(m.group('day'))
+    
+    h, min, s, us = None, None, None, 0
+    frac = 0
+    if m.group('tzempty') == None and m.group('tzh') == None:
+        raise ValueError("Not a proper ISO 8601 timestamp: " +
+                "missing timezone (Z or +hh[:mm])!")
+
+    if m.group('frac'):
+        frac = m.group('frac')
+        power = len(frac)
+        frac  = long(frac) / 10.0 ** power
+
+    if m.group('hour'):
+        h = int(m.group('hour'))
+
+    if m.group('minute'):
+        min = int(m.group('minute'))
+
+    if m.group('second'):
+        s = int(m.group('second'))
+
+    if frac != None:
+        # ok, fractions of hour?
+        if min == None:
+           frac, min = _math.modf(frac * 60.0)
+           min = int(min)
+
+        # fractions of second?
+        if s == None:
+           frac, s = _math.modf(frac * 60.0)
+           s = int(s)
+
+        # and extract microseconds...
+        us = int(frac * 1000000)
+
+    if m.group('tzempty') == 'Z':
+        offsetmins = 0
+    else:
+        # timezone: hour diff with sign
+        offsetmins = int(m.group('tzh')) * 60
+        tzm = m.group('tzm')
+      
+        # add optional minutes
+        if tzm != None:
+            tzm = long(tzm)
+            offsetmins += tzm if offsetmins > 0 else -tzm
+
+    # For our use here, we should not be given non-zero offsets
+    assert offsetmins == 0
+
+    return datetime.datetime(year, month, day, h, min, s, us)
+
+import re
+
+_parse_iso.parser = re.compile("""
+    ^
+    (?P<year> [0-9]{4})(?P<ymdsep>-?)
+    (?P<month>[0-9]{2})(?P=ymdsep)
+    (?P<day>  [0-9]{2})
+
+    (?: # time part... optional... at least hour must be specified
+	(?:T|\s+)
+        (?P<hour>[0-9]{2})
+        (?:
+            # minutes, separated with :, or none, from hours
+            (?P<hmssep>[:]?)
+            (?P<minute>[0-9]{2})
+            (?:
+                # same for seconds, separated with :, or none, from hours
+                (?P=hmssep)
+                (?P<second>[0-9]{2})
+            )?
+        )?
+        
+        # fractions
+        (?: [,.] (?P<frac>[0-9]{1,10}))?
+
+        # timezone, Z, +-hh or +-hh:?mm. MUST BE, but complain if not there.
+        (
+            (?P<tzempty>Z) 
+        | 
+            (?P<tzh>[+-][0-9]{2}) 
+            (?: :? # optional separator 
+                (?P<tzm>[0-9]{2})
+            )?
+        )?
+    )?
+    $
+""", re.X) # """

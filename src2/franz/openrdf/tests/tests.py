@@ -535,8 +535,7 @@ def test15():
     age = conn.createURI(namespace=exns, localname="age")    
     age_range = conn.createRange(30, 50)
     # range = conn.createRange(24, 42)  #this setting demonstrates that the limits are inclusive.
-    if True: conn.registerDatatypeMapping(predicate=age, nativeType="int")
-    if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")  
+    if True: conn.registerDatatypeMapping(predicate=age, nativeType=int)
     # True, True: Alice Age 42(int) AND Carol Age 39(int)  
     # True, False: Alice Age 42(int) AND Carol Age 39(int)
     # False, True: Alice Age 42(int)
@@ -759,8 +758,6 @@ def test20():
     carol = conn.createURI(exns, "carol")
     conn.createRectangularSystem(scale=1, xMax=100, yMax=100)
     location = conn.createURI(exns, "location")
-    #conn.registerDatatypeMapping(predicate=location, nativeType="int")   
-    #conn.registerDatatypeMapping(predicate=location, nativeType="float")       
     conn.add(alice, location, conn.createCoordinate(30,30))
     conn.add(bob, location, conn.createCoordinate(40, 40))
     conn.add(carol, location, conn.createCoordinate(50, 50)) 
@@ -784,7 +781,6 @@ def test20():
     sanfrancisto = conn.createURI(exns, "sanfrancisco")
     salvador = conn.createURI(exns, "salvador")    
     location = conn.createURI(exns, "geolocation")
-#    conn.registerDatatypeMapping(predicate=location, nativeType="float")   
     conn.add(amsterdam, location, conn.createCoordinate(52.366665, 4.883333))
     conn.add(london, location, conn.createCoordinate(51.533333, -0.08333333))
     conn.add(sanfrancisto, location, conn.createCoordinate(37.783333, -122.433334)) 
@@ -1259,8 +1255,6 @@ def test_temporal():
     catalog = server.openCatalog(CATALOG)  
     myRepository = catalog.getRepository(STORE, Repository.RENEW)
     myRepository.initialize()
-    myRepository.registerDatatypeMapping(datatype=XMLSchema.DATETIME,
-        nativeType="datetime")
     conn = myRepository.getConnection()
     conn.clear()
 
@@ -1291,20 +1285,21 @@ def test_temporal():
         return '\n'.join([str(result) for result in results])
 
     # Try the same query with Prolog and SPARQL
+    lower = the_range.getLowerBound().toNTriples()
+    upper = the_range.getUpperBound().toNTriples()
     queryString = '''
        (select0 (?subject)
          (:limit 10)
          (:count-only t)
-         (q- ?subject ? (? !%s !%s)))''' % (
-            the_range.getLowerBound().toNTriples(),
-            the_range.getUpperBound().toNTriples())
+         (q- ?subject ? (? !%s !%s)))''' % (lower, upper)
 
+    print queryString
     count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
         ).evaluate(count=True)
     assert count == 2, '%s\nResult was %d, should be 2.' % (queryString, count)
 
-    lower = the_range.getLowerBound().toNTriples().replace('"^^', 'Z"^^')
-    upper = the_range.getUpperBound().toNTriples().replace('"^^', 'Z"^^')
+    lower = the_range.getLowerBound().toNTriples()
+    upper = the_range.getUpperBound().toNTriples()
 
     queryString = """
         SELECT ?event ?time WHERE {
@@ -1564,3 +1559,41 @@ def test_freetext():
     assert len(results)
     for result in results:
         print 'The Query Result:', result
+
+def test_roundtrips():
+    """
+    Test round-tripping of Python values.
+    """
+    conn = connect()
+    now = datetime.datetime.now()
+    conn.addTriple('<http:object>', '<http:bool>', True)
+    conn.addTriple('<http:object>', '<http:str>', 'Me')
+    conn.addTriple('<http:object>', '<http:int>', 1234)
+    conn.addTriple('<http:object>', '<http:long>', 1234L)
+    conn.addTriple('<http:object>', '<http:date>', now.date())
+    conn.addTriple('<http:object>', '<http:datetime>', now)
+    conn.addTriple('<http:object>', '<http:time>', now.time())
+    then = datetime.time(11, 34, 16, 386672)
+    conn.addTriple('<http:objecT>', '<http:time2>', then)
+
+    def checkit(name, the_type, value):
+        obj = conn.getStatements(None, '<http:%s>' % name, None
+            ).next().getObject().toPython()
+        assert isinstance(obj, the_type) 
+        assert obj == value
+
+    def time_check(name, the_type, value):
+        obj = conn.getStatements(None, '<http:%s>' % name, None
+            ).next().getObject().toPython()
+        assert isinstance(obj, the_type) 
+        # Microseconds can have floating point roundoff...
+        assert obj == value or abs(obj.microsecond - value.microsecond) < 100
+
+    checkit("bool", bool, True)
+    checkit("str", str, 'Me')
+    checkit("int", int, 1234)
+    checkit("long", long, 1234L)
+    checkit("date", datetime.date, now.date())
+    time_check("datetime", datetime.datetime, now)
+    time_check("time", datetime.time, now.time())
+    time_check("time2", datetime.time, then)

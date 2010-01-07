@@ -31,9 +31,8 @@ from .repositoryresult import RepositoryResult
 from ..exceptions import IllegalOptionException, IllegalArgumentException
 from ..model import Statement, Value
 from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
-from ..query import query as query_module
 from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
+from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage, expandPrologQueryPrefixes
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
 from ..vocabulary import RDF, RDFS, OWL, XMLSchema
@@ -607,27 +606,6 @@ class RepositoryConnection(object):
         statements = self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
         handler.export(statements)
 
-    def listIndices(self):
-        """
-        List the SPOC indices currently active in the RDF Store.
-        """
-        indices = self._get_mini_repository().listIndices()
-        return [idx[0:4].replace('g', 'c') for idx in indices]
-
-    def addIndex(self, letters):
-        """
-        Register an SPOC index of type 'letters', where 'letters' is the concatenation
-        of the letters 'SPOC' in whichever order is preferred.   An exception
-        will be thrown if the combination is not supported by AllegroGraph.
-        """
-        self._get_mini_repository().addIndex(letters.replace('c', 'g') + 'i')
-
-    def removeIndex(self, letters):
-        """
-        Drop an SPOC index.
-        """
-        self._get_mini_repository().deleteIndex(letters[0:4].replace('c', 'g') + 'i')
-        
     def getSubjectTriplesCacheSize(self):
         """
         Return the current size of the subject triples cache.
@@ -705,7 +683,7 @@ class RepositoryConnection(object):
         """
         language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
-            rules = query_module.expandPrologQueryPrefixes(rules, self)
+            rules = expandPrologQueryPrefixes(rules, self)
             self._get_mini_repository().definePrologFunctors(rules)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")

@@ -543,6 +543,10 @@ def query_events(proc_num, resultq):
 
     timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp').toNTriples()
 
+    # Perform the query in prolog or sparql
+    language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
+        else QueryLanguage.SPARQL
+
     def random_query():
         # Pick a random customer
         customer = random_customer()
@@ -555,15 +559,9 @@ def query_events(proc_num, resultq):
         start_nt = Literal(start).toNTriples()
         end_nt = Literal(end).toNTriples()
 
-        # Perform the query in prolog or sparql
-        #language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
-        #    else QueryLanguage.SPARQL
-
-        language = QueryLanguage.PROLOG
-
         if language is QueryLanguage.PROLOG:
             queryString = """
-                  (select (?event ?pred ?obj)
+                  (select0 (?event ?pred ?obj)
                     (:use-planner nil)
                     (q- ?event !%s (? !%s !%s) !%s)
                     (q- ?event ?pred ?obj))""" % (
@@ -573,11 +571,12 @@ def query_events(proc_num, resultq):
                 SELECT ?event ?pred ?obj {
                  GRAPH %s {
                    ?event %s ?time .
-                   FILTER (%s <= ?time && ?time <= %s)
+                   FILTER (?time <= %s)
+                   FILTER (?time >= %s)
                  }
-                 {?event ?pred ?obj}
-                }""" % (customer, timestamp, start_nt, end_nt)
-
+                 { ?event ?pred ?obj }
+                }""" % (customer, timestamp, end_nt, start_nt)
+    
         try:
             # Actually pull the full results to the client, then just count them
             count = len(conn.prepareTupleQuery(language, queryString
@@ -625,10 +624,10 @@ def query_events(proc_num, resultq):
             sub_count = count
             
     the_time = time.time() - the_time
-    trace('query(%d) [%s]: Querying done - %d triple results returned for %d '
+    trace('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
         'queries in %f seconds (%f queries/second, %f triples per query), '
-        ' %d queries aborted.', (proc_num, datetime.now(), count, queries,
-        the_time, queries/the_time, count/queries, restarts))
+        ' %d queries aborted.', (proc_num, datetime.now(), language,
+        count, queries, the_time, queries/the_time, count/queries, restarts))
 
     conn.close()
     resultq.put((queries, count, the_time))

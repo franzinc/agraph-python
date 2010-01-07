@@ -25,10 +25,10 @@
 from __future__ import absolute_import
 
 from ..exceptions import IllegalOptionException, QueryMissingFeatureException
-from . import commonlogic
 from .dataset import ALL_CONTEXTS, Dataset
 from .queryresult import GraphQueryResult, TupleQueryResult
 from ..repository.jdbcresultset import JDBCQueryResultSet
+from .commonlogic import translate_common_logic_query, contexts_to_uris
 import datetime
 
 class QueryLanguage:
@@ -36,13 +36,16 @@ class QueryLanguage:
     SPARQL = None
     PROLOG = None
     COMMON_LOGIC = None
+
     def __init__(self, name):
         self.name = name
         QueryLanguage.registered_languages.append(self)
-        
-    def __str__(self): return self.name
+
+    def __str__(self):
+        return self.name
     
-    def getName(self): return self.name
+    def getName(self):
+        return self.name
 
     @staticmethod
     def values(): return QueryLanguage.registered_languages[:]
@@ -243,10 +246,10 @@ class Query(object):
             query = expandPrologQueryPrefixes(self.queryString, conn)
             response = mini.evalPrologQuery(query, infer=self.includeInferred, count=count, accept=accept)
         elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
-            query, contexts, auxiliary_input_bindings, temporary_enumerations, lang, exception = commonlogic.translate_common_logic_query(self.queryString,
+            query, contexts, auxiliary_input_bindings, temporary_enumerations, lang, exception = translate_common_logic_query(self.queryString,
                                     preferred_language=self.preferred_execution_language, contexts=namedContexts)
             if contexts and not namedContexts:
-                namedContexts = ["<{0}>".format(uri.getURI()) for uri in commonlogic.contexts_to_uris(contexts, conn)]
+                namedContexts = ["<{0}>".format(uri.getURI()) for uri in contexts_to_uris(contexts, conn)]
             if auxiliary_input_bindings:
                 bindings = bindings or {}
                 for vbl, val in auxiliary_input_bindings.items():

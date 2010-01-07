@@ -48,8 +48,9 @@ import locale, os, sys, time, traceback
 
 sys.path.append(os.path.join(os.getcwd(), '../../src2'))
 
-from franz.openrdf.sail.allegrographserver import AllegroGraphServer
-from franz.openrdf.repository.repository import Repository
+from franz.openrdf.sail import AllegroGraphServer
+from franz.openrdf.repository import Repository
+from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary import XMLSchema
 
 LOCALHOST = 'localhost'
@@ -84,6 +85,9 @@ class Defaults:
 
     # STATUS report frequency
     STATUS = 100
+
+    # The TIMEOUT in seconds for the dedicated session
+    TIMEOUT = 7200
 
 # The program options
 OPT = Defaults
@@ -138,7 +142,7 @@ def load_files(proc_num):
     load_files does the work of the child processes.
     """
     conn = connect()
-    conn.openSession(True)
+    conn.openSession(True, OPT.TIMEOUT)
 
     def dequeue():
         try:
@@ -286,10 +290,32 @@ def main(args):
             trace('\t%s', path)
 
 if __name__ == '__main__':
-    from optparse import OptionParser
+    from copy import copy
+    from optparse import OptionParser, Option, OptionValueError
 
     locale.setlocale(locale.LC_ALL, '')
 
+    def check_human_timeout(option, opt, value):
+        try:
+            if value[-1] == 'm':
+                value = locale.atof(value[:-1])*60
+            elif value[-1] == 's':
+                value = locale.atof(value[:-1])
+            elif value[-1] == 'h':
+                value = locale.atof(value[:-1])*60*60
+            else:
+                value = locale.atoi(value)
+
+            return int(value)
+        except ValueError:
+            raise OptionValueError(
+                "option %s: invalid human-readable timeout value: %r" % (opt, value))
+
+    class LoadOption(Option):
+        TYPES = Option.TYPES + ('human_timeout',)
+        TYPE_CHECKER = copy(Option.TYPE_CHECKER)
+        TYPE_CHECKER['human_timeout'] = check_human_timeout
+    
     usage = ('Usage: %prog [options] [directory_or_file ...]\n\n' 
         'If no directories or files are supplied, load will load\n'
         'files in the current directory. If a file is specified\n'
@@ -302,7 +328,7 @@ if __name__ == '__main__':
         'AGRAPH_USER [default=test]\n'
         'AGRAPH_PASSWORD [default=xyzzy]')
 
-    parser = OptionParser(usage=usage, version='%prog 1.0')
+    parser = OptionParser(option_class=LoadOption, usage=usage, version='%prog 1.0')
     parser.add_option('-l', '--loaders', default=Defaults.LOADERS,
         type='int', dest='LOADERS', metavar='LOADERS',
         help='use LOADERS number of loading processes [default=%default]')
@@ -329,6 +355,9 @@ if __name__ == '__main__':
         help='use the GRAPH string as the graph/context for each file loaded '
             'or use -g "" to indicate the default graph. If -g is not supplied '
             'each file is loaded with the file\'s name string as the graph.')
+    parser.add_option('-t', '--timeout', default=Defaults.TIMEOUT,
+        type='human_timeout', dest='TIMEOUT', metavar='TIMEOUT',
+        help='TIMEOUT for the dedicated loading sessions (e.g. 60s, 10m, 2h) [default=%default]')
 
     options, args = parser.parse_args()
     OPT = options

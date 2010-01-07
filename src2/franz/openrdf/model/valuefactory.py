@@ -93,14 +93,6 @@ class ValueFactory(object):
             raise Exception('Illegal term in range expression "%s" needs to '
                             'have a datatype.' % term.getValue())
 
-        rep = self.store.getConnection().repository
-        if datatype not in rep.mapped_datatypes and \
-           (not predicate or predicate.getURI() not in rep.mapped_predicates):
-            raise Exception('Illegal term in range expression "%s" with '
-                            'datatype "%s" does not have a datatype or '
-                            'predicate mapping.' %
-                             (term.getValue(), datatype))
-
     def validateCompoundLiteral(self, term, predicate):
         """
         Check to see if range boundaries are mapped.

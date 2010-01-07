@@ -28,6 +28,7 @@ from franz import miniclient
 from ..exceptions import IllegalArgumentException, ServerException
 from ..model import URI, ValueFactory
 from .repositoryconnection import RepositoryConnection
+from ..vocabulary.xmlschema import XMLSchema
 
 import urllib
 
@@ -53,8 +54,6 @@ class Repository:
         self.database_name = database_name
         ## system state fields:
         self.value_factory = None
-        self.mapped_predicates = {}
-        self.mapped_datatypes = {}
          
     def getDatabaseName(self):
         """
@@ -85,14 +84,6 @@ class Repository:
             uri = '<' + uri + '>'
         self.mini_repository.registerFreeTextPredicate(uri)
         
-    def _translate_inlined_type(self, the_type):
-        if the_type == 'int': return '<http://www.w3.org/2001/XMLSchema#int>'
-        if the_type == 'datetime': return "<http://www.w3.org/2001/XMLSchema#dateTime>"
-        if the_type == 'date': return '<http://www.w3.org/2001/XMLSchema#date>'
-        if the_type == "float": return "<http://www.w3.org/2001/XMLSchema#double>"
-        raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are " +
-                "'int', 'float', and 'datetime'" % the_type)
-        
     def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         """
         Register an inlined datatype.  If 'predicate', then object arguments to triples
@@ -103,15 +94,33 @@ class Repository:
         """
         predicate = predicate.getURI() if isinstance(predicate, URI) else predicate
         datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
+
+        if nativeType is not None and not isinstance(nativeType, basestring):
+            nativeType=nativeType.__name__
+
+        def translate_inlined_type(the_type):
+            if the_type == 'int':
+                return XMLSchema.LONG.toNTriples()
+            if the_type == 'datetime':
+                return XMLSchema.DATETIME.toNTriples()
+            if the_type == 'time':
+                return XMLSchema.TIME.toNTriples()
+            if the_type == 'date':
+                return XMLSchema.DATE.toNTriples()
+            if the_type == "float":
+                return XMLSchema.DOUBLE.toNTriples()
+            if the_type == "bool":
+                return XMLSchema.BOOLEAN.toNTriples()
+            raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are "\
+                    "int, float, bool, datetime, time, and date." % the_type)
+            
         if predicate:
             if not nativeType:
                 raise IllegalArgumentException("Missing 'nativeType' parameter in call to 'registerDatatypeMapping'")
-            xsdType = self._translate_inlined_type(nativeType)
-            self.mapped_predicates[predicate] = xsdType
+            xsdType = translate_inlined_type(nativeType)
             self.mini_repository.addMappedPredicate("<%s>" % predicate, xsdType)            
         elif datatype: 
-            xsdType = self._translate_inlined_type(nativeType or datatype)
-            self.mapped_datatypes[datatype] = xsdType
+            xsdType = translate_inlined_type(nativeType or datatype)
             self.mini_repository.addMappedType("<%s>" % datatype, xsdType)
         
     def shutDown(self):
