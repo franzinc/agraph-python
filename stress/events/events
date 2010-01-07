@@ -454,42 +454,26 @@ def load_events(proc_num):
         params = PHASE_PARAMS[phase]
         timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp'
             ).toNTriples()
-        limit = 9*(10**5)/OPT.EVENT_SIZE
 
-        interval = timedelta(seconds=24*60*60)
         start, end = params.date_range.start, params.date_range.end
-        eod = start + interval
         start_nt = Literal(start).toNTriples()
-        eod_nt = Literal(eod).toNTriples()
+        end_nt = Literal(end).toNTriples()
 
-        events = 0
-        while start < end:
-            queryString = """
-                (select0 (?event)
-                  (:limit %d)
-                  (:count-only t)
-                  (q- ?event !%s (? !%s !%s))
-                  (lisp (delete-triples :s ?event)))""" % (
-                      limit, timestamp, start_nt, eod_nt)
+        queryString = """
+            (select0 (?event)
+              (:count-only t)
+              (q- ?event !%s (? !%s !%s))
+              (lisp (delete-triples :s ?event)))""" % (
+                  timestamp, start_nt, end_nt)
 
-            try:
-                count = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
-                    ).evaluate(count=True)
-
-                assert count <= limit
-                events += count
-
-                if count == 0:
-                    trace('loader(%d) [%s]: Finished deleting %s.', (
-                        proc_num, datetime.now(), start.date()))
-                    start = eod
-                    start_nt = Literal(start).toNTriples()
-                    eod = start + interval
-                    eod_nt = Literal(eod).toNTriples()
-            except Exception:
-                trace('loader(%d) [%s]: Error deleting triples...\n%s', (
-                    proc_num, datetime.now(), queryString))
-                traceback.print_exc()
+        try:
+            events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+                ).evaluate(count=True)
+        except Exception:
+            events = 0
+            trace('loader(%d) [%s]: Error deleting triples...\n%s', (
+                proc_num, datetime.now(), queryString))
+            traceback.print_exc()
 
         trace('loader(%d) [%s]: Found %d events (%d triples) to delete.', (
             proc_num, datetime.now(), events, events * OPT.EVENT_SIZE))

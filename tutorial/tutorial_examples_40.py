@@ -21,6 +21,7 @@ AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_CATALOG = 'python-catalog'
 # AG_CATALOG = ''
+AG_FEDERATED = 'python-federated-catalog'
 AG_REPOSITORY = 'pythontutorial'
 AG_USER = 'test'
 AG_PASSWORD = 'xyzzy'
@@ -580,39 +581,44 @@ def example16():
     """
     Federated triple stores.
     """
-    print "Starting example16()."
-    def pt(kind, rows):
-        print "\n%s Apples:\t" % kind.capitalize(),
+    def pt(kind, rows, expected):
+        print "\n%s Apples:  " % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    catalog = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD).openCatalog(AG_CATALOG) 
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    catalog = server.openCatalog(AG_CATALOG)
     ## create two ordinary stores, and one federated store: 
-    redConn = catalog.getRepository("redthingspy", Repository.RENEW).initialize().getConnection()
-    greenConn = greenRepository = catalog.getRepository("greenthingspy", Repository.RENEW).initialize().getConnection()
-    ## rainbowConn = (catalog.getRepository("rainbowthingspy", Repository.RENEW)
-    ##                     .addFederatedTripleStores(["redthingspy", "greenthingspy"]).initialize().getConnection())
-    ex = "http://www.demo.com/example#"
+    redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
+    greenConn = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
+    federated = server.openCatalog(server.FEDERATED)
+    try:
+        federated.deleteRepository("rainbowthings")
+    finally:
+        pass
+    federated.createRepository("rainbowthings", repos=[ AG_CATALOG + ":redthings", AG_CATALOG + ":greenthings"])
+    rainbowConn = federated.getRepository("rainbowthings").initialize().getConnection()
     ## add a few triples to the red and green stores:
+    ex = "http://www.demo.com/example#"
+    redConn.setNamespace('ex', ex)
+    greenConn.setNamespace('ex', ex)
+    rainbowConn.setNamespace('ex', ex)        
     redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
     redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
     greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
     greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
-    redConn.setNamespace('ex', ex)
-    greenConn.setNamespace('ex', ex)
-    ## rainbowConn.setNamespace('ex', ex)        
     queryString = "select ?s where { ?s rdf:type ex:Apple }"
     ## query each of the stores; observe that the federated one is the union of the other two:
-    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
-    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())
-    ## pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) 
+    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
+    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
+    pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3) 
+    federated.deleteRepository("rainbowthings")
     redConn.close()
     greenConn.close()
     redRepository = redConn.repository
     redRepository.shutDown()
     greenRepository = greenConn.repository
     greenRepository.shutDown()
-    ## rainbowRepository = rainbowConn.repository
-    ## rainbowRepository.shutDown()
+
 
 def example17():
     """
@@ -1400,7 +1406,7 @@ def example22():
 	
 if __name__ == '__main__':
     choices = [i for i in range(1,22)]
-    #choices = [21]   
+    #choices = [16]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
