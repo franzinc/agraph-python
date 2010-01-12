@@ -142,8 +142,517 @@ def example4():
         conn.close();
         myRepository = conn.repository
         myRepository.shutDown()
-               
+		
 def example5():
+    """
+    Typed Literals
+    """
+    print "\nStarting example5()."
+    print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
+    conn = example1()
+    conn.clear()
+    exns = "http://people/"
+    alice = conn.createURI("http://people/alice")
+    bob = conn.createURI(namespace=exns, localname="bob")
+    carol = conn.createURI(namespace=exns, localname="carol")
+    dave = conn.createURI(namespace=exns, localname="dave")
+    eric = conn.createURI(namespace=exns, localname="eric")
+    fred = conn.createURI(namespace=exns, localname="fred")
+    greg = conn.createURI(namespace=exns, localname="greg")
+    # numeric datatypes
+    age = conn.createURI(namespace=exns, localname="age")
+    fortyTwo = conn.createLiteral(42) # creates int
+    fortyTwoDecimal = conn.createLiteral(42.0)  # creates float
+    fortyTwoInt = conn.createLiteral('42', datatype=XMLSchema.INT)
+    fortyTwoLong = conn.createLiteral('42', datatype=XMLSchema.LONG)  
+    fortyTwoDouble = conn.createLiteral('42', datatype=XMLSchema.DOUBLE)   
+    fortyTwoString = conn.createLiteral('42', datatype=XMLSchema.STRING)
+    fortyTwoPlain = conn.createLiteral('42')  # creates untyped string
+    stmt1 = conn.createStatement(alice, age, fortyTwo)
+    stmt2 = conn.createStatement(bob, age, fortyTwoDecimal)    
+    stmt3 = conn.createStatement(carol, age, fortyTwoInt)    
+    stmt4 = conn.createStatement(dave, age, fortyTwoLong)    
+    stmt5 = conn.createStatement(eric, age, fortyTwoDouble)    
+    stmt6 = conn.createStatement(fred, age, fortyTwoString) 
+    stmt7 = conn.createStatement(greg, age, fortyTwoPlain)   
+    conn.add(stmt1)
+    conn.add(stmt2)
+    conn.add(stmt3)
+    conn.addStatement(stmt4)
+    conn.addStatement(stmt5)
+    conn.addStatement(stmt6)
+    conn.addStatement(stmt7)
+
+    # This section retrieves the age triples to see what datatypes are present. 
+    print "\nShowing all age triples using getStatements(). Seven matches."
+    statements = conn.getStatements(None, age, None)
+    for s in statements:
+        print s
+
+    print "----------------------------------------------------------------------------"
+    print "GARY: The SQARQL 'direct' matches in the following set of six examples produce no results."
+
+    # Matches against 42, undeclared int.
+    print "\ngetStatements() request for 42, matches ints."
+    statements = conn.getStatements(None, age, 42)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for 42 (filter match) finds multiple numeric types."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = 42)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for 42 (direct match)."
+    queryString = """SELECT ?s ?p WHERE {?s ?p 42 .}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    # Matches against 42.0, undeclared float.
+    print "\ngetStatements() request for 42.0 matches float but not double."
+#    statements = conn.getStatements(None, age, fortyTwoDecimal)
+    statements = conn.getStatements(None, age, 42.0)
+    for s in statements:
+        print s
+
+    # Matches against fortyTwoDecimal, Literal float.
+    print "\ngetStatements() request for fortyTwoDecimal matches float but not double."
+    statements = conn.getStatements(None, age, fortyTwoDecimal)
+#    statements = conn.getStatements(None, age, 42.0)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for 42.0 (filter match) finds multiple numeric types."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = 42.0)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for 42.0 (direct match)."
+    queryString = """SELECT ?s ?p WHERE {?s ?p 42.0 .}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+    print "----------------------------------------------------------------------------"
+
+    # Matches against ints. 
+    print "\ngetStatements() request for fortyTwoInt: %s" % (fortyTwoInt)
+    statements = conn.getStatements(None, age, fortyTwoInt)
+#    statements = conn.getStatements(None, age, "42"^^<http://www.w3.org/2001/XMLSchema#int>)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#int> (filter match) finds multple types."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "42"^^<http://www.w3.org/2001/XMLSchema#int>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#int> (direct match) finds ints."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "42"^^<http://www.w3.org/2001/XMLSchema#int>}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    # Matches against longs. 
+    print "\ngetStatements() request for FortyTwoLong: %s" % (fortyTwoLong)
+    statements = conn.getStatements(None, age, fortyTwoLong)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#long> (filter match) finds multiple types."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "42"^^<http://www.w3.org/2001/XMLSchema#long>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#long> (direct match) finds longs."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "42"^^<http://www.w3.org/2001/XMLSchema#long>}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    # Matches against doubles. 
+    print "\ngetStatements() request for FortyTwoDouble: %s finds a double." % (fortyTwoDouble)
+    statements = conn.getStatements(None, age, fortyTwoDouble)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#double> (filter match) finds multiple types."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "42"^^<http://www.w3.org/2001/XMLSchema#double>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#double> (direct match) finds a double."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "42"^^<http://www.w3.org/2001/XMLSchema#double>}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    # Matches against declared strings. 
+    print "\ngetStatements() request for FortyTwoString: %s finds a string." % (fortyTwoString)
+    statements = conn.getStatements(None, age, fortyTwoString)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#string> (filter match)."
+
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "42"^^<http://www.w3.org/2001/XMLSchema#string>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"42\"^^<http://www.w3.org/2001/XMLSchema#string> (direct match)."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "42"^^<http://www.w3.org/2001/XMLSchema#string>}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    # Matches against plain literals.
+    print "\ngetStatements() triples that match plain literal \"42\"." 
+    statements = conn.getStatements(None, age, "42")
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for plain literal \"42\" (filter match) finds a string."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "42")}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for plain literal \"42\" (direct match) finds a string."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "42"}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    # Let's examine some string matching.
+    print "\nTests of string matching..."
+    favoriteColor = conn.createURI(namespace=exns, localname="favoriteColor")
+    UCred = conn.createLiteral('Red', datatype=XMLSchema.STRING)
+    LCred = conn.createLiteral('red', datatype=XMLSchema.STRING)
+    RedPlain = conn.createLiteral('Red')                  #plain literal
+    rouge = conn.createLiteral('rouge', datatype=XMLSchema.STRING)
+    Rouge = conn.createLiteral('Rouge', datatype=XMLSchema.STRING)
+    RougePlain = conn.createLiteral('Rouge')              #plain literal
+    FrRouge = conn.createLiteral('Rouge', language="fr")  #plain literal with language tag
+    conn.addTriples([(alice, favoriteColor, UCred),
+                     (bob, favoriteColor, LCred),
+                     (carol, favoriteColor, RedPlain),
+                     (dave, favoriteColor, rouge),
+                     (eric, favoriteColor, Rouge),
+                     (fred, favoriteColor, RougePlain),
+                     (greg, favoriteColor, FrRouge)])
+    print "\nShowing all color triples using getStatements(). Should be seven."
+    statements = conn.getStatements(None, favoriteColor, None)
+    for s in statements:
+        print s
+
+    # Explore matching on these strings.
+    # Matches against undeclared strings. These are capitalized Red.
+    print "\ngetStatements() triples that match \"Red\". Finds exact match. " 
+    statements = conn.getStatements(None, favoriteColor, "Red")
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"Red\" (filter match) find exact match."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "Red")}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"Red\" (direct match) finds exact match."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "Red"}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    # Matches against undeclared strings. These are capital Rouge.
+    print "\ngetStatements() triples that match \"Rouge\". Finds exact match. " 
+    statements = conn.getStatements(None, favoriteColor, "Rouge")
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"Rouge\" (filter match) find string and plain."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "Rouge")}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"Rouge\" (direct match) finds string and plain."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "Rouge"}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    # Matches against undeclared strings. These are capital Rouge in French.
+    print "\ngetStatements() triples that match \"Rouge\"@fr. Finds exact match. " 
+    statements = conn.getStatements(None, favoriteColor, FrRouge)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"Rouge\"@fr (filter match) find exact match."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "Rouge"@fr)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"Rouge\"@fr (direct match) finds exact match."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "Rouge"@fr}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+    print "----------------------------------------------------------------------"
+    print "\nSPARQL matches for (fn:lower-case(str(?o)) = \"rouge\") (filter match) finds four."
+    queryString = """PREFIX fn: <http://www.w3.org/2005/xpath-functions#> SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (fn:lower-case(str(?o)) = "rouge")}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+
+    print "----------------------------------------------------------------------------"
+    # Let's try some Booleans. A person is, or is not, a "senior."
+    senior = conn.createURI(namespace=exns, localname="seniorp")    
+    # The values True and False are predefined.
+    print "True = %s" % True     # These work. 
+    print "False = %s" % False
+    # print "true = %s" % true   # These don't work. 
+    # print "false = %s" % false
+    trueValue = conn.createLiteral("true", datatype=XMLSchema.BOOLEAN)
+    falseValue = conn.createLiteral("false", datatype=XMLSchema.BOOLEAN)
+    conn.addTriple(alice, senior, trueValue)
+    conn.addTriple(bob, senior, falseValue)
+
+    # Let's look at the new triples.
+    print "\ngetStatements() all senior triples, should be two. " 
+    statements = conn.getStatements(None, senior, None)
+    for s in statements:
+        print s
+
+    # Try matches for Boolean "True".
+    print "\ngetStatements() triples that match Boolean True. No matches." 
+    statements = conn.getStatements(None, senior, True)     # no matches
+    for s in statements:
+        print s
+
+    print "----------------------------------------------------------------------------"
+    print "\ngetStatements() triples that match trueValue. One match." 
+    statements = conn.getStatements(None, senior, trueValue)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for true (filter match). One match."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = true)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for true (direct match). One match."
+    queryString = """SELECT ?s ?p WHERE {?s ?p true}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+
+
+    print "\nSPARQL matches for \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean> (filter match). One match."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "true"^^<http://www.w3.org/2001/XMLSchema#boolean>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"true\"^^<http://www.w3.org/2001/XMLSchema#boolean> (direct match). One match."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "true"^^<http://www.w3.org/2001/XMLSchema#boolean>}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "-----------------------------------------------------------------------------------"
+    # Dates, times, and datetimes
+    birthdate = conn.createURI(namespace=exns, localname="birthdate")
+    date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
+    datetime = conn.createLiteral('1984-12-06T09:00:00', datatype=XMLSchema.DATETIME) 
+    time = conn.createLiteral('09:00:00', datatype=XMLSchema.TIME) 
+    print "Printing out Literals for date, datetime, and time."
+    print date
+    print datetime
+    print time
+
+    conn.addTriples([(alice, birthdate, date),
+                     (bob, birthdate, datetime),
+                     (carol, birthdate, time)])
+
+    print "\nShowing all birthday triples using getStatements(). Should be three."
+    statements = conn.getStatements(None, birthdate, None)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"09:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#time> (filter match) finds ???."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "09:00:00Z"^^<http://www.w3.org/2001/XMLSchema#time>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"09:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#time> (direct match)."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "09:00:00Z"^^<http://www.w3.org/2001/XMLSchema#time> .}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    # Matches against time object.
+    print "\ngetStatements() request time literal value, matches one."
+    statements = conn.getStatements(None, birthdate, time)
+    for s in statements:
+        print s
+
+    ## Search for date using date object in triple pattern.
+    print "\ngetStatements() request date literal value, matches ???."
+    statements = conn.getStatements(None, None, date)
+    for s in statements:
+        print s
+    ## Search for datetime using datetime object in triple pattern.
+    print "\ngetStatements() request datetime literal value, matches ???."
+    statements = conn.getStatements(None, None, datetime)
+    for s in statements:
+        print s
+    ## Search for specific date value.
+    print "\nMatch triples having specific DATE value."
+    statements = conn.getStatements(None, None, '"1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>')
+    for s in statements:
+        print s
+    ## Search for specific datetime value.
+    print "\nMatch triples having specific DATETIME value."
+    statements = conn.getStatements(None, None, '"1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>')
+    for s in statements:
+        print s
+    ## Search for triples of type xsd:date using SPARQL query.
+    print "\nSPARQL request for direct match xsd:date."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+    ## Search for triples of type xsd:datetime using SPARQL query.
+    print "\nSPARQL request for direct match a specific xsd:dateTime."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
+               
+def example5oldVersion():
     """
     Typed Literals
     """
@@ -244,6 +753,7 @@ def example6():
     myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
     myRepository.initialize()
     conn = myRepository.getConnection()
+    conn.clear()
     conn.openSession()  # open dedicated session to support Prolog queries in example17/18
     # The following paths are relative to os.getcwd(), the working directory.
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
@@ -924,7 +1434,7 @@ def example21():
 
     print "\nValjean's ego group in one list depth 1 (using associates)."
     queryString = """
-    (select (?group)
+    (select ?group
       (ego-group !lm:character11 1 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -936,7 +1446,7 @@ def example21():
 
     print "\nValjean's ego group in one list depth 2 (using associates)."
     queryString = """
-    (select (?group)
+    (select ?group
       (ego-group !lm:character11 2 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -948,7 +1458,7 @@ def example21():
 
     print "\nValjean's ego group in one list depth 3 (using associates)."
     queryString = """
-    (select (?group)
+    (select ?group
       (ego-group !lm:character11 3 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -961,7 +1471,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using intimates."
     queryString = """
-    (select (?path)
+    (select ?path
       (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -973,7 +1483,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using associates."
     queryString = """
-    (select (?path)
+    (select ?path
       (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -985,7 +1495,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using everyone."
     queryString = """
-    (select (?path)
+    (select ?path
       (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -997,7 +1507,7 @@ def example21():
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet? with associates (should be two)."
     queryString = """
-    (select (?path)
+    (select ?path
       (breadth-first-search-paths !lm:character11 !lm:character64 associates ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1010,7 +1520,7 @@ def example21():
     # Note that depth-first-search-paths are not guaranteed to be "the shortest path."
     print "\nReturn depth-first path connecting Valjean to Bossuet with associates (should be one)."
     queryString = """
-    (select (?path)
+    (select ?path
       (depth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1021,7 +1531,7 @@ def example21():
 
     print "\nShortest bidirectional paths connecting Valjean to Bossuet with associates (should be two)."
     queryString = """
-    (select (?path)
+    (select ?path
       (bidirectional-search-paths !lm:character11 !lm:character64 associates ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1032,7 +1542,7 @@ def example21():
 
     print "\nNodal degree of Valjean (should be seven)."
     queryString = """
-    (select (?degree)
+    (select ?degree
       (nodal-degree !lm:character11 associates ?degree))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1044,7 +1554,7 @@ def example21():
 
     print "\nHow many neighbors are around Valjean? (should be 36)."
     queryString = """
-    (select (?neighbors)
+    (select ?neighbors
       (nodal-degree !lm:character11 everyone ?neighbors))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1070,7 +1580,7 @@ def example21():
 
     print "\nGraph density of Valjean's ego group? (using associates)."
     queryString = """
-    (select (?density)
+    (select ?density
       (ego-group !lm:character11 1 associates ?group)
       (graph-density ?group associates ?density))
       """
@@ -1083,7 +1593,7 @@ def example21():
 
     print "\nValjean's cliques? Should be two (using associates)."
     queryString = """
-    (select (?clique)
+    (select ?clique
       (clique !lm:character11 associates ?clique))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1405,8 +1915,8 @@ def example22():
     repository.shutDown()
 	
 if __name__ == '__main__':
-    choices = [i for i in range(1,22)]
-    #choices = [16]   
+    #choices = [i for i in range(1,22)]
+    choices = [5]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
