@@ -161,18 +161,18 @@ def example5():
     greg = conn.createURI(namespace=exns, localname="greg")
     # numeric datatypes
     age = conn.createURI(namespace=exns, localname="age")
-    fortyTwo = conn.createLiteral(42) # creates int
-    fortyTwoDecimal = conn.createLiteral(42.0)  # creates float
+    fortyTwo = conn.createLiteral(42) # creates long
+    fortyTwoDouble = conn.createLiteral(42.0)  # creates double
     fortyTwoInt = conn.createLiteral('42', datatype=XMLSchema.INT)
     fortyTwoLong = conn.createLiteral('42', datatype=XMLSchema.LONG)  
-    fortyTwoDouble = conn.createLiteral('42', datatype=XMLSchema.DOUBLE)   
+    fortyTwoFloat = conn.createLiteral('42', datatype=XMLSchema.FLOAT)   
     fortyTwoString = conn.createLiteral('42', datatype=XMLSchema.STRING)
     fortyTwoPlain = conn.createLiteral('42')  # creates untyped string
     stmt1 = conn.createStatement(alice, age, fortyTwo)
-    stmt2 = conn.createStatement(bob, age, fortyTwoDecimal)    
+    stmt2 = conn.createStatement(bob, age, fortyTwoDouble)    
     stmt3 = conn.createStatement(carol, age, fortyTwoInt)    
     stmt4 = conn.createStatement(dave, age, fortyTwoLong)    
-    stmt5 = conn.createStatement(eric, age, fortyTwoDouble)    
+    stmt5 = conn.createStatement(eric, age, fortyTwoFloat)    
     stmt6 = conn.createStatement(fred, age, fortyTwoString) 
     stmt7 = conn.createStatement(greg, age, fortyTwoPlain)   
     conn.add(stmt1)
@@ -193,7 +193,7 @@ def example5():
     print "GARY: The SQARQL 'direct' matches in the following set of six examples produce no results."
 
     # Matches against 42, undeclared int.
-    print "\ngetStatements() request for 42, matches ints."
+    print "\ngetStatements() request for 42, matches longs."
     statements = conn.getStatements(None, age, 42)
     for s in statements:
         print s
@@ -217,16 +217,16 @@ def example5():
         p = bindingSet[1]
         print "%s %s" % (s, p)
 
-    # Matches against 42.0, undeclared float.
-    print "\ngetStatements() request for 42.0 matches float but not double."
-#    statements = conn.getStatements(None, age, fortyTwoDecimal)
+    # Matches against 42.0, undeclared double.
+    print "\ngetStatements() request for 42.0 matches double but not float."
+#    statements = conn.getStatements(None, age, fortyTwoDouble)
     statements = conn.getStatements(None, age, 42.0)
     for s in statements:
         print s
 
-    # Matches against fortyTwoDecimal, Literal float.
-    print "\ngetStatements() request for fortyTwoDecimal matches float but not double."
-    statements = conn.getStatements(None, age, fortyTwoDecimal)
+    # Matches against fortyTwoDouble, Literal double.
+    print "\ngetStatements() request for fortyTwoDouble matches double but not float."
+    statements = conn.getStatements(None, age, fortyTwoDouble)
 #    statements = conn.getStatements(None, age, 42.0)
     for s in statements:
         print s
@@ -304,8 +304,8 @@ def example5():
         print "%s %s" % (s, p)
 
     print "----------------------------------------------------------------------------"
-    # Matches against doubles. 
-    print "\ngetStatements() request for FortyTwoDouble: %s finds a double." % (fortyTwoDouble)
+    # Matches against doubles and floats. 
+    print "\ngetStatements() request for fortyTwoDouble: %s finds a double." % (fortyTwoDouble)
     statements = conn.getStatements(None, age, fortyTwoDouble)
     for s in statements:
         print s

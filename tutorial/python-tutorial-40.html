@@ -381,24 +381,24 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 <h3>Numeric Literal Values </h3>
 <p>This section explores the behavior of numeric literals.</p>
 <h3>Asserting Numeric Data</h3>
-<p>The first section assigns ages to the six participants, using a variety of numeric types. First we need a URI for the &quot;age&quot; predicate. </p>
+<p>The first section assigns ages to the participants, using a variety of numeric types. First we need a URI for the &quot;age&quot; predicate. </p>
 <pre class="input">    age = conn.createURI(namespace=exns, localname=&quot;age&quot;)</pre>
 <p>The next step is to create a variety of values representing ages. Coincidentally, these people are all 42 years old, but we're going to record that information in multiple ways:</p>
-<pre class="input">    fortyTwo = conn.createLiteral(42)             # creates int
-    fortyTwoDecimal = conn.createLiteral(42.0)    # creates float
+<pre class="input">    fortyTwo = conn.createLiteral(42)             # creates long
+    fortyTwoDecimal = conn.createLiteral(42.0)    # creates double
     fortyTwoInt = conn.createLiteral('42', datatype=XMLSchema.INT)
     fortyTwoLong = conn.createLiteral('42', datatype=XMLSchema.LONG) 
-    fortyTwoDouble = conn.createLiteral('42', datatype=XMLSchema.DOUBLE) 
+    fortyTwoFloat = conn.createLiteral('42', datatype=XMLSchema.FLOAT) 
     fortyTwoString = conn.createLiteral('42', datatype=XMLSchema.STRING)
     fortyTwoPlain = conn.createLiteral('42')      # creates plain literal</pre>
-<p>In four of these statements, we explicitly identified the datatype of the value in order to create an INT, a LONG,  a DOUBLE and a STRING. This is the best practice. </p>
-<p>In three other statements, we just handed AllegroGraph numeric-looking values to see what it would do with them. As we will see in a moment, 42 creates an INT, 42.0 becomes into a FLOAT, and '42' becomes a &quot;plain&quot; (untyped) literal value. (Note that plain literals are not <em>quite </em>the same thing as typed literal strings. A search for a plain literal will not match a typed string, and <em>vice versa</em>.)</p>
+<p>In four of these statements, we explicitly identified the datatype of the value in order to create an INT, a LONG,  a FLOAT and a STRING. This is the best practice. </p>
+<p>In three other statements, we just handed AllegroGraph numeric-looking values to see what it would do with them. As we will see in a moment, 42 creates a LONG, 42.0 becomes into a DOUBLE, and '42' becomes a &quot;plain&quot; (untyped) literal value. (Note that plain literals are not <em>quite </em>the same thing as typed literal strings. A search for a plain literal will not always match a typed string, and <em>vice versa</em>.)</p>
 <p>Now we need to assemble the URIs and values into statements (which are client-side triples):</p>
 <pre class="input">    stmt1 = conn.createStatement(alice, age, fortyTwo)
     stmt2 = conn.createStatement(bob, age, fortyTwoDecimal)    
     stmt3 = conn.createStatement(carol, age, fortyTwoInt)    
     stmt4 = conn.createStatement(dave, age, fortyTwoLong)    
-    stmt5 = conn.createStatement(eric, age, fortyTwoDouble)
+    stmt5 = conn.createStatement(eric, age, fortyTwoFloat)
     stmt6 = conn.createStatement(fred, age, fortyTwoString)  
     stmt7 = conn.createStatement(greg, age, fortyTwoPlain)</pre>
 <p>And then add the statements to the triple store on the AllegroGraph server. We can use either <strong>add()</strong> or <strong>addStatement()</strong> for this purpose. </p>
@@ -416,7 +416,7 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
     for s in statements:
         print s</pre>
 <p>This loop prints all age triples to the interaction window. Note that the retrieved triples are of six types: two ints, a long, a float, a double, a string, and a &quot;plain literal.&quot; All of them say that their person's age is 42. Note that the triple for Greg has the plain literal value &quot;42&quot;, while the triple for Fred uses &quot;42&quot; as a typed string.</p>
-<pre class="output">Showing all age triples using getStatements(). Seven matches.<br>(&lt;http://people/greg&gt;, &lt;http://people/age&gt;, &quot;42&quot;)<br>(&lt;http://people/fred&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#string&gt;)<br>(&lt;http://people/eric&gt;, &lt;http://people/age&gt;, &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;)<br>(&lt;http://people/dave&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;)<br>(&lt;http://people/carol&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)<br>(&lt;http://people/bob&gt;, &lt;http://people/age&gt;, &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;)<br>(&lt;http://people/alice&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;))</pre>
+<pre class="output">Showing all age triples using getStatements(). Seven matches.<br>(&lt;http://people/greg&gt;, &lt;http://people/age&gt;, &quot;42&quot;)<br>(&lt;http://people/fred&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#string&gt;)<br>(&lt;http://people/eric&gt;, &lt;http://people/age&gt;, &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;)<br>(&lt;http://people/dave&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;)<br>(&lt;http://people/carol&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)<br>(&lt;http://people/bob&gt;, &lt;http://people/age&gt;, &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;)<br>(&lt;http://people/alice&gt;, &lt;http://people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;)</pre>
 <p>If you ask for a specific datatype, you will get it. If you leave the decision up to AllegroGraph, you might get something unexpected such as an plain literal value. </p>
 <h3>Matching Numeric Data</h3>
 <p>This section explores getStatements() and SPARQL matches against numeric triples. </p>
@@ -430,7 +430,7 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
   <tr>
     <td><strong>getStatements()</strong></td>
     <td>conn.getStatements(None, age, 42)</td>
-    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;    </td>
+    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;    </td>
   </tr>
   <tr>
     <td><strong>SPARQL direct match </strong></td>
@@ -440,10 +440,11 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
   <tr>
     <td><strong>SPARQL filter match </strong></td>
     <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = 42)}</td>
-    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;<br>      &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;<br>      &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;<br>    &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;</td>
+    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;<br>      &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;<br>      
+    &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;<br>    &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;</td>
   </tr>
 </table>
-<p>The getStatements() query returned triples containing ints only. The SPARQL direct match didn't know how to interpret the untyped value and found zero matches. The SPARQL filter match, however, opened the doors to matches of multiple numeric types, and returned ints, floats, longs and doubles. </p>
+<p>The getStatements() query returned triples containing longs only. The SPARQL direct match didn't know how to interpret the untyped value and found zero matches. The SPARQL filter match, however, opened the doors to matches of multiple numeric types, and returned ints, floats, longs and doubles. </p>
 <p><strong>&quot;Match 42.0&quot;</strong> without explicitly declaring the number's type.</p>
 <table width="1038" border="1">
   <tr>
@@ -454,8 +455,8 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
   <tr>
     <td><strong>getStatements()</strong></td>
     <td>conn.getStatements(None, age, 42.0)</td>
-    <td><p>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;<br>
-      Matches a float but not a double. </p>    </td>
+    <td><p>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;<br>
+      Matches a double but not a float. </p>    </td>
   </tr>
   <tr>
     <td><strong>SPARQL direct match </strong></td>
@@ -465,10 +466,11 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
   <tr>
     <td><strong>SPARQL filter match </strong></td>
     <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = 42.0)}</td>
-    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;<br>      &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;<br>      &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;<br>    &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;</td>
+    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;<br>      &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;<br>      &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;<br>    
+    &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;</td>
   </tr>
 </table>
-<p>The getStatements() search returned a float but not the corresponding double. The filter match returned all numeric types that were equal to 42.0.</p>
+<p>The getStatements() search returned a double but not the similar float. The filter match returned all numeric types that were equal to 42.0.</p>
 <p><strong>&quot;Match '42'^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;.&quot;</strong> Note that we have to use a variable (fortyTwoInt) bound to a Literal value in order to offer this int to getStatements(). We can't just type the value into the getStatements() method directly. </p>
 <table width="1038" border="1">
   <tr>
@@ -490,7 +492,8 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
   <tr>
     <td><strong>SPARQL filter match </strong></td>
     <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)}</td>
-    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;<br>      &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;<br>      &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;<br>    &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;</td>
+    <td>&quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;<br>      &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#float&gt;<br>      &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;<br>    
+    &quot;4.2E1&quot;^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;</td>
   </tr>
 </table>
 <p>Both the getStatements() query and the SPARQL direct query returned exactly what we asked for: ints. The filter match returned all numeric types that matches in value. </p>
@@ -765,10 +768,8 @@ WHERE {?s ?p ?o . filter (fn:lower-case(str(?o)) = &quot;rouge&quot;)}</pre>
   </tr>
 </table>
 <p>All of these queries correctly match Boolean values. </p>
-<p>&nbsp; </p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>In the following example, we use getStatements() to match a DATE object:</p> 
+<h2>Dates, Times and Datetimes </h2>
+<p>In the following example, we use getStatements() to match a DATE object:</p>
 <pre class="input">
     ## Search for date using date object in triple pattern.
     print "Retrieve triples matching DATE object."
@@ -1813,7 +1814,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Remember that when you are done with a session or connection, it is appropriate to close it:</p>
 <pre class="input">    dedicated.closeSession()<br>    dedicated.close()<br>    common.close()</pre>
 <p>This recovers resources that would otherwise remain bound. </p>
-<p><font color="#CCCCCC">December 14, 2009 4.0 M2 release</font></p>
+<p><font color="#CCCCCC">January 13, 2010 4.0 M3 release</font></p>
 <p>&nbsp;</p>
 </body>
 
