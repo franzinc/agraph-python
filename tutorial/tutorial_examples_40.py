@@ -161,13 +161,13 @@ def example5():
     greg = conn.createURI(namespace=exns, localname="greg")
     # numeric datatypes
     age = conn.createURI(namespace=exns, localname="age")
-    fortyTwo = conn.createLiteral(42) # creates long
+    fortyTwo = conn.createLiteral(42)          # creates long
     fortyTwoDouble = conn.createLiteral(42.0)  # creates double
     fortyTwoInt = conn.createLiteral('42', datatype=XMLSchema.INT)
     fortyTwoLong = conn.createLiteral('42', datatype=XMLSchema.LONG)  
     fortyTwoFloat = conn.createLiteral('42', datatype=XMLSchema.FLOAT)   
     fortyTwoString = conn.createLiteral('42', datatype=XMLSchema.STRING)
-    fortyTwoPlain = conn.createLiteral('42')  # creates untyped string
+    fortyTwoPlain = conn.createLiteral('42')   # creates untyped string
     stmt1 = conn.createStatement(alice, age, fortyTwo)
     stmt2 = conn.createStatement(bob, age, fortyTwoDouble)    
     stmt3 = conn.createStatement(carol, age, fortyTwoInt)    
@@ -304,7 +304,7 @@ def example5():
         print "%s %s" % (s, p)
 
     print "----------------------------------------------------------------------------"
-    # Matches against doubles and floats. 
+    # Matches against doubles. 
     print "\ngetStatements() request for fortyTwoDouble: %s finds a double." % (fortyTwoDouble)
     statements = conn.getStatements(None, age, fortyTwoDouble)
     for s in statements:
@@ -652,99 +652,6 @@ def example5():
     myRepository = conn.repository
     myRepository.shutDown()
                
-def example5oldVersion():
-    """
-    Typed Literals
-    """
-    print "Starting example5()."
-    print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
-    conn = example1()
-    conn.clear()
-    exns = "http://example.org/people/"
-    alice = conn.createURI("http://example.org/people/alice")
-    age = conn.createURI(namespace=exns, localname="age")
-    weight = conn.createURI(namespace=exns, localname="weight")    
-    favoriteColor = conn.createURI(namespace=exns, localname="favoriteColor")
-    birthdate = conn.createURI(namespace=exns, localname="birthdate")
-    ted = conn.createURI(namespace=exns, localname="Ted")
-    red = conn.createLiteral('Red')
-    rouge = conn.createLiteral('Rouge', language="fr")
-    fortyTwo = conn.createLiteral('42', datatype=XMLSchema.INT)
-    fortyTwoInteger = conn.createLiteral('42', datatype=XMLSchema.LONG)     
-    fortyTwoUntyped = conn.createLiteral('42')  # creates string
-    #fortyTwoUntyped = conn.createLiteral(42) # creates int
-    date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
-    time = conn.createLiteral('1984-12-06T09:00:00', datatype=XMLSchema.DATETIME)   
-    weightFloat = conn.createLiteral('20.5', datatype=XMLSchema.FLOAT)
-    weightUntyped = conn.createLiteral('20.5')
-    stmt1 = conn.createStatement(alice, age, fortyTwo)
-    stmt2 = conn.createStatement(ted, age, fortyTwoUntyped)    
-    conn.add(stmt1)
-    conn.addStatement(stmt2)
-    conn.addTriple(alice, weight, weightUntyped)
-    conn.addTriple(ted, weight, weightFloat)
-    conn.addTriples([(alice, favoriteColor, red),
-                     (ted, favoriteColor, rouge),
-                     (alice, birthdate, date),
-                     (ted, birthdate, time)])
-    for obj in [None, fortyTwo, fortyTwoUntyped, conn.createLiteral('20.5', datatype=XMLSchema.FLOAT), conn.createLiteral('20.5'),
-                red, rouge]:
-        print "Retrieve triples matching '%s'." % obj
-        statements = conn.getStatements(None, None, obj)
-        for s in statements:
-            print s
-    for obj in ['42', '"42"', '20.5', '"20.5"', '"20.5"^^xsd:float', '"Rouge"@fr', '"Rouge"', '"1984-12-06"^^xsd:date']:
-        print "Query triples matching '%s'." % obj
-        queryString = """PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> 
-        SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = %s)}""" % obj
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        result = tupleQuery.evaluate();    
-        for bindingSet in result:
-            s = bindingSet[0]
-            p = bindingSet[1]
-            o = bindingSet[2]
-            print "%s %s %s" % (s, p, o)
-    ## Search for date using date object in triple pattern.
-    print "Retrieve triples matching DATE object."
-    statements = conn.getStatements(None, None, date)
-    for s in statements:
-        print s
-    ## Search for datetime using datetime object in triple pattern.
-    print "Retrieve triples matching DATETIME object."
-    statements = conn.getStatements(None, None, time)
-    for s in statements:
-        print s
-    ## Search for specific date value.
-    print "Match triples having specific DATE value."
-    statements = conn.getStatements(None, None, '"1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>')
-    for s in statements:
-        print s
-    ## Search for specific datetime value.
-    print "Match triples having specific DATETIME value."
-    statements = conn.getStatements(None, None, '"1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>')
-    for s in statements:
-        print s
-    ## Search for triples of type xsd:date using SPARQL query.
-    print "Use SPARQL to find triples where the value matches a specific xsd:date."
-    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    result = tupleQuery.evaluate();    
-    for bindingSet in result:
-        s = bindingSet[0]
-        p = bindingSet[1]
-        print "%s %s" % (s, p)
-    ## Search for triples of type xsd:datetime using SPARQL query.
-    print "Use SPARQL to find triples where the value matches a specific xsd:dateTime."
-    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    result = tupleQuery.evaluate();    
-    for bindingSet in result:
-        s = bindingSet[0]
-        p = bindingSet[1]
-        print "%s %s" % (s, p)
-    conn.close();
-    myRepository = conn.repository
-    myRepository.shutDown()
 
 def example6():
     print "Starting example6()."
