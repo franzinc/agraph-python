@@ -553,7 +553,7 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
   </tr>
 </table>
 <p>Both the getStatements() query and the SPARQL direct query returned doubles. The filter match returned all numeric types. </p>
-<h2>Matching Numeric Strings and Plain Literals</h2>
+<h3>Matching Numeric Strings and Plain Literals</h3>
 <p>At this point we are transitioning from tests of numeric matches to tests of string matches, but there is a gray zone to be explored first. What do we find if we search for strings that contain numbers? In particular, what about &quot;plain literal&quot; values that are almost, but not quite, strings?</p>
 <p><strong>&quot;Match '42'^^&lt;http://www.w3.org/2001/XMLSchema#string&gt;.&quot;</strong> This example asks for a typed string to see if we get any numeric matches back. </p>
 <table width="1038" border="1">
@@ -611,7 +611,7 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 </table>
 <p>The getStatements() query matched the plain literal only, and did not match the string. The SPARQL queries returned matches that were both typed strings and plain literals. There were no numeric matches. </p>
 <p>The interesting lesson here is that AllegroGraph distinguishes between strings and plain literals when you use getStatements(), but it lumps them together when you use SPARQL. </p>
-<h2>Matching Strings</h2>
+<h3>Matching Strings</h3>
 <p>In this section we'll set up a variety of string triples and experiment with matching them using getStatements() and SPARQL. Note that <a href="#Free Text Search">Free Text Search</a> is a different topic. In this section we're doing simple matches of whole strings.</p>
 <h3>Asserting String Values </h3>
 <p>We're going to add a &quot;favorite color&quot; attribute to five of the person resources we have used so far. First we need a predicate.</p>
@@ -717,7 +717,7 @@ WHERE {?s ?p ?o . filter (fn:lower-case(str(?o)) = &quot;rouge&quot;)}</pre>
 <p>This query returns a variety of &quot;Rouge&quot; triples:</p>
 <pre class="output">&lt;http://people/greg&gt; &lt;http://people/favoriteColor&gt; &quot;Rouge&quot;@fr<br>&lt;http://people/fred&gt; &lt;http://people/favoriteColor&gt; &quot;Rouge&quot;<br>&lt;http://people/eric&gt; &lt;http://people/favoriteColor&gt; &quot;Rouge&quot;^^&lt;http://www.w3.org/2001/XMLSchema#string&gt;<br>&lt;http://people/dave&gt; &lt;http://people/favoriteColor&gt; &quot;rouge&quot;^^&lt;http://www.w3.org/2001/XMLSchema#string&gt; </pre>
 <p>This query matched all triples containing the string &quot;rouge&quot; regardless of datatype or language tag. Remember that the SPARQL &quot;filter&quot; queries are powerful, but they are also the slowest queries. SPARQL direct queries and getStatements() queries are faster. </p>
-<h2>Matching Booleans</h2>
+<h3>Matching Booleans</h3>
 <p>In this section we'll assert and then search for Boolean values.</p>
 <h3>Asserting Boolean Values</h3>
 <p>The Python language includes predefined True and False symbols for use in your decision-making logic. These Boolean constants are fine for programming, but they are not appropriate for asserting Boolean values into triples. They do not result in legal RDF Boolean values, and this creates subsequent matching issues.</p>
@@ -768,22 +768,149 @@ WHERE {?s ?p ?o . filter (fn:lower-case(str(?o)) = &quot;rouge&quot;)}</pre>
   </tr>
 </table>
 <p>All of these queries correctly match Boolean values. </p>
-<h2>Dates, Times and Datetimes </h2>
-<p>In the following example, we use getStatements() to match a DATE object:</p>
-<pre class="input">
-    ## Search for date using date object in triple pattern.
-    print "Retrieve triples matching DATE object."
-    statements = conn.getStatements(None, None, date)
-    for s in statements:
-        print s
-</pre> 
-<pre class="output">Retrieve triples matching DATE object.<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/birthdate&gt;, 
-&quot;1984-12-06&quot;^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;)</pre>
-<p>Note the string representation of the DATE object.  We can plug that into a query as a string to make the same match:</p>
-<pre class="input">    print &quot;Match triples having a specific DATE value.&quot;<br>    statements = conn.getStatements(None, None, '&quot;1984-12-06&quot;^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;')
-    for s in statements:<br>        print s</pre>
-<pre class="output">Match triples having specific DATE value.<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/birthdate&gt;, &quot;1984-12-06&quot;^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;)
-</pre>
+<h3>Dates, Times and Datetimes </h3>
+<p>In this final section of example5(), we'll assert and retrieve dates, times and datetimes. </p>
+<p>In this context, you might be surprised by the way that AllegroGraph handles time zone data. If you assert (or search for) a timestamp that includes a time-zone offset, AllegroGraph will &quot;normalize&quot; the expression to Greenwich (zulu) time before proceeding. This normalization greatly speeds up searching and happens transparently to you, but you'll notice that the matched values are all zulu times. </p>
+<h3>Asserting Date, Time and Datetime Values</h3>
+<p>We're going to add birthdates to our personnel records. We'll need a birthdate predicate:</p>
+<pre class="input">    birthdate = conn.createURI(namespace=exns, localname=&quot;birthdate&quot;)  </pre>
+<p>We'll also need four types of literal values: a date, a time, a datetime, and a datetime with a time-zone offset.</p>
+<pre class="input">    date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     <br>    datetime = conn.createLiteral('1984-12-06T09:00:00', datatype=XMLSchema.DATETIME) <br>    time = conn.createLiteral('09:00:00Z', datatype=XMLSchema.TIME) <br>    datetimeOffset = conn.createLiteral('1984-12-06T09:00:00+01:00', datatype=XMLSchema.DATETIME)</pre>
+<p>It is interesting to notice that these lilteral values print out exactly as we defined them. </p>
+<pre class="output">Printing out Literals for date, datetime, time, and datetime with Zulu offset.<br>&quot;1984-12-06&quot;^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;<br>&quot;1984-12-06T09:00:00&quot;^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;<br>&quot;09:00:00Z&quot;^^&lt;http://www.w3.org/2001/XMLSchema#time&gt;<br>&quot;1984-12-06T09:00:00+01:00&quot;^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</pre>
+<p>Now we'll add them to the triple store:</p>
+<pre class="input">    conn.addTriples([(alice, birthdate, date),<br>                     (bob, birthdate, datetime),<br>                     (carol, birthdate, time),<br>                     (dave, birthdate, datetimeOffset)])</pre>
+<p>And then retrieve them using getStatements():</p>
+<pre class="output">Showing all birthday triples using getStatements(). Should be four.<br>(&lt;http://people/alice&gt;, &lt;http://people/birthdate&gt;, &quot;1984-12-06&quot;^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;)<br>(&lt;http://people/bob&gt;, &lt;http://people/birthdate&gt;, &quot;1984-12-06T09:00:00Z&quot;^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;)<br>(&lt;http://people/carol&gt;, &lt;http://people/birthdate&gt;, &quot;09:00:00Z&quot;^^&lt;http://www.w3.org/2001/XMLSchema#time&gt;)<br>(&lt;http://people/dave&gt;, &lt;http://people/birthdate&gt;, &quot;1984-12-06T08:00:00Z&quot;^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;)</pre>
+<p>If you look sharply, you'll notice that the zulu offset has been normalized:</p>
+<pre>Was:<span class="output">&quot;1984-12-06T09:00:00+01:00&quot;</span>
+Now:<span class="output">&quot;1984-12-06T08:00:00Z&quot;</span></pre>
+<p>Note that the one-hour zulu offset has been applied to the timestamp. &quot;9:00&quot; turned into &quot;8:00.&quot; </p>
+<h3>Matching Date, Time, and Datetime Literals</h3>
+<p><strong>&quot;Match date.&quot;</strong> What happens if we search for the date literal we defined? We'll use the &quot;date&quot; variable with getStatements(), but just type the expected value into the SPARQL queries. </p>
+<table width="1038" border="1">
+  <tr>
+    <td width="140"><strong>Query Type </strong></td>
+    <td width="368"><strong>Query</strong></td>
+    <td width="508"><strong>Matches which types? </strong></td>
+  </tr>
+  <tr>
+    <td><strong>getStatements()</strong></td>
+    <td>conn.getStatements(None, age, date)</td>
+    <td><p>&quot;1984-12-06&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;<br>
+    </p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL direct match </strong></td>
+    <td>SELECT ?s ?p WHERE {?s ?p '1984-12-06'^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;</td>
+    <td><p>&quot;1984-12-06&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;</p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL filter match </strong></td>
+    <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o =<br> 
+    '1984-12-06'<br>
+    ^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;)}</td>
+    <td>&quot;1984-12-06&quot;<br>
+    ^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;</td>
+  </tr>
+</table>
+<p>All three queries match narrowly, meaning the exact date and datatype we asked for is returned. </p>
+<p><strong>&quot;Match datetime.&quot;</strong> What happens if we search for the datetime literal? We'll use the &quot;datetime&quot; variable with getStatements(), but just type the expected value into the SPARQL queries. </p>
+<table width="1038" border="1">
+  <tr>
+    <td width="140"><strong>Query Type </strong></td>
+    <td width="368"><strong>Query</strong></td>
+    <td width="508"><strong>Matches which types? </strong></td>
+  </tr>
+  <tr>
+    <td><strong>getStatements()</strong></td>
+    <td>conn.getStatements(None, age, datetime)</td>
+    <td><p>&quot;1984-12-06T09:00:00Z&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;<br>
+    </p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL direct match </strong></td>
+    <td>SELECT ?s ?p WHERE {?s ?p '1984-12-06T09:00:00Z'<br>
+    ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt; .}</td>
+    <td><p>&quot;1984-12-06T09:00:00Z&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL filter match </strong></td>
+    <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = '1984-12-06T09:00:00Z'^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</td>
+    <td>&quot;1984-12-06T09:00:00Z&quot;<br>
+    ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</td>
+  </tr>
+</table>
+<p>The matches are specific for the exact date, time and type. </p>
+<p><strong>&quot;Match time.&quot;</strong> What happens if we search for the time literal? We'll use the &quot;time&quot; variable with getStatements(), but just type the expected value into the SPARQL queries. </p>
+<table width="1038" border="1">
+  <tr>
+    <td width="140"><strong>Query Type </strong></td>
+    <td width="368"><strong>Query</strong></td>
+    <td width="508"><strong>Matches which types? </strong></td>
+  </tr>
+  <tr>
+    <td><strong>getStatements()</strong></td>
+    <td>conn.getStatements(None, age, time)</td>
+    <td><p>&quot;09:00:00Z&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#time&gt;<br>
+    </p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL direct match </strong></td>
+    <td>SELECT ?s ?p WHERE {?s ?p &quot;09:00:00Z&quot;<br>
+    ^^&lt;http://www.w3.org/2001/XMLSchema#time&gt; .}</td>
+    <td><p>&quot;09:00:00Z&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#time&gt;</p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL filter match </strong></td>
+    <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = &quot;09:00:00Z&quot;^^&lt;http://www.w3.org/2001/XMLSchema#time&gt;)}</td>
+    <td>&quot;09:00:00Z&quot;<br>
+    ^^&lt;http://www.w3.org/2001/XMLSchema#time&gt;</td>
+  </tr>
+</table>
+<p>The matches are specific for the exact time and type. </p>
+<p><strong>&quot;Match datetime with offset.&quot;</strong> What happens if we search for a datetime with zulu offset? </p>
+<table width="1038" border="1">
+  <tr>
+    <td width="140"><strong>Query Type </strong></td>
+    <td width="368"><strong>Query</strong></td>
+    <td width="508"><strong>Matches which types? </strong></td>
+  </tr>
+  <tr>
+    <td><strong>getStatements()</strong></td>
+    <td>conn.getStatements(None, age, datetimeOffset)</td>
+    <td><p>&quot;1984-12-06T08:00:00Z&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;<br>
+    </p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL direct match </strong></td>
+    <td>SELECT ?s ?p WHERE {?s ?p &quot;1984-12-06T09:00:00+01:00&quot;<br>
+^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt; .}</td>
+    <td><p>&quot;1984-12-06T08:00:00Z&quot;<br>
+      ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</p></td>
+  </tr>
+  <tr>
+    <td><strong>SPARQL filter match </strong></td>
+    <td><p>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = &quot;1984-12-06T09:00:00+01:00&quot;^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;)}</p>    </td>
+    <td>&quot;1984-12-06T08:00:00Z&quot;<br>
+    ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</td>
+  </tr>
+</table>
+<p>Note that we searched for &quot;1984-12-06T09:00:00+01:00&quot; but found &quot;1984-12-06T08:00:00Z&quot;. It is the same moment in time. </p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
 <h2 id="Importing Triples">Importing Triples (example6() and example7()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 The Python API client can load triples in either RDF/XML format or  NTriples format.  The example below calls the connection object's <strong>add()</strong> method to load 

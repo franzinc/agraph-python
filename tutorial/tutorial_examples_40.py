@@ -570,22 +570,81 @@ def example5():
     birthdate = conn.createURI(namespace=exns, localname="birthdate")
     date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     
     datetime = conn.createLiteral('1984-12-06T09:00:00', datatype=XMLSchema.DATETIME) 
-    time = conn.createLiteral('09:00:00', datatype=XMLSchema.TIME) 
-    print "Printing out Literals for date, datetime, and time."
+    time = conn.createLiteral('09:00:00Z', datatype=XMLSchema.TIME) 
+    datetimeOffset = conn.createLiteral('1984-12-06T09:00:00+01:00', datatype=XMLSchema.DATETIME)
+    print "Printing out Literals for date, datetime, time, and datetime with Zulu offset."
     print date
     print datetime
     print time
+    print datetimeOffset
 
     conn.addTriples([(alice, birthdate, date),
                      (bob, birthdate, datetime),
-                     (carol, birthdate, time)])
+                     (carol, birthdate, time),
+                     (dave, birthdate, datetimeOffset)])
 
-    print "\nShowing all birthday triples using getStatements(). Should be three."
+    print "\nShowing all birthday triples using getStatements(). Should be four."
     statements = conn.getStatements(None, birthdate, None)
     for s in statements:
         print s
 
-    print "\nSPARQL matches for \"09:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#time> (filter match) finds ???."
+    print "----------------------------------------------------------------------------"
+    print "\ngetStatements() triples that match date: %s One match." % (date) 
+    statements = conn.getStatements(None, birthdate, date)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \'1984-12-06\'^^<http://www.w3.org/2001/XMLSchema#date> (filter match) finds one."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = '1984-12-06'^^<http://www.w3.org/2001/XMLSchema#date>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \'1984-12-06\'^^<http://www.w3.org/2001/XMLSchema#date> (direct match) finds one."
+    queryString = """SELECT ?s ?p WHERE {?s ?p '1984-12-06'^^<http://www.w3.org/2001/XMLSchema#date> .}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    print "\ngetStatements() triples that match datetime: %s One match." % (datetime) 
+    statements = conn.getStatements(None, birthdate, datetime)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"1984-12-06T09:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> (filter match) finds one."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = '1984-12-06T09:00:00Z'^^<http://www.w3.org/2001/XMLSchema#dateTime>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \'1984-12-06T09:00:00Z\'^^<http://www.w3.org/2001/XMLSchema#dateTime> (direct match) finds one."
+    queryString = """SELECT ?s ?p WHERE {?s ?p '1984-12-06T09:00:00Z'^^<http://www.w3.org/2001/XMLSchema#dateTime> .}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        print "%s %s" % (s, p)
+
+    print "----------------------------------------------------------------------------"
+    print "\ngetStatements() triples that match time: %s One match." % (time) 
+    statements = conn.getStatements(None, birthdate, time)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for \"09:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#time> (filter match) finds one."
     queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "09:00:00Z"^^<http://www.w3.org/2001/XMLSchema#time>)}"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();    
@@ -595,7 +654,7 @@ def example5():
         o = bindingSet[2]
         print "%s %s %s" % (s, p, o)
 
-    print "\nSPARQL matches for \"09:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#time> (direct match)."
+    print "\nSPARQL matches for \"09:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#time (direct match) finds one."
     queryString = """SELECT ?s ?p WHERE {?s ?p "09:00:00Z"^^<http://www.w3.org/2001/XMLSchema#time> .}"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();    
@@ -604,50 +663,31 @@ def example5():
         p = bindingSet[1]
         print "%s %s" % (s, p)
 
-    # Matches against time object.
-    print "\ngetStatements() request time literal value, matches one."
-    statements = conn.getStatements(None, birthdate, time)
+    print "----------------------------------------------------------------------------"
+    print "\ngetStatements() triples that match datetimeOffset: %s One match." % (datetimeOffset) 
+    statements = conn.getStatements(None, birthdate, datetimeOffset)
     for s in statements:
         print s
 
-    ## Search for date using date object in triple pattern.
-    print "\ngetStatements() request date literal value, matches ???."
-    statements = conn.getStatements(None, None, date)
-    for s in statements:
-        print s
-    ## Search for datetime using datetime object in triple pattern.
-    print "\ngetStatements() request datetime literal value, matches ???."
-    statements = conn.getStatements(None, None, datetime)
-    for s in statements:
-        print s
-    ## Search for specific date value.
-    print "\nMatch triples having specific DATE value."
-    statements = conn.getStatements(None, None, '"1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date>')
-    for s in statements:
-        print s
-    ## Search for specific datetime value.
-    print "\nMatch triples having specific DATETIME value."
-    statements = conn.getStatements(None, None, '"1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>')
-    for s in statements:
-        print s
-    ## Search for triples of type xsd:date using SPARQL query.
-    print "\nSPARQL request for direct match xsd:date."
-    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06"^^<http://www.w3.org/2001/XMLSchema#date> }"""
+    print "\nSPARQL matches for \"1984-12-06T09:00:00+01:00\"^^<http://www.w3.org/2001/XMLSchema#dateTime> (filter match) finds one."
+    queryString = """SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = "1984-12-06T09:00:00+01:00"^^<http://www.w3.org/2001/XMLSchema#dateTime>)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print "\nSPARQL matches for \"1984-12-06T09:00:00+01:00\"^^<http://www.w3.org/2001/XMLSchema#dateTime> (direct match) finds one."
+    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06T09:00:00+01:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> .}"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();    
     for bindingSet in result:
         s = bindingSet[0]
         p = bindingSet[1]
         print "%s %s" % (s, p)
-    ## Search for triples of type xsd:datetime using SPARQL query.
-    print "\nSPARQL request for direct match a specific xsd:dateTime."
-    queryString = """SELECT ?s ?p WHERE {?s ?p "1984-12-06T09:00:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> }"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    result = tupleQuery.evaluate();    
-    for bindingSet in result:
-        s = bindingSet[0]
-        p = bindingSet[1]
-        print "%s %s" % (s, p)
+
     conn.close();
     myRepository = conn.repository
     myRepository.shutDown()
