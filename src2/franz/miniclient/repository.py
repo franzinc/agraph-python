@@ -87,6 +87,13 @@ class Client(Catalog):
     def deleteFederation(self, id):
         nullRequest(self, "DELETE", "/federated/" + urllib.quote(id))
 
+    def openSession(self, spec, autocommit=False, lifetime=None, loadinitfile=False):
+        url = jsonRequest(self, "POST", "/session?" +
+                          urlenc(autoCommit=autocommit, lifetime=lifetime,
+                                 loadInitFile=loadinitfile, store=spec))
+        rep = self._instanceFromUrl(Repository, url)
+        rep._enableSession()
+        return rep
 
 class Repository(Service):
     def getSize(self, context=None):
@@ -362,6 +369,9 @@ class Repository(Service):
         self.oldUrl = self.url
         self.url = jsonRequest(self, "POST", "/session?" + urlenc(autoCommit=autocommit,
             lifetime=lifetime, loadInitFile=loadinitfile))
+        self._enableSession()
+
+    def _enableSession(self):
         alive = self.sessionAlive = threading.Event()
         def pingSession():
             while True:
@@ -377,7 +387,7 @@ class Repository(Service):
         self.sessionAlive = None
         try: nullRequest(self, "POST", "/session/close")
         except Exception: pass
-        self.url = self.oldUrl
+        if hasattr(self, "oldUrl"): self.url = self.oldUrl
 
     def setAutoCommit(self, on):
         """Only allowed when a session is active."""
