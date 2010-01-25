@@ -54,6 +54,9 @@ class TupleQueryResult(QueryResult):
     """
     def __init__(self, variable_names, string_tuples):
         QueryResult.__init__(self)
+        if not isinstance(variable_names, list):
+            variable_names = [variable_names]
+            string_tuples = [string_tuples]
         self.variable_names = variable_names
         self.string_tuples = string_tuples
         self.cursor = 0        
@@ -119,7 +122,10 @@ class ListBindingSet(object):
     def _get_ith_value(self, index):
         term = self.value_cache[index]
         if not term:
-            term = Statement.stringTermToTerm(self.string_tuple[index])
+            def convert(x):
+                if isinstance(x, list): return [convert(elt) for elt in x]
+                else: return Statement.stringTermToTerm(x)
+            term = convert(self.string_tuple[index])
             self.value_cache[index] = term
         return term
         
