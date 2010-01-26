@@ -59,8 +59,8 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Loading Prolog Rules">Loading Prolog Rules</a> </li>
       <li><a href="#RDFS++ Inference">RDFS++ Inference</a> </li>
       <li><a href="#Geospatial Search">Geospatial Search</a> </li>
-<!--      <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
--->      <li><a href="#Dedicated Session">Dedicated Session </a></li>
+      <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
+      <li><a href="#Dedicated Session">Dedicated Session </a></li>
       </ul>
     <p>&nbsp;</p></td>
   </tr>
@@ -1558,8 +1558,6 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 &quot;+513159.49909-0000459.99970&quot;^^&lt;http://franz.com/ns/allegrograph/3.0/geospatial/spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)</pre>
 <p>AllegroGraph returns the location of London, but not the nearby Amsterdam.</p>
 
-<!-- Commented out 1/25/2010 due to rfe9149. BDC
-
 <h2 id="Social Network Analysis">Social Network Analysis  (example21())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph includes sophisticated algorithms for social-network analysis (SNA). It can examine an RDF graph of relationships among people (or similar entities, such as businesses) and discover:</p>
 <ul>
@@ -1704,39 +1702,33 @@ Found 8 query results
       (q ?member !dc:title ?name))
 </pre>
 <p>This produces the same set of result nodes, but under the right circumstances the matrix would run a lot faster than the generator. </p>
-<p>This variation returns Valjean's ego group as a single list:</p>
-<pre class="input">    (select ?group
+<p>This variation returns Valjean's ego group as a single list. </p>
+<pre class="input">    (select (?group)
       (ego-group !lm:character11 1 associates ?group))</pre>
-            The result in the Python interaction window is: 
-<pre class="output">Valjean's ego group in one list depth 1 (using associates).
-"({character27} {character24} {character25} {character28} {character11}
- {character26} {character23} {character55})"</pre>
- <h3 id="SNA Search - Path from A to B">SNA Search - Path from A to B</h3>
+<p>The result in the Python interaction window is: </p>
+<pre class="output">Valjean's ego group in one list depth 1 (using associates).<br>Found 1 query results<br>[ &lt;http://www.franz.com/lesmis#character27&gt; &lt;http://www.franz.com/lesmis#character25&gt; <br>&lt;http://www.franz.com/lesmis#character28&gt; &lt;http://www.franz.com/lesmis#character23&gt; <br>&lt;http://www.franz.com/lesmis#character26&gt; &lt;http://www.franz.com/lesmis#character55&gt; <br>&lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character24&gt; ]</pre>
+
+<h3 id="SNA Search - Path from A to B">SNA Search - Path from A to B</h3>
 <p>In the following examples, we explore the graph for the shortest path from Valjean to Bossuet, using the three generators to place restrictions on the quality of the path. These are the relevant paths between these two characters:</p>
  <img src="pathsValBos.jpg" width="913" height="254"> 
 <p>Our first query asks AllegroGraph to use <strong>intimates</strong> to find the shortest possible path between Valjean and Bossuet that is composed entirely of &quot;knows_well&quot; links. Those would be the green arrows in the diagram above. The <strong>breadth-first-search-paths</strong> function asks for a start node and an end node, a generator, an optional maximum path length, and a variable to bind to the resulting path(s). Valjean is character11, and Bossuet is character64.</p>
-<pre class="input">    (select ?path
+<pre class="input">    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))</pre>
 <p>It is easy to examine the diagram and see that there is no such path. Valjean and Bossuet are not well-acquainted, and do not have any chain of well-acquainted mutual friends. AllegroGraph lets us know that.</p>
 <pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using intimates.
 Found 0 query results</pre>
 <p>This time we'll broaden the criteria. What is the shortest path from Valjean to Bossuet, using <strong>associates</strong>? We can follow either &quot;knows_well&quot; or &quot;knows&quot; links across the graph. Those are the green and the blue links in the diagram. </p>
-<pre class="input">(select ?path
+<pre class="input">(select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))</pre>
 <p>Although there are multiple such paths, there are only two that are &quot;shortest&quot; paths. </p>
-<pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using associates.
-Found 2 query results
-"({character11} {character55} {character62} {character64})"
-"({character11} {character55} {character58} {character64})"</pre>
+<pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using associates.<br>Found 2 query results<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character55&gt;<br> &lt;http://www.franz.com/lesmis#character58&gt; &lt;http://www.franz.com/lesmis#character64&gt; ]<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character55&gt;<br> &lt;http://www.franz.com/lesmis#character62&gt; &lt;http://www.franz.com/lesmis#character64&gt; ]</pre>
 <p>These are the paths &quot;Valjean &gt; Marius &gt; Enjolras &gt; Bossuet&quot; and &quot;Valjean &gt; Marius &gt; Courfeyrac &gt; Bossuet.&quot; AllegroGraph returns two paths because they are of equal length. If one of the paths had been shorter, it would have returned only the short path. </p>
 <p>Our third query asks for the shortest path from Valjean to Bossuet using <strong>everyone</strong>, which means that &quot;barely-knows&quot; links are permitted in addition to &quot;knows&quot; and &quot;knows_well&quot; links. </p>
-<pre class="input">    (select ?path
+<pre class="input">    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
 </pre>
 <p>This time AllegroGraph returns a single, short path:</p>
-<pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using everyone.
-Found 1 query results
-"({character11} {character64})"</pre>
+<pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using everyone.<br>Found 1 query results<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character64&gt; ]</pre>
 <p>This is the &quot;barely-knows&quot; link directly from from Valjean to Bossuet. </p>
 <p>The Prolog select query can also use <strong>depth-first-search-path()</strong> and <strong>bidirectional-search-paths()</strong>. Their syntax is essentially identical to that shown above. These algorithms offer different efficiencies:</p>
 <ul>
@@ -1780,17 +1772,14 @@ Found 1 query results
 <p><img src="valjeanSmallCliques.jpg" width="397" height="248"> </p>
 <p>This is the query that finds Valjean's &quot;associates&quot; cliques:</p>
 <pre class="input">
-    (select ?clique
+    (select (?clique)
       (clique !lm:character11 associates ?clique))
 </pre>
 
 
 
 <p>AllegroGraph returns two cliques:</p>
-<pre class="output">Valjean's cliques? Should be two (using associates).
-Number of cliques: 2
-"({character11} {character26} {character55})"
-"({character11} {character25} {character24})"</pre>
+<pre class="output">Valjean's cliques? Should be two (using associates).<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character25&gt;<br> &lt;http://www.franz.com/lesmis#character24&gt; ]<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character55&gt;<br> &lt;http://www.franz.com/lesmis#character26&gt; ]</pre>
 <p>The first list is the clique with Marius and Cosette. The second one represents the Thernardier clique. </p>
 <h3 id="Actor Centrality">Actor Centrality </h3>
 <p>AllegroGraph lets us measure the relative importance of a node in a subgraph using the <strong>actor-degree-centrality()</strong> function. For instance, it should be obvious that Valjean is very &quot;central&quot; to his own ego group (depth of one link), because he is linked directly to all other links in the subgraph. In that case he is linked to 7 of 7 possible nodes, and his actor-degree-centrality value is 7/7 = 1. </p>
@@ -1806,7 +1795,7 @@ Number of cliques: 2
 <p>Note that we asked <strong>ego-group()</strong> to explore to a depth of two links, and then fed its result (<strong>?group</strong>) to <strong>actor-degree-centrality()</strong>. This is the output:</p>
 <pre class="output">Valjean's centrality to his ego group at depth 2 (using associates).
 "7.0e-1"^^<http://www.w3.org/2001/XMLSchema#double>
-7.0e-1</pre>
+0.7</pre>
 <p>This confirms our expectation that Valjean's actor-degree-centrality should be 0.70 in this circumstance.</p>
 <p>We can also measure actor centrality by calculating the average path length from a given node to the other nodes of the subgraph. This is called <strong>actor-closeness-centrality</strong>. For instance, we can calculate the average path length from Valjean to the ten nodes of his ego group (using associates and depth 2). Then we take the inverse of the average, so that bigger values will be &quot;more central.&quot; </p>
 <p><img src="valjeanActorClosenessCentrality.jpg" width="875" height="303"> </p>
@@ -1819,7 +1808,7 @@ Number of cliques: 2
 </pre>
 <pre class="output">Valjean's actor-closeness-centrality to his ego group at depth 2 (using associates).
 "7.692308e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
-7.692308e-1</pre>
+0.7692308</pre>
 <p>That is the expected value of 0.769. </p>
 <p>Another approach to centrality is to count the number of information paths that are &quot;controlled&quot; by a specific node. This is called<strong> actor-betweenness-centrality</strong>. For instance, there are 45 possible &quot;shortest paths&quot; between pairs of nodes in Valjean's associates depth-2 ego group. Valjean can act as an information valve, potentially cutting off communication on 34 of these 45 paths. Therefore, he controls 75% of the communication in the group. </p>
 <p><img src="valjeanActorBetweenCentrality.jpg" width="875" height="303"></p>
@@ -1832,7 +1821,7 @@ Number of cliques: 2
 
 <pre class="output">Valjean's actor-betweenness-centrality to his ego group at depth 2 (using associates).
 "7.5555557e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
-7.5555557e-1</pre>
+7.5555557</pre>
 <p>That's the expected result of 0.755. </p>
 <h3 id="Group Centrality">Group Centrality</h3>
 <p>Group-centrality measures express the &quot;cohesiveness&quot; of a group. There are three group-centrality measures in AllegroGraph: <strong>group-degree-centrality()</strong>, <strong>group-closeness-centrality()</strong>, and <strong>group-betweenness-centrality()</strong>.</p>
@@ -1855,15 +1844,13 @@ measured by first finding the actor whose `closeness-centrality` <br>
 is maximized and then summing the difference between this maximum 
 value and the actor-closeness-centrality of all other actors. 
 This value is then normalized so that it ranges between 0 and 1. </p>
-<p>The group-closeness-centrality of Valjean's smaller ego group is 0.073. The expanded ego group has a group-closeness-centrality of 0.032. Again, the larger group is less cohesive.</p>
-<p> Group-betweenness-centrality() is 
+<p>The group-closeness-centrality of Valjean's smaller ego group is 0.073. The expanded ego group has a group-closeness-centrality of 0.032. Again, the smaller group is more cohesive.</p>
+<p> <strong>Group-betweenness-centrality()</strong> is 
 measured by first finding the actor whose actor-betweenness-centrality<br>
 is maximized and then summing the difference between this maximum 
 value and the actor-betweenness-centrality of all other actors. 
 This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Valjean's smaller ego group has a group-betweenness-centrality of 0.904. The value for the larger ego group is 0.704. Even by this measure, the larger group is less cohesive. </p>
-
--->
 
 <p>&nbsp; </p>
 <h2 id="Dedicated Session">Dedicated Session (example22())</h2>
@@ -1939,7 +1926,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Remember that when you are done with a session or connection, it is appropriate to close it:</p>
 <pre class="input">    dedicated.closeSession()<br>    dedicated.close()<br>    common.close()</pre>
 <p>This recovers resources that would otherwise remain bound. </p>
-<p><font color="#CCCCCC">January 25, 2010 4.0 M3 release</font></p>
+<p><font color="#CCCCCC">January 26, 2010 4.0 M2c release</font></p>
 <p>&nbsp;</p>
 </body>
 

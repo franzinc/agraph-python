@@ -1384,7 +1384,7 @@ def example21():
 
     print "\nValjean's ego group in one list depth 1 (using associates)."
     queryString = """
-    (select ?group
+    (select (?group)
       (ego-group !lm:character11 1 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1392,11 +1392,14 @@ def example21():
     print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("group")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nValjean's ego group in one list depth 2 (using associates)."
     queryString = """
-    (select ?group
+    (select (?group)
       (ego-group !lm:character11 2 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1404,11 +1407,14 @@ def example21():
     print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("group")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nValjean's ego group in one list depth 3 (using associates)."
     queryString = """
-    (select ?group
+    (select (?group)
       (ego-group !lm:character11 3 associates ?group))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1416,12 +1422,14 @@ def example21():
     print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("group")
-        print "%s" % (p)
-
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using intimates."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1429,11 +1437,14 @@ def example21():
     print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("path")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using associates."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1441,11 +1452,14 @@ def example21():
     print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("path")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet using everyone."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1453,11 +1467,14 @@ def example21():
     print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("path")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nShortest breadth-first path connecting Valjean to Bossuet? with associates (should be two)."
     queryString = """
-    (select ?path
+    (select (?path)
       (breadth-first-search-paths !lm:character11 !lm:character64 associates ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1465,30 +1482,41 @@ def example21():
     print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("path")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     # Note that depth-first-search-paths are not guaranteed to be "the shortest path."
     print "\nReturn depth-first path connecting Valjean to Bossuet with associates (should be one)."
     queryString = """
-    (select ?path
+    (select (?path)
       (depth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("path")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nShortest bidirectional paths connecting Valjean to Bossuet with associates (should be two)."
     queryString = """
-    (select ?path
+    (select (?path)
       (bidirectional-search-paths !lm:character11 !lm:character64 associates ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
     for bindingSet in result:
         p = bindingSet.getValue("path")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     print "\nNodal degree of Valjean (should be seven)."
     queryString = """
@@ -1543,15 +1571,17 @@ def example21():
 
     print "\nValjean's cliques? Should be two (using associates)."
     queryString = """
-    (select ?clique
+    (select (?clique)
       (clique !lm:character11 associates ?clique))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
-    print "Number of cliques: %s" % len(result)
     for bindingSet in result:
         p = bindingSet.getValue("clique")
-        print "%s" % (p)
+        print "[",
+        for item in p:
+            print "%s" %(item),
+        print "]"
 
     # Valjean's actor-degree-centrality using a depth of 1.
     print "\nValjean's actor-degree-centrality to his ego group at depth 1 (using associates)."
@@ -1866,8 +1896,8 @@ def example22():
 	
 if __name__ == '__main__':
     starttime = time.clock()
-    choices = [i for i in range(1,23)]
-    #choices = [20]   
+    #choices = [i for i in range(1,23)]
+    choices = [21]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
@@ -1892,7 +1922,7 @@ if __name__ == '__main__':
         elif choice == 18: example18()                                                             
         elif choice == 19: example19() 
         elif choice == 20: example20()  
-#        elif choice == 21: example21()
+        elif choice == 21: example21()
         elif choice == 22: example22()
         else:
             print "This example is not available in the current release."
