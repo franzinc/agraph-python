@@ -59,8 +59,8 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Loading Prolog Rules">Loading Prolog Rules</a> </li>
       <li><a href="#RDFS++ Inference">RDFS++ Inference</a> </li>
       <li><a href="#Geospatial Search">Geospatial Search</a> </li>
-      <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
-      <li><a href="#Dedicated Session">Dedicated Session </a></li>
+<!--      <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
+-->      <li><a href="#Dedicated Session">Dedicated Session </a></li>
       </ul>
     <p>&nbsp;</p></td>
   </tr>
@@ -904,13 +904,6 @@ Now:<span class="output">&quot;1984-12-06T08:00:00Z&quot;</span></pre>
   </tr>
 </table>
 <p>Note that we searched for &quot;1984-12-06T09:00:00+01:00&quot; but found &quot;1984-12-06T08:00:00Z&quot;. It is the same moment in time. </p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
-<p>&nbsp;</p>
 <h2 id="Importing Triples">Importing Triples (example6() and example7()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 The Python API client can load triples in either RDF/XML format or  NTriples format.  The example below calls the connection object's <strong>add()</strong> method to load 
@@ -920,7 +913,6 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
     <td width="928"><strong>Note:</strong> If you get a &quot;file not found&quot; error while running this example, it means that Python is looking in the wrong directory for the data files to load. The usual explanation is that you have moved the tutorial_examples_40.py file to an unexpected directory. You can clear the issue by putting the data files in the same directory as tutorial_examples_40.py, or by setting the Python current working directory to the location of the data files using os.setcwd(). </td>
   </tr>
 </table>
-<p>&nbsp;</p>
 <p>The RDF/XML file contains a short list of v-cards (virtual business cards), like this one:</p>
 <pre>  &lt;rdf:Description rdf:about=&quot;http://somewhere/JohnSmith/&quot;&gt;<br>    &lt;vCard:FN&gt;John Smith&lt;/vCard:FN&gt;<br>    &lt;vCard:N rdf:parseType=&quot;Resource&quot;&gt;<br>	    &lt;vCard:Family&gt;Smith&lt;/vCard:Family&gt;<br>	    &lt;vCard:Given&gt;John&lt;/vCard:Given&gt;<br>    &lt;/vCard:N&gt;<br>  &lt;/rdf:Description&gt; </pre>
 <p>The NTriples file contains a graph of resources describing the Kennedy family, the places where they were each born, their colleges, and their professions. A typical entry from that file looks like this:</p>
@@ -1233,7 +1225,7 @@ The DESCRIBE query returns a &quot;graph,&quot; meaning all triples of the match
  <pre class="output">Facts about Bob:<br>{'p': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 's': 'http://example.org/people/bob', 'o': 'http://example.org/ontology/Person'}
 {'p': 'http://example.org/ontology/name', 's': 'http://example.org/people/bob', 'o': '&quot;Bob&quot;'}</pre>
  <h2 id="Range Matches">Range Matches (example15())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
- <p>Example example15() demonstrates how to set up a query that matches a range of values. In this case, we'll retrieve all people between 30 and 50 years old (inclusive). We can accomplish this using the connection object's <strong>createRange()</strong> method. </p>
+ <p>Example15() demonstrates how to set up a query that matches a range of values. In this case, we'll retrieve all people between 30 and 50 years old (inclusive). We can accomplish this using the connection object's <strong>createRange()</strong> method. </p>
  <p>This example begins by getting a connection object from example1(), and then clearing the repository of the existing triples. </p>
  <pre class="input">
 def example15():<br>    conn = example1()<br>    conn.clear()</pre>
@@ -1565,6 +1557,9 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <pre class="output">(&lt;http://example.org/people/london&gt;, &lt;http://example.org/people/geolocation&gt;, 
 &quot;+513159.49909-0000459.99970&quot;^^&lt;http://franz.com/ns/allegrograph/3.0/geospatial/spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)</pre>
 <p>AllegroGraph returns the location of London, but not the nearby Amsterdam.</p>
+
+<!-- Commented out 1/25/2010 due to rfe9149. BDC
+
 <h2 id="Social Network Analysis">Social Network Analysis  (example21())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph includes sophisticated algorithms for social-network analysis (SNA). It can examine an RDF graph of relationships among people (or similar entities, such as businesses) and discover:</p>
 <ul>
@@ -1867,6 +1862,9 @@ is maximized and then summing the difference between this maximum
 value and the actor-betweenness-centrality of all other actors. 
 This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Valjean's smaller ego group has a group-betweenness-centrality of 0.904. The value for the larger ego group is 0.704. Even by this measure, the larger group is less cohesive. </p>
+
+-->
+
 <p>&nbsp; </p>
 <h2 id="Dedicated Session">Dedicated Session (example22())</h2>
 <p>Most of the time, multiple AllegroGraph users pool triples in a common session. Their data may be segregated into multiple contexts (subgraphs) for convenience, but in fact any part of this data may be retrieved by any of the users.</p>
@@ -1941,7 +1939,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Remember that when you are done with a session or connection, it is appropriate to close it:</p>
 <pre class="input">    dedicated.closeSession()<br>    dedicated.close()<br>    common.close()</pre>
 <p>This recovers resources that would otherwise remain bound. </p>
-<p><font color="#CCCCCC">January 13, 2010 4.0 M3 release</font></p>
+<p><font color="#CCCCCC">January 25, 2010 4.0 M3 release</font></p>
 <p>&nbsp;</p>
 </body>
 

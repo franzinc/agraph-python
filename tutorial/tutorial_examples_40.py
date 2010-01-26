@@ -1027,7 +1027,9 @@ def example15():
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
+    print "Persons with ages between 30 and 50."
     rows = conn.getStatements(None, age, range)
+#    rows = conn.getStatements(None, age, (30, 50))
     for r in rows:
         print r 
     conn.close();
@@ -1277,7 +1279,7 @@ def example20():
     sanfrancisto = conn.createURI(exns, "sanfrancisco")
     salvador = conn.createURI(exns, "salvador")    
     location = conn.createURI(exns, "geolocation")
-#    conn.registerDatatypeMapping(predicate=location, nativeType="float")   
+    #conn.registerDatatypeMapping(predicate=location, nativeType="float")  
     conn.add(amsterdam, location, conn.createCoordinate(52.366665, 4.883333))
     conn.add(london, location, conn.createCoordinate(51.533333, -0.08333333))
     conn.add(sanfrancisto, location, conn.createCoordinate(37.783333, -122.433334)) 
@@ -1302,6 +1304,7 @@ def example20():
 def example21():
     """
     Social Network Analysis Reasoning
+    This example is commented out 1/25/2010 relative to rfe9149.  BDC
     """
     print "Starting example21()."
     print "Current working directory is '%s'" % (os.getcwd())
@@ -1862,8 +1865,9 @@ def example22():
     repository.shutDown()
 	
 if __name__ == '__main__':
-    #choices = [i for i in range(1,22)]
-    choices = [5]   
+    starttime = time.clock()
+    choices = [i for i in range(1,23)]
+    #choices = [20]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
@@ -1888,8 +1892,8 @@ if __name__ == '__main__':
         elif choice == 18: example18()                                                             
         elif choice == 19: example19() 
         elif choice == 20: example20()  
-        elif choice == 21: example21()
+#        elif choice == 21: example21()
         elif choice == 22: example22()
         else:
             print "This example is not available in the current release."
-    
+    print("\nElapsed time: %s seconds." % (time.clock() - starttime))
