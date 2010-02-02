@@ -1,0 +1,21 @@
+Instructions:
+ * PLEASE leave these instructions at the top of the file
+ * describe the user visible changes below (insert below the
+   instructions)
+ * include the version # in the comments, or group them in a section
+   for the particular release
+Thank you. *** End of Instructions
+
+Version 4.0.m3
+==============
+
+2010-02-02
+
+Removed the ability to get JDBC result sets. Please contact support@franz.com
+if you need ways to get the result data without instantiating the corresponding
+Literal, URI, or BNode objects.
+
+2010-02-02
+
+Removed the client-side namespace implementation and restored the server-side
+version.

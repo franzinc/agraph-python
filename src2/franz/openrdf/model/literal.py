@@ -379,7 +379,7 @@ def _parse_iso(timestamp):
     
     m = _parse_iso.parser.match(timestamp)
     if not m:
-        raise ValueError("Not a proper ISO 8601 timestamp!")
+        raise ValueError("%s: Not a proper ISO 8601 timestamp!" % timestamp)
 
     year  = int(m.group('year'))
     month = int(m.group('month'))

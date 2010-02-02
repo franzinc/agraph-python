@@ -15,6 +15,7 @@ from __future__ import absolute_import
 from ..exceptions import BadFormatException
 from .value import Value, URI, BNode
 from .literal import Literal
+from ..util import strings
 
 class Statement:
     """
@@ -126,63 +127,19 @@ class Statement:
         Given a string representing a term in ntriples format, return
         a URI, Literal, or BNode.
         """
-        if not string_term: return string_term
-        if string_term[0] == '<':
-            uri = string_term[1:-1]
-            return URI(uri)
-        elif string_term[0] == '"':
-            lastPos = string_term.rfind('"')
-            if lastPos == len(string_term) - 1:
-                return Literal(string_term[1:-1])
-            ## we have a double-quoted literal with either a data type or a language indicator
-            caratPos = string_term.find('^^')
-            if caratPos >= 0:
-                label = string_term[1:caratPos - 1]
-                datatype = string_term[caratPos + 2:]
-                return Literal(label, datatype=datatype)
-            atPos = string_term.find('@')
-            if atPos >=0:
-                label = string_term[1:atPos - 1]
-                language = string_term[atPos + 1:]
-                return Literal(label, language=language)
-            else:
-                return Literal(string_term[1:-1])
-        elif string_term[0] == '_' and string_term[1] == ':':
-            return BNode(string_term[2:])
-        else:
-            ## EXPERIMENT:
-            return Literal(str(string_term))
-            ## END EXPERIMENT
-            raise BadFormatException("Cannot translate '%s' into an OpenRDF term." % string_term)
+        if not string_term:
+            return string_term
         
-    @staticmethod
-    def ntriples_string_to_value(string_term):
-        """
-        Given a string representing a term in ntriples format, return
-        a URI or the label portion of a literal (a string minus the double quotes).
-        TODO: IMPLEMENT BNODES
-        """
-        if not string_term: return string_term
-        if string_term[0] == '<':
-            uri = string_term[1:-1]
-            return uri
-        elif string_term[0] == '"':
-            ## look for the trailing double quote:
-            lastPos = string_term.rfind('"')
-            if lastPos == len(string_term) - 1:
-                return string_term[1:-1]
-            ## we have a double-quoted literal with either a data type or a language indicator
-            caratPos = string_term.find('^^')
-            if caratPos >= 0:
-                label = string_term[1:caratPos - 1]
-                return label
-            atPos = string_term.find('@')
-            if atPos >=0:
-                label = string_term[1:atPos - 1]
-                return label
-            else:
-                return string_term[1:-1]
-        else:
-            raise NotImplementedError("BNodes not yet implemented by 'stringTermToTerm'")
-                
+        parsed = strings.uriref(string_term)
+        if parsed:
+            return URI(parsed)
 
+        parsed = strings.literal(string_term)
+        if parsed:
+            return Literal(*parsed)
+
+        parsed = strings.nodeid(string_term)
+        if parsed:
+            return BNode(parsed)
+
+        return Literal(string_term)
