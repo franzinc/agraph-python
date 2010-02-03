@@ -1381,7 +1381,21 @@ def example21():
         p = bindingSet.getValue("member")
         n = bindingSet.getValue("name")
         print "%s %s" % (p, n)
-
+    print "foo"
+    print "\nValjean's ego group in one list depth 1 (using associates)."
+    queryString = """
+    (select (?member)
+      (ego-group !lm:character11 1 associates ?group)
+      (member ?member ?group))
+      """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();
+    print "Found %i query results" % len(result)      
+    for bindingSet in result:
+        p = bindingSet.getValue("member")
+        print "%s" %(p)
+    print "bar"
+	
     print "\nValjean's ego group in one list depth 1 (using associates)."
     queryString = """
     (select (?group)
@@ -1896,8 +1910,8 @@ def example22():
 	
 if __name__ == '__main__':
     starttime = time.clock()
-    #choices = [i for i in range(1,23)]
-    choices = [21]   
+    choices = [i for i in range(1,23)]
+    #choices = [21]   
     for choice in choices:
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
@@ -1922,7 +1936,7 @@ if __name__ == '__main__':
         elif choice == 18: example18()                                                             
         elif choice == 19: example19() 
         elif choice == 20: example20()  
-        elif choice == 21: example21()
+#        elif choice == 21: example21()
         elif choice == 22: example22()
         else:
             print "This example is not available in the current release."

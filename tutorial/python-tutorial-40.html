@@ -39,6 +39,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <!--      <li><a href="#PrerequisitesWindows">Prerequisites (Windows)</a> </li>
 -->      <li><a href="#PrerequisitesLinux">Prerequisites (Linux)</a></li>
       <li><a href="#Terminology">Terminology</a></li>
+	  <li><a href="#Creating Users with WebView">Creating Users with WebView</a></li>
       <li><a href="#Creating a Repository">Creating a Repository</a></li>
       <li><a href="#Asserting and Retracting Triples">Asserting and Retracting Triples</a></li>
       <li><a href="#A SPARQL Query">A SPARQL Query</a></li>
@@ -163,8 +164,42 @@ In Windows XP, you can set an environment variable by
     <td width="421"><img src="catalogrepositorycontext.jpg" width="397" height="400" align="right"></td>
   </tr>
 </table>
-  <p>&nbsp;</p>
-  <h2 id="Creating a Repository">Creating a Repository (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+  <h2 id="Creating Users with WebView">Creating Users with WebView &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+  <p>Each connection to an AllegroGraph server runs under the credentials of a registered AllegroGraph user account. </p>
+  <h3>Initial Superuser Account </h3>
+  <p>The installation instructions for AllegroGraph advise you to create a default <strong>superuser</strong> called &quot;test&quot;, with password &quot;xyzzy&quot;. This is the user (and password) expected by the tutorial examples. If you created this account as directed, you can proceed to the <a href="#Creating a Repository">next section</a> and return to this topic at a later time when you need to create non-superuser accounts. </p>
+  <p>If you created a different superuser account you'll have to edit the <strong>tutorial_examples_40.py</strong> file before proceeding. Modify these entries near the top of the file:</p>
+  <pre class="input">AG_USER = 'test'<br>AG_PASSWORD = 'xyzzy' </pre>
+  
+  <p>Otherwise you'll get an authentication failure when you attempt to connect to the server. </p>
+  <h3>Users, Permissions, Access Rules, and Roles</h3>
+  <p>AllegroGraph user accounts may be given any combination of the following three permissions:</p>
+  <ul>
+    <li>Superuser</li>
+    <li>Start Session</li>
+    <li>Evaluate Arbritray Code</li>
+  </ul>
+  <p>In addition, a user account may be given read, write or read/write access to individual repositories. </p>
+  <p>You can also define a <strong>role</strong> (such as &quot;librarian&quot;) and give the role a set of permissions and access rules. Then you can assign several users to a shared role. This lets you manage their permissions and access by editing the role instead of the individual user accounts. </p>
+  <p>A <strong>superuser</strong> automatically has all possible permissions and unlimited access. A superuser can also create, manage and delete other user accounts. Non-superusers cannot view or edit account settings. </p>
+  <p>A user with the <strong>Start Sessions</strong> permission can use the AllegroGraph features that require spawning a dedicated session, such as <a href="#Dedicated Session">Transactions </a> and <a href="#Social Network Analysis">Social Network Analysis</a>. If you try to use these features without the appropriate permission, you'll encounter authentication errors. </p>
+  <p>A user with permission to <strong>Evaluate Arbitrary Code </strong>can run <a href="#Prolog Rule Queries">Prolog Rule Queries</a>. This user can also do anything else that allows executing Lisp code, such as defining select-style generators, or doing eval-in-server, as well as loading server-side files. </p>
+  <h3>WebView</h3>
+  <p>WebView is AllegroGraph's HTTP-based graphical user interface for user and repository management. To connect to WevView, simply direct your Web browser to the AllegroGraph port of your server. If you have installed AllegroGraph locally (and used the default port number), use:</p>
+  <pre class="output">http://localhost:10035</pre>
+  <p>You will be asked to log in. Use the superuser credentials described in the previous section. </p>
+  <p>The first page of WebView is a summary of your catalogs, repositories, and federations. Click the <strong>user account</strong> link in the lower left corner of the page. This exposes the <strong>Users and Roles</strong> page.</p>
+  <p><img src="webviewUser1.jpg" width="668" height="340"> </p>
+  <p>This is the environment for creating and managing user accounts. </p>
+    <p>To create a new user, click the [add a user] link. This exposes a small form where you can enter the username (one symbol) and password. Click OK to save the new account.</p>
+    <p>The new user will appear in the list of users. Click the [view permissions] link to open a control panel for the new user account:</p>
+    <p><img src="webviewNewUser.jpg" width="658" height="171"> </p>
+    <p>Use the checkboxes to apply permissions to this account (superuser, start session, evaluate arbitrary code). </p>
+    <p>It is imporant that you set up access permissions for the new user. Use the form to create an access rule by selecting read, write or read/write access, naming a catalog (or * for all), and naming a repository within that catalog (or * for all). Click the [add] link. This creates an access rule for your new user. The access rule will appear in the permissions display:</p>
+    <p><img src="webviewAccessRule.jpg" width="629" height="196"> </p>
+    <p>This new user can log in and perform transactions on any repository in the system. </p>
+    <p>To repeat, the &quot;test&quot; superuser is all you need to run all of the tutorial examples. This section is for the day when you want to issue more modest credentials to some of your operators. </p>
+    <h2 id="Creating a Repository">Creating a Repository (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The first task is to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
 <p>In <strong>example1()</strong> we build a chain of Python objects,  ending in a&quot;connection&quot; object that lets us manipulate triples in a specific repository. The overall process of generating the connection object follows 
 this diagram:</p>
@@ -1926,7 +1961,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Remember that when you are done with a session or connection, it is appropriate to close it:</p>
 <pre class="input">    dedicated.closeSession()<br>    dedicated.close()<br>    common.close()</pre>
 <p>This recovers resources that would otherwise remain bound. </p>
-<p><font color="#CCCCCC">January 26, 2010 4.0 M2c release</font></p>
+<p><font color="#CCCCCC">February 2, 2010 4.0 M2c release</font></p>
 <p>&nbsp;</p>
 </body>
 
