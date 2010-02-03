@@ -18,31 +18,6 @@ A strings utility module for helper functions.
 
 import re
 
-PATTERN = re.compile('.?"')
-
-def escape_double_quotes(string):
-    """
-    Place a backslash in front of any double quote in 'string' not already
-    preceded by a backslash.
-    """
-    def handle_quote(matchobj):
-        """Replace matches with the appropriate escaped character sequence."""
-        match = matchobj.group(0)
-
-        if match == '"':
-            return '\\"'
-
-        if match == '\\"':
-            return match
-
-        if match == '""':
-            return '\\"\\"'
-
-        return match[0] + '\\"'
-
-    return re.sub(PATTERN, handle_quote, string)
-
-
 ###############################################################################
 ## NTriples 7-bit ASCII Encoding
 ###############################################################################
@@ -98,16 +73,30 @@ encode_ntriple_string.LOWER_ASCII = hex2int('23')
 encode_ntriple_string.QUOTE = hex2int('5C')
 encode_ntriple_string.UPPER_ASCII = hex2int('7E')
 
-##===========================================================================
-## Test code
-##===========================================================================
+def uriref(string): 
+  uri = None
+  if string[0] == '<': 
+     uri = uriref.pattern.match(string).group(1).decode('unicode-escape')
+  return uri
 
-def test_escape_double_quotes():
-    assert escape_double_quotes(r'abc') == r'abc'
-    assert escape_double_quotes(r'ab"cd\"ef') == r'ab\"cd\"ef'
-    assert escape_double_quotes(r'"abc"') == r'\"abc\"'
-    assert escape_double_quotes(r'""abc"') == r'\"\"abc\"'
-    assert escape_double_quotes(r'""\"""\"\""abc"') == r'\"\"\"\"\"\"\"\"abc\"'
-    assert escape_double_quotes(r'\"abc\"') == r'\"abc\"'
-    assert escape_double_quotes(r'"""') == r'\"\"\"'
-    
+uri_pattern = r'<([^:]+:[^\s"<>]+)>'
+uriref.pattern = re.compile(uri_pattern + '$')
+
+def nodeid(string): 
+  bnode = None
+  if string[0] == '_': 
+     bnode = nodeid.pattern.match(string).group(1)
+  return bnode
+
+nodeid.pattern = re.compile(r'_:([A-Za-z][A-Za-z0-9]*)$')
+
+def literal(string): 
+  lit = None
+  if string[0] == '"': 
+     label, lang, dtype = literal.pattern.match(string).groups()
+     lit = (label.decode('unicode-escape'), dtype, lang)
+  return lit
+
+litvalue = r'"([^"\\]*(?:\\.[^"\\]*)*)"'
+litinfo = r'(?:@([a-z]+(?:-[a-z0-9]+)*)|\^\^' + uri_pattern + r')?'
+literal.pattern = re.compile(litvalue + litinfo + '$')

@@ -13,7 +13,7 @@
 from __future__ import absolute_import
 
 from ..exceptions import IllegalArgumentException
-from ..util import uris
+from ..util import uris, strings
 
 class Value(object):
     """
@@ -44,8 +44,7 @@ class URI(Resource):
     Lightweight implementation of the class 'URI'.
     """
     def __init__(self, uri=None, namespace=None, localname=None):
-        if uri and not isinstance(uri, str):
-            print "NON-STRING PASSED TO URI CONSTRUCTOR ", uri , "  ", type(uri) ## WE ARE NOT SURE WHAT THIS MEANS.  NEED TO FIGURE IT OUT - RMM
+        if uri and not isinstance(uri, basestring):
             raise IllegalArgumentException("Object of type %s passed to URI constructor where string expected: %s"
                                            % (type(uri), uri))
         if uri:
@@ -89,12 +88,13 @@ class URI(Resource):
         return self.uri[0:pos]
 
     namespace = property(getNamespace)
+
     def toNTriples(self):
         """
         Return an NTriples representation of a resource, in this case, wrap
         it in angle brackets.
         """
-        return "<%s>" % self.uri
+        return "<%s>" % strings.encode_ntriple_string(self.uri)
     
 class BNode(Resource):
     """
@@ -107,6 +107,8 @@ class BNode(Resource):
 
     def getID(self):
         return self.id
+
+    getValue = getID
     
     def __eq__(self, other):
         return isinstance(other, BNode) and self.getId() == other.getId()

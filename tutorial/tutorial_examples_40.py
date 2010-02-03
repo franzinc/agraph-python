@@ -135,13 +135,9 @@ def example4():
     for s in statements:
         print s
     statements.close()
-    print "Same search using JDBC:"
-    resultSet = conn.getJDBCStatements(alice, None, None)
-    while resultSet.next():        
-        print "   ", resultSet.getValue(2), "   ", resultSet.getString(2)  
-        conn.close();
-        myRepository = conn.repository
-        myRepository.shutDown()
+    conn.close();
+    myRepository = conn.repository
+    myRepository.shutDown()
 		
 def example5():
     """

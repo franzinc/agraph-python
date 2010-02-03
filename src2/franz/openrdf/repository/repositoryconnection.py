@@ -13,14 +13,13 @@
 from __future__ import absolute_import
 from __future__ import with_statement
 
-from .jdbcresultset import JDBCStatementResultSet
 from .repositoryresult import RepositoryResult
 
 from ..exceptions import IllegalOptionException, IllegalArgumentException
 from ..model import Statement, Value
 from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
 from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage, expandPrologQueryPrefixes
+from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
 from ..vocabulary import RDF, RDFS, OWL, XMLSchema
@@ -394,7 +393,6 @@ class RepositoryConnection(object):
         obj = self.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         cxts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
         for cxt in cxts:
-            #print "MINITERM", obj, self._convert_term_to_mini_term(obj)
             self._get_mini_repository().addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
                         self._convert_term_to_mini_term(obj), cxt)
         
@@ -671,7 +669,6 @@ class RepositoryConnection(object):
         """
         language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
-            rules = expandPrologQueryPrefixes(rules, self)
             self._get_mini_repository().definePrologFunctors(rules)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
@@ -693,85 +690,30 @@ class RepositoryConnection(object):
     ## Server-side implementation of namespaces
     #############################################################################################
       
-#    ## Get all declared prefix/namespace pairs
-#    def getNamespaces(self):
-#        dict = {}
-#        for pair in self._get_mini_repository().listNamespaces():
-#            dict[pair[0]] = pair[1]
-#        print "GET NAMESPACES", dict
-#        return dict        
-#
-#    ## Gets the namespace that is associated with the specified prefix, if any.
-#    def getNamespace(self, prefix):
-#        return self.getNamespaces().get(prefix)
-#
-#    ## Sets the prefix for a namespace.
-#    def setNamespace(self, prefix, name):
-#        self._get_mini_repository().addNamespace(prefix, name)
-#
-#    ## Removes a namespace declaration by removing the association between a
-#    ## prefix and a namespace name.
-#    def removeNamespace(self, prefix):
-#        self._get_mini_repository().deleteNamespace(prefix)
-#
-#    ## Removes all namespace declarations from the repository.
-#    def clearNamespaces(self):
-#        for prefix in self.getNamespaces().iterkeys():
-#            self.removeNamespace(prefix)
-
-    
-    #############################################################################################
-    ## In-memory implementation of namespaces
-    #############################################################################################  
-
-    NAMESPACES_MAP = {}
-    
-    def _get_namespaces_map(self):
-        map = RepositoryConnection.NAMESPACES_MAP
-        ## HMM. THE HTTPD SERVER IS NOW ROBUST WITH NAMESPACE SUBSTITUTIONS, SO WE
-        ## DON'T REALLY NEED TO SEED THE MAP ANYMORE:
-        if not map:
-            map.update({"rdf": RDF.NAMESPACE, 
-                        "rdfs": RDFS.NAMESPACE,
-                        "xsd": XMLSchema.NAMESPACE,
-                        "owl": OWL.NAMESPACE, 
-                        "fti": "http://franz.com/ns/allegrograph/2.2/textindex/", 
-                        "dc": "http://purl.org/dc/elements/1.1/",
-                        "dcterms": "http://purl.org/dc/terms/",                                            
-                        })
-        return map
-    
+    ## Get all declared prefix/namespace pairs
     def getNamespaces(self):
-        """
-        Return a dictionary of prefix/namespace pairings.
-        """
-        return self._get_namespaces_map()
+        namespaces = {}
+        for pair in self._get_mini_repository().listNamespaces():
+            namespaces[pair['prefix']] = pair['namespace']
+        return namespaces        
 
+    ## Gets the namespace that is associated with the specified prefix, if any.
     def getNamespace(self, prefix):
-        """
-        Return the namespace that is associated with the specified prefix, if any.
-        """        
-        return self._get_namespaces_map().get(prefix.lower(), None)
+        return self.getNamespace(prefix)
 
-    def setNamespace(self, prefix, namespace):
-        """
-        Define (or redefine) a namespace 'namespace' for 'prefix'
-        """
-        uris.validateNamespace(namespace, True)
-        self._get_namespaces_map()[prefix.lower()] = namespace
-        self._get_mini_repository().addNamespace(prefix, namespace)
+    ## Sets the prefix for a namespace.
+    def setNamespace(self, prefix, name):
+        self._get_mini_repository().addNamespace(prefix, name)
 
+    ## Removes a namespace declaration by removing the association between a
+    ## prefix and a namespace name.
     def removeNamespace(self, prefix):
-        """
-        Remove a namespace association with 'prefix'.
-        """
-        self._get_namespaces_map().pop(prefix.lower(), None)
+        self._get_mini_repository().deleteNamespace(prefix)
 
+    ## Removes all namespace declarations from the repository.
     def clearNamespaces(self):
-        """
-        Remove all namespace declarations.
-        """
-        self._get_namespaces_map().clear()
+        for prefix in self.getNamespaces().iterkeys():
+            self.removeNamespace(prefix)
 
     #############################################################################################
     ## Geo-spatial

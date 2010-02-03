@@ -246,6 +246,12 @@ class Repository(Service):
     def deleteNamespace(self, prefix):
         nullRequest(self, "DELETE", "/namespaces/" + urllib.quote(prefix))
 
+    def listNamespaces(self):
+        return jsonRequest(self, "GET", "/namespaces")
+
+    def getNamespace(self, prefix):
+        return jsonRequest(self, "GET", "/namespaces/" + urllib.quote(prefix))
+
     def listMappedTypes(self):
         return jsonRequest(self, "GET", "/mapping/type")
 
