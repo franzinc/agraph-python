@@ -12,7 +12,6 @@
 
 from __future__ import absolute_import
 
-from ..exceptions import BadFormatException
 from .value import Value, URI, BNode
 from .literal import Literal
 from ..util import strings

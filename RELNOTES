@@ -11,6 +11,12 @@ Version 4.0.m3
 
 2010-02-02
 
+Removed the experimental and undocumented client side Common Logic query
+language. Please contact support@franz.com for information if you were
+using this language.
+
+2010-02-02
+
 Removed the ability to get JDBC result sets. Please contact support@franz.com
 if you need ways to get the result data without instantiating the corresponding
 Literal, URI, or BNode objects.

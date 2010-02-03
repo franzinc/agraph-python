@@ -18,46 +18,11 @@ class IllegalOptionException(Exception):
 class IllegalArgumentException (Exception):
     pass
 
-class IllegalStateException (Exception):
-    pass
-
-class AllegroGraphException (Exception):
-    pass
-
-class IOException (Exception):
-    pass
-
-class InterruptedException (Exception):
-    pass
-
-class ConnectException(Exception):
-    pass
-
-class BadnessException(Exception):
-    """
-    General badness with no explanation.
-    """
-    pass
-
-class JDBCException(Exception):
-    """
-    Exception during iterator over a JDBC ResultSet
-    """
-    pass
-
 class RDFHandlerException(Exception):
-    pass
-
-class BadFormatException(Exception):
     pass
 
 class ServerException(Exception):
     pass
-
-class QuerySyntaxException(Exception):
-    """
-    Illegal Common Logic syntax
-    """
 
 class QueryMissingFeatureException(Exception):
     """

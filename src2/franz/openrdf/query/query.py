@@ -15,14 +15,12 @@ from __future__ import absolute_import
 from ..exceptions import IllegalOptionException, QueryMissingFeatureException
 from .dataset import ALL_CONTEXTS, Dataset
 from .queryresult import GraphQueryResult, TupleQueryResult
-from .commonlogic import translate_common_logic_query, contexts_to_uris
 import datetime
 
 class QueryLanguage:
     registered_languages = []
     SPARQL = None
     PROLOG = None
-    COMMON_LOGIC = None
 
     def __init__(self, name):
         self.name = name
@@ -46,7 +44,6 @@ class QueryLanguage:
     
 QueryLanguage.SPARQL = QueryLanguage('SPARQL')
 QueryLanguage.PROLOG = QueryLanguage('PROLOG')
-QueryLanguage.COMMON_LOGIC = QueryLanguage('COMMON_LOGIC')
 
 #############################################################################
 ##
@@ -160,43 +157,9 @@ class Query(object):
     def _get_connection(self):
         return self.connection
     
-    TEMPORARY_ENUMERATION_RESOURCE = 'http://www.franz.com#TeMpOrArYeNuMeRaTiOn'
-    
-    def count_temporaries(self, message):
-        conn = self._get_connection()
-        result = conn.getStatements(conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), None, None, None)
-    
-    def insert_temporary_enumerations(self, temporary_enumerations, insert_or_retract, contexts):
-        """
-        Enormous hack to circumvent AG's (SPARQL's) lack of a membership operator.
-        """
-        if not temporary_enumerations: return
-        conn = self._get_connection()
-        context = conn.createURI(contexts[0]) if contexts else conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE)
-        quads = []
-        for tempRelationURI, enumeratedValues in temporary_enumerations.iteritems():
-            for v in enumeratedValues:
-                if v and v[0] == '"':
-                    if v[len(v) - 1] == '"':
-                        v = v[1:-1]
-                    val = conn.createLiteral(v)
-                else:
-                    val = conn.createURI(v)
-                quads.append((conn.createURI(Query.TEMPORARY_ENUMERATION_RESOURCE), conn.createURI(tempRelationURI), val, context))
-        self.count_temporaries("BEFORE " + insert_or_retract + "  " + str(len(quads)) + " coming")
-        if insert_or_retract == 'INSERT':
-            if quads:
-                t = quads[0]
-            conn.addTriples(quads)
-        else:
-            if quads:
-                t = quads[0]
-            conn.removeQuads(quads)
-        self.count_temporaries("AFTER " + insert_or_retract)
-    
     def evaluate_generic_query(self, count=False, accept=None):
         """
-        Evaluate a SPARQL or PROLOG or COMMON_LOGIC query, which may be a 'select', 'construct', 'describe'
+        Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
         """
         ##if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
@@ -220,41 +183,21 @@ class Query(object):
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
             response = mini.evalPrologQuery(self.queryString, infer=self.includeInferred, count=count, accept=accept)
-        elif self.queryLanguage == QueryLanguage.COMMON_LOGIC:
-            query, contexts, auxiliary_input_bindings, temporary_enumerations, lang, exception = translate_common_logic_query(self.queryString,
-                                    preferred_language=self.preferred_execution_language, contexts=namedContexts)
-            if contexts and not namedContexts:
-                namedContexts = ["<{0}>".format(uri.getURI()) for uri in contexts_to_uris(contexts, conn)]
-            if auxiliary_input_bindings:
-                bindings = bindings or {}
-                for vbl, val in auxiliary_input_bindings.items():
-                    print "AUX", vbl, " VAL", val
-                    bindings[vbl] = val
-            self.actual_execution_language = lang ## for debugging
-            if lang == 'SPARQL':
-                try:
-                    self.insert_temporary_enumerations(temporary_enumerations, 'INSERT', namedContexts)
-                    MINITIMER = datetime.datetime.now()
-                    response = mini.evalSparqlQuery(query, context=regularContexts, namedContext=namedContexts, 
-                                                infer=self.includeInferred, bindings=bindings, planner='identity', count=count)
-                finally:                
-                    self.insert_temporary_enumerations(temporary_enumerations, 'RETRACT', namedContexts)            
-            elif lang == 'PROLOG':
-                response = mini.evalPrologQuery(query, infer=self.includeInferred, count=count)
-            else:
-                raise exception
         return response
 
     @staticmethod
     def _check_language(queryLanguage):
-        if queryLanguage == 'SPARQL': return QueryLanguage.SPARQL
-        elif queryLanguage == 'PROLOG': return QueryLanguage.PROLOG
-        elif queryLanguage == 'COMMON_LOGIC': return QueryLanguage.COMMON_LOGIC        
-        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG, QueryLanguage.COMMON_LOGIC]:
-            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL, PROLOG, and COMMON_LOGIC."
+        if queryLanguage == 'SPARQL':
+            return QueryLanguage.SPARQL
+
+        if queryLanguage == 'PROLOG':
+            return QueryLanguage.PROLOG
+
+        if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
+            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
                                          % queryLanguage)
         return queryLanguage
-            
+       
   
 class TupleQuery(Query):
     def __init__(self, queryLanguage, queryString, baseURI=None):

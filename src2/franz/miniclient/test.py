@@ -105,12 +105,12 @@ def testSession():
 
 @with_setup(cleanup)
 def testFederation():
-    eq([], client.listFederations())
+    assert 'fed' not in client.listFederations()
     fed = client.createFederation("fed", repos=["tests:foo"])
     eq(0, fed.getSize())
     rep.addStatement("<x>", "<y>", "<z>")
     eq(1, fed.getSize())
-    eq(["fed"], client.listFederations())
+    assert 'fed' in client.listFederations()
     client.deleteFederation("fed")
     eq([], client.listFederations())
 

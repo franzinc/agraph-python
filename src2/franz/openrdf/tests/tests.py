@@ -1552,6 +1552,7 @@ def test_roundtrips():
             ).next().getObject().toPython()
         assert isinstance(obj, the_type) 
         # Microseconds can have floating point roundoff...
+        print 'Original:', value, 'Store:', obj
         assert obj == value or abs(obj.microsecond - value.microsecond) < 300
 
     checkit("bool", bool, True)

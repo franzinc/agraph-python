@@ -13,7 +13,7 @@
 from __future__ import absolute_import
 
 from franz import miniclient
-from ..exceptions import IllegalArgumentException, ServerException
+from ..exceptions import IllegalArgumentException
 from ..model import URI, ValueFactory
 from .repositoryconnection import RepositoryConnection
 from ..vocabulary.xmlschema import XMLSchema
