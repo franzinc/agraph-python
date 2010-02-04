@@ -25,3 +25,12 @@ Literal, URI, or BNode objects.
 
 Removed the client-side namespace implementation and restored the server-side
 version.
+
+2010-02-04
+
+The Python tutorial example file (tutorial_examples_40.py) can now 
+be run from the command line.
+
+$ python tutorial_examples_40.py          runs all tests.
+$ python tutorial_examples_40.py all      runs all tests.
+$ python tutorial_examples_40.py 1 5 22   runs tests 1, 5, and 22

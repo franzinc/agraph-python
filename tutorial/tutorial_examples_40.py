@@ -13,7 +13,7 @@ from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.rdfwriter import  NTriplesWriter
 from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
 
-import os, urllib, datetime, time
+import os, urllib, datetime, time, sys
 
 CURRENT_DIRECTORY = os.getcwd() 
 
@@ -1906,9 +1906,12 @@ def example22():
 	
 if __name__ == '__main__':
     starttime = time.clock()
-    choices = [i for i in range(1,23)]
-    #choices = [21]   
+    if len(sys.argv) == 1 or sys.argv[1] == "all":
+        choices = range(1,23)
+    else:
+        choices = sys.argv[1:]   
     for choice in choices:
+        choice = int(choice)
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
         if choice == 0: example0()
