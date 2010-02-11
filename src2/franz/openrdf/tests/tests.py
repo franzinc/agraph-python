@@ -408,8 +408,6 @@ def test12():
     conn = connect()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
-    #myRepository.registerFreeTextPredicate("http://example.org/people/name")    
-    conn.registerFreeTextPredicate(namespace=exns, localname='fullname')
     alice = conn.createURI(namespace=exns, localname="alice1")
     persontype = conn.createURI(namespace=exns, localname="Person")
     fullname = conn.createURI(namespace=exns, localname="fullname")    
@@ -1508,19 +1506,43 @@ def test_freetext():
     """
     conn = connect()
     pred = URI('http://www.franz.com/has_name')
-    conn.registerFreeTextPredicate(pred)
-    print 'Registered List:', conn.listFreeTextPredicates()
-    conn.addTriple('<http://www.franz.com/contractor#1>', pred, 'Ross Jekel')
+    conn.createFreeTextIndex("index1", predicates=[pred])
+    conn.createFreeTextIndex("index2", indexFields=["predicate", "object"], indexResources="short", minimumWordSize=2)
 
-    for statement in conn.evalFreeTextSearch('Ross'):
-        print 'The Statement:', statement
+    # config parameter fetching
+    preds = conn.getFreeTextIndexConfiguration("index1")["predicates"]
+    eq_(1, len(preds))
+    eq_(str(pred), str(preds[0]))
+    config = conn.getFreeTextIndexConfiguration("index2")
+    eq_(["object", "predicate"], sorted(config["indexFields"]))
+    eq_(2, config["minimumWordSize"])
+    eq_("short", config["indexResources"])
+    assert len(config["stopWords"])
 
+    def contractor(i):
+        return URI("http://www.franz.com/contractor#" + str(i))
+    conn.addTriple(contractor(1), pred, 'Ross Jekel')
+    conn.addTriple(contractor(2), pred, 'Marijn Haverbeke')
+    conn.addTriple(contractor(2), URI('http://www.franz.com/lives_in'), 'Berlin')
+    conn.addTriple(contractor(3), pred, 'Ed')
+
+    search1 = conn.evalFreeTextSearch('Ross', index="index1")
+    eq_(1, len(search1))
+    eq_(str(contractor(1)), str(search1[0][0]))
+    eq_(1, len(conn.evalFreeTextSearch('Ross')))
+
+    # min word size
+    eq_(0, len(conn.evalFreeTextSearch('Ed', index="index1")))
+    eq_(1, len(conn.evalFreeTextSearch('Ed', index="index2")))
+
+    # indexing of predicates
+    eq_(0, len(conn.evalFreeTextSearch('has_name', index="index1")))
+    eq_(3, len(conn.evalFreeTextSearch('has_name', index="index2")))
+
+    # sparql
     results = conn.prepareTupleQuery(QueryLanguage.SPARQL,
         'SELECT ?something WHERE { ?something fti:match "Ross Jekel". }').evaluate()
-
     assert len(results)
-    for result in results:
-        print 'The Query Result:', result
 
 def test_roundtrips():
     """

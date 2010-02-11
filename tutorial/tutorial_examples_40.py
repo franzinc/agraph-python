@@ -2,6 +2,7 @@ from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository
 from franz.openrdf.query.query import QueryLanguage
+from franz.openrdf.model import URI
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.owl import OWL
@@ -17,7 +18,7 @@ CURRENT_DIRECTORY = os.getcwd()
 
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
-AG_CATALOG = 'python-catalog'
+AG_CATALOG = os.environ.get('AGRAPH_CATALOG', 'python-catalog')
 # AG_CATALOG = ''
 AG_FEDERATED = 'python-federated-catalog'
 AG_REPOSITORY = 'pythontutorial'
@@ -2083,7 +2084,55 @@ def example23():
     repository = conn.repository
     repository.shutDown()
 
-	
+def example24():
+    """
+    Free-text indexing and querying.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(AG_CATALOG)  
+    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
+    myRepository.initialize()
+    conn = myRepository.getConnection()
+
+    def ex(name):
+        return URI(namespace="http://example.com/", localname=name)
+    def lit(text):
+        return conn.createLiteral(text)
+
+    # Create a free-text index that indexes only triples whose
+    # predicate is ex:description or ex:name.
+    conn.createFreeTextIndex("index1", predicates=[ex("description"), ex("name")])
+    # Get the names of all free-text indices in this store.
+    print "Indices: " + str(conn.listFreeTextIndices())
+
+    # Add some example data
+    conn.addTriple(ex("pipe"), ex("name"), lit("steel pipes"))
+    conn.addTriple(ex("pipe"), ex("description"), lit("80mm inner diameter, 77mm outer. extra heavy."))
+    conn.addTriple(ex("pipe"), ex("price"), lit("11 euro per meter."))
+    conn.addTriple(ex("hammer"), ex("name"), lit("hammer"))
+    conn.addTriple(ex("hammer"), ex("description"), lit("1500g, black plastic grip, heavy claw hammer."))
+
+    print "Searching for 'heavy' in 'index1':"
+    for triple in conn.evalFreeTextSearch("heavy", index="index1"):
+        print " " + str(triple)
+
+    # Create an index that indexes all triples, indexing both the
+    # subject and the object of the triple, and indexing resources
+    # using the 'short' option, meaning only the part after the last
+    # slash or hash character gets indexed.
+    conn.createFreeTextIndex("index2", indexResources="short", indexFields=["subject", "object"])
+
+    print "Searching for 'pipe' in 'index2':"
+    # (When not providing an index= argument, all indices are used.)
+    for triple in conn.evalFreeTextSearch("pipe", index="index2"):
+        print " " + str(triple)
+
+    # Inspect the index's configuration
+    print "Configuration object: " + str(conn.getFreeTextIndexConfiguration("index2"))
+    # Delete the indices again
+    conn.deleteFreeTextIndex("index1")
+    conn.deleteFreeTextIndex("index2")
+
 if __name__ == '__main__':
     starttime = time.clock()
     module = sys.modules[__name__]
