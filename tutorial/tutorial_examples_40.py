@@ -1066,6 +1066,8 @@ def example16():
     pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
     pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3) 
+
+	
     federated.deleteRepository("rainbowthings")
     redConn.close()
     greenConn.close()
@@ -1091,9 +1093,9 @@ def example17():
     (<-- (man ?person) ;; IF
          (q ?person !kdy:sex !kdy:male)
          (q ?person !rdf:type !kdy:person))"""
-    print "Foo"
+
     conn.addRules(rules1)
-    print "Bar"
+
     queryString = """
     (select (?first ?last)
             (man ?person)
@@ -1903,6 +1905,185 @@ def example22():
     common.close()
     repository = dedicated.repository
     repository.shutDown()
+
+
+def example23():
+    """
+    Generating duplicate triples and duplicate results
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(AG_CATALOG)  
+    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
+    myRepository.initialize()
+    conn = myRepository.getConnection()
+    # The following paths are relative to os.getcwd(), the working directory.
+    print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
+    print "Current working directory is '%s'" % (os.getcwd())
+    """
+    Load Kennedy file 
+    """
+    path = "./python-kennedy.ntriples"
+    baseURI = "http://www.franz.com/simple#"
+    print "Load 1214 python-kennedy.ntriples."
+    conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    print "\nAfter loading, there are:";
+    print "%i kennedy triples in context '%s';" % (conn.size('null'), 'null');
+    conn.setNamespace("kdy", "http://www.franz.com/simple#")
+    exns = "http://www.franz.com/simple#"
+    TedKennedy = conn.createURI(namespace=exns, localname="person17")
+    hasChild = conn.createURI("http://www.franz.com/simple#has-child")
+    print "\nUsing getStatements() find children of Ted Kennedy: three children."
+    statements = conn.getStatements(TedKennedy, hasChild, None, 'null', limit=10000)
+    print "Number of results: %s" % len(statements)
+    for s in statements:
+        print s
+    # Write inept query to retrieve three children of Ted Kennedy.
+    print "\nSPARQL matches for two children of Ted Kennedy, inept pattern."
+    queryString = """SELECT ?o1 ?o2 
+                     WHERE {kdy:person17 kdy:has-child ?o1 .
+                            kdy:person17 kdy:has-child ?o2 .}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        o1 = bindingSet[0]
+        o2 = bindingSet[1]
+        print "%s and %s" % (o1, o2)	
+
+    print "\nSPARQL matches for two children of Ted Kennedy, better pattern."
+    queryString = """SELECT ?o1 ?o2 
+                     WHERE {kdy:person17 kdy:has-child ?o1 .
+                            kdy:person17 kdy:has-child ?o2 .
+                            filter (?o1 < ?o2)}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        o1 = bindingSet[0]
+        o2 = bindingSet[1]
+        print "%s and %s" % (o1, o2)	
+
+    print "\nProlog SELECT query to parallel the previous SPARQL query."
+    queryString = """
+    (select (?o1 ?o2)
+            (q !kdy:person17 !kdy:has-child ?o1)
+            (q !kdy:person17 !kdy:has-child ?o2) 
+			(lispp (upi< ?o1 ?o2)))"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();     
+    for bindingSet in result:
+        o1 = bindingSet.getValue("o1")
+        o2 = bindingSet.getValue("o2")
+        print "%s %s" % (o1, o2)
+
+    print "\nSPARQL matches for two children of Ted Kennedy, even better pattern."
+    queryString = """SELECT ?o1 ?o2 
+                     WHERE {kdy:person17 kdy:has-child ?o1 .
+                            kdy:person17 kdy:has-child ?o2 .
+                            filter (?o1 < ?o2)}
+                            LIMIT 1"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        o1 = bindingSet[0]
+        o2 = bindingSet[1]
+        print "%s and %s" % (o1, o2)	
+
+    ## load kennedy triples again:
+    print "\nReload 1214 python-kennedy.ntriples."
+    conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    print "\nAfter loading, there are:";
+    print "%i kennedy triples in context '%s';" % (conn.size('null'), 'null');
+
+    print "\nUsing getStatements(); children of Ted Kennedy: duplicate triples present."
+    statements = conn.getStatements(TedKennedy, hasChild, None, 'null', limit=10000)
+    print "Number of results: %s" % len(statements)
+    for s in statements:
+        print s
+
+    print "\nSPARQL matches for children of Ted Kennedy."
+    queryString = """SELECT ?o WHERE {kdy:person17 kdy:has-child ?o}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        o = bindingSet[0]
+        print "%s" % (o)
+
+    print "\nSPARQL DISTINCT matches for children of Ted Kennedy."
+    queryString = """SELECT DISTINCT ?o WHERE {kdy:person17 kdy:has-child ?o}"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        o = bindingSet[0]
+        print "%s" % (o)
+
+    print "\nSPARQL matches for children of Ted Kennedy, limit 2."
+    queryString = """SELECT ?o WHERE {kdy:person17 kdy:has-child ?o} LIMIT 2"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        o = bindingSet[0]
+        print "%s" % (o)
+
+    # Test to see if triple is present before asserting it.
+    newParent = conn.createURI(namespace=exns, localname="person100")
+    newChild = conn.createURI(namespace=exns, localname="person101")
+    print "\nTest before adding triple, first trial: "
+    if conn.getStatements(newParent, hasChild, newChild):
+        print "Did not add new triple."
+    else:
+        conn.add(newParent, hasChild, newChild)
+        print "Added new triple."
+	
+    print "\nTest before adding triple, second trial: "
+    if conn.getStatements(newParent, hasChild, newChild):
+        print "Did not add new triple."
+    else:
+        conn.add(newParent, hasChild, newChild)
+        print "Added new triple."
+	
+    print "=========================================================================="
+   
+    print "\nProlog SELECT matches for children of Ted Kennedy, before triple deletion."
+    queryString = """
+    (select (?o ?i)
+            (q !kdy:person17 !kdy:has-child ?o ?g ?i))"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();     
+    for bindingSet in result:
+        o = bindingSet.getValue("o")
+        i = bindingSet.getValue("i")
+        print "%s %s" % (o, i)
+
+    
+    print "\nProlog SELECT matches for children of Ted Kennedy, deleting duplicate triples."
+    queryString = """
+    (select (?id2)
+            (q !kdy:person17 !kdy:has-child ?o ?g ?id1)
+            (q !kdy:person17 !kdy:has-child ?o ?g ?id2) 
+			(lispp (when (upi< ?id1 ?id2) 
+                (delete-triple (upi->value ?id2)))))"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();     
+    for bindingSet in result:
+        id2 = bindingSet.getValue("id2")
+        print "Deleted triple number: %s" % (id2)
+    
+    print "\nProlog SELECT matches for children of Ted Kennedy, after triple deletion."
+    queryString = """
+    (select (?o ?i)
+            (q !kdy:person17 !kdy:has-child ?o ?g ?i))"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+    result = tupleQuery.evaluate();     
+    for bindingSet in result:
+        o = bindingSet.getValue("o")
+        i = bindingSet.getValue("i")
+        print "%s %s" % (o, i)
+    print "=========================================================================="
+    
+    conn.closeSession()
+    conn.close()
+    repository = conn.repository
+    repository.shutDown()
+
 	
 if __name__ == '__main__':
     starttime = time.clock()
@@ -1936,6 +2117,7 @@ if __name__ == '__main__':
         elif choice == 19: example19() 
         elif choice == 20: example20()  
 #        elif choice == 21: example21()
+        elif choice == 23: example23()
         elif choice == 22: example22()
         else:
             print "This example is not available in the current release."
