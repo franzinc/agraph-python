@@ -72,6 +72,7 @@ class RepositoryConnection(object):
         self.mini_repository = repository.mini_repository
         self.is_closed = False
         self.ruleLanguage = None
+        self._add_commit_size = None
         self.setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
         
     def _get_mini_repository(self):
@@ -83,12 +84,26 @@ class RepositoryConnection(object):
     def close(self):
         self.is_closed = True
     
+    def setAddCommitSize(self, triple_count):
+        if not triple_count or triple_count < 0:
+            self._add_commit_size = None
+        else:
+            self._add_commit_size = int(triple_count)
+
+    def getAddCommitSize(self):
+        return self._add_commit_size
+
+    add_commit_size = property(getAddCommitSize, setAddCommitSize,
+        "The threshold for commit size during triple add operations.\n"
+        "Set to 0 (zero) or None to clear size-based autocommit behavior.\n"
+        "When set to an integer triple_count > 0, loads and adds commit each\n"
+        "triple_count triples added and at the end of the triples being added.\n")
+
     def prepareQuery(self, queryLanguage, queryString, baseURI=None):
         """
         Embed 'queryString' into a query object which can be
         executed against the RDF storage.
         """
-        ## THIS IS BOGUS; OR IS IT?  WE DON'T KNOW WHAT KIND OF QUERY IT IS:
         query = Query(queryLanguage, queryString, baseURI)
         query.setConnection(self)
         return query
@@ -160,14 +175,6 @@ class RepositoryConnection(object):
             for cxt in cxts:
                 total += self._get_mini_repository().getSize(cxt)
             return total
-#        else:
-#            print "Computing the size of a context is currently very expensive"
-#            resultSet = self.getJDBCStatements(None, None, None, contexts)
-#            count = 0
-#            while resultSet.next():
-#                count += 1
-#            return count
-                
 
 #     * Returns <tt>true</tt> if this repository does not contain any (explicit)
 #     * statements.
@@ -379,9 +386,11 @@ class RepositoryConnection(object):
                     filePath = testPath
         fileExt = os.path.splitext(filePath)[1].lower()
         if format == RDFFormat.NTRIPLES or fileExt in ['.nt', '.ntriples']:
-            self._get_mini_repository().loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide)
+            self._get_mini_repository().loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide,
+                commitEvery=self.add_commit_size)
         elif format == RDFFormat.RDFXML or fileExt in ['.rdf', '.owl']:
-            self._get_mini_repository().loadFile(filePath, 'rdf/xml', context=contextString, baseURI=base, serverSide=serverSide)
+            self._get_mini_repository().loadFile(filePath, 'rdf/xml', context=contextString, baseURI=base,
+                serverSide=serverSide, commitEvery=self.add_commit_size)
         else:
             raise Exception("Failed to specify a format for the file '%s'." % filePath)
         
@@ -439,7 +448,7 @@ class RepositoryConnection(object):
                 quad[2] = self._to_ntriples(obj)
                 quad[3] = self._to_ntriples(q.getContext()) if isQuad and q.getContext() else ntripleContexts
             quads.append(quad)
-        self._get_mini_repository().addStatements(quads)
+        self._get_mini_repository().addStatements(quads, commitEvery=self.add_commit_size)
                 
 #     * Adds the supplied statement to this repository, optionally to one or more
 #     * named contexts.
@@ -873,6 +882,8 @@ class RepositoryConnection(object):
         Rolls back changes on open session.
         """
         return self._get_mini_repository().rollback()
+
+    
 
 
 class GeoType:

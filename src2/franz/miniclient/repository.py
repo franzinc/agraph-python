@@ -182,11 +182,11 @@ class Repository(Service):
         nullRequest(self, "DELETE", "/statements",
                     urlenc(subj=subj, pred=pred, obj=obj, context=context))
 
-    def addStatements(self, quads):
+    def addStatements(self, quads, commitEvery=None):
         """Add a collection of statements to the repository. Quads
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
-        nullRequest(self, "POST", "/statements", cjson.encode(quads), contentType="application/json")
+        nullRequest(self, "POST", "/statements" + urlenc(commit=commitEvery), cjson.encode(quads), contentType="application/json")
 
     class UnsupportedFormatError(Exception):
         def __init__(self, format): self.format = format
@@ -197,11 +197,11 @@ class Repository(Service):
         elif format == "rdf/xml": return "application/rdf+xml"
         else: raise Repository.UnsupportedFormatError(format)
 
-    def loadData(self, data, format, baseURI=None, context=None):
-        nullRequest(self, "POST", "/statements?" + urlenc(context=context, baseURI=baseURI),
+    def loadData(self, data, format, baseURI=None, context=None, commitEvery=None):
+        nullRequest(self, "POST", "/statements?" + urlenc(context=context, baseURI=baseURI, commit=commitEvery),
                     data.encode("utf-8"), contentType=self.checkFormat(format))
 
-    def loadFile(self, file, format, baseURI=None, context=None, serverSide=False):
+    def loadFile(self, file, format, baseURI=None, context=None, serverSide=False, commitEvery=None):
         mime = self.checkFormat(format)
         body = ""
         if not serverSide:
@@ -209,7 +209,7 @@ class Repository(Service):
             body = f.read()
             f.close()
             file = None
-        params = urlenc(file=file, context=context, baseURI=baseURI)
+        params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery)
         nullRequest(self, "POST", "/statements?" + params, body, contentType=mime)
 
     def getBlankNodes(self, amount=1):

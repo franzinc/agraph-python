@@ -27,7 +27,7 @@ from ..model import Literal, Statement, URI, ValueFactory
 from nose.tools import eq_, assert_raises
 from nose import SkipTest
 
-import os, urllib, datetime, time, locale
+import os, urllib, datetime, time, locale, threading
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -1563,3 +1563,43 @@ def test_roundtrips():
     time_check("datetime", datetime.datetime, now)
     time_check("time", datetime.time, now.time())
     time_check("time2", datetime.time, then)
+
+def test_add_commit_size():
+    """
+    Test the add_commit_size setting.
+    """
+    conn = connect()
+    path = os.path.join(CURRENT_DIRECTORY, "kennedy.ntriples")
+    baseURI = "http://example.org/example/local"
+
+    assert conn.add_commit_size is None
+    conn.add_commit_size = 10
+    assert conn.add_commit_size == 10
+    assert conn.getAddCommitSize() == 10
+
+    def load_triples():
+        time.sleep(0.25)
+        conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES)
+
+    def check_commits(want_small_commit):
+        saw_small_commit = False
+        size = conn.size()
+        while size < 1214:
+            if size > 0:
+                saw_small_commit = True
+            size = conn.size()
+
+        assert want_small_commit == saw_small_commit
+
+    threading.Thread(target=load_triples).start()
+    check_commits(True)
+
+    assert conn.size() == 1214
+    conn.clear()
+    conn.setAddCommitSize(0)
+    assert conn.getAddCommitSize() is None
+
+    threading.Thread(target=load_triples).start()
+    check_commits(False)
+
+    assert conn.size() == 1214
