@@ -92,7 +92,7 @@ class Client(Catalog):
                           urlenc(autoCommit=autocommit, lifetime=lifetime,
                                  loadInitFile=loadinitfile, store=spec))
         rep = self._instanceFromUrl(Repository, url)
-        rep._enableSession()
+        rep._enableSession(lifetime)
         return rep
 
 class Repository(Service):
@@ -375,9 +375,9 @@ class Repository(Service):
         self.oldUrl = self.url
         self.url = jsonRequest(self, "POST", "/session?" + urlenc(autoCommit=autocommit,
             lifetime=lifetime, loadInitFile=loadinitfile))
-        self._enableSession()
+        self._enableSession(lifetime)
 
-    def _enableSession(self):
+    def _enableSession(self, lifetime):
         alive = self.sessionAlive = threading.Event()
         def pingSession():
             while True:
@@ -385,7 +385,7 @@ class Repository(Service):
                 if alive.isSet(): return
                 try: nullRequest(self, "GET", "/session/ping")
                 except Exception: return
-        threading.Thread(target=pingSession)
+        threading.Thread(target=pingSession).start()
 
     def closeSession(self):
         if not self.sessionAlive: return
