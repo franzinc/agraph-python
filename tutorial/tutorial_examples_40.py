@@ -1379,7 +1379,7 @@ def example21():
         p = bindingSet.getValue("member")
         n = bindingSet.getValue("name")
         print "%s %s" % (p, n)
-    print "foo"
+
     print "\nValjean's ego group in one list depth 1 (using associates)."
     queryString = """
     (select (?member)
@@ -1392,7 +1392,7 @@ def example21():
     for bindingSet in result:
         p = bindingSet.getValue("member")
         print "%s" %(p)
-    print "bar"
+
 	
     print "\nValjean's ego group in one list depth 1 (using associates)."
     queryString = """
@@ -1442,7 +1442,7 @@ def example21():
     print "\nShortest breadth-first path connecting Valjean to Bossuet using intimates."
     queryString = """
     (select (?path)
-      (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))
+      (breadth-first-search-path !lm:character11 !lm:character64 intimates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
@@ -1457,7 +1457,7 @@ def example21():
     print "\nShortest breadth-first path connecting Valjean to Bossuet using associates."
     queryString = """
     (select (?path)
-      (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))
+      (breadth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
@@ -1472,7 +1472,7 @@ def example21():
     print "\nShortest breadth-first path connecting Valjean to Bossuet using everyone."
     queryString = """
     (select (?path)
-      (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
+      (breadth-first-search-path !lm:character11 !lm:character64 everyone 10 ?path))
       """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();
@@ -2116,7 +2116,7 @@ if __name__ == '__main__':
         elif choice == 18: example18()                                                             
         elif choice == 19: example19() 
         elif choice == 20: example20()  
-#        elif choice == 21: example21()
+        elif choice == 21: example21()
         elif choice == 23: example23()
         elif choice == 22: example22()
         else:

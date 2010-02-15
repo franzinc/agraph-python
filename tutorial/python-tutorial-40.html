@@ -48,8 +48,8 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Loading Prolog Rules">Loading Prolog Rules</a> </li>
       <li><a href="#RDFS++ Inference">RDFS++ Inference</a> </li>
       <li><a href="#Geospatial Search">Geospatial Search</a> </li>
-<!--      <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
--->      <li><a href="#Transaction Control">Transaction Control</a></li>
+      <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
+      <li><a href="#Transaction Control">Transaction Control</a></li>
       <li><a href="#Duplicate Triples">Duplicate Triples</a></li>
     <p>&nbsp;</p></td>
   </tr>
@@ -1587,7 +1587,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <pre class="output">(&lt;http://example.org/people/london&gt;, &lt;http://example.org/people/geolocation&gt;, 
 &quot;+513159.49909-0000459.99970&quot;^^&lt;http://franz.com/ns/allegrograph/3.0/geospatial/spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)</pre>
 <p>AllegroGraph returns the location of London, but not the nearby Amsterdam.</p>
-<!-- This section commented out due to recent changes in how HTTP handles lists. BDC
+
 <h2 id="Social Network Analysis">Social Network Analysis  (example21())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph includes sophisticated algorithms for social-network analysis (SNA). It can examine an RDF graph of relationships among people (or similar entities, such as businesses) and discover:</p>
 <ul>
@@ -1623,9 +1623,9 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <p>There are four possible relationships between any two characters. </p>
 <ul>
   <li><strong>No direct connection</strong>. (They never appeared in the same chapter.) AllegroGraph can locate indirect connections through their mutual acquaintances.</li>
-  <li><span class="style1">Barely knows</span>. The characters barely know each other.</li>
-  <li><span class="style2">Knows</span>. The two characters appear together in 15 or more chapters.</li>
-  <li><span class="style3">Knows well</span>. The two characters appear together in 25 or more chapters. </li>
+  <li><span class="style1"><strong>Barely knows</strong></span><strong>.</strong> The characters barely know each other.</li>
+  <li><span class="style2"><strong>Knows</strong></span><strong>.</strong> The two characters appear together in 15 or more chapters.</li>
+  <li><span class="style3"><strong>Knows well</strong></span><strong>.</strong> The two characters appear together in 25 or more chapters. </li>
 </ul>
 <p>(The Gruff illustrations were made from a parallel repository in which the resources were altered to display the character's name in the graph node rather than his URI. That file is called<strong> lemisNames.rdf</strong>.) </p>
 <h3 id="Setting Up the Example">Setting Up the Example</h3>
@@ -1741,26 +1741,28 @@ Found 8 query results
 <h3 id="SNA Search - Path from A to B">SNA Search - Path from A to B</h3>
 <p>In the following examples, we explore the graph for the shortest path from Valjean to Bossuet, using the three generators to place restrictions on the quality of the path. These are the relevant paths between these two characters:</p>
  <img src="pathsValBos.jpg" width="913" height="254"> 
-<p>Our first query asks AllegroGraph to use <strong>intimates</strong> to find the shortest possible path between Valjean and Bossuet that is composed entirely of &quot;knows_well&quot; links. Those would be the green arrows in the diagram above. The <strong>breadth-first-search-paths</strong> function asks for a start node and an end node, a generator, an optional maximum path length, and a variable to bind to the resulting path(s). Valjean is character11, and Bossuet is character64.</p>
+<p>Our first query asks AllegroGraph to use <strong>intimates</strong> to find the shortest possible path between Valjean and Bossuet that is composed entirely of &quot;knows_well&quot; links. Those would be the green arrows in the diagram above. The <strong>breadth-first-search-path</strong> function asks for a start node and an end node, a generator, an optional maximum path length, and a variable to bind to the resulting path(s). Valjean is character11, and Bossuet is character64.</p>
 <pre class="input">    (select (?path)
-      (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))</pre>
+      (breadth-first-search-path !lm:character11 !lm:character64 intimates 10 ?path))</pre>
 <p>It is easy to examine the diagram and see that there is no such path. Valjean and Bossuet are not well-acquainted, and do not have any chain of well-acquainted mutual friends. AllegroGraph lets us know that.</p>
 <pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using intimates.
-Found 0 query results</pre>
+Found 1 query results
+[ ]</pre>
+<p>It says there is one result, but that is actually the empty list. </p>
 <p>This time we'll broaden the criteria. What is the shortest path from Valjean to Bossuet, using <strong>associates</strong>? We can follow either &quot;knows_well&quot; or &quot;knows&quot; links across the graph. Those are the green and the blue links in the diagram. </p>
 <pre class="input">(select (?path)
-      (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))</pre>
+      (breadth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))</pre>
 <p>Although there are multiple such paths, there are only two that are &quot;shortest&quot; paths. </p>
 <pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using associates.<br>Found 2 query results<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character55&gt;<br> &lt;http://www.franz.com/lesmis#character58&gt; &lt;http://www.franz.com/lesmis#character64&gt; ]<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character55&gt;<br> &lt;http://www.franz.com/lesmis#character62&gt; &lt;http://www.franz.com/lesmis#character64&gt; ]</pre>
 <p>These are the paths &quot;Valjean &gt; Marius &gt; Enjolras &gt; Bossuet&quot; and &quot;Valjean &gt; Marius &gt; Courfeyrac &gt; Bossuet.&quot; AllegroGraph returns two paths because they are of equal length. If one of the paths had been shorter, it would have returned only the short path. </p>
 <p>Our third query asks for the shortest path from Valjean to Bossuet using <strong>everyone</strong>, which means that &quot;barely-knows&quot; links are permitted in addition to &quot;knows&quot; and &quot;knows_well&quot; links. </p>
 <pre class="input">    (select (?path)
-      (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
+      (breadth-first-search-path !lm:character11 !lm:character64 everyone 10 ?path))
 </pre>
 <p>This time AllegroGraph returns a single, short path:</p>
 <pre class="output">Shortest breadth-first path connecting Valjean to Bossuet using everyone.<br>Found 1 query results<br>[ &lt;http://www.franz.com/lesmis#character11&gt; &lt;http://www.franz.com/lesmis#character64&gt; ]</pre>
 <p>This is the &quot;barely-knows&quot; link directly from from Valjean to Bossuet. </p>
-<p>The Prolog select query can also use <strong>depth-first-search-path()</strong> and <strong>bidirectional-search-paths()</strong>. Their syntax is essentially identical to that shown above. These algorithms offer different efficiencies:</p>
+<p>The Prolog select query can also use <strong>depth-first-search-path()</strong> and <strong>bidirectional-search-path()</strong>. Their syntax is essentially identical to that shown above. These algorithms offer different efficiencies:</p>
 <ul>
   <li>Breadth-first and bidirectional searches explore all paths by incrementing the search radius until a success is achieved. This guarantees that the returned path(s) will be &quot;shortest&quot; paths. They return one or more paths of equal lengths. </li>
   <li>Depth-first search tries to bypass the costly expansion of all paths by exploring each path to its end, and aborting the search when it locates a successful path. There is no implication that this path is the &quot;shortest&quot; path through the graph. </li>
@@ -1881,8 +1883,6 @@ is maximized and then summing the difference between this maximum
 value and the actor-betweenness-centrality of all other actors. 
 This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Valjean's smaller ego group has a group-betweenness-centrality of 0.904. The value for the larger ego group is 0.704. Even by this measure, the larger group is less cohesive. </p>
--->
-<p>&nbsp; </p>
 <h2 id="Transaction Control">Transaction Control (example22())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>Most of the time, multiple AllegroGraph users pool triples in a common session. Their data may be segregated into multiple contexts (subgraphs) for convenience, but in fact any part of this data may be retrieved by any of the users.</p>
 <p>There are situations where a little more security is required. You may open a &quot;dedicated session&quot; and populate it with triples that the other users cannot view. These triples may be searched and manipulated in the usual ways, but do not become visible to other users until you &quot;commit&quot; them to the common session. </p>
