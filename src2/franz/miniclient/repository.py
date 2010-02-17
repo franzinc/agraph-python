@@ -236,8 +236,13 @@ class Repository(Service):
         """Add a predicate for free-text indexing."""
         nullRequest(self, "POST", "/freetext/predicates", urlenc(predicate=predicate))
 
-    def clearNamespaces(self):
-        nullRequest(self, "DELETE", "/namespaces")
+    def clearNamespaces(self, reset=True):
+        """
+        Deletes all namespaces in this repository for the current user. If a
+        `reset` argument of `True` is passed, the user's namespaces are reset
+        to the default set of namespaces, otherwise all namespaces are cleared.
+        """
+        nullRequest(self, "DELETE", "/namespaces?" + urlenc(reset=reset))
 
     def addNamespace(self, prefix, uri):
         nullRequest(self, "PUT", "/namespaces/" + urllib.quote(prefix),

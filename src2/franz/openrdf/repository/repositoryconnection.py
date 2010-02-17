@@ -73,8 +73,7 @@ class RepositoryConnection(object):
         self.is_closed = False
         self.ruleLanguage = None
         self._add_commit_size = None
-        self.setNamespace("fti", "http://franz.com/ns/allegrograph/2.2/textindex/")
-        
+
     def _get_mini_repository(self):
         return self.mini_repository
         
@@ -708,7 +707,7 @@ class RepositoryConnection(object):
 
     ## Gets the namespace that is associated with the specified prefix, if any.
     def getNamespace(self, prefix):
-        return self.getNamespace(prefix)
+        return self._get_mini_repository().getNamespace(prefix)
 
     ## Sets the prefix for a namespace.
     def setNamespace(self, prefix, name):
@@ -720,9 +719,13 @@ class RepositoryConnection(object):
         self._get_mini_repository().deleteNamespace(prefix)
 
     ## Removes all namespace declarations from the repository.
-    def clearNamespaces(self):
-        for prefix in self.getNamespaces().iterkeys():
-            self.removeNamespace(prefix)
+    def clearNamespaces(self, reset=True):
+        """
+        Deletes all namespaces in this repository for the current user. If a
+        `reset` argument of `True` is passed, the user's namespaces are reset
+        to the default set of namespaces, otherwise all namespaces are cleared.
+        """
+        self._get_mini_repository().clearNamespaces(reset)
 
     #############################################################################################
     ## Geo-spatial

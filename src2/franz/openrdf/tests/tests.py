@@ -89,6 +89,7 @@ def connect(accessMode=Repository.RENEW):
 
     if accessMode == Repository.RENEW:
         connection.clear()
+        connection.clearNamespaces()
         
     print "Repository %s is up!  It contains %i statements." % (
                 myRepository.getDatabaseName(), connection.size())
@@ -1603,3 +1604,64 @@ def test_add_commit_size():
     check_commits(False)
 
     assert conn.size() == 1214
+
+def test_namespace_management():
+    """
+    Test namespace management features
+    """
+    conn = connect()
+
+    conn.clearNamespaces()
+    namespaces = conn.getNamespaces()
+    count = len(namespaces)
+
+    # assert that all namepaces returned by getNamespaces can be gotten individually
+    print namespaces
+    for namespace, value in namespaces.iteritems():
+        assert value == conn.getNamespace(namespace)
+
+    test_spaces = {'kdy': 'http://www.franz.com/simple#',
+        'vcd': 'http://www.w3.org/2001/vcard-rdf/3.0#',
+        'ex': 'http://example.org/people/',
+        'ont': 'http://example.org/ontology/',
+        'rltv': 'http://www.franz.com/simple#'}
+
+    for namespace, value in test_spaces.iteritems():
+        print 'calling setNamspace', namespace, value
+        conn.setNamespace(namespace, value)
+
+    assert count + len(test_spaces) == len(conn.getNamespaces())
+
+    for namespace, value in test_spaces.iteritems():
+        assert value == conn.getNamespace(namespace)
+
+    # Try adding a namespace that already exists
+    for namespace, value in test_spaces.iteritems():
+        conn.setNamespace(namespace, value)
+
+    assert count + len(test_spaces) == len(conn.getNamespaces())
+
+    # Remove the original namespaces
+    for namespace in namespaces.iterkeys():
+        conn.removeNamespace(namespace)
+
+    # Assert they are gone
+    assert len(test_spaces) == len(conn.getNamespaces())
+
+    for namespace in namespaces.iterkeys():
+        assert_raises(RequestError, conn.getNamespace, namespace)
+
+    # Test clearing all namespaces
+    conn.clearNamespaces(reset=False)
+
+    assert len(conn.getNamespaces()) == 0
+
+    # Add a bunch back and clear with reset
+    for namespace, value in test_spaces.iteritems():
+        conn.setNamespace(namespace, value)
+
+    assert len(test_spaces) == len(conn.getNamespaces())
+
+    conn.clearNamespaces(reset=True)
+
+    assert namespaces == conn.getNamespaces()
