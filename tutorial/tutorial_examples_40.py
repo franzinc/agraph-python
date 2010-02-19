@@ -689,7 +689,7 @@ def example5():
     myRepository.shutDown()
                
 
-def example6():
+def example6(close=True):
     print "Starting example6()."
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     catalog = server.openCatalog(AG_CATALOG)  
@@ -717,10 +717,13 @@ def example6():
     conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
-    return conn # to chain to other examples
+    if close:
+        conn.closeSession()
+    else:
+        return conn # to chain to other examples
         
 def example7():    
-    conn = example6()
+    conn = example6(False)
     print "Starting example7()."
     print "Match all and print subjects and contexts"
     result = conn.getStatements(None, None, None, None, limit=25)
@@ -739,7 +742,7 @@ def example7():
 import urlparse
 
 def example8():
-    conn = example6()
+    conn = example6(False)
     print "Starting example8()."
     context = conn.createURI("http://example.org#vcards")
     outputFile = "/tmp/temp.nt"
@@ -761,7 +764,7 @@ def example8():
 
 def example9():
     print "Starting example9()."
-    conn = example6()
+    conn = example6(False)
     conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
     conn.closeSession()
     conn.close();
@@ -1062,6 +1065,8 @@ def example16():
     greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
     greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
     queryString = "select ?s where { ?s rdf:type ex:Apple }"
+    ## Following line tests what happens when you delete from a federation.  Should create error.
+    ## rainbowConn.remove(None, None, None)
     ## query each of the stores; observe that the federated one is the union of the other two:
     pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
     pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
@@ -1082,7 +1087,7 @@ def example17():
     Prolog queries
     """
     print "Starting example17()."
-    conn = example6()  # Obtain dedicated connection from example6()
+    conn = example6(False)  # Obtain dedicated connection from example6()
     # end of example6()
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     rules1 = """
@@ -1117,7 +1122,7 @@ def example18():
     Loading Prolog rules
     """
     print "Starting example18()."
-    conn = example6()  # loads data and return dedicated session
+    conn = example6(False)  # loads data and return dedicated session
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
     path = "./python-rules.txt"
@@ -2084,7 +2089,7 @@ def example23():
 if __name__ == '__main__':
     starttime = time.clock()
     if len(sys.argv) == 1 or sys.argv[1] == "all":
-        choices = range(1,23)
+        choices = range(1,24)
     else:
         choices = sys.argv[1:]   
     for choice in choices:

@@ -1316,9 +1316,6 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <p>We will need the same namespace as we used in the Kennedy example. </p>
 <pre class="input">
     conn.setNamespace(&quot;kdy&quot;, &quot;http://www.franz.com/simple#&quot;)</pre>
-<p>The following line tells AllegroGraph Server what query language syntax to expect. </p>
-<pre class="input">
-    conn.setRuleLanguage(QueryLanguage.PROLOG)   </pre>
 <p>These are the &quot;man&quot; and &quot;woman&quot; rules.&nbsp; A resource represents a &quot;woman&quot; if the resource contains a sex=female triple and an rdf:type = person triple.&nbsp; A similar deduction identifies a &quot;man&quot;.&nbsp; The &quot;q&quot; at the beginning of each pattern simply stands for &quot;query&quot; and introduces a triple pattern. </p>
 <pre class="input">    rules1 = &quot;&quot;&quot;<br>    (&lt;-- (woman ?person) ;; IF<br>         (q ?person !kdy:sex !kdy:female)<br>         (q ?person !rdf:type !kdy:person))<br>    (&lt;-- (man ?person) ;; IF<br>         (q ?person !kdy:sex !kdy:male)<br>         (q ?person !rdf:type !kdy:person))<br>    &quot;&quot;&quot;</pre>
 <p>The rules must be explicitly added to the dedicated session. </p>
@@ -1360,9 +1357,6 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <p>We need these two namespaces because they are used in the query and in the file of rules. </p>
 <pre class="input">
     conn.setNamespace(&quot;kdy&quot;, &quot;http://www.franz.com/simple#&quot;)<br>    conn.setNamespace(&quot;rltv&quot;, &quot;http://www.franz.com/simple#&quot;)  </pre>
-<p>We need to tell AllegroGraph Server which query syntax to expect. </p>
-<pre class="input">
-    conn.setRuleLanguage(QueryLanguage.PROLOG)</pre>
 <p>The next step is to load the rule file: </p>
 <pre class="input">
     path = &quot;./relative_rules.txt&quot;<br>    conn.loadRules(path)</pre>
@@ -1651,9 +1645,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
     valjean = conn.createURI(lmns, "character11")
     bossuet = conn.createURI(lmns, "character64")
 </pre>
-<p>We also need to set the rule language. </p>
-<pre class="input">
-    conn.setRuleLanguage(QueryLanguage.PROLOG)</pre>
+
 <h3 id="Creating SNA Generators">Creating SNA Generators</h3>
 <p>The SNA functions use &quot;generators&quot; to describe the relationships  we want to analyze. A generator encapsulates a list of predicates to use in social network analysis. It also describes the directions in which each predicate is interesting. </p>
 <p>In an RDF graph, two resources are linked by a single triple, sometimes called a &quot;resource-valued predicate.&quot; This triple has a resource URI in the <em>subject</em> position, and a different one in the <em>object</em> position. For instance:</p>
