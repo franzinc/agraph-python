@@ -595,7 +595,6 @@ def test16():
 def kennedy_male_names(conn=None):
     conn = test6(conn)
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
-    conn.setRuleLanguage(QueryLanguage.PROLOG)
     rules1 = """
     (<-- (woman ?person) ;; IF
          (q ?person !kdy:sex !kdy:female)
@@ -639,7 +638,6 @@ def test18():
         test6(conn)
         conn.setNamespace("kdy", "http://www.franz.com/simple#")
         conn.setNamespace("rltv", "http://www.franz.com/simple#")  
-        conn.setRuleLanguage(QueryLanguage.PROLOG)
         path = os.path.join(CURRENT_DIRECTORY, "relative_rules.txt")
         conn.loadRules(path)
     #    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
@@ -871,8 +869,6 @@ def test22():
         # Create URIs for some characters.
         valjean = conn.createURI(lmns, "character11")
         bossuet = conn.createURI(lmns, "character64")
-
-        conn.setRuleLanguage(QueryLanguage.PROLOG)
 
         # Create some generators
         #print "\nSNA generators known (should be none): '%s'" % (conn.listSNAGenerators())

@@ -1085,7 +1085,6 @@ def example17():
     conn = example6()  # Obtain dedicated connection from example6()
     # end of example6()
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
-    conn.setRuleLanguage(QueryLanguage.PROLOG)
     rules1 = """
     (<-- (woman ?person) ;; IF
          (q ?person !kdy:sex !kdy:female)
@@ -1121,7 +1120,6 @@ def example18():
     conn = example6()  # loads data and return dedicated session
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
-    conn.setRuleLanguage(QueryLanguage.PROLOG)
     path = "./python-rules.txt"
     conn.loadRules(path)
     queryString = """(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))"""
@@ -1330,8 +1328,6 @@ def example21():
     # Create URIs for some characters.
     valjean = conn.createURI(lmns, "character11")
     bossuet = conn.createURI(lmns, "character64")
-
-    conn.setRuleLanguage(QueryLanguage.PROLOG)
 
     # Create some generators
     #print "\nSNA generators known (should be none): '%s'" % (conn.listSNAGenerators())

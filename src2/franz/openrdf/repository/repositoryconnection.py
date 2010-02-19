@@ -71,7 +71,6 @@ class RepositoryConnection(object):
         self.repository = repository 
         self.mini_repository = repository.mini_repository
         self.is_closed = False
-        self.ruleLanguage = None
         self._add_commit_size = None
 
     def _get_mini_repository(self):
@@ -664,10 +663,7 @@ class RepositoryConnection(object):
     def createRange(self, lowerBound, upperBound):
         return self.getValueFactory().createRange(lowerBound=lowerBound, upperBound=upperBound)
 
-    def setRuleLanguage(self, queryLanguage):
-        self.ruleLanguage = queryLanguage
-
-    def addRules(self, rules, language=None):
+    def addRules(self, rules, language=QueryLanguage.PROLOG):
         """
         Add a sequence of one or more rules (in ASCII format) to the current environment.
         If the language is Prolog, rule declarations start with '<-' or '<--'.  The 
@@ -675,13 +671,12 @@ class RepositoryConnection(object):
 
         For use with an open session.
         """
-        language = language or self.ruleLanguage or QueryLanguage.PROLOG
         if language == QueryLanguage.PROLOG:
             self._get_mini_repository().definePrologFunctors(rules)
         else:
             raise Exception("Cannot add a rule because the rule language has not been set.")
         
-    def loadRules(self, filename, language=None):
+    def loadRules(self, filename, language=QueryLanguage.PROLOG):
         """
         Load a file of rules into the current environment.
         'file' is assumed to reside on the client machine.
