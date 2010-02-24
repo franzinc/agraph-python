@@ -1,7 +1,5 @@
 
-VERSION := $(shell fgrep __version__ src2/franz/__init__.py | sed -e 's/^.*"\(.*\)".*/\1/')
-
-DISTDIR = agraph-client-python-$(VERSION)
+DISTDIR = agraph-$(VERSION)-client-python
 
 TARNAME = $(DISTDIR).tar.gz
 
@@ -10,6 +8,10 @@ FILES = LICENSE src2 stress tutorial windows-support
 default: dist
 
 dist: FORCE
+ifndef VERSION
+	@echo VERSION is not set.
+	@echo 1
+endif
 	rm -fr DIST
 	mkdir -p DIST/$(DISTDIR)
 	for f in $(FILES); do cp -r $$f DIST/$(DISTDIR); done
