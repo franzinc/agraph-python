@@ -1,5 +1,3 @@
-
-
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository
@@ -876,7 +874,7 @@ def example12():
     conn = example1()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
-    conn.registerFreeTextPredicate(namespace=exns, localname='fullname')
+    conn.createFreeTextIndex("default", predicates=[URI(namespace=exns, localname='fullname')])
     alice = conn.createURI(namespace=exns, localname="alice1")
     persontype = conn.createURI(namespace=exns, localname="Person")
     fullname = conn.createURI(namespace=exns, localname="fullname")    
@@ -2088,6 +2086,8 @@ def example23():
 	
 if __name__ == '__main__':
     starttime = time.clock()
+    module = sys.modules[__name__]
+    
     if len(sys.argv) == 1 or sys.argv[1] == "all":
         choices = range(1,24)
     else:
@@ -2096,30 +2096,9 @@ if __name__ == '__main__':
         choice = int(choice)
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
-        if choice == 0: example0()
-        elif choice == 1: example1()
-        elif choice == 2: example2()
-        elif choice == 3: example3()
-        elif choice == 4: example4()    
-        elif choice == 5: example5()        
-        elif choice == 6: example6()            
-        elif choice == 7: example7()                
-        elif choice == 8: example8()                
-        elif choice == 9: example9()                        
-        elif choice == 10: example10()                            
-        elif choice == 11: example11()
-        elif choice == 12: example12()                                                                                   
-        elif choice == 13: example13()  
-        elif choice == 14: example14()                                                                                         
-        elif choice == 15: example15()    
-        elif choice == 16: example16()            
-        elif choice == 17: example17()                    
-        elif choice == 18: example18()                                                             
-        elif choice == 19: example19() 
-        elif choice == 20: example20()  
-        elif choice == 21: example21()
-        elif choice == 23: example23()
-        elif choice == 22: example22()
+
+        if hasattr(module, "example" + str(choice)):
+            getattr(module, "example" + str(choice))()
         else:
             print "This example is not available in the current release."
     print("\nElapsed time: %s seconds." % (time.clock() - starttime))
