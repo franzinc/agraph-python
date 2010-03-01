@@ -563,34 +563,27 @@ def test16():
     
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     catalog = server.openCatalog(CATALOG)
-    federated = server.openCatalog(server.FEDERATED)
-    ## create two ordinary stores, and one federated store: 
-    try:
-        federated.deleteRepository("rainbowthings")
-    finally:
-        pass
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     greenConn = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
-    federated.createRepository("rainbowthings", repos=[ CATALOG + ":redthings", CATALOG + ":greenthings"])
-    rainbowConn = federated.getRepository("rainbowthings").initialize().getConnection()
-    ## add a few triples to the red and green stores:
-    ex = "http://www.demo.com/example#"
-    redConn.setNamespace('ex', ex)
-    greenConn.setNamespace('ex', ex)
-    rainbowConn.setNamespace('ex', ex)        
-    redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
-    redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
-    greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
-    greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
-    queryString = "select ?s where { ?s rdf:type ex:Apple }"
-    ## query each of the stores; observe that the federated one is the union of the other two:
-    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
-    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
-    pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3) 
+    rainbowConn = server.openFederated([redConn, greenConn], True)
+
     try:
-        federated.deleteRepository("rainbowthings")
+        ## add a few triples to the red and green stores:
+        ex = "http://www.demo.com/example#"
+        redConn.setNamespace('ex', ex)
+        greenConn.setNamespace('ex', ex)
+        rainbowConn.setNamespace('ex', ex)        
+        redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
+        redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
+        greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
+        greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
+        queryString = "select ?s where { ?s rdf:type ex:Apple }"
+        ## query each of the stores; observe that the federated one is the union of the other two:
+        pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
+        pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
+        pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3) 
     finally:
-        pass
+        rainbowConn.closeSession()
 
 def kennedy_male_names(conn=None):
     conn = test6(conn)

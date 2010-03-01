@@ -21,7 +21,6 @@ AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_CATALOG = 'python-catalog'
 # AG_CATALOG = ''
-AG_FEDERATED = 'python-federated-catalog'
 AG_REPOSITORY = 'pythontutorial'
 AG_USER = 'test'
 AG_PASSWORD = 'xyzzy'
@@ -1046,41 +1045,35 @@ def example16():
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     catalog = server.openCatalog(AG_CATALOG)
     ## create two ordinary stores, and one federated store: 
-    redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
+    redConn = catalog.getRepository("redthings", Repository.RENEW)
     greenConn = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
-    federated = server.openCatalog(server.FEDERATED)
+    # Can pass strings to name local stores in root catalog, (name,
+    # catalog) pairs, URLs, Repository objects, and
+    # RepositoryConnection objects
+    rainbowThings = server.openFederated([redConn, greenConn], True)
+
     try:
-        federated.deleteRepository("rainbowthings")
+        print "Empty federation: " + str(rainbowThings.size())
+
+        ex = "http://www.demo.com/example#"
+        redConn.setNamespace('ex', ex)
+        greenConn.setNamespace('ex', ex)
+        rainbowThings.setNamespace('ex', ex)        
+        redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
+        redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
+        greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
+        greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
+
+        print "Federated size: " + str(rainbowThings.size())
+
+        queryString = "select ?s where { ?s rdf:type ex:Apple }"
+        ## query each of the stores; observe that the federated one is the union of the other two:
+        pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
+        pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
+        pt("federated", rainbowThings.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3) 
+
     finally:
-        pass
-    federated.createRepository("rainbowthings", repos=[ AG_CATALOG + ":redthings", AG_CATALOG + ":greenthings"])
-    rainbowConn = federated.getRepository("rainbowthings").initialize().getConnection()
-    ## add a few triples to the red and green stores:
-    ex = "http://www.demo.com/example#"
-    redConn.setNamespace('ex', ex)
-    greenConn.setNamespace('ex', ex)
-    rainbowConn.setNamespace('ex', ex)        
-    redConn.add(redConn.createURI(ex+"mcintosh"), RDF.TYPE, redConn.createURI(ex+"Apple"))
-    redConn.add(redConn.createURI(ex+"reddelicious"), RDF.TYPE, redConn.createURI(ex+"Apple"))    
-    greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
-    greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
-    queryString = "select ?s where { ?s rdf:type ex:Apple }"
-    ## Following line tests what happens when you delete from a federation.  Should create error.
-    ## rainbowConn.remove(None, None, None)
-    ## query each of the stores; observe that the federated one is the union of the other two:
-    pt("red", redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 2)
-    pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
-    pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3) 
-
-	
-    federated.deleteRepository("rainbowthings")
-    redConn.close()
-    greenConn.close()
-    redRepository = redConn.repository
-    redRepository.shutDown()
-    greenRepository = greenConn.repository
-    greenRepository.shutDown()
-
+        rainbowThings.closeSession()
 
 def example17():
     """

@@ -13,9 +13,10 @@
 from __future__ import absolute_import
 
 from ..exceptions import ServerException
-from ..repository.repository import Repository
+from ..repository.repository import Repository, RepositoryConnection
 from ...miniclient import repository as miniserver
 import urllib
+from . import spec
 
 READ_ONLY = 'READ_ONLY'
 
@@ -25,8 +26,6 @@ class AllegroGraphServer(object):
     """
     Connects to an AllegroGraph HTTP Server
     """
-    FEDERATED = 'federated'
-
     def __init__(self, host, port=10035, user=None, password=None, **options):
         self._client = miniserver.Client("http://%s:%d" % (host, port), user, password)
 
@@ -42,13 +41,11 @@ class AllegroGraphServer(object):
 
     def listCatalogs(self):
         catalogs = self._client.listCatalogs()
-        catalogs.append(AllegroGraphServer.FEDERATED)
         return catalogs
     
     def openCatalog(self, name=None):
         """
         Open a catalog by name. Pass None to open the root catalog.
-        Pass 'federated' to open the virtual catalog of federations.
         """       
         # Allow for None and '' (or anything else that evaluates to False) to
         # mean the root catalog.
@@ -60,12 +57,7 @@ class AllegroGraphServer(object):
             raise ServerException("There is no catalog named '%s' (found %s)"
                 % (name, cats))
 
-        if name == AllegroGraphServer.FEDERATED:
-            catalog = FederatedCatalog(AllegroGraphServer.FEDERATED, self._client)
-        else:
-            catalog = Catalog(name, self._client)
-
-        return catalog
+        return Catalog(name, self._client)
 
     def getInitfile(self):
         """
@@ -86,39 +78,30 @@ class AllegroGraphServer(object):
         """
         return self._client.setInitfile(content, restart)
 
-
-class FederatedCatalog(object):
-    """
-    Container of multiple federated repositories (triple stores).
-    """
-    def __init__(self, name, client):
-        self.mini_catalog = client
-        self._name = name
-        
-    def getName(self):
-        """Return the catalog name."""
-        return self._name
-    
-    name = property(getName)
-
-    def listRepositories(self):
+    def openSession(self, spec, autocommit=False, lifetime=None, loadinitfile=False):
         """
-        Return a list of names of repositories (triple stores) managed by
-        this catalog.
+        Open a session on a federated, reasoning, or filtered store.
+        Use the helper functions in the franz.openrdf.sail.spec module
+        to create the spec string.
         """
-        return self.mini_catalog.listFederations()
-    
-    def deleteRepository(self, name):
-        return self.mini_catalog.deleteFederation(name)
-    
-    def getRepository(self, name, access_verb=Repository.OPEN):
-        access_verb = access_verb.upper()
-        assert access_verb == Repository.OPEN, "Only OPEN is allowed on getRepository for a federated Repository."
-        return Repository(self, name, self.mini_catalog.getFederation(name))
+        minirep = self._client.openSession(spec, autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile)
+        return RepositoryConnection(Repository(None, None, minirep))
 
-    def createRepository(self, name, urls=[], repos=[]):
-        return Repository(self, name, self.mini_catalog.createFederation(name, urls, repos))
-
+    def openFederated(self, repositories, autocommit=False, lifetime=None, loadinitfile=False):
+        """
+        Open a session that federates several repositories. The
+        repositories argument should be an array containing store
+        designators, which can be Repository or RepositoryConnection
+        objects, strings (naming a store in the root catalog, or the
+        URL of a store), or (storename, catalogname) tuples.
+        """
+        def asRepoString(x):
+            if isinstance(x, str): return spec.local(x)
+            elif isinstance(x, tuple): return spec.local(x[0], x[1])
+            elif isinstance(x, Repository): return spec.url(x.mini_repository.url)
+            elif isinstance(x, RepositoryConnection): return spec.url(x.mini_repository.url)
+            else: raise TypeError(str(x) + " is not a valid repository specification.")
+        return self.openSession(spec.federate(*map(asRepoString, repositories)), autocommit, lifetime, loadinitfile)
 
 class Catalog(object):
     """

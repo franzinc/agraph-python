@@ -104,17 +104,6 @@ def testSession():
     eq(1, rep.getSize())
 
 @with_setup(cleanup)
-def testFederation():
-    assert 'fed' not in client.listFederations()
-    fed = client.createFederation("fed", repos=["tests:foo"])
-    eq(0, fed.getSize())
-    rep.addStatement("<x>", "<y>", "<z>")
-    eq(1, fed.getSize())
-    assert 'fed' in client.listFederations()
-    client.deleteFederation("fed")
-    eq([], client.listFederations())
-
-@with_setup(cleanup)
 def testTemporal():
     rep.addMappedType("<time>", "<http://www.w3.org/2001/XMLSchema#dateTime>")
     rep.addStatement("<x>", "<happened>", "\"2009-09-28T17:41:39\"^^<time>")

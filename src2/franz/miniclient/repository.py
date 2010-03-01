@@ -71,22 +71,6 @@ class Client(Catalog):
         else:
             nullRequest(self, "PUT", "/initfile?" + urlenc(restart=restart), content)
 
-    def listFederations(self):
-        return [fed["id"] for fed in jsonRequest(self, "GET", "/federated")]
-
-    def getFederation(self, id):
-        return self._instanceFromUrl(Repository, self.url + "/federated/" + urllib.quote(id))
-
-    def createFederation(self, id, urls=[], repos=[]):
-        """Pass URLs for remote stores, 'reponame' or 'catname:reponame'
-        for local ones."""
-        nullRequest(self, "PUT", "/federated/" + urllib.quote(id) + "?" +
-                    urlenc(url=urls, repo=repos))
-        return self.getFederation(id)
-
-    def deleteFederation(self, id):
-        nullRequest(self, "DELETE", "/federated/" + urllib.quote(id))
-
     def openSession(self, spec, autocommit=False, lifetime=None, loadinitfile=False):
         url = jsonRequest(self, "POST", "/session?" +
                           urlenc(autoCommit=autocommit, lifetime=lifetime,
