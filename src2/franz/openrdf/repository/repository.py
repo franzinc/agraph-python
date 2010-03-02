@@ -57,21 +57,6 @@ class Repository:
         """
         return self
 
-    def listFreeTextPredicates(self):
-        return self.mini_repository.listFreeTextPredicates()
-
-    def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
-        """
-        Register a predicate 'uri' (or 'namespace'+'localname'), telling the RDF store to index
-        text keywords belonging to strings in object position in the corresponding
-        triples/statements.  This is needed to make the  fti:match  operator
-        work properly.
-        """
-        uri = str(uri) or (namespace + localname)
-        if not uri.startswith('<'):
-            uri = '<' + uri + '>'
-        self.mini_repository.registerFreeTextPredicate(uri)
-        
     def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         """
         Register an inlined datatype.  If 'predicate', then object arguments to triples

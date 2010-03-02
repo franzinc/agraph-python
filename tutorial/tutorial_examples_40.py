@@ -1,9 +1,8 @@
-
-
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository
 from franz.openrdf.query.query import QueryLanguage
+from franz.openrdf.model import URI
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.owl import OWL
@@ -19,7 +18,7 @@ CURRENT_DIRECTORY = os.getcwd()
 
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
-AG_CATALOG = 'python-catalog'
+AG_CATALOG = os.environ.get('AGRAPH_CATALOG', 'python-catalog')
 # AG_CATALOG = ''
 AG_REPOSITORY = 'pythontutorial'
 AG_USER = 'test'
@@ -875,7 +874,7 @@ def example12():
     conn = example1()
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
-    conn.registerFreeTextPredicate(namespace=exns, localname='fullname')
+    conn.createFreeTextIndex("default", predicates=[URI(namespace=exns, localname='fullname')])
     alice = conn.createURI(namespace=exns, localname="alice1")
     persontype = conn.createURI(namespace=exns, localname="Person")
     fullname = conn.createURI(namespace=exns, localname="fullname")    
@@ -2078,9 +2077,59 @@ def example23():
     repository = conn.repository
     repository.shutDown()
 
-	
+def example24():
+    """
+    Free-text indexing and querying.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(AG_CATALOG)  
+    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)
+    myRepository.initialize()
+    conn = myRepository.getConnection()
+
+    def ex(name):
+        return URI(namespace="http://example.com/", localname=name)
+    def lit(text):
+        return conn.createLiteral(text)
+
+    # Create a free-text index that indexes only triples whose
+    # predicate is ex:description or ex:name.
+    conn.createFreeTextIndex("index1", predicates=[ex("description"), ex("name")])
+    # Get the names of all free-text indices in this store.
+    print "Indices: " + str(conn.listFreeTextIndices())
+
+    # Add some example data
+    conn.addTriple(ex("pipe"), ex("name"), lit("steel pipes"))
+    conn.addTriple(ex("pipe"), ex("description"), lit("80mm inner diameter, 77mm outer. extra heavy."))
+    conn.addTriple(ex("pipe"), ex("price"), lit("11 euro per meter."))
+    conn.addTriple(ex("hammer"), ex("name"), lit("hammer"))
+    conn.addTriple(ex("hammer"), ex("description"), lit("1500g, black plastic grip, heavy claw hammer."))
+
+    print "Searching for 'heavy' in 'index1':"
+    for triple in conn.evalFreeTextSearch("heavy", index="index1"):
+        print " " + str(triple)
+
+    # Create an index that indexes all triples, indexing both the
+    # subject and the object of the triple, and indexing resources
+    # using the 'short' option, meaning only the part after the last
+    # slash or hash character gets indexed.
+    conn.createFreeTextIndex("index2", indexResources="short", indexFields=["subject", "object"])
+
+    print "Searching for 'pipe' in 'index2':"
+    # (When not providing an index= argument, all indices are used.)
+    for triple in conn.evalFreeTextSearch("pipe", index="index2"):
+        print " " + str(triple)
+
+    # Inspect the index's configuration
+    print "Configuration object: " + str(conn.getFreeTextIndexConfiguration("index2"))
+    # Delete the indices again
+    conn.deleteFreeTextIndex("index1")
+    conn.deleteFreeTextIndex("index2")
+
 if __name__ == '__main__':
     starttime = time.clock()
+    module = sys.modules[__name__]
+    
     if len(sys.argv) == 1 or sys.argv[1] == "all":
         choices = range(1,24)
     else:
@@ -2089,30 +2138,9 @@ if __name__ == '__main__':
         choice = int(choice)
         print "\n==========================================================================="
         print "Example Run Number ", choice, "\n"
-        if choice == 0: example0()
-        elif choice == 1: example1()
-        elif choice == 2: example2()
-        elif choice == 3: example3()
-        elif choice == 4: example4()    
-        elif choice == 5: example5()        
-        elif choice == 6: example6()            
-        elif choice == 7: example7()                
-        elif choice == 8: example8()                
-        elif choice == 9: example9()                        
-        elif choice == 10: example10()                            
-        elif choice == 11: example11()
-        elif choice == 12: example12()                                                                                   
-        elif choice == 13: example13()  
-        elif choice == 14: example14()                                                                                         
-        elif choice == 15: example15()    
-        elif choice == 16: example16()            
-        elif choice == 17: example17()                    
-        elif choice == 18: example18()                                                             
-        elif choice == 19: example19() 
-        elif choice == 20: example20()  
-        elif choice == 21: example21()
-        elif choice == 23: example23()
-        elif choice == 22: example22()
+
+        if hasattr(module, "example" + str(choice)):
+            getattr(module, "example" + str(choice))()
         else:
             print "This example is not available in the current release."
     print("\nElapsed time: %s seconds." % (time.clock() - starttime))

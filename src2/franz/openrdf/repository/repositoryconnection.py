@@ -16,7 +16,7 @@ from __future__ import with_statement
 from .repositoryresult import RepositoryResult
 
 from ..exceptions import IllegalOptionException, IllegalArgumentException
-from ..model import Statement, Value
+from ..model import Statement, Value, URI
 from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
 from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
 from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
@@ -628,9 +628,6 @@ class RepositoryConnection(object):
     ## (connection, repository, and value factory) when one will do
     #############################################################################################
     
-    def registerFreeTextPredicate(self, uri=None, namespace=None, localname=None):
-        return self.repository.registerFreeTextPredicate(uri=uri, namespace=namespace, localname=localname)
-    
     def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         return self.repository.registerDatatypeMapping(predicate=predicate, datatype=datatype, nativeType=nativeType)
 
@@ -801,18 +798,61 @@ class RepositoryConnection(object):
         miniRep = self._get_mini_repository()
         miniRep.registerNeighborMatrix(name, group_uris, generator, max_depth)
 
-    def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
+    def listFreeTextIndices(self):
+        return self.mini_repository.listFreeTextIndices()
+
+    def createFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
+                            indexFields=None, minimumWordSize=None, stopWords=None):
+        """
+        Create a free-text index with the given parameters.
+        If no predicates are given, triples are indexed regardless of
+        predicate.
+        indexLiterals determines which literals to index. It can be
+        True (the default), False, or a list of resources, indicating
+        the literal types that should be indexed.
+        indexResources determines which resources are indexed. It can
+        be True, False (the default), or \"short\", to index only the
+        part of resources after the last slash or hash character.
+        indexFields can be a list containing any combination of the
+        elements \"subject\", \"predicate\", \"object\", and
+        \"graph\". The default is [\"object\"].
+        minimumWordSize, an integer, and determines the minimum size a
+        word must have to be indexed. The default is 3.
+        stopWords should hold a list of words that should not be
+        indexed. When not given, a list of common English words is
+        used.
+        """
+        if predicates: predicates = map(uris.asURIString, predicates)
+        if isinstance(indexLiterals, list): indexLiterals = map(uris.asURIString, indexLiterals)
+        self.mini_repository.createFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
+                                                 indexResources=indexResources, indexFields=indexFields,
+                                                 minimumWordSize=minimumWordSize, stopWords=stopWords)
+
+    def modifyFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
+                            indexFields=None, minimumWordSize=None, stopWords=None, reIndex=None):
+        if predicates: predicates = map(uris.asURIString, predicates)
+        if isinstance(indexLiterals, list): indexLiterals = map(uris.asURIString, indexLiterals)
+        self.mini_repository.modifyFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
+                                                 indexResources=indexResources, indexFields=indexFields,
+                                                 minimumWordSize=minimumWordSize, stopWords=stopWords,
+                                                 reIndex=reIndex)
+
+    def deleteFreeTextIndex(self, name):
+        self.mini_repository.deleteFreeTextIndex(name)
+
+    def getFreeTextIndexConfiguration(self, name):
+        value = self.mini_repository.getFreeTextIndexConfiguration(name)
+        value["predicates"] = map(URI, value["predicates"])
+        if isinstance(value["indexLiterals"], list):
+            value["indexLiterals"] = map(URI, value["indexLiterals"])
+        return value
+
+    def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None, index=None):
         """
         Return an array of statements for the given free-text pattern search.
         """
         miniRep = self._get_mini_repository()
-        return miniRep.evalFreeTextSearch(pattern, infer, callback, limit)
-        
-    def listFreeTextPredicates(self):
-        """
-        List the predicates that are used for free-text indexing.
-        """
-        return self.repository.listFreeTextPredicates()
+        return miniRep.evalFreeTextSearch(pattern, index, infer, callback, limit)
         
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         """

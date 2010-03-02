@@ -48,3 +48,8 @@ def getLocalNameIndex(uri):
     if (idx < 0):
         raise IllegalArgumentException("No separator character found in URI: " + uri)
     return idx + 1
+
+def asURIString(value):
+    value = str(value)
+    if value.startswith('<'): return value
+    else: return "<%s>" % value

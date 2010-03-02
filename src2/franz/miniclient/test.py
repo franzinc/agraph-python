@@ -25,7 +25,9 @@ except RequestError:
 
 def testPreconditions():
   assert 'tests' in client.listCatalogs()
-  assert "foo" in cat.listRepositories()
+  if "foo" in cat.listRepositories():
+      cat.deleteRepository("foo")
+  cat.createRepository("foo")
 
 def cleanup():
   rep.deleteMatchingStatements()
@@ -110,3 +112,18 @@ def testTemporal():
     rep.addStatement("<y>", "<happened>", "\"2009-09-28T18:22:00\"^^<time>")
     rep.addStatement("<z>", "<happened>", "\"2009-09-28T17:02:41\"^^<time>")
     eq(2, len(rep.getStatements(obj=("\"2009-09-28T17:00:00\"^^<time>", "\"2009-09-28T18:00:00\"^^<time>"))))
+
+@with_setup(cleanup)
+def testFreeText():
+    rep.addStatement("<x>", "<p>", "\"foo bar quux rhubarb\"")
+    rep.addStatement("<y>", "<q>", "\"foo bar quux rhubarb\"")
+    rep.addStatement("<z>", "<p>", "\"foo bar quux rhubarb\"^^<type1>")
+    eq(len(rep.evalFreeTextSearch("quux")), 0)
+    rep.createFreeTextIndex("index", predicates=["<p>"], minimumWordSize=4)
+    eq(rep.listFreeTextIndices(), ["index"])
+    eq(len(rep.evalFreeTextSearch("foo")), 0)
+    eq(len(rep.evalFreeTextSearch("quux")), 2)
+    rep.modifyFreeTextIndex("index", indexLiterals=["<type1>"])
+    eq(len(rep.evalFreeTextSearch("rhubarb")), 1)
+    rep.deleteFreeTextIndex("index")
+    eq(rep.listFreeTextIndices(), [])

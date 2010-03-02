@@ -206,11 +206,62 @@ class Repository(Service):
     def deleteStatementsById(self, ids):
         nullRequest(self, "POST", "/statements/delete?ids=true", cjson.encode(ids), contentType="application/json")
 
-    def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None):
+    def evalFreeTextSearch(self, pattern, index=None, infer=False, callback=None, limit=None):
         """Use free-text indices to search for the given pattern.
         Returns an array of statements."""
-        return jsonRequest(self, "GET", "/freetext", urlenc(pattern=pattern, infer=infer, limit=limit),
+        return jsonRequest(self, "GET", "/freetext", urlenc(pattern=pattern, infer=infer, limit=limit, index=index),
                            rowreader=callback and RowReader(callback))
+
+    def listFreeTextIndices(self):
+        """List the names of free-text indices defined in this
+        repository."""
+        return jsonRequest(self, "GET", "/freetext/indices")
+
+    def getFreeTextIndexConfiguration(self, index):
+        """Returns a dictionary with fields \"predicates\",
+        \"indexLiterals\", \"indexResources\", \"indexFields\",
+        \"minimumWordSize\", and \"stopWords\"."""
+        return jsonRequest(self, "GET", "/freetext/indices/" + urllib.quote(index))
+
+    def createFreeTextIndex(self, index, predicates=None, indexLiterals=None, indexResources=None,
+                            indexFields=None, minimumWordSize=None, stopWords=None):
+        """Create a free-text index. predicates, if given, should be a
+        list of resources. indexLiterals can be True, False, or a list
+        of resources, indicating the literal types to index.
+        indexResources can be True, False, or \"short\". indexFields
+        can be a list containing any combination of the elements
+        \"subject\", \"predicate\", \"object\", and \"graph\".
+        minimumWordSize is an integer, and stopWords a list of
+        strings."""
+        # Not passing these at all causes the defaults to be used. So
+        # when they are given, they should be passed with an empty
+        # value.
+        if stopWords == []: stopWords = ""
+        if indexFields == []: indexFields = ""
+        nullRequest(self, "PUT", "/freetext/indices/" + urllib.quote(index),
+                    urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
+                           indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
+                           indexResources=indexResources, indexField=indexFields,
+                           minimumWordSize=minimumWordSize, stopWord=stopWords))
+
+    def modifyFreeTextIndex(self, index, predicates=None, indexLiterals=None, indexResources=None,
+                            indexFields=None, minimumWordSize=None, stopWords=None, reIndex=None):
+        """Reconfigure a free-text index. Most arguments work as in
+        createFreeTextIndex, except that here not passing them means
+        'leave the old value'. reIndex controls whether old triples
+        are re-indexed."""
+        if stopWords == []: stopWords = ""
+        if predicates == []: predicates = ""
+        if indexFields == []: indexFields = ""
+        nullRequest(self, "POST", "/freetext/indices/" + urllib.quote(index),
+                    urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
+                           indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
+                           indexResources=indexResources, indexField=indexFields,
+                           minimumWordSize=minimumWordSize, stopWord=stopWords, reIndex=reIndex))
+
+    def deleteFreeTextIndex(self, index):
+        """Delete the named free-text index."""
+        nullRequest(self, "DELETE", "/freetext/indices/" + urllib.quote(index))
 
     def listFreeTextPredicates(self):
         """List the predicates that are used for free-text indexing."""
