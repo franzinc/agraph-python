@@ -841,22 +841,15 @@ def test21():
         # To rebuild, just call registerNeighborMatrix again
         conn.registerNeighborMatrix("LM_Matrix1", "LesMiserables1", valjean.toNTriples(), max_depth=2)
 
-
 def test22():
     """
     More Social Network Analysis Reasoning
     """
-    # Need to skip this for now
-    raise SkipTest
-
     with connect().session() as conn:
-        print "Starting example test21()."
-        print "Current working directory is '%s'" % (os.getcwd())
         path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
-        print "Load Les Miserables triples."
-        conn.addFile(path1, None, format=RDFFormat.RDFXML)
+        conn.addFile(path1, None, format=RDFFormat.RDFXML);
         print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
-               conn.size('null'), 'null')
+           conn.size('null'), 'null')
 
         # Create URIs for relationship predicates.
         lmns = "http://www.franz.com/lesmis#"
@@ -864,11 +857,11 @@ def test22():
         knows = conn.createURI(lmns, "knows")
         barely_knows = conn.createURI(lmns, "barely_knows")
         knows_well = conn.createURI(lmns, "knows_well")
-
+    
         # Create URIs for some characters.
         valjean = conn.createURI(lmns, "character11")
         bossuet = conn.createURI(lmns, "character64")
-
+    
         # Create some generators
         #print "\nSNA generators known (should be none): '%s'" % (conn.listSNAGenerators())
         conn.registerSNAGenerator("intimates", subjectOf=None, objectOf=None, 
@@ -878,28 +871,21 @@ def test22():
         conn.registerSNAGenerator("everyone", subjectOf=None, objectOf=None, 
             undirected=[knows, knows_well, barely_knows], 
             generator_query=None)
-        conn.registerSNAGenerator("emptyGen", subjectOf=None, objectOf=None, undirected=None, 
-            generator_query=None)
-        print "Created four generators."
-        #print "SNA generators known (should be four): '%s'" % (conn.listSNAGenerators())
+        print "Created three generators."
 
         # Create neighbor matrix.
         conn.registerNeighborMatrix("matrix1", "intimates", valjean, max_depth=2)
         conn.registerNeighborMatrix("matrix2", "associates", valjean, max_depth=5)
         conn.registerNeighborMatrix("matrix3", "everyone", valjean, max_depth=2)
-        conn.registerNeighborMatrix("emptyMat", "emptyGen", valjean, max_depth=2) 
-        print "Created four matrices."
-
-        conn.registerNeighborMatrix("matrix1", "intimates", valjean, max_depth=2)
-        print "Rebuilt one matrix."
+        print "Created three matrices."
 
         # Explore Valjean's ego group.
         print "\nValjean's ego group members (using associates)."
         queryString = """
         (select (?member ?name)
-          (ego-group-member !lm:character11 1 associates ?member)
-          (q ?member !dc:title ?name))
-          """
+        (ego-group-member !lm:character11 1 associates ?member)
+        (q ?member !dc:title ?name))
+        """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
         print "Found %i query results" % len(result)      
@@ -925,6 +911,20 @@ def test22():
 
         print "\nValjean's ego group in one list depth 1 (using associates)."
         queryString = """
+        (select (?member)
+          (ego-group !lm:character11 1 associates ?group)
+          (member ?member ?group))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        print "Found %i query results" % len(result)      
+        for bindingSet in result:
+            p = bindingSet.getValue("member")
+            print "%s" %(p)
+
+        
+        print "\nValjean's ego group in one list depth 1 (using associates)."
+        queryString = """
         (select (?group)
           (ego-group !lm:character11 1 associates ?group))
           """
@@ -933,7 +933,10 @@ def test22():
         print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("group")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nValjean's ego group in one list depth 2 (using associates)."
         queryString = """
@@ -945,7 +948,10 @@ def test22():
         print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("group")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nValjean's ego group in one list depth 3 (using associates)."
         queryString = """
@@ -957,44 +963,55 @@ def test22():
         print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("group")
-            print "%s" % (p)
-
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet using intimates."
         queryString = """
         (select (?path)
-          (breadth-first-search-paths !lm:character11 !lm:character64 intimates 10 ?path))
+          (breadth-first-search-path !lm:character11 !lm:character64 intimates 10 ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
         print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("path")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet using associates."
         queryString = """
         (select (?path)
-          (breadth-first-search-paths !lm:character11 !lm:character64 associates 10 ?path))
+          (breadth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
         print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("path")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet using everyone."
         queryString = """
         (select (?path)
-          (breadth-first-search-paths !lm:character11 !lm:character64 everyone 10 ?path))
+          (breadth-first-search-path !lm:character11 !lm:character64 everyone 10 ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
         print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("path")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nShortest breadth-first path connecting Valjean to Bossuet? with associates (should be two)."
         queryString = """
@@ -1006,18 +1023,26 @@ def test22():
         print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("path")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
-        print "\nShortest depth-first paths connecting Valjean to Bossuet? with associates (should be two)."
+        # Note that depth-first-search-paths are not guaranteed to be "the shortest path."
+        print "\nReturn depth-first path connecting Valjean to Bossuet with associates (should be one)."
         queryString = """
         (select (?path)
-          (depth-first-search-paths !lm:character11 !lm:character64 associates ?path))
+          (depth-first-search-path !lm:character11 !lm:character64 associates 10 ?path))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
+        print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("path")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nShortest bidirectional paths connecting Valjean to Bossuet with associates (should be two)."
         queryString = """
@@ -1026,13 +1051,17 @@ def test22():
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
+        print "Found %i query results" % len(result)      
         for bindingSet in result:
             p = bindingSet.getValue("path")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         print "\nNodal degree of Valjean (should be seven)."
         queryString = """
-        (select (?degree)
+        (select ?degree
           (nodal-degree !lm:character11 associates ?degree))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1044,7 +1073,7 @@ def test22():
 
         print "\nHow many neighbors are around Valjean? (should be 36)."
         queryString = """
-        (select (?neighbors)
+        (select ?neighbors
           (nodal-degree !lm:character11 everyone ?neighbors))
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
@@ -1062,13 +1091,15 @@ def test22():
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
+        count = 0
         for bindingSet in result:
+            count = count + 1
             n = bindingSet.getValue("name")
-            print "%s, " % (n),
+            print "%s. %s " % (count,n.toPython())
 
         print "\nGraph density of Valjean's ego group? (using associates)."
         queryString = """
-        (select (?density)
+        (select ?density
           (ego-group !lm:character11 1 associates ?group)
           (graph-density ?group associates ?density))
           """
@@ -1086,10 +1117,12 @@ def test22():
           """
         tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
         result = tupleQuery.evaluate();
-        print "Number of cliques: %s" % len(result)
         for bindingSet in result:
             p = bindingSet.getValue("clique")
-            print "%s" % (p)
+            print "[",
+            for item in p:
+                print "%s" %(item),
+            print "]"
 
         # Valjean's actor-degree-centrality using a depth of 1.
         print "\nValjean's actor-degree-centrality to his ego group at depth 1 (using associates)."
@@ -1161,7 +1194,99 @@ def test22():
             print "%s" % (p)
             print "%s" % (p.toPython())
 
+        #  "Group centrality measures the cohesion a group relative to
+        #  some measure of actor-centrality. `group-degree-centrality measures
+        #  group cohesion by finding the maximum actor centrality in the group,
+        #  summing the difference between this and each other actor's degree
+        #  centrality and then normalizing. It ranges from 0 (when all actors have
+        #  equal degree) to 1 (when one actor is connected to every other and no
+        #  other actors have connections."
         
+        print "\nGroup-degree-centrality of Valjean's ego group at depth 1 (using associates)."
+        queryString = """
+        (select (?centrality)
+          (ego-group !lm:character11 1 associates ?group)
+          (group-degree-centrality ?group associates ?centrality))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("centrality")
+            print "Centrality: %s" % (p.toPython())
+
+        print "\nGroup-degree-centrality of Valjean's ego group at depth 2 (using associates)."
+        queryString = """
+        (select (?centrality)
+          (ego-group !lm:character11 2 associates ?group)
+          (group-degree-centrality ?group associates ?centrality))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("centrality")
+            print "Centrality: %s" % (p.toPython())
+
+        #  "Group centrality measures the cohesion a group relative to
+        #  some measure of actor-centrality. `group-closeness-centrality` is
+        #  measured by first finding the actor whose `closeness-centrality`
+        #  is maximized and then summing the difference between this maximum
+        #  value and the [actor-closeness-centrality][] of all other actors.
+        #  This value is then normalized so that it ranges between 0 and 1."
+        print "\nGroup-closeness-centrality of Valjean's ego group at depth 1 (using associates)."
+        queryString = """
+        (select (?centrality)
+          (ego-group !lm:character11 1 associates ?group)
+          (group-closeness-centrality ?group associates ?centrality))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("centrality")
+            print "Centrality: %s" % (p.toPython())
+
+        print "\nGroup-closeness-centrality of Valjean's ego group at depth 2 (using associates)."
+        queryString = """
+        (select (?centrality)
+          (ego-group !lm:character11 2 associates ?group)
+          (group-closeness-centrality ?group associates ?centrality))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("centrality")
+            print "Centrality: %s" % (p.toPython())
+
+        #  "Group centrality measures the cohesion a group relative to
+        #  some measure of actor-centrality. `group-betweenness-centrality` is
+        #  measured by first finding the actor whose `betweenness-centrality`
+        #  is maximized and then summing the difference between this maximum
+        #  value and the [actor-betweenness-centrality][] of all other actors.
+        #  This value is then normalized so that it ranges between 0 and 1.
+
+        print "\nGroup-betweenness-centrality of Valjean's ego group at depth 1 (using associates)."
+        queryString = """
+        (select (?centrality)
+          (ego-group !lm:character11 1 associates ?group)
+          (group-betweenness-centrality ?group associates ?centrality))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("centrality")
+            print "Centrality: %s" % (p.toPython())
+
+        print "\nGroup-betweenness-centrality of Valjean's ego group at depth 2 (using associates)."
+        queryString = """
+        (select (?centrality)
+          (ego-group !lm:character11 2 associates ?group)
+          (group-betweenness-centrality ?group associates ?centrality))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("centrality")
+            print "Centrality: %s" % (p.toPython())
+            
 def test_getStatements():
     conn = test6()
     rows = conn.getStatements(None, None, None, tripleIDs=False)
@@ -1589,7 +1714,7 @@ def test_add_commit_size():
     Test the add_commit_size setting.
     """
     conn = connect()
-    path = os.path.join(CURRENT_DIRECTORY, "kennedy.ntriples")
+    path = os.path.join(CURRENT_DIRECTORY, "kennedy-error.nt")
     baseURI = "http://example.org/example/local"
 
     assert conn.add_commit_size is None
@@ -1597,32 +1722,23 @@ def test_add_commit_size():
     assert conn.add_commit_size == 10
     assert conn.getAddCommitSize() == 10
 
-    def load_triples():
-        time.sleep(0.25)
+    try:
         conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES)
+    except RequestError:
+        pass
 
-    def check_commits(want_small_commit):
-        saw_small_commit = False
-        size = conn.size()
-        while size < 1214:
-            if size > 0:
-                saw_small_commit = True
-            size = conn.size()
+    assert conn.size() == 20
 
-        assert want_small_commit == saw_small_commit
-
-    threading.Thread(target=load_triples).start()
-    check_commits(True)
-
-    assert conn.size() == 1214
     conn.clear()
     conn.setAddCommitSize(0)
     assert conn.getAddCommitSize() is None
 
-    threading.Thread(target=load_triples).start()
-    check_commits(False)
+    try:
+        conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES)
+    except RequestError:
+        pass
 
-    assert conn.size() == 1214
+    assert conn.size() == 0
 
 def test_namespace_management():
     """
