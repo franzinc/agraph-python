@@ -20,4 +20,8 @@ ifdef DESTDIR
 	cp -p DIST/$(TARNAME) $(DESTDIR)
 endif
 
+prepush: FORCE
+	@echo Using port $(AGRAPH_PORT)
+	cd src2; nosetests
+
 FORCE:

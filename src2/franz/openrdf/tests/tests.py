@@ -47,6 +47,14 @@ AG_ONSERVER = AG_HOST == LOCALHOST
 CATALOG = 'tests'
 STORE = 'agraph_test'
 
+def teardown():
+    """Module level teardown function."""
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    catalog = server.openCatalog(CATALOG)  
+
+    for repo in catalog.listRepositories():
+        catalog.deleteRepository(repo)
+
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
 def verify(expressionValue, targetValue, quotedExpression, testNum):
