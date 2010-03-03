@@ -59,7 +59,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>The Python client tutorial rests on a simple architecture involving AllegroGraph, disk-based data files, Python, and a file of Python examples called tutorial_examples_40.py.</p>
 <table width="944" border="0">
   <tr>
-    <td width="309"><p>AllegroGraph 4.0 Server runs as a Windows service in this example. It contains the Python API, which is part of the AllegroGraph installation. </p>
+    <td width="309"><p>AllegroGraph 4.0 Server contains the Java API, which is part of the AllegroGraph installation. </p>
     <p>Python communicates with AllegroGraph through HTTP port 8080 in this example. Python and AllegroGraph may be installed on the same computer, but in practice one server is shared by multiple clients. </p>
     <p>Load tutorial_examples_40.py into Python to view the tutorial examples. </p></td>
     <td width="625"><img src="allegrographdiagram.jpg" width="617" height="412"></td>
@@ -124,7 +124,7 @@ In Windows XP, you can set an environment variable by
 </ol>
 -->
 <h2 id="PrerequisitesLinux">Prerequisites (Linux) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using the procedure posted on <a href="http://www.franz.com/agraph/support/documentation/4.0m1/server-installation.html">this webpage</a>. </p>
+<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using the procedure posted on <a href="http://www.franz.com/agraph/support/documentation/4.0/server-installation.html">this webpage</a>. </p>
 <h2 id="Terminology">Terminology&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>We need to clarify some terminology before proceeding. </p>
 <ul>
@@ -2036,7 +2036,7 @@ Did not add new triple.</pre>
 <p>Presumably any existing repository has a purpose of its own, and has been federated with other respositories to serve some combined purpose. It would be a mistake to delete triples from one repository simply because they also occur elsewhere in the federated store. This could damage the integrity of the individual repositories when they are used in stand-alone mode. By similar reasoning, it is a mistake to add triples to a federated repository. Which repository gets the new triples? </p>
 <p>For all of these reasons, federated stores are &quot;read only&quot; in AllegroGraph. Attempting to add or delete triples in a federated system result in error messages. </p>
 <p>Federation changes the semantics of &quot;duplicate triples.&quot; Be sure to take this into account in your project design. </p>
-<p><font color="#CCCCCC">February 11, 2010 4.0 M3 release</font></p>
+<p><font color="#CCCCCC">March 3, 2010 4.0.1 release</font></p>
 
 </body>
 
