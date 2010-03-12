@@ -1912,6 +1912,54 @@ def example23():
     # The following paths are relative to os.getcwd(), the working directory.
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     print "Current working directory is '%s'" % (os.getcwd())
+
+    """
+    Demonstrate Blank Node Behavior
+    """
+    path = "./python-blankNodes1.rdf"
+    baseURI = "http://www.franz.com/simple#"
+    print "\nLoad blankNodes1.rdf"
+    conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
+    statements = conn.getStatements(None, None, None, 'null', limit=10000)
+    print "Two books, with one author as blank node in each book."
+    print "Number of results: %s" % len(statements)
+    for s in statements:
+        print s
+    conn.remove(None, None, None)
+
+    path = "./python-blankNodes2.rdf"
+    baseURI = "http://www.franz.com/simple#"
+    print "\nLoad blankNodes2.rdf"
+    conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
+    statements = conn.getStatements(None, None, None, 'null', limit=10000)
+    print "Two books, with one author identified by URI but in striped syntax in each book."
+    print "Number of results: %s" % len(statements)
+    for s in statements:
+        print s
+    conn.remove(None, None, None)
+
+    path = "./python-blankNodes3.rdf"
+    baseURI = "http://www.franz.com/simple#"
+    print "\nLoad blankNodes3.rdf"
+    conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
+    statements = conn.getStatements(None, None, None, 'null', limit=10000)
+    print "Two books, with one author linked by a URI."
+    print "Number of results: %s" % len(statements)
+    for s in statements:
+        print s
+    conn.remove(None, None, None)
+	
+    path = "./python-blankNodes4.rdf"
+    baseURI = "http://www.franz.com/simple#"
+    print "\nLoad blankNodes4.rdf"
+    conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
+    statements = conn.getStatements(None, None, None, 'null', limit=10000)
+    print "Two books, with one author as a literal value."
+    print "Number of results: %s" % len(statements)
+    for s in statements:
+        print s
+    conn.remove(None, None, None)
+
     """
     Load Kennedy file 
     """

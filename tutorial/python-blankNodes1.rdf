@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	 xmlns:dc = "http://purl.org/dc/elements/1.1/"
+	 xmlns:foaf = "http://xmlns.com/foaf/0.1/">
+	 
+<!-- Example 1: Two books, same author, anonymous nodes, show duplicate triples. -->
+  <rdf:Description rdf:about="http://www.franz.com/tutorial#book1">
+    <dc:title>The Call of the Wild</dc:title>
+    <dc:creator>
+	   <foaf:Person foaf:name="Jack London"/> 
+	</dc:creator>
+  </rdf:Description>
+  
+  <rdf:Description rdf:about="http://www.franz.com/tutorial#book2">
+    <dc:title>White Fang</dc:title>
+    <dc:creator>
+	   <foaf:Person foaf:name="Jack London"/> 
+	</dc:creator>
+  </rdf:Description>
+  
+
+</rdf:RDF>
