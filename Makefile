@@ -5,6 +5,8 @@ TARNAME = $(DISTDIR).tar.gz
 
 FILES = LICENSE src2 stress tutorial windows-support
 
+PATH := /usr/local/python26/bin:$(PATH)
+
 default: dist
 
 dist: FORCE
