@@ -220,11 +220,11 @@ class Repository(Service):
     def getFreeTextIndexConfiguration(self, index):
         """Returns a dictionary with fields \"predicates\",
         \"indexLiterals\", \"indexResources\", \"indexFields\",
-        \"minimumWordSize\", and \"stopWords\"."""
+        \"minimumWordSize\", \"stopWords\", and \"wordFilters\"."""
         return jsonRequest(self, "GET", "/freetext/indices/" + urllib.quote(index))
 
     def createFreeTextIndex(self, index, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None):
+                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None):
         """Create a free-text index. predicates, if given, should be a
         list of resources. indexLiterals can be True, False, or a list
         of resources, indicating the literal types to index.
@@ -232,7 +232,7 @@ class Repository(Service):
         can be a list containing any combination of the elements
         \"subject\", \"predicate\", \"object\", and \"graph\".
         minimumWordSize is an integer, and stopWords a list of
-        strings."""
+        strings. wordFilter must be a list of filter names."""
         # Not passing these at all causes the defaults to be used. So
         # when they are given, they should be passed with an empty
         # value.
@@ -242,10 +242,11 @@ class Repository(Service):
                     urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
                            indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
                            indexResources=indexResources, indexField=indexFields,
-                           minimumWordSize=minimumWordSize, stopWord=stopWords))
+                           minimumWordSize=minimumWordSize, stopWord=stopWords, wordFilter=wordFilters))
 
     def modifyFreeTextIndex(self, index, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None, reIndex=None):
+                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
+                            reIndex=None):
         """Reconfigure a free-text index. Most arguments work as in
         createFreeTextIndex, except that here not passing them means
         'leave the old value'. reIndex controls whether old triples
@@ -253,11 +254,13 @@ class Repository(Service):
         if stopWords == []: stopWords = ""
         if predicates == []: predicates = ""
         if indexFields == []: indexFields = ""
+        if wordFilters == []: wordFilters = ""
         nullRequest(self, "POST", "/freetext/indices/" + urllib.quote(index),
                     urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
                            indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
                            indexResources=indexResources, indexField=indexFields,
-                           minimumWordSize=minimumWordSize, stopWord=stopWords, reIndex=reIndex))
+                           minimumWordSize=minimumWordSize, stopWord=stopWords, wordFilter=wordFilters,
+                           reIndex=reIndex))
 
     def deleteFreeTextIndex(self, index):
         """Delete the named free-text index."""
