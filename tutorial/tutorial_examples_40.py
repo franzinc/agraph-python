@@ -1044,7 +1044,7 @@ def example16():
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     catalog = server.openCatalog(AG_CATALOG)
     ## create two ordinary stores, and one federated store: 
-    redConn = catalog.getRepository("redthings", Repository.RENEW)
+    redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     greenConn = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
     # Can pass strings to name local stores in root catalog, (name,
     # catalog) pairs, URLs, Repository objects, and
@@ -1927,6 +1927,7 @@ def example23():
         print s
     conn.remove(None, None, None)
 
+# --------------------------------------------------------------
     path = "./python-blankNodes2.rdf"
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes2.rdf"
@@ -1937,6 +1938,33 @@ def example23():
     for s in statements:
         print s
     conn.remove(None, None, None)
+	
+# Following example is for rfe8610
+#    path = "./python-blankNodes2.rdf"
+#    baseURI = "http://www.franz.com/simple#"
+#    conn.openSession()
+#    print "\nLoad blankNodes2.rdf"
+#    conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
+#    conn.commit()
+#    statements = conn.getStatements(None, None, None, 'null', limit=10000)
+#    conn.closeSession()
+#    print "Same as previous example but using a transaction (dedicated session)."
+#    print "Number of results: %s" % len(statements)
+#    for s in statements:
+#        print s
+#    print "Try it with SPARQL instead of getStatements()."
+#    queryString = """SELECT ?s ?p ?o 
+#                     WHERE {?s ?p ?o .}"""
+#    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+#    result = tupleQuery.evaluate();    
+#    for bindingSet in result:
+#        s = bindingSet[0]
+#        p = bindingSet[1]
+#        o = bindingSet[2]
+#        print "%s %s %s" % (s, p, o)	
+#    conn.remove(None, None, None)
+
+# --------------------------------------------------------------
 
     path = "./python-blankNodes3.rdf"
     baseURI = "http://www.franz.com/simple#"
@@ -1978,7 +2006,7 @@ def example23():
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
-    # Write inept query to retrieve three children of Ted Kennedy.
+    # Write inept query to retrieve two children of Ted Kennedy.
     print "\nSPARQL matches for two children of Ted Kennedy, inept pattern."
     queryString = """SELECT ?o1 ?o2 
                      WHERE {kdy:person17 kdy:has-child ?o1 .
@@ -1989,7 +2017,7 @@ def example23():
         o1 = bindingSet[0]
         o2 = bindingSet[1]
         print "%s and %s" % (o1, o2)	
-
+		
     print "\nSPARQL matches for two children of Ted Kennedy, better pattern."
     queryString = """SELECT ?o1 ?o2 
                      WHERE {kdy:person17 kdy:has-child ?o1 .
@@ -2041,7 +2069,7 @@ def example23():
         print s
 
     print "\nSPARQL matches for children of Ted Kennedy."
-    queryString = """SELECT ?o WHERE {kdy:person17 kdy:has-child ?o}"""
+    queryString = """SELECT ?o WHERE {kdy:person17 kdy:has-child ?o} ORDER BY ?o"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();    
     for bindingSet in result:
@@ -2049,7 +2077,15 @@ def example23():
         print "%s" % (o)
 
     print "\nSPARQL DISTINCT matches for children of Ted Kennedy."
-    queryString = """SELECT DISTINCT ?o WHERE {kdy:person17 kdy:has-child ?o}"""
+    queryString = """SELECT DISTINCT ?o WHERE {kdy:person17 kdy:has-child ?o} ORDER BY ?o"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();    
+    for bindingSet in result:
+        o = bindingSet[0]
+        print "%s" % (o)
+
+    print "\nSPARQL REDUCED matches for children of Ted Kennedy."
+    queryString = """SELECT REDUCED ?o WHERE {kdy:person17 kdy:has-child ?o} ORDER BY ?o"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();    
     for bindingSet in result:
@@ -2081,43 +2117,6 @@ def example23():
         conn.add(newParent, hasChild, newChild)
         print "Added new triple."
 	
-    print "=========================================================================="
-   
-    print "\nProlog SELECT matches for children of Ted Kennedy, before triple deletion."
-    queryString = """
-    (select (?o ?i)
-            (q !kdy:person17 !kdy:has-child ?o ?g ?i))"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-    result = tupleQuery.evaluate();     
-    for bindingSet in result:
-        o = bindingSet.getValue("o")
-        i = bindingSet.getValue("i")
-        print "%s %s" % (o, i)
-
-    
-    print "\nProlog SELECT matches for children of Ted Kennedy, deleting duplicate triples."
-    queryString = """
-    (select (?id2)
-            (q !kdy:person17 !kdy:has-child ?o ?g ?id1)
-            (q !kdy:person17 !kdy:has-child ?o ?g ?id2) 
-			(lispp (when (upi< ?id1 ?id2) 
-                (delete-triple (upi->value ?id2)))))"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-    result = tupleQuery.evaluate();     
-    for bindingSet in result:
-        id2 = bindingSet.getValue("id2")
-        print "Deleted triple number: %s" % (id2)
-    
-    print "\nProlog SELECT matches for children of Ted Kennedy, after triple deletion."
-    queryString = """
-    (select (?o ?i)
-            (q !kdy:person17 !kdy:has-child ?o ?g ?i))"""
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-    result = tupleQuery.evaluate();     
-    for bindingSet in result:
-        o = bindingSet.getValue("o")
-        i = bindingSet.getValue("i")
-        print "%s %s" % (o, i)
     print "=========================================================================="
     
     conn.closeSession()
