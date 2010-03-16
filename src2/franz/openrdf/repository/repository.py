@@ -40,6 +40,7 @@ class Repository:
     def __init__(self, catalog, database_name, repository):
         self.mini_repository = repository
         self.database_name = database_name
+        self.catalog = catalog
         ## system state fields:
         self.value_factory = None
          
@@ -49,6 +50,12 @@ class Repository:
         interfacing with.
         """ 
         return self.database_name
+
+    def getSpec(self):
+        catName = self.catalog.getName()
+        if (catName is None or catName == "/"): catName = ""
+        else: catName = catName + ":"
+        return "<%s%s>" % (catName, self.getDatabaseName())
         
     def initialize(self):
         """

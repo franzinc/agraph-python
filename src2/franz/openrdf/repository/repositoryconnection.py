@@ -73,6 +73,9 @@ class RepositoryConnection(object):
         self.is_closed = False
         self._add_commit_size = None
 
+    def getSpec(self):
+        return self.repository.getSpec()
+
     def _get_mini_repository(self):
         return self.mini_repository
         

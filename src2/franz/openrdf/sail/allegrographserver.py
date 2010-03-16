@@ -98,8 +98,8 @@ class AllegroGraphServer(object):
         def asRepoString(x):
             if isinstance(x, str): return spec.local(x)
             elif isinstance(x, tuple): return spec.local(x[0], x[1])
-            elif isinstance(x, Repository): return spec.url(x.mini_repository.url)
-            elif isinstance(x, RepositoryConnection): return spec.url(x.mini_repository.url)
+            elif isinstance(x, Repository): return x.getSpec()
+            elif isinstance(x, RepositoryConnection): return x.getSpec()
             else: raise TypeError(str(x) + " is not a valid repository specification.")
         return self.openSession(spec.federate(*map(asRepoString, repositories)), autocommit, lifetime, loadinitfile)
 
