@@ -304,16 +304,14 @@ import urlparse
 def test8():
     conn = test6()
     context = conn.createURI("http://example.org#vcards")
-    outputFile = "/tmp/temp.nt"
-    #outputFile = None
+    outputFile = None
     if outputFile == None:
-        print "Writing RDF to Standard Out instead of to a file"
+        print "Writing NTriples to Standard Out instead of to a file"
     ntriplesWriter = NTriplesWriter(outputFile)
     conn.export(ntriplesWriter, context);
-    outputFile2 = "/tmp/temp.rdf"
-    #outputFile2 = None
+    outputFile2 = None
     if outputFile2 == None:
-        print "Writing NTriples to Standard Out instead of to a file"
+        print "Writing RDF to Standard Out instead of to a file"
     rdfxmlfWriter = RDFXMLWriter(outputFile2)    
     conn.export(rdfxmlfWriter, context)
 
