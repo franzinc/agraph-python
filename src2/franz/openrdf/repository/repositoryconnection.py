@@ -805,7 +805,7 @@ class RepositoryConnection(object):
         return self.mini_repository.listFreeTextIndices()
 
     def createFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None):
+                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None):
         """
         Create a free-text index with the given parameters.
         If no predicates are given, triples are indexed regardless of
@@ -824,21 +824,27 @@ class RepositoryConnection(object):
         stopWords should hold a list of words that should not be
         indexed. When not given, a list of common English words is
         used.
+        wordFilters can be used to apply some normalizing filters to
+        words as they are indexed or queried. Can be a list of filter
+        names. Currently, only \"drop-accents\" and \"stem.english\"
+        are supported.
         """
         if predicates: predicates = map(uris.asURIString, predicates)
         if isinstance(indexLiterals, list): indexLiterals = map(uris.asURIString, indexLiterals)
         self.mini_repository.createFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
                                                  indexResources=indexResources, indexFields=indexFields,
-                                                 minimumWordSize=minimumWordSize, stopWords=stopWords)
+                                                 minimumWordSize=minimumWordSize, stopWords=stopWords,
+                                                 wordFilters=wordFilters)
 
     def modifyFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None, reIndex=None):
+                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
+                            reIndex=None):
         if predicates: predicates = map(uris.asURIString, predicates)
         if isinstance(indexLiterals, list): indexLiterals = map(uris.asURIString, indexLiterals)
         self.mini_repository.modifyFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
                                                  indexResources=indexResources, indexFields=indexFields,
                                                  minimumWordSize=minimumWordSize, stopWords=stopWords,
-                                                 reIndex=reIndex)
+                                                 wordFilters=wordFilters, reIndex=reIndex)
 
     def deleteFreeTextIndex(self, name):
         self.mini_repository.deleteFreeTextIndex(name)
