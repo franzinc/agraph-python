@@ -872,49 +872,79 @@ def example12():
     """
     print "Starting example12()."
     conn = example1()
+    conn.clear()    
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
-    conn.createFreeTextIndex("default", predicates=[URI(namespace=exns, localname='fullname')])
-    alice = conn.createURI(namespace=exns, localname="alice1")
+
+    conn.createFreeTextIndex("index1", predicates=[URI(namespace=exns, localname='fullname')])
+    config = conn.getFreeTextIndexConfiguration("index1")
+    print(config)
+    for item in config["predicates"]:
+        print(item)
+
+    alice = conn.createURI(namespace=exns, localname="alice")
+    carroll = conn.createURI(namespace=exns, localname="carroll")
     persontype = conn.createURI(namespace=exns, localname="Person")
     fullname = conn.createURI(namespace=exns, localname="fullname")    
     alicename = conn.createLiteral('Alice B. Toklas')
     book =  conn.createURI(namespace=exns, localname="book1")
     booktype = conn.createURI(namespace=exns, localname="Book")
-    booktitle = conn.createURI(namespace=exns, localname="title")    
+    booktitle = conn.createURI(namespace=exns, localname="title")
+    author = conn.createURI(namespace=exns, localname="author")    
     wonderland = conn.createLiteral('Alice in Wonderland')
-    conn.clear()    
+    lewisCarroll = conn.createLiteral('Lewis Carroll')
+    # Creating Alice B. Toklas resource 
     conn.add(alice, RDF.TYPE, persontype)
     conn.add(alice, fullname, alicename)
+    # Creating Alice in Wonderland book resource
     conn.add(book, RDF.TYPE, booktype)    
     conn.add(book, booktitle, wonderland) 
+    conn.add(book, author, carroll)
+    # Creating Lewis Carrol resource
+    conn.add(carroll, fullname, lewisCarroll)
+    conn.add(carroll, RDF.TYPE, persontype)
+    # getStatements search for all triples
+    print "\nCurrent content of triple store:"
+    for s in conn.getStatements(None, None, None, None): print s 
+    # Begin fti:match SPARQL queries
     conn.setNamespace('ex', exns)
-    print "Whole-word match for 'Alice'"
+    print "\nWhole-word match for 'Alice'"
     queryString = """
     SELECT ?s ?p ?o
-    WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }
+    WHERE { ?s ?p ?o . 
+            ?s fti:match 'Alice' . }
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)      
-    count = 0
+    print "\nFound %i query results" % len(result)      
     for bindingSet in result:
-        print bindingSet
-        count += 1
-        if count > 5: break
-    print "Wildcard match for 'Ali*'"
+        s = bindingSet[0]
+        p = bindingSet[1]
+        o = bindingSet[2]
+        print "%s %s %s" % (s, p, o)
+
+    print("\nEvalFreeTextSearch() match 'Alice' in index1.")
+    for triple in conn.evalFreeTextSearch("Alice", index="index1"):
+        print " " + str(triple)
+
+    print "\nWildcard match for 'Ali*'"
     queryString = """
     SELECT ?s ?p ?o
     WHERE { ?s ?p ?o . ?s fti:match 'Ali*' . }
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)    
+    print "\nFound %i query results" % len(result)    
     count = 0
     for bindingSet in result:
         print bindingSet
         count += 1
         if count > 5: break
+
+    print("\nEvalFreeTextSearch() match 'Ali*' in index1.")
+    for triple in conn.evalFreeTextSearch("Alice", index="index1"):
+        print " " + str(triple)
+
     print "Wildcard match for '?l?c?'"
     queryString = """
     SELECT ?s ?p ?o
@@ -922,12 +952,17 @@ def example12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)    
+    print "\nFound %i query results" % len(result)    
     count = 0
     for bindingSet in result:
         print bindingSet
         count += 1
         if count > 5: break
+
+    print("\nEvalFreeTextSearch() match '?l?c?' in index1.")
+    for triple in conn.evalFreeTextSearch("Alice", index="index1"):
+        print " " + str(triple)
+
     print "Substring match for 'lic'"
     queryString = """
     SELECT ?s ?p ?o
@@ -935,12 +970,23 @@ def example12():
     """
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate(); 
-    print "Found %i query results" % len(result)    
+    print "\nFound %i query results" % len(result)    
     count = 0
     for bindingSet in result:
         print bindingSet
         count += 1
         if count > 5: break
+
+    print("\nEvalFreeTextSearch() match 'lic' in index1.")
+    for triple in conn.evalFreeTextSearch("lic", index="index1"):
+        print " " + str(triple)
+
+    conn.createFreeTextIndex("index2", predicates=[URI(namespace=exns, localname='author')],
+                             indexResources="short", indexFields=["object"])
+    print("\nMatch 'Carroll' in index2.")
+    for triple in conn.evalFreeTextSearch("Carroll", index="index2"):
+        print " " + str(triple)
+
     conn.close();
     myRepository = conn.repository
     myRepository.shutDown()

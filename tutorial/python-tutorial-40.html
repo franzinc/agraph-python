@@ -173,7 +173,8 @@ In Windows XP, you can set an environment variable by
   <p>A user with the <strong>Start Sessions</strong> permission can use the AllegroGraph features that require spawning a dedicated session, such as <a href="#Dedicated Session">Transactions </a> and <a href="#Social Network Analysis">Social Network Analysis</a>. If you try to use these features without the appropriate permission, you'll encounter authentication errors. </p>
   <p>A user with permission to <strong>Evaluate Arbitrary Code </strong>can run <a href="#Prolog Rule Queries">Prolog Rule Queries</a>. This user can also do anything else that allows executing Lisp code, such as defining select-style generators, or doing eval-in-server, as well as loading server-side files. </p>
   <h3>WebView</h3>
-  <p>WebView is AllegroGraph's HTTP-based graphical user interface for user and repository management. To connect to WevView, simply direct your Web browser to the AllegroGraph port of your server. If you have installed AllegroGraph locally (and used the default port number), use:</p>
+  <p>WebView is AllegroGraph's HTTP-based graphical user interface for user and repository management. It provides a SPARQL endpoint for querying your triple stores as well as various tools that let you create and maintain triple stores interactively. </p>
+  <p>To connect to WebView, simply direct your Web browser to the AllegroGraph port of your server. If you have installed AllegroGraph locally (and used the default port number), use:</p>
   <pre class="output">http://localhost:10035</pre>
   <p>You will be asked to log in. Use the superuser credentials described in the previous section. </p>
   <p>The first page of WebView is a summary of your catalogs, repositories, and federations. Click the <strong>user account</strong> link in the lower left corner of the page. This exposes the <strong>Users and Roles</strong> page.</p>
@@ -1161,35 +1162,51 @@ some form of "keyword search" with their queries. For example, a user
 might want to retrieve all triples for which the string "Alice" appears
 as a word within the third (object) argument to the triple.  AllegroGraph
 provides a capability for including free text matching within a SPARQL
-query.  It requires, however, that you register the predicates that will participate in text searches so they can be indexed. </p>
-<p> The example example12() begins by borrowing the connection object from example1(). Then it creates a namespace string and registers the namespace with the connection object, as in the previous example. </p>
-<pre class="input">def example12():<br>    conn = example1()<br>    exns = &quot;http://example.org/people/&quot;<br>    conn.setNamespace('ex', exns)</pre>
-<p>We have to register the predicates that will participate in text indexing. In the example12() example below, we have
-called the connection method <strong>registerFreeTextPredicate()</strong> to register the predicate "http://example.org/people/fullname" for text indexing. Generating the predicate's URI is a separate step. </p>
-<pre class="input">
-    conn.registerFreeTextPredicate(namespace=exns, localname='fullname')<br>    fullname = conn.createURI(namespace=exns, localname=&quot;fullname&quot;)    </pre>
-<p>The next step is to create two new resources, &quot;Alice1&quot; named &quot;Alice B. Toklas,&quot; and &quot;book1&quot; with the title &quot;Alice in Wonderland.&quot; Notice that we did not register the book title predicate for text indexing. </p>
-<pre class="input">
-    alice = conn.createURI(namespace=exns, localname=&quot;alice1&quot;)<br>    persontype = conn.createURI(namespace=exns, localname=&quot;Person&quot;)<br>    alicename = conn.createLiteral('Alice B. Toklas')<br>    book =  conn.createURI(namespace=exns, localname=&quot;book1&quot;)<br>    booktype = conn.createURI(namespace=exns, localname=&quot;Book&quot;)<br>    booktitle = conn.createURI(namespace=exns, localname=&quot;title&quot;)    <br>    wonderland = conn.createLiteral('Alice in Wonderland')</pre>
-<p>Clear the repository, so our new triples are the only ones available. </p>
-<pre class="input">
-    conn.clear()    </pre>
+query, and also by using the <strong>evalFreeTextSearch()</strong> method of the connection object.  It requires, however, that you create and configure indexes appropriate to the searches you want to pursue. </p>
+<p> Example12() begins by borrowing the connection object from example1(). Then it creates a namespace string and registers the namespace with the connection object, as in the previous example. </p>
+<pre class="input">def example12():<br>    conn = example1()<br>    conn.clear()    <br>    exns = &quot;http://example.org/people/&quot;<br>    conn.setNamespace('ex', exns)</pre>
+<p>We have to create an index. AllegroGraph lets you create any number of text indexes, each for a specific purpose. In this case we are indexing the literal values we find in the &quot;fullname&quot; predicate, which we will use in resources that describe people. The createFreeTextIndex() method has many configurable parameters that default to settings that are appropriate to this situation. All we have to provide is a name for the index and the URI of the predicate (or predicates) that contain the text to be indexed. </p>
+<pre class="input">    conn.createFreeTextIndex(&quot;index1&quot;, predicates=[URI(namespace=exns, localname='fullname')])</pre>
+<p>We can view the index configuration using the <strong>getFreeTextIndexConfiguration()</strong> method:  </p>
+<pre class="input">    config = conn.getFreeTextIndexConfiguration(&quot;index1&quot;)<br>    print(config)<br>    for item in config[&quot;predicates&quot;]:<br>        print(item)</pre>
+<p>The configuration object is a simple Python dictionary. Most of it is easy to interpret, but the predicate list has to be extracted before we see the actual predicates:</p>
+<pre>{'indexLiterals': True, 'minimumWordSize': 3, 'indexFields': ['object'], 
+'stopWords': ['and', 'are', 'but', 'for', 'into', 'not', 'such', 'that', 'the', 
+'their', 'then', 'there', 'these', 'they', 'this', 'was', 'will', 'with'], 
+'predicates': [&lt;franz.openrdf.model.value.URI object at 0x025831F0&gt;], 
+'wordFilters': [], 'indexResources': False}
+<br>&lt;http://example.org/people/fullname&gt;</pre>
+<p>This configuration says that &quot;index1&quot; will operate on the literal values it finds in the object position of the <strong>&lt;http://example.org/people/fullname&gt;</strong> predicate. It ignores words smaller than three characters in length. It will ignore the worlds in its &quot;stopWords&quot; list. If it encounters a resource URI in the object position, it will ignore it. This index doesn't use any wordFilters, which are sometimes used to remove accented letters and to perform stemming on indexed text and search strings. </p>
+<p>The next step is to create three new resources. One is a person, &quot;Alice,&quot; whose full name is &quot;Alice B. Toklas.&quot; There will also be a book, &quot;Alice in Wonderland,&quot; which is linked to an author resource, &quot;Lewis Carroll.&quot; The first step is to create some URIs and literal values: </p>
+<pre class="input">    alice = conn.createURI(namespace=exns, localname=&quot;alice&quot;)<br>    carroll = conn.createURI(namespace=exns, localname=&quot;carroll&quot;)<br>    persontype = conn.createURI(namespace=exns, localname=&quot;Person&quot;)<br>    fullname = conn.createURI(namespace=exns, localname=&quot;fullname&quot;)    <br>    alicename = conn.createLiteral('Alice B. Toklas')
+<br>    book =  conn.createURI(namespace=exns, localname=&quot;book1&quot;)<br>    booktype = conn.createURI(namespace=exns, localname=&quot;Book&quot;)<br>    booktitle = conn.createURI(namespace=exns, localname=&quot;title&quot;)<br>    author = conn.createURI(namespace=exns, localname=&quot;author&quot;)    <br>    wonderland = conn.createLiteral('Alice in Wonderland')
+<br>    lewisCarroll = conn.createLiteral('Lewis Carroll')</pre>
 <p>Add the resource for the new person, Alice B. Toklas: </p>
-<pre class="input">
-    conn.add(alice, RDF.TYPE, persontype)<br>    conn.add(alice, fullname, alicename)</pre>
+<pre class="input">    # Creating Alice B. Toklas resource <br>    conn.add(alice, RDF.TYPE, persontype)<br>    conn.add(alice, fullname, alicename)</pre>
 <p>Add the new book, <em>Alice in Wonderland</em>. </p>
-<pre class="input">
-    conn.add(book, RDF.TYPE, booktype)    <br>    conn.add(book, booktitle, wonderland)</pre>
+<pre class="input">    # Creating Alice in Wonderland book resource<br>    conn.add(book, RDF.TYPE, booktype)    <br>    conn.add(book, booktitle, wonderland) <br>    conn.add(book, author, carroll)</pre>
+<p>Note that the book's author predicate links to the resource URI of the Lewis Carroll author resource. The author is a Person with a fullname:</p>
+<pre class="input">    # Creating Lewis Carrol resource<br>    conn.add(carroll, fullname, lewisCarroll)<br>    conn.add(carroll, RDF.TYPE, persontype)</pre>
+<p>Let's use getStatements() to retrieve the new triples and inspect them:</p>
+<pre class="output">Current content of triple store:<br>(&lt;http://example.org/people/alice&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;)<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/fullname&gt;, &quot;Alice B. Toklas&quot;)<br>
+(&lt;http://example.org/people/book1&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Book&gt;)<br>(&lt;http://example.org/people/book1&gt;, &lt;http://example.org/people/title&gt;, &quot;Alice in Wonderland&quot;)<br>(&lt;http://example.org/people/book1&gt;, &lt;http://example.org/people/author&gt;, &lt;http://example.org/people/carroll&gt;)<br>
+(&lt;http://example.org/people/carroll&gt;, &lt;http://example.org/people/fullname&gt;, &quot;Lewis Carroll&quot;)<br>(&lt;http://example.org/people/carroll&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;) </pre>
 <p>Now we set up the SPARQL query that looks for triples containing &quot;Alice&quot; in the object position. </p>
-<p>The text match occurs through a &quot;magic&quot; predicate called <strong>fti:match</strong>. This is not an RDF &quot;predicate&quot; but a LISP &quot;predicate,&quot; meaning that it behaves as a true/false test. This predicate  has two arguments. One is  the subject URI of the resources to search. The other is the string pattern to search for, such as &quot;Alice&quot;. Only registered text predicates will be searched. Only full-word matches will be found. </p>
+<p>The text match occurs through a &quot;magic&quot; predicate called <strong>fti:match</strong>. This is not an RDF &quot;predicate&quot; but a LISP &quot;predicate,&quot; meaning that it behaves as a true/false test. This predicate  has two arguments. One is  the subject URI of the resources to search. The other is the string pattern to search for, such as &quot;Alice&quot;. Only full-word matches will be found. </p>
 <pre class="input">
-    conn.setNamespace('ex', exns)<br>    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o<br>    WHERE { ?s ?p ?o . ?s fti:match 'Alice' . }<br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate(); </pre>
+    conn.setNamespace('ex', exns)<br>    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o<br>    WHERE { ?s ?p ?o . 
+            ?s fti:match 'Alice' . }<br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate(); </pre>
 <p>There is no need to include a prefix declaration for the 'fti' nickname. That is because 'fti' is included among the built-in namespace/nickname mappings in AllegroGraph.</p>
-<p>When we execute our SPARQL query, it matches the "Alice" within the literal "Alice B. Toklas" because that literal occurs in a triple having the registered <strong>fullname</strong> predicate, but it does not match the "Alice" in the literal "Alice in Wonderland" because the <strong>booktitle</strong> predicate was not registered for text indexing. This query returns <em>all triples</em> of a resource that had a successful match in at least one object value. </p>
+<p>When we execute our SPARQL query, it matches the "Alice" within the literal "Alice B. Toklas" because that literal occurs in a triple having the <strong>fullname</strong> predicate, but it does not match the "Alice" in the literal "Alice in Wonderland" because the <strong>booktitle</strong> predicate was not included in our index. The SPARQL query returns <em>all triples</em> of a resource that had a successful match in at least one object value. </p>
 <pre class="input">    print &quot;Found %i query results&quot; % len(result)    <br>    count = 0<br>    for bindingSet in result:<br>        print bindingSet<br>        count += 1<br>        if count &gt; 5: break</pre>
 <p>The output of this loop is:</p>
 <pre class="output">Found 2 query results<br>{'p': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 's': 'http://example.org/people/alice1', 'o': 'http://example.org/people/Person'}
 {'p': 'http://example.org/people/fullname', 's': 'http://example.org/people/alice1', 'o': '&quot;Alice B. Toklas&quot;'}</pre>
+<p>Note that the result set included both the matching triple and the<strong> rdf:type</strong> triple from the same resource. SPARQL returns the entire resource, not must the matching triple. </p>
+<p>As it happens, the SPARQL interface to text search does not let you specify which index(es) to use, so SPARQL queries <em>all</em> of the text indexes in the system. If you want to limit the search to a specific index, use the <strong>evalFreeTextSearch()</strong> method of the connection object:</p>
+<pre class="input">    print(&quot;\nEvalFreeTextSearch() match 'Alice' in index1.&quot;)<br>    for triple in conn.evalFreeTextSearch(&quot;Alice&quot;, index=&quot;index1&quot;):<br>        print &quot; &quot; + str(triple)</pre>
+<p>Unlike SPARQL, evalFreeTextSearch() returns only the matching triple:</p>
+<pre class="output">EvalFreeTextSearch() match 'Alice' in index1.<br> ['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/fullname&gt;', '&quot;Alice B. Toklas&quot;']</pre>
 <p>The text index supports simple wildcard queries. The asterisk (*) may be appended to the end of the pattern to indicate &quot;any number of additional characters.&quot; For instance, this query looks for whole words that begin with &quot;Ali&quot;:</p>
 <pre class="input">    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o<br>    WHERE { ?s ?p ?o . ?s fti:match 'Ali*' . }<br>    &quot;&quot;&quot;</pre>
 <p>It finds the same two triples as before.</p>
@@ -1201,6 +1218,15 @@ called the connection method <strong>registerFreeTextPredicate()</strong> to reg
 <p>This query returns two triples, but they are not quite the same as before:</p>
 <pre class="output">Substring match for 'lic'<br>Found 2 query results<br>{'p': 'http://example.org/people/fullname', 's': 'http://example.org/people/alice1', 'o': '&quot;Alice B. Toklas&quot;'}<br>{'p': 'http://example.org/people/title', 's': 'http://example.org/people/book1', 'o': '&quot;Alice in Wonderland&quot;'} </pre>
 <p>As you can see, the regex match found &quot;lic&quot; in &quot;Alice in Wonderland,&quot; which was not a registered free-text predicate. It made this match by doing a string comparison against every object value in the triple store. Even though you can streamline the SPARQL query considerably by writing more restrictive patterns, this is still inherently less efficient than using the indexed approach. </p>
+<p>Note that evalFreeTextSearch() does not offer any way to do a regex substring search. </p>
+<p>In addition to indexing literal values, AllegroGraph can also index resource URIs. &quot;Index2&quot; is an index that looks for URIs in the object position of the &quot;author&quot; predicate, and then indexes only the &quot;short&quot; name of the resource (the characters following the rightmost / or # in the URI). This lets us avoid indexing highly-repetitive namespace strings, which would fill the index with data that would not be very useful. </p>
+<pre class="input">    conn.createFreeTextIndex(&quot;index2&quot;, predicates=[URI(namespace=exns, localname='author')],<br>                             indexResources=&quot;short&quot;, indexFields=[&quot;object&quot;])</pre>
+<p>Now we'll search for the string &quot;Carroll&quot; in &quot;index2:&quot;</p>
+<pre class="input">    print(&quot;\nMatch 'Carroll' in index2.&quot;)<br>    for triple in conn.evalFreeTextSearch(&quot;Carroll&quot;, index=&quot;index2&quot;):<br>        print &quot; &quot; + str(triple)</pre>
+<pre class="output">
+Match 'Carroll' in index2.<br> ['&lt;http://example.org/people/book1&gt;', '&lt;http://example.org/people/author&gt;', '&lt;http://example.org/people/carroll&gt;']
+</pre>
+<p>The text search located the triple that has &quot;Carroll&quot; in the URI in the object position. </p>
 <h2 id="Ask, Describe, and Construct Queries">Ask, Describe, and Construct Queries (example13())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>SPARQL provides alternatives to the standard SELECT query. Example example13() exercises these alternatives to show how AllegroGraph Server handles them. </p>
 <ul>
@@ -2003,17 +2029,17 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>The lesson here is to keep the representation simple. The fewer resources there are, the faster everything will work. </p>
 <h3>Don't Create Duplicate Triples</h3>
 <p>Now we'll consider the situation where we have multiple copies of the same information in the triple store. This is the classic &quot;duplicate triples&quot; situation. </p>
-<p>True duplicate triples do not occur  by accident. They occur only when you have loaded the same information into the triple store more than once. </p>
+<p>True duplicate triples do not occur by accident. They occur only when you have loaded the same information into the triple store more than once. </p>
 <p>This is easy to demonstrate. Let's load the Kennedy graph into an empty triple store:</p>
 <pre class="output">Load 1214 python-kennedy.ntriples.
 After loading, there are:
   1214 kennedy triples in context 'null';</pre>
-
 <p>Then just load the same file again:</p>
 <pre class="output">Reload 1214 python-kennedy.ntriples.
 After loading, there are:
   2428 kennedy triples in context 'null';</pre>
 <p>Now there are two copies of every Kennedy triple. If you add the same triple multiple times, you will get multiple copies of it. </p>
+<h3></h3>
 <h3>Filter Out Duplicate Results </h3>
 <p>In practice, our advice &quot;don't create duplicate triples&quot; may be difficult to follow. Some data feeds contain duplicated information and there is no convenient or efficient way to filter it out. So now you have duplicated data in the system. How much trouble might that cause?</p>
 <p>This simple query should return three matches, one for each of Ted Kennedy's three children: </p>
@@ -2024,10 +2050,10 @@ After loading, there are:
 <pre class="input">    SELECT DISTINCT ?o WHERE {kdy:person17 kdy:has-child ?o}</pre>
 <p>The DISTINCT operator does not remove duplicate triples, but it detects and eliminates duplicate variable bindings in the query's output. The duplicate triples are still there in the triple store, but we don't see them in the output:</p>
 <pre class="output">SPARQL DISTINCT matches for children of Ted Kennedy.<br>&lt;http://www.franz.com/simple#person72&gt;<br>&lt;http://www.franz.com/simple#person76&gt;<br>&lt;http://www.franz.com/simple#person74&gt;</pre>
-<p>In some situations this is all you have to do to tame the &quot;duplicate triple&quot; problem.</p>
-<p>SPARQL also offers a REDUCED operator:</p>
+<p>DISTINCT works by sorting the bindings by each of the bound variables in the result. This forces duplicate results to be adjacent to each other in the result list. Then it runs over the list and eliminates bindings that are the same as the previous binding. As you can imagine, there are situations where forcing an exhaustive sort on a large binding set might use up a lot of time. </p>
+<p>For this reason, SPARQL also offers a REDUCED operator:</p>
 <pre class="input">    SELECT REDUCED ?o WHERE {kdy:person17 kdy:has-child ?o} ORDER BY ?o</pre>
-<p>When you combine REDUCED with ORDER BY, you get lazy duplication removal. REDUCED does not guarantee the elimination of all duplicates in the result set, but it does catch the duplicates that are adjacent to each other in the output. That's why you have to order the results. The lazy approach is much less expensive (much faster) than using the DISTINCT operator. </p>
+<p>REDUCED performs the same sweep for duplicates that DISTINCT performs, but it lets you control the sorting. In this example the values of the subject and predicate are fixed, so sorting by the object value is sufficient to force all duplicate bindings into contact with each other. REDUCED is often much faster than DISTINCT.</p>
 <h3>Filtering Duplicate Triples while Loading </h3>
 <p>AllegroGraph could check each incoming triple to see if that information is already present in the triple store, but this process would be very time-consuming, slowing down our extremely-fast <a href="http://www.franz.com/agraph/allegrograph/">load times</a> by orders of magnitude. Loading speed is important to almost everyone, so AllegroGraph does not filter duplicates during the load. </p>
 <p>If loading speed isn't critical in your application, you can add triples one at a time while checking for duplicates as shown here:</p>
@@ -2045,7 +2071,7 @@ Did not add new triple.</pre>
 <p>Presumably any existing repository has a purpose of its own, and has been federated with other respositories to serve some combined purpose. It would be a mistake to delete triples from one repository simply because they also occur elsewhere in the federated store. This could damage the integrity of the individual repositories when they are used in stand-alone mode. By similar reasoning, it is a mistake to add triples to a federated repository. Which repository gets the new triples? </p>
 <p>For all of these reasons, federated stores are &quot;read only&quot; in AllegroGraph. Attempting to add or delete triples in a federated system result in error messages. </p>
 <p>Federation changes the semantics of &quot;duplicate triples.&quot; Be sure to take this into account in your project design. </p>
-<p><font color="#CCCCCC">March 15, 2010 4.0.2 release</font></p>
+<p><font color="#CCCCCC">March 29, 2010 4.0.2 release</font></p>
 
 </body>
 
