@@ -82,6 +82,9 @@ class Defaults:
     # OPEN OR RENEW
     OPEN = False
 
+    # Add mixed workload phase
+    MIXED = False
+
 # The program options
 OPT = None
 
@@ -142,18 +145,24 @@ class RandomDate(object):
     def random(self):
         return self.start + timedelta(seconds=random.randrange(self.seconds))
 
-BaselineRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0),
-                           datetime(2008, 2, 1, 0, 0, 0))
-BulkRange = RandomDate(datetime(2008, 2, 1, 0, 0, 0),
-                       datetime(2009, 1, 1, 0, 0, 0))
-SmallCommitsRange = RandomDate(datetime(2009, 1, 1, 0, 0, 0),
-                            datetime(2009, 2, 1, 0, 0, 0))
-DeleteRangeOne = RandomDate(BaselineRange.start,
-                         datetime(2008, 1, 16, 0, 0, 0) - timedelta(seconds=1))
-DeleteRangeTwo = RandomDate(datetime(2008, 1, 16, 0, 0, 0),
-                         BaselineRange.end - timedelta(seconds=1))
-FullDateRange = RandomDate(datetime(2008, 1, 1, 0, 0, 0),
-                           datetime(2009, 2, 1, 0, 0, 0))
+BaselineRange = \
+    RandomDate(datetime(2008, 1, 1, 0, 0, 0),
+               datetime(2008, 2, 1, 0, 0, 0))
+BulkRange = \
+    RandomDate(datetime(2008, 2, 1, 0, 0, 0),
+               datetime(2009, 1, 1, 0, 0, 0))
+SmallCommitsRange = \
+    RandomDate(datetime(2009, 1, 1, 0, 0, 0),
+               datetime(2009, 2, 1, 0, 0, 0))
+DeleteRangeOne = \
+    RandomDate(BaselineRange.start,
+               datetime(2008, 1, 16, 0, 0, 0))
+DeleteRangeTwo = \
+    RandomDate(datetime(2008, 1, 16, 0, 0, 0),
+               BaselineRange.end)
+FullDateRange = \
+    RandomDate(datetime(2008, 1, 1, 0, 0, 0),
+               datetime(2009, 2, 1, 0, 0, 0))
 
 def random_datetime():
     fn = random_datetime
@@ -451,11 +460,10 @@ def load_events(proc_num):
         loadq.task_done()
 
     def delete_phase(phase):
-        params = PHASE_PARAMS[phase]
         timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp'
             ).toNTriples()
-
-        start, end = params.date_range.start, params.date_range.end
+        date_range = PHASE_PARAMS[phase].date_range
+        start, end = date_range.start, date_range.end
         start_nt = Literal(start).toNTriples()
         end_nt = Literal(end).toNTriples()
 
@@ -464,7 +472,7 @@ def load_events(proc_num):
               (:count-only t)
               (q- ?event !%s (? !%s !%s))
               (lisp (delete-triples :s ?event)))""" % (
-                  timestamp, start_nt, end_nt)
+                     timestamp, start_nt, end_nt)
 
         try:
             events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
@@ -548,8 +556,8 @@ def query_events(proc_num, resultq):
                   (select0 (?event ?pred ?obj)
                     (:use-planner nil)
                     (q- ?event !%s (? !%s !%s) !%s)
-                    (q- ?event ?pred ?obj))""" % (
-                        timestamp, start_nt, end_nt, customer)
+                    (q- ?event ?pred ?obj !%s))""" % (
+                        timestamp, start_nt, end_nt, customer, customer)
         else:
             queryString = """
                 SELECT ?event ?pred ?obj {
@@ -558,8 +566,9 @@ def query_events(proc_num, resultq):
                    FILTER (?time <= %s)
                    FILTER (?time >= %s)
                  }
-                 { ?event ?pred ?obj }
-                }""" % (customer, timestamp, end_nt, start_nt)
+                 GRAPH %s {
+                    ?event ?pred ?obj }
+                }""" % (customer, timestamp, end_nt, start_nt, customer)
     
         try:
             # Actually pull the full results to the client, then just count them
@@ -779,12 +788,80 @@ def main():
     total_time = time.time() - total_time
     triples_end = conn.size()
     triples = triples_end - triples
-    conn.close()
 
     trace('%s [%s]: Test completed in %f total seconds - '
         'store contains %d triples (%d triples added/removed).',
         (PROG, datetime.now(), total_time, triples_end, triples))
 
+
+    if OPT.MIXED:
+        # Do the mixed workload
+        def run_mixed():
+            global SmallCommitsRange, DeleteRangeOne, DeleteRangeTwo, FullDateRange, loadq
+
+            with monitor('phase-6'):
+                trace('%s [%s]: Phase 6: Mix workload - adds, queries, '
+                    'and deletes.', (PROG, datetime.now()))
+
+                # Just do small commit range and delete phases on loaders
+                OPT.PHASE = 3
+
+                # Basically, we'll add 30 days at a time, while doing queries
+                # over the whole range. At the end of each 30 days, we'll
+                # delete the oldest 30 days, the do it all again.
+                fifteen_days = timedelta(days=15)
+                thirty_days = timedelta(days=30)
+
+                i = 1
+                while i:
+                    trace('%s [%s]: Phase 6: Performing workload iteration %d.'
+                        ' Store contains %d triples.',
+                        (PROG, datetime.now(), i, conn.size()))
+                    i += 1
+
+                    # Setup dates
+                    SmallCommitsRange = RandomDate(SmallCommitsRange.end,
+                        SmallCommitsRange.end + thirty_days)
+                    FullDateRange = RandomDate(DeleteRangeTwo.end,
+                        SmallCommitsRange.end)
+                    DeleteRangeOne = RandomDate(DeleteRangeTwo.end,
+                        DeleteRangeTwo.end + fifteen_days)
+                    DeleteRangeTwo = RandomDate(DeleteRangeOne.end,
+                        DeleteRangeOne.end + fifteen_days)
+
+                    PHASE_PARAMS[LoadPhase.small_commits].date_range = \
+                        SmallCommitsRange
+                    PHASE_PARAMS[LoadPhase.delete_one].date_range = \
+                        DeleteRangeOne
+                    PHASE_PARAMS[LoadPhase.delete_two].date_range = \
+                        DeleteRangeTwo
+
+                    trace('%s [%s]: Phase 6: Running queries from %s to %s.', (
+                        PROG, datetime.now(), FullDateRange.start,
+                        FullDateRange.end))
+
+                    with run_queries():
+                        # Create the work queue
+                        loadq = JoinableQueue(OPT.LOAD_WORKERS)
+
+                        # Start the loading processes
+                        for proc_num in range(OPT.LOAD_WORKERS):
+                            p = Process(target=load_events, args=(proc_num,))
+                            p.start()
+
+                        trace('%s [%s]: Phase 6: Perform %d triple commits '
+                            'from %s to %s.', (PROG, datetime.now(),
+                            OPT.EVENT_SIZE, SmallCommitsRange.start,
+                            SmallCommitsRange.end))
+                        load_phase(LoadPhase.small_commits)
+                        trace('%s [%s]: Phase 6: Shrink store by 30 days '
+                            '(%s-%s).', (PROG, datetime.now(),
+                            DeleteRangeOne.start, DeleteRangeTwo.end))
+                        load_phase(LoadPhase.delete_one)
+
+        run_mixed()
+
+    conn.close()
 
 if __name__ == '__main__':
     from copy import copy
@@ -856,6 +933,10 @@ if __name__ == '__main__':
     parser.add_option('-o', '--open', default=Defaults.OPEN,
         dest='OPEN', metavar='OPEN', action="store_true",
         help='OPEN the repository instead of RENEWING it [default=%default]')
+    parser.add_option('-m', '--mixed', default=Defaults.MIXED,
+        dest='MIXED', metavar='MIXED', action="store_true",
+        help='Add MIXED workload phase after the normal run " \
+            "(runs until a killall python) [default=do not run]')
 
     options, args = parser.parse_args()
     OPT = options
