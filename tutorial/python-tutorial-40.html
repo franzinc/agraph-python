@@ -1319,19 +1319,21 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <pre class="input">def example16():<br>    def pt(kind, rows, expected):<br>        print &quot;\n%s Apples:\t&quot; % kind.capitalize(),<br>        for r in rows: print r[0].getLocalName(),</pre>
 <p>In the next block of code, we open connections to a redRepository and a greenRepository on the local server. In a typical federation scenario, these respositories would be distributed across multiple servers. </p>
 <pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog(AG_CATALOG)<br>    ## create two ordinary stores, and one federated store: <br>    redConn = catalog.getRepository(&quot;redthings&quot;, Repository.RENEW).initialize().getConnection()<br>    greenConn = catalog.getRepository(&quot;greenthings&quot;, Repository.RENEW).initialize().getConnection()</pre>
-<p>Now we create a &quot;federated&quot; respository, which is connected to the distributed repositories at the back end. </p>
-<pre class="input">
-    federated = server.openCatalog(server.FEDERATED)<br>    try:<br>        federated.deleteRepository(&quot;rainbowthings&quot;)<br>    finally:<br>        pass<br>    federated.createRepository(&quot;rainbowthings&quot;, repos=[ AG_CATALOG + &quot;:redthings&quot;, AG_CATALOG + &quot;:greenthings&quot;])<br>    rainbowConn = federated.getRepository(&quot;rainbowthings&quot;).initialize().getConnection()</pre>
+<p>Now we create a &quot;federated&quot; respository, which is connected to the distributed repositories at the back end. When we open a federated repository, AllegroGraph creates a session and returns a connection: </p>
+<pre class="input">    rainbowThings = server.openFederated([redConn, greenConn], True)</pre>
 <p>It is necessary to register the &quot;ex&quot; namespace in all three repositories so we can use it in the upcoming query. </p>
-<pre class="input">    ex = &quot;http://www.demo.com/example#&quot;<br>    redConn.setNamespace('ex', ex)<br>    greenConn.setNamespace('ex', ex)<br>    rainbowConn.setNamespace('ex', ex)        </pre>
-<p>The next step is to populate the Red and Green repositories with a few triples. </p>
+<pre class="input">    ex = &quot;http://www.demo.com/example#&quot;<br>    redConn.setNamespace('ex', ex)<br>    greenConn.setNamespace('ex', ex)<br>    rainbowThings.setNamespace('ex', ex)        </pre>
+<p>The next step is to populate the Red and Green repositories with a few triples. Note that one of the green objects is not an apple: </p>
 <pre class="input">    redConn.add(redConn.createURI(ex+&quot;mcintosh&quot;), RDF.TYPE, redConn.createURI(ex+&quot;Apple&quot;))<br>    redConn.add(redConn.createURI(ex+&quot;reddelicious&quot;), RDF.TYPE, redConn.createURI(ex+&quot;Apple&quot;))    <br>    greenConn.add(greenConn.createURI(ex+&quot;pippin&quot;), RDF.TYPE, greenConn.createURI(ex+&quot;Apple&quot;))<br>    greenConn.add(greenConn.createURI(ex+&quot;kermitthefrog&quot;), RDF.TYPE, greenConn.createURI(ex+&quot;Frog&quot;))</pre>
-<p>Now we write a query that retrieves Apples from the Red repository, the Green repository, and the federated repository, and prints out the results. </p>
+<p>Let's check to see if the federated session can &quot;see&quot; the new triples:</p>
+<pre class="input">        print &quot;\nFederated size: &quot; + str(rainbowThings.size())</pre>
+<pre class="output">Federated size: 4</pre>
+<p>This tells us that the federated store can see the triples in the component stores. Now we write a query that retrieves Apples from the Red repository, the Green repository, and the federated repository, and prints out the results. </p>
 <pre class="input">
     queryString = &quot;select ?s where { ?s rdf:type ex:Apple }&quot;<br>    ## query each of the stores; observe that the federated one is the union of the other two:<br>    pt(&quot;red&quot;, redConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())<br>    pt(&quot;green&quot;, greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate())<br>    pt(&quot;federated&quot;, rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate()) </pre>
 <p>The output is shown below. The federated response combines the individual responses. </p>
 <pre class="output">Red Apples:   reddelicious mcintosh <br>Green Apples:   pippin <br>Federated Apples:   reddelicious mcintosh pippin</pre>
-
+<p>It should go without saying that a search for apples does not turn up a frog. </p>
 <h2 id="Prolog Rule Queries">Prolog Rule Queries (example17())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph Server lets us load Prolog backward-chaining rules to make query-writing simpler.&nbsp; The Prolog rules let us write the queries in terms of higher-level concepts.&nbsp; When a query refers to one of these concepts, Prolog rules become active in the background to determine if the concept is valid in the current context.&nbsp; </p>
 <p>For instance, in this example the query says that the matching resource must be a &quot;man&quot;.&nbsp; A Prolog rule examines the matching resources to see which of them are persons who are male.&nbsp; The query can proceed for those resources. The rules provide a level of abstraction that makes the queries simpler to express. </p>

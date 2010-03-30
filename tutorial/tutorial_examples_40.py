@@ -1098,7 +1098,7 @@ def example16():
     rainbowThings = server.openFederated([redConn, greenConn], True)
 
     try:
-        print "Empty federation: " + str(rainbowThings.size())
+        print "\nEmpty federation: " + str(rainbowThings.size())
 
         ex = "http://www.demo.com/example#"
         redConn.setNamespace('ex', ex)
@@ -1109,7 +1109,7 @@ def example16():
         greenConn.add(greenConn.createURI(ex+"pippin"), RDF.TYPE, greenConn.createURI(ex+"Apple"))
         greenConn.add(greenConn.createURI(ex+"kermitthefrog"), RDF.TYPE, greenConn.createURI(ex+"Frog"))
 
-        print "Federated size: " + str(rainbowThings.size())
+        print "\nFederated size: " + str(rainbowThings.size())
 
         queryString = "select ?s where { ?s rdf:type ex:Apple }"
         ## query each of the stores; observe that the federated one is the union of the other two:
