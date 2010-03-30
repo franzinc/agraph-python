@@ -385,16 +385,53 @@ limit=None)</td>
 <p>The following repositoryConnection method supports free-text indexing in AllegroGraph. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
-    <td valign="top">evalFreeTextSearch(self, pattern, infer=False, callback=None,limit=None</td>
-    <td>Return an array of statements for the given free-text pattern search.</td>
+    <td valign="top">createFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,<br>
+indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None)</td>
+    <td> Create a free-text index with the given parameters. <em>name</em> is a string identifying the new index. 
+If no <em>predicates</em> are given, triples are indexed regardless of 
+predicate. 
+<em>indexLiterals</em> determines which literals to index. It can be 
+True (the default), False, or a list of resources, indicating 
+the literal types that should be indexed. 
+<em>indexResources</em> determines which resources are indexed. It can 
+be True, False (the default), or &quot;short&quot;, to index only the 
+part of resources after the last slash or hash character. 
+<em>indexFields</em> can be a list containing any combination of the<br>
+elements &quot;subject&quot;, &quot;predicate&quot;, &quot;object&quot;, and<br>
+&quot;graph&quot;. The default is [&quot;object&quot;]. 
+<em>minimumWordSize</em>, an integer, and determines the minimum size a 
+word must have to be indexed. The default is 3. 
+<em>stopWords</em> should hold a list of words that should not be 
+indexed. When not given, a list of common English words is 
+used. 
+<em>wordFilters</em> can be used to apply some normalizing filters to 
+words as they are indexed or queried. Can be a list of filter 
+names. Currently, only &quot;drop-accents&quot; and &quot;stem.english&quot; 
+are supported. </td>
   </tr>
   <tr>
-    <td valign="top">listFreeTextPredicates(self)</td>
-    <td>List the predicates that are used for free-text indexing.</td>
+    <td valign="top">deleteFreeTextIndex(self, name)</td>
+    <td>Deletes the named index. </td>
   </tr>
   <tr>
-    <td valign="top">registerFreeTextPredicate(self, uri=None, namespace=None, localname=None)</td>
-    <td>You must supply either the<em> uri</em> parameter or both <em>namespace</em> and <em>localname</em>. Register a predicate <em>uri</em> (or alternately generate the URI by concatenating <em>namespace</em>+<em>localname</em>).&nbsp; This tells the <a href="#Repository Class">Repository</a> to index text keywords from string values of this predicate in the triple store. This makes text search possible on this predicate. </td>
+    <td valign="top">evalFreeTextSearch(self, pattern, infer=False,  limit=None, index=None)</td>
+    <td>Return an array of statements for the given free-text pattern search. If no index is provided, all indices will be used. </td>
+  </tr>
+  <tr>
+    <td valign="top">getFreeTextIndexConfiguration(self, name)</td>
+    <td>Returns a Python dictionary containing all of the configuration settings of the named index. </td>
+  </tr>
+  <tr>
+    <td valign="top">listFreeTextIndices(self)</td>
+    <td>List the free-text indices. </td>
+  </tr>
+  <tr>
+    <td valign="top">modifyFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,<br>
+indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,<br>
+reIndex=None)</td>
+    <td><em>name</em> is a string identifying the index to be modified. If no <em>predicates</em> are given, triples are indexed regardless of predicate. <em>indexLiterals</em> determines which literals to index. It can be True (the default), False, or a list of resources, indicating the literal types that should be indexed. <em>indexResources</em> determines which resources are indexed. It can be True, False (the default), or &quot;short&quot;, to index only the part of resources after the last slash or hash character. <em>indexFields</em> can be a list containing any combination of the<br>
+elements &quot;subject&quot;, &quot;predicate&quot;, &quot;object&quot;, and<br>
+&quot;graph&quot;. The default is [&quot;object&quot;]. <em>minimumWordSize</em>, an integer, and determines the minimum size a word must have to be indexed. The default is 3. <em>stopWords</em> should hold a list of words that should not be indexed. When not given, a list of common English words is used. <em>wordFilters</em> can be used to apply some normalizing filters to words as they are indexed or queried. Can be a list of filter names. Currently, only &quot;drop-accents&quot; and &quot;stem.english&quot; are supported. <em>reIndex</em> if True will rebuild the index. </td>
   </tr>
 </table>
 <p>Note that text search is implemented through a SPARQL query using a &quot;magic&quot; predicate called <strong>fti:search</strong>. See the AllegroGraph Python API Tutorial for an example of how to set up this search. </p>
@@ -751,7 +788,7 @@ operation.</td>
     </tr>
 </table>
 <p></p>
-<p><font color="#CCCCCC">December 29, 2009 Version 4.0m2 </font></p>
+<p><font color="#CCCCCC">March 30, 2010 Version 4.0.2 </font></p>
 <p>&nbsp;   </p>
 </body>
 
