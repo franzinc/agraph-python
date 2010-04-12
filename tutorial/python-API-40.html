@@ -41,7 +41,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 </ul>
 <h2 id="AllegroGraphServer Class">AllegroGraphServer Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The AllegroGraphServer  object represents a remote AllegroGraph server on the network.&nbsp; It is used to inventory and access the catalogs of that server.</p>
-<p> Source: \AllegroGraphDirectory\python\franz\openrdf\sail\allegrographserver.py.</p>
+<p> Source: \AllegroGraphDirectory\src2\franz\openrdf\sail\allegrographserver.py.</p>
 <h3>Constructor</h3>
 <p>AllegroGraphServer(self, host, port=10035,user=None,password=None)</p>
 <ul>
@@ -57,10 +57,6 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <h3>Methods</h3>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;"  >
   <tr>
-      <td width="125">getHost(self)</td>
-      <td width="634">Returns a string containing the path to the host server. </td>
-  </tr>
-  <tr>
     <td>getInitfile(self)</td>
     <td>Retrieve the contents of the server initialization file. </td>
   </tr>
@@ -71,6 +67,20 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <tr>
       <td>openCatalog(self, name=None)</td>
       <td>Returns a <a href="#Catalog Class">Catalog</a> object. <em>Name</em> is one of the catalog names from listCatalogs() or &quot;None&quot; to open the rootCatalog described in the AllegroGraph configuration file. </td>
+  </tr>
+  <tr>
+    <td>openFederated(self, repositories, autocommit=False, lifetime=None, loadinitfile=False)</td>
+    <td>Open a session that federates several repositories. The<br>
+      <em>repositories</em> argument should be an array containing store<br>
+designators, which can be Repository or RepositoryConnection 
+objects, strings (naming a store in the root catalog, or the 
+URL of a store), or (storename, catalogname) tuples.<br></td>
+  </tr>
+  <tr>
+    <td>openSession(self,spec, autocommit=False, lifetime=None, loadinitfile=False)</td>
+    <td>Open a session on a federated, reasoning, or filtered store.<br>
+Use the helper functions in the franz.openrdf.sail.spec module 
+to create the spec string.</td>
   </tr>
   <tr>
     <td>setInitfile(self, content=None, restart=True)</td>
@@ -88,7 +98,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 </table>
 <h2 id="Catalog Class">Catalog Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>A Catalog object is a container for multiple repositories.&nbsp; </p>
-<p>Source: \AllegroGraphDirectory\python\franz\openrdf\sail\allegrographserver.py.</p>
+<p>Source: \AllegroGraphDirectory\scr2\franz\openrdf\sail\allegrographserver.py.</p>
 <h3>Constructor</h3>
 <p>Catalog(self, name, client) </p>
 <ul>
@@ -98,11 +108,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>Example:&nbsp; Best practice is to invoke the Catalog constructor using <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.openCatalog(), which supplies the specialized arguments needed by the Catalog contructor.</p>
 <pre>    catalog = server.openCatalog('scratch') </pre>
 <h3>Methods</h3>
-<table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
-  <tr>
-      <td valign="top">close(self)</td>
-      <td>Closes the Catalog.&nbsp; It is a &quot;best practice&quot; to close Catalogs when you are finished with them.</td>
-  </tr>
+<table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
     <td valign="top">createRepository(self, name)</td>
     <td>Creates a new Repository within the Catalog. <em>name</em> is a string identifying the repository. </td>
@@ -112,11 +118,11 @@ creating, querying and maintaining RDF data, and for managing the stored triples
     <td>Deletes the named Respository from the Catalog. </td>
   </tr>
   <tr>
-      <td width="168" valign="top">getName(self)</td>
+    <td width="168" valign="top">getName(self)</td>
       <td width="591">Returns a string containing the name of this Catalog. </td>
   </tr>
   <tr>
-      <td valign="top">getRepository(self, name, access_verb)</td>
+    <td valign="top">getRepository(self, name, access_verb)</td>
       <td>Returns a <a href="#Repository Class">Repository</a> object.&nbsp; <em>name </em>is a repository name from listRepositories(). <em>access_verb</em> is one of the following:
               <ul>
                   <li><strong>Repository.RENEW</strong> clears the contents of an existing repository before opening. If the indicated repository does not exist, it creates one. </li>
@@ -126,7 +132,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
           </ul></td>
   </tr>
   <tr>
-      <td valign="top">listRepositories(self)</td>
+    <td valign="top">listRepositories(self)</td>
       <td>Returns a list of repository names (triple stores) managed by this Catalog.</td>
   </tr>
 </table>
@@ -140,7 +146,7 @@ not support multiple concurrent connections.</p>
 and that it should be shut down before it is discarded/garbage collected.
 Forgetting the latter can result in loss of data (depending on the Repository
 implementation)! </p>
-<p>Source: \AllegroGraphDirectory\python\franz\openrdf\repository\repository.py.</p>
+<p>Source: \AllegroGraphDirectory\scr2\franz\openrdf\repository\repository.py.</p>
 <h3>Constructor</h3>
 <p>Repository(self, catalog, database_name, repository)</p>
 <ul>
@@ -151,54 +157,42 @@ implementation)! </p>
 <p>Example:&nbsp; Best practice is to invoke the Repository constructor using <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.getRepository(), which supplies the specialized arguments needed by the Repository contructor.</p>
 <pre>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, accessMode)</pre>
 <h3>Methods</h3>
-<table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+<table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
-      <td valign="top">addFederatedTripleStores(self, tripleStoreNames)</td>
-      <td><p>Make this repository a federated store that includes the stores named in the tuple <em>tripleStoreNames.</em> This call must precede the call to 'initialize'. It<br>
-        may be called multiple times.&nbsp; It returns the modified Repository object. </p></td>
-  </tr>
-  <tr>
-      <td valign="top">getConnection(self)</td>
+    <td valign="top">getConnection(self)</td>
       <td><p>Creates a <a href="#RepositoryConnection Class">RepositoryConnection</a> object that can be used for querying and<br>
         updating the contents of the Repository.&nbsp; Returns the RepositoryConnection object. </p></td>
   </tr>
   <tr>
-      <td width="168" valign="top">getDatabaseName(self)</td>
+    <td width="168" valign="top">getDatabaseName(self)</td>
       <td width="591">Returns a string containing the name of this Repository. </td>
   </tr>
 
 
   <tr>
-      <td valign="top">getValueFactory(self)</td>
+    <td valign="top">getSpec(self)</td>
+    <td>Returns a string consisting of the catalog name concatenated with the repository name. </td>
+  </tr>
+  <tr>
+    <td valign="top">getValueFactory(self)</td>
       <td>Return a <a href="#ValueFactory Class">ValueFactory</a> for this store.&nbsp; This is present for Aduma Sesame compatibility, but in the Python API all ValueFactory functionality has been duplicated or subsumed in the <a href="#RepositoryConnection Class">RepositoryConnection</a> class.&nbsp; It isn't necessary to manipulate the ValueFactory class at all.&nbsp; </td>
   </tr>
   <tr>
-      <td valign="top">indexTriples(self, all=False)</td>
-      <td>Indexes the triples of the Repository.&nbsp; <em>All</em> defaults to False; if True it reindexes all triples; if False it indexes only new triples.&nbsp; (Duplicated in the <a href="#RepositoryConnection Class">RepositoryConnection</a> class for Python user convenience.) </td>
-  </tr>  <tr>
       <td valign="top">initialize(self)</td>
       <td> A Repository must be initialized before it can be used.&nbsp; Returns the initialized Repository object. </td>
   </tr>
   <tr>
-      <td valign="top">isWritable(self)</td>
+    <td valign="top">isWritable(self)</td>
       <td> Checks whether this Repository is writable, i.e. if the data contained in this store can be changed. </td>
   </tr>
   <tr>
-    <td valign="top">listFreeTextPredicates(self)</td>
-    <td>Returns a list of predicates that have been identified for free-text indexing. </td>
-  </tr>
-  <tr>
-      <td valign="top">registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None)</td>
+    <td valign="top">registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None)</td>
       <td><p>Register an inlined datatype. <em>Predicate</em> is the URI of predicate used in the triple store. <em>Datatype</em> may be one of: XMLSchema.INT, XMLSchema.LONG, XMLSchema.FLOAT, XMLSchema.DATE, and XMLSchema.DATETIME.&nbsp; <em>NativeType</em> may be &quot;int&quot;, &quot;datetime&quot;, or &quot;float&quot;.</p>
               <p> You must supply <em>nativeType</em> and either <em>predicate</em> or <em>datatype</em>. </p>
               <p>If <em>predicate</em>, then object arguments to triples with that predicate will use an inlined encoding of type <em>nativeType</em> in their internal representation. If <em>datatype</em>, then typed literal objects with a datatype matching <em>datatype</em> will use an inlined encoding of type <em>nativeType</em>. (Duplicated in the <a href="#RepositoryConnection Class">RepositoryConnection</a> class for Python user convenience.) </p></td>
   </tr>
   <tr>
-      <td valign="top">registerFreeTextPredicate(self, uri=None, namespace=None, localname=None)</td>
-      <td>You must supply either the<em> uri</em> parameter or both <em>namespace</em> and <em>localname</em>. Register a predicate <em>uri</em> (or alternately generate the URI by concatenating <em>namespace</em>+<em>localname</em>).&nbsp; This tells the Repository to index text keywords from string values of this predicate in the triple store. This makes text search possible on this predicate. (Duplicated in the <a href="#RepositoryConnection Class">RepositoryConnection</a> class for Python user convenience.) </td>
-  </tr>
-  <tr>
-      <td valign="top">shutdown(self)</td>
+    <td valign="top">shutdown(self)</td>
       <td><p>Shuts the Repository down, releasing any resources that it keeps hold of.<br>
         Once shut down, the store can no longer be used.</p></td>
   </tr>
@@ -207,7 +201,7 @@ implementation)! </p>
 <p>The RepositoryConnection class is the main interface for updating data in and performing queries on a <a href="#Repository Class">Repository</a>. By default, a RespositoryConnection is in autoCommit mode, meaning  that each operation corresponds to a single transaction on the underlying triple store. autoCommit can be switched off, in which case it is up to the user to  handle transaction commit/rollback. Note that care should be taken to always  properly close a RepositoryConnection after one is finished with it, to free  up resources and avoid unnecessary locks.<br>
   <br>
   Several methods take a <em>vararg</em> argument that optionally specifies a (set of)  context(s) on which the method should operate. (A context is the URI of a subgraph.) Note that a <em>vararg</em> parameter  is optional, it can be completely left out of the method call, in which case  a method either operates on a provided statement's context (if one of the  method parameters is a statement or collection of statements), or operates on  the repository as a whole, completely ignoring context. A <em>vararg</em> argument may  also be null (cast to Resource) meaning that the method operates on those  statements which have no associated context only.</p>
-<p>Source: \AllegroGraphDirectory\python\franz\openrdf\repository\repositoryconnection.py.</p>
+<p>Source: \AllegroGraphDirectory\scr2\franz\openrdf\repository\repositoryconnection.py.</p>
 <h3>Constructor</h3>
 <p>RepositoryConnection(self, repository)</p>
 <p>where <em>repository</em> is the <a href="#Repository Class">Repository</a> object that created this RepositoryConnection. </p>
@@ -215,9 +209,9 @@ implementation)! </p>
 <pre>&nbsp;&nbsp;&nbsp; connection = myRepository.getConnection()</pre>
 <h3>General Connection Methods</h3>
 <p>This table contains the repositoryConnection methods that create, maintain, search, and delete triple stores. There are following tables that list special methods for <a href="#Free Text Search Methods">Free Text Search</a>, <a href="#Prolog Rule Inference Methods">Prolog Rule Inference</a>, <a href="#Geospatial Reasoning Methods">Geospatial Reasoning</a>, <a href="#Social Network Analysis Methods">Social Network Analysis,</a> <a href="#Transactions">Transactions</a> and <a href="#SPOGI">Subject Triples Caching</a>. </p>
-<table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+<table width="1057" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
-      <td valign="top">add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False)</td>
+    <td valign="top">add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False)</td>
       <td><p>Calls addTriple(), addStatement(), or addFile(). Best practice is to avoid add() and use addFile(), addStatement(), and addTriple() instead.&nbsp; </p>
               <p><em>arg0</em> may be a <a href="#Statement Class">Statement</a> or a <em>filepath</em>. If so, <em>arg1</em> and <em>arg2</em> default to None. </p>
               <p><em>arg0, arg1</em>, and <em>arg2</em> may be the subject, predicate and object of a single triple. </p>
@@ -227,7 +221,7 @@ implementation)! </p>
               <p><em>serverSide</em> indicates whether the <em>filepath</em> refers to a file on the client computer or on the server.&nbsp; Defaults to False. </p></td>
   </tr>
   <tr>
-      <td valign="top">addFile(self, filePath, base=None, format=None, context=None, serverSide=False)</td>
+    <td valign="top">addFile(self, filePath, base=None, format=None, context=None, serverSide=False)</td>
       <td><p>Loads a file into the triple store. Note that a file can be loaded into only one context. </p>
               <p><em>filepath</em> identifies the file to load. </p>
               <p><em>context</em> is an optional context URI (subgraph URI), defaulting to None.&nbsp; If None, the triple(s) will be added to the null context (the default or background graph).</p>
@@ -236,83 +230,91 @@ implementation)! </p>
               <p><em>serverSide</em> indicates whether the <em>filepath</em> refers to a file on the client computer or on the server.&nbsp; Defaults to False. </p></td>
   </tr>
   <tr>
-      <td valign="top">addStatement(self, statement, contexts=None)</td>
+    <td valign="top">addStatement(self, statement, contexts=None)</td>
       <td>Add the supplied <em><a href="#Statement Class">Statement</a></em> to the specified <em>contexts</em> of the repository.&nbsp; <em>contexts</em> defaults to None, which adds the statement to the null context (the default or background graph).</td>
   </tr>
   <tr>
-      <td valign="top">addTriple(self, subject, predicate, object, contexts=None)</td>
+    <td valign="top">addTriple(self, subject, predicate, object, contexts=None)</td>
       <td>Adds a single triple to the repository.&nbsp; <em>subject, predicate</em> and <em>object</em> are the three values of the triple. <em>contexts </em>is an optional list of context URIs to add the triple to, defaulting to None.&nbsp; If None, the triple will be added to the null context (the default or background graph). </td>
   </tr>
   <tr>
-      <td valign="top">addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False)</td>
+    <td valign="top">addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False)</td>
       <td>Add the supplied <em>triples_or_quads</em> to this repository. Each triple can be a list or a tuple of Values.<em> context</em> is the URI of a subgraph, which will be stored in the fourth field of the &quot;triple,&quot; defaulting to ALL_CONTEXTS. If <em>ntriples</em> is True, then the triples or quads are assumed to contain valid ntriples strings, and they are passed to the server with no conversion. The default value is False. </td>
   </tr>
   <tr>
-      <td valign="top">clear(self, contexts=ALL_CONTEXTS)</td>
+    <td valign="top">clear(self, contexts=ALL_CONTEXTS)</td>
       <td>Removes all statements from the designated list of <em>contexts</em> (subgraphs) in the repository. If 
               <em>contexts</em> is ALL_CONTEXTS (the default), it clears the repository of all statements. </td>
   </tr>
   <tr>
-      <td valign="top">clearNamespaces(self)</td>
+    <td valign="top">clearNamespaces(self)</td>
       <td>Remove all namespace declarations from the current environment. </td>
   </tr>
   <tr>
-      <td width="233" valign="top">close(self)</td>
+    <td width="233" valign="top">close(self)</td>
       <td width="549">Closes the connection in order to free up resources. </td>
   </tr>
   <tr>
-      <td valign="top">createBNode(self, nodeID=None)</td>
+    <td valign="top">createBNode(self, nodeID=None)</td>
       <td>Creates a new blank node with the given node identifier. nodeID defaults to None. If <em>nodeID</em> is None, a new, unused node ID is generated. </td>
   </tr>
   <tr>
-      <td valign="top">createLiteral(self, value, datatype=None, language=None)</td>
+    <td valign="top">createLiteral(self, value, datatype=None, language=None)</td>
       <td>Create a new literal with <em>value</em>. <em>datatype</em> if supplied, should be a URI, in which case <em>value</em> should be a string. You may optionally include an RDF <em>language</em> attribute. <em>datatype </em>and <em>language</em> default to None. </td>
   </tr>
   <tr>
-      <td valign="top">createRange(self, lowerBound, upperBound)</td>
+    <td valign="top">createRange(self, lowerBound, upperBound)</td>
       <td>Create a compound literal representing a range from <em>lowerBound</em> to <em>upperBound</em>.</td>
   </tr>
   <tr>
-      <td valign="top">createStatement(self, subject, predicate, object, context=None)</td>
+    <td valign="top">createStatement(self, subject, predicate, object, context=None)</td>
       <td>Create a new <a href="#Statement Class">Statement</a> object using the supplied <em>subject, predicate</em> and <em>object</em> 
     and associated <em>context</em>, which defaults to None. The context is the URI of a subgraph.</td>
   </tr>
   <tr>
-      <td valign="top">createURI(self, uri=None, namespace=None, localname=None)</td>
+    <td valign="top">createURI(self, uri=None, namespace=None, localname=None)</td>
       <td>Creates a new URI object from the supplied string-representation(s). <em>uri</em> is a string representing an entire URI.&nbsp; <em>namespace</em> and <em>localname</em> are combined to create a URI. If two non-keyword arguments are passed, it assumes they represent a<br>
     <em>namespace/localname </em>pair.</td>
   </tr>
   <tr>
-      <td valign="top">export(self, handler, contexts=ALL_CONTEXTS)</td>
+    <td valign="top">export(self, handler, contexts=ALL_CONTEXTS)</td>
       <td>Exports all triples in the repository to an external file.&nbsp; <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). Each context is the URI of a subgraph. </td>
   </tr>
   <tr>
-      <td valign="top">exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS)</td>
+    <td valign="top">exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS)</td>
       <td>Exports all triples that match <em>subj</em>, <em>pred</em> and/or <em>obj</em>. &nbsp; May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). Each context is the URI of a subgraph. </td>
   </tr>
   <tr>
-      <td valign="top">getContextIDs(self)</td>
+    <td valign="top">getAddCommitSize(self)</td>
+    <td>Returns the current setting of the add_commit_size property. See setAddCommitSize(). </td>
+  </tr>
+  <tr>
+    <td valign="top">getContextIDs(self)</td>
       <td>Return a list of context URIs, one for each subgraph referenced by a quad in 
     the triple store. Omits the default context because its ID would be null.</td>
   </tr>
   <tr>
-      <td valign="top">getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False)</td>
+    <td valign="top">getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False, limit=None, tripleIDs=False)</td>
       <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from 
     the repository. The result is optionally restricted to the specified set 
-    of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Returns a JDBCResultSet that enables Values, strings, etc. to be selectively extracted from the result, without the bulky overhead of the OpenRDF BindingSet protocol. </td>
+    of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; If <em>tripleIDs</em> is True, the output includes the triple ID field (the fifth field of the quad). Returns a JDBCResultSet that enables Values, strings, etc. to be selectively extracted from the result, without the bulky overhead of the OpenRDF BindingSet protocol.  </td>
   </tr>
   <tr>
-      <td valign="top">getNamespace(self, prefix)</td>
+    <td valign="top">getNamespace(self, prefix)</td>
       <td>Returns the namespace that is associated with <em>prefix</em>, if any. </td>
   </tr>
   <tr>
-      <td valign="top">getNamespaces(self)</td>
+    <td valign="top">getNamespaces(self)</td>
       <td>Returns a Python dictionary of prefix/namespace pairings. The default namespaces are: rdf, rdfs, xsd, owl, fti, dc, and dcterms. </td>
   </tr>
   <tr>
-      <td valign="top">getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,<br>
-limit=None)</td>
-      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; </td>
+    <td valign="top">getSpec(self)</td>
+    <td>Returns a string composed of the catalog name concatenated with the repository name. </td>
+  </tr>
+  <tr>
+    <td valign="top">getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,<br>
+limit=None, tripleIDs=False)</td>
+      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; If <em>tripleIDs</em> is True, the output includes the triple ID field (the fifth field of the quad). </td>
   </tr>
   <tr>
     <td valign="top">getStatementsById(self, ids) </td>
@@ -323,40 +325,45 @@ limit=None)</td>
     <td>Returns the <a href="#ValueFactory Class">ValueFactory</a> object associated with this RepositoryConnection. </td>
   </tr>
   <tr>
-      <td valign="top">isEmpty(self)</td>
+    <td valign="top">isEmpty(self)</td>
       <td>Returns True if size() is zero.&nbsp; </td>
   </tr>
   <tr>
-      <td valign="top">prepareBooleanQuery(self, queryLanguage, queryString, baseURI=None)</td>
+    <td valign="top">prepareBooleanQuery(self, queryLanguage, queryString, baseURI=None)</td>
       <td>Parse <em>queryString</em> into a <a href="#Query Class">Query</a> object which can be executed against the RDF storage. <em>queryString</em> must be an ASK query. The result is true or false. <em>queryLanguage</em> is one of SPARQL, PROLOG, or COMMON_LOGIC.&nbsp; <em>baseURI</em> optionally provides a URI prefix (defaults to None). Returns a <a href="#Query Class">Query</a> object.&nbsp; The result of query execution will be True of False. </td>
   </tr>
   <tr>
-      <td valign="top">prepareGraphQuery(self, queryLanguage, queryString, baseURI=None)</td>
+    <td valign="top">prepareGraphQuery(self, queryLanguage, queryString, baseURI=None)</td>
       <td>Parse <em>queryString</em> into a <a href="#Query Class">Query</a> object which can be executed against the RDF storage. <em>queryString</em> must be a CONSTRUCT or DESCRIBE query. <em>queryLanguage</em> is one of SPARQL, PROLOG, or COMMON_LOGIC.&nbsp; <em>baseURI</em> optionally provides a URI prefix (defaults to None). Returns a <a href="#Query Class">Query</a> object. The result of query execution is an iterator of <a href="#Statement Class">Statement</a>s/quads.</td>
   </tr>
   <tr>
-      <td valign="top">prepareTupleQuery(self, queryLanguage, queryString, baseURI=None)</td>
+    <td valign="top">prepareQuery(self, queryLanguage, queryString, baseURI=None)</td>
+    <td>Embed <em>queryString</em> into a query object which can be<br>
+executed against the RDF storage.</td>
+  </tr>
+  <tr>
+    <td valign="top">prepareTupleQuery(self, queryLanguage, queryString, baseURI=None)</td>
       <td>Embed <em>queryString</em> into a <a href="#Query Class">Query</a> object which can be executed against the RDF storage. <em>queryString</em> must be a SELECT query. <em>queryLanguage</em> is one of SPARQL, PROLOG, or COMMON_LOGIC.&nbsp; <em>baseURI</em> optionally provides a URI prefix (defaults to None). Returns a <a href="#Query Class">Query</a> object. The result of query execution is an iterator of tuples.</td>
   </tr>
   <tr>
-      <td valign="top">registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None)</td>
+    <td valign="top">registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None)</td>
       <td><p>Register an inlined datatype. <em>Predicate</em> is the URI of predicate used in the triple store. <em>Datatype</em> may be one of: XMLSchema.INT, XMLSchema.LONG, XMLSchema.FLOAT, XMLSchema.DATE, and XMLSchema.DATETIME.&nbsp; <em>NativeType</em> may be &quot;int&quot;, &quot;datetime&quot;, or &quot;float&quot;.</p>
               <p> You must supply <em>nativeType</em> and either <em>predicate</em> or <em>datatype</em>. </p>
               <p>If <em>predicate</em>, then object arguments to triples with that predicate will use an inlined encoding of type <em>nativeType</em> in their internal representation. If <em>datatype</em>, then typed literal objects with a datatype matching <em>datatype</em> will use an inlined encoding of type <em>nativeType</em>.</p></td>
   </tr>
   <tr>
-      <td valign="top">remove(self, arg0, arg1=None, arg2=None, contexts=None)</td>
+    <td valign="top">remove(self, arg0, arg1=None, arg2=None, contexts=None)</td>
       <td><p>Calls removeTriples() or removeStatement().&nbsp; Best practice would be to avoid remove() and use removeTriples() or removeStatement() directly. </p>
               <p><em>arg0</em> may be a <a href="#Statement Class">Statement</a>.&nbsp; If so, then <em>arg1</em> and <em>arg2</em> default to None. </p>
               <p><em>arg0, arg1</em>, and <em>arg2</em> may be the subject, predicate and object of a triple.</p>
               <p><em>contexts</em> is an optional list of contexts, defaulting to None. </p></td>
   </tr>
   <tr>
-      <td valign="top">removeNamespace(self, prefix)</td>
+    <td valign="top">removeNamespace(self, prefix)</td>
       <td>Remove the namespace associate with <em>prefix</em>. </td>
   </tr>
   <tr>
-      <td valign="top">removeQuads(self, quads, ntriples=False)</td>
+    <td valign="top">removeQuads(self, quads, ntriples=False)</td>
       <td>Remove enumerated quads from this repository. Each <em>quad</em> can be a list or a tuple of Values. If <em>ntriples</em> is True (default is False), then the quads are assumed to contain valid ntriples strings, and they are passed to the server with no conversion. </td>
   </tr>
   <tr>
@@ -364,20 +371,24 @@ limit=None)</td>
     <td><em>tids</em> contains a list of triple IDs (integers). Remove all quads with IDs that match. </td>
   </tr>
   <tr>
-      <td valign="top">removeStatement(self, statement, contexts=None)</td>
+    <td valign="top">removeStatement(self, statement, contexts=None)</td>
       <td>Removes the supplied <em><a href="#Statement Class">Statement</a></em>(s) from the specified <em>contexts</em> (default is None). </td>
   </tr>
   <tr>
-      <td valign="top">removeTriples(self, subject, predicate, object, contexts=None)</td>
+    <td valign="top">removeTriples(self, subject, predicate, object, contexts=None)</td>
       <td>Removes the triples with the specified <em>subject</em>, <em>predicate</em> and <em>object</em><br>
     from the repository, optionally restricted to the specified <em>contexts</em> (defaults to None)..</td>
   </tr>
   <tr>
-      <td valign="top">setNamespace(self, prefix, namespace)</td>
+    <td valign="top">setAddCommitSize(self, triple_count) </td>
+    <td>The threshold for commit size during triple add operations. &quot;Set to 0 (zero) or None to clear size-based autocommit behavior. When set to an integer triple_count &gt; 0, loads and adds commit each triple_count triples added and at the end of the triples being added.</td>
+  </tr>
+  <tr>
+    <td valign="top">setNamespace(self, prefix, namespace)</td>
       <td>Define (or redefine) a <em>namespace</em> associated with <em>prefix</em>. </td>
   </tr>
   <tr>
-      <td valign="top">size(self, contexts=ALL_CONTEXTS)</td>
+    <td valign="top">size(self, contexts=ALL_CONTEXTS)</td>
       <td>Returns the number of (explicit) statements that are in the specified <em>contexts</em> in this repository. contexts defaults to ALL_CONTEXTS, but can be a tuple of context names from getContextIDs(). </td>
   </tr>
 </table>
@@ -447,11 +458,6 @@ elements &quot;subject&quot;, &quot;predicate&quot;, &quot;object&quot;, and<br>
   <tr>
     <td valign="top">loadRules(self, file ,language=None)</td>
     <td>Load a file of rules. <em>file</em> is assumed to reside on the client machine. <em>language</em> defaults to QueryLanguage.PROLOG. 
-For use with a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
-  </tr>
-  <tr>
-    <td valign="top">setRuleLanguage(self, queryLanguage)</td>
-    <td><em>queryLanguage</em> is QueryLanguage.PROLOG.<br>
 For use with a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
   </tr>
 </table>
@@ -551,7 +557,7 @@ application.</p>
 <p>You can enable subject triple caching to speed up queries where the same subject URI appears in multiple patterns. The first time AllegroGraph retrieves triples for a specific resource, it caches the triples in memory. Subsequent query patterns that ask for the same subject URI can retrieve the matching triples very quickly from the cache. The cache has a size limit and automatically rolls over as that limit is exceeded.</p>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
-        <td valign="top">enableSubjectTriplesCache(self, size=None)</td>
+      <td valign="top">enableSubjectTriplesCache(self, size=None)</td>
       <td>Maintain a cache of size 'size' that caches, for each accessed 
 resource, quads where the resource appears in subject position. 
 This can accelerate the performance of certain types of queries. 
@@ -577,7 +583,7 @@ non-instantiable. It is an abstract class from which the three query subclasses 
     supported query languages (for example SPARQL). It allows one to 
     predefine bindings in the query to be able to reuse the same query with 
     different bindings. &nbsp; </p>
-<p>Source: \AllegroGraphDirectory\python\franz\openrdf\query\query.py.</p>
+<p>Source: \AllegroGraphDirectory\scr2\franz\openrdf\query\query.py.</p>
 <h3>Constructor</h3>
 <p>Query(self, queryLanguage, queryString, baseURI=None)</p>
 <ul>
@@ -589,10 +595,10 @@ non-instantiable. It is an abstract class from which the three query subclasses 
 <pre>   tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
    result = tupleQuery.evaluate();</span>)</pre>
 <h3>Methods</h3>
-<table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+<table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
       <td valign="top">evaluate_generic_query(self)</td>
-      <td>Evaluate a SPARQL or PROLOG or COMMON_LOGIC query. If SPARQL, it may be a 'select', 'construct', 'describe' or 'ask' query. Return an appropriate response. (Best practice is to use (and evaluate) one of the more specific query subclasses.)&nbsp; </td>
+      <td>Evaluate a SPARQL or PROLOG query. If SPARQL, it may be a 'select', 'construct', 'describe' or 'ask' query. Return an appropriate response. (Best practice is to use (and evaluate) one of the more specific query subclasses.)&nbsp; </td>
   </tr>
     <tr>
       <td valign="top">getBindings(self)</td>
@@ -643,13 +649,11 @@ non-instantiable. It is an abstract class from which the three query subclasses 
 <p>TupleQuery uses all the methods of the <a href="#Query Class">Query</a> class, plus one more: </p>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
-        <td valign="top">evaluate(self, jdbc=False, count=False)</td>
+        <td valign="top">evaluate(self,  count=False)</td>
         <td>Execute the embedded query against the RDF store. Return 
 an iterator that produces for each step a tuple of values 
 (resources and literals) corresponding to the variables 
-or expressions in a 'select' clause (or its equivalent). 
-If 'jdbc', returns a JDBC-style iterator that miminizes the 
-overhead of creating response objects. </td>
+or expressions in a 'select' clause (or its equivalent).</td>
     </tr>
 </table>
 <h3 id="Subclass GraphQuery">Subclass GraphQuery&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a> </h3>
@@ -679,7 +683,7 @@ overhead of creating response objects. </td>
   By default, a RepositoryResult is not necessarily a (mathematical) set: it  may contain duplicate objects. Duplicate filtering can be  switched on,  but this should not be used lightly as the filtering mechanism is potentially  memory-intensive.<br>
   <br>
   A RepositoryResult needs to be closed after use to free up  any resources (open connections, read locks, etc.) it has on the underlying  repository.</p>
-<p>Source: \AllegroGraphDirectory\python\franz\openrdf\repository\repositoryresult.py.</p>
+<p>Source: \AllegroGraphDirectory\scr2\franz\openrdf\repository\repositoryresult.py.</p>
 <h3>Constructor</h3>
 <p>RepositoryResult(self, string_tuples, subjectFilter=None, tripleIDs=False)</p>
 <ul>
@@ -690,34 +694,34 @@ overhead of creating response objects. </td>
 <p>Example:&nbsp; Best practice is to allow a querySubclass.evaluate() method to create and return the RepositoryResult object. There is no reason for the Python application programmer to create a RepositoryResult object directly.&nbsp; </p>
 <pre>        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>        result = tupleQuery.evaluate();</pre>
 <h3>Methods</h3>
-<table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+<table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
-        <td width="168" valign="top">close(self)</td>
+      <td width="168" valign="top">close(self)</td>
         <td width="591">Shut down the iterator to be sure the resources are freed up. </td>
     </tr>
     <tr>
-        <td valign="top">next(next)</td>
+      <td valign="top">next(next)</td>
         <td>Return the next <a href="#Statement Class">Statement</a> in the answer, if there is one.</td>
     </tr>
     <tr>
-        <td valign="top">enableDuplicateFilter(self)</td>
+      <td valign="top">enableDuplicateFilter(self)</td>
         <td> Switches on duplicate filtering while iterating over objects. The  RepositoryResult will keep track of the previously returned objects in a  java.util.Set and on calling next() will ignore any  objects that already occur in this Set.<br>            <br>
          Caution: use of this filtering mechanism is potentially memory-intensive.</td>
     </tr>
     <tr>
-        <td valign="top">asList(self)</td>
+      <td valign="top">asList(self)</td>
         <td>Returns a list containing all objects of this RepositoryResult in 
 order of iteration. The RepositoryResult is fully consumed and 
 automatically closed by this operation.</td>
     </tr>
     <tr>
-        <td valign="top">addTo(self, collection)</td>
+      <td valign="top">addTo(self, collection)</td>
         <td>Adds all objects of this RepositoryResult to the supplied collection. The 
 RepositoryResult is fully consumed and automatically closed by this 
 operation.</td>
     </tr>
     <tr>
-        <td valign="top">rowCount(self)</td>
+      <td valign="top">rowCount(self)</td>
         <td>Returns the number of result items stored in this object. </td>
     </tr>
 </table>
@@ -726,7 +730,7 @@ operation.</td>
 
 
 <p>A Statement is a client-side triple.&nbsp; It encapsulates the subject, predicate, object and context (subgraph) values of a single triple and makes them available. </p>
-<p>Source: \AllegroGraphDirectory\python\franz\openrdf\model\statement.py.</p>
+<p>Source: \AllegroGraphDirectory\scr2\franz\openrdf\model\statement.py.</p>
 <h3>Constructor</h3>
 <p>Statement(self, subject, predicate, object, context=None)</p>
 <ul>
@@ -761,7 +765,7 @@ operation.</td>
 <p>&nbsp;</p>
 <h2 id="ValueFactory Class">ValueFactory Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>A ValueFactory is a factory for creating URIs, blank nodes, literals and <a href="#Statement Class">Statement</a>s.&nbsp; In the AllegroGraph Python interface, the ValueFactory class would be regarded as obsolete.&nbsp; Its functions have been subsumed by the expanded capability of the RepositoryConnection class. It is documented here for the convenience of the person who is porting an application from Aduma Sesame. &nbsp; </p>
-<p>Source: \AllegroGraphDirectory\python\franz\openrdf\model\valuefactory.py.</p>
+<p>Source: \AllegroGraphDirectory\scr2\franz\openrdf\model\valuefactory.py.</p>
 <h3>Constructor</h3>
 <p>ValueFactory(self, store)</p>
 <ul>
@@ -783,12 +787,16 @@ operation.</td>
         <td>See <a href="#RepositoryConnection Class">RepositoryConnection</a> class. </td>
     </tr>
     <tr>
+      <td valign="top">createRange()</td>
+      <td>See <a href="#RepositoryConnection Class">RepositoryConnection</a> class. </td>
+    </tr>
+    <tr>
         <td valign="top">createURI()</td>
         <td>See <a href="#RepositoryConnection Class">RepositoryConnection</a> class. </td>
     </tr>
 </table>
 <p></p>
-<p><font color="#CCCCCC">March 30, 2010 Version 4.0.2 </font></p>
+<p><font color="#CCCCCC">April 12, 2010 Version 4.0.3</font></p>
 <p>&nbsp;   </p>
 </body>
 
