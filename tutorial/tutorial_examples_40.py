@@ -50,6 +50,7 @@ def example0():
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     print "Available catalogs", server.listCatalogs()
 
+
 def example1(accessMode=Repository.RENEW):
     """
     Tests getting the repository up.  Is called by the other examples to do the startup.
@@ -1824,7 +1825,7 @@ def example22():
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     print "Current working directory is '%s'" % (os.getcwd())
     """
-	Load LasMis into common session, Kennedy into dedicated session.
+	Load LesMis into common session, Kennedy into dedicated session.
     """
     path1 = "./python-kennedy.ntriples"
     path2 = "./python-lesmis.rdf"                
@@ -1851,23 +1852,23 @@ def example22():
     """
     print "\nUsing getStatements() on common session; should find Valjean:"
     Valjean = common.createLiteral("Valjean")
-    statements = common.getStatements(None, None, Valjean, 'null', limit=1)
+    statements = common.getStatements(None, None, Valjean, None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on common session; should not find Kennedy:"
     Kennedy = dedicated.createLiteral("Kennedy")
-    statements = common.getStatements(None, None, Kennedy, 'null', limit=1)
+    statements = common.getStatements(None, None, Kennedy,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on dedicated session; should find Kennedys:"
-    statements = dedicated.getStatements(None, None, Kennedy, 'null', limit=1)
+    statements = dedicated.getStatements(None, None, Kennedy,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on dedicated session; should not find Valjean:"
-    statements = dedicated.getStatements(None, None, Valjean, 'null', limit=1)
+    statements = dedicated.getStatements(None, None, Valjean,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
@@ -1883,23 +1884,23 @@ def example22():
     dedicated.rollback()
     print "\nUsing getStatements() on common session; should find Valjean:"
     Valjean = common.createLiteral("Valjean")
-    statements = common.getStatements(None, None, Valjean, 'null', limit=1)
+    statements = common.getStatements(None, None, Valjean,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on common session; should not find Kennedys:"
     Kennedy = dedicated.createLiteral("Kennedy")
-    statements = common.getStatements(None, None, Kennedy, 'null', limit=1)
+    statements = common.getStatements(None, None, Kennedy,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on dedicated session; should not find Kennedys:"
-    statements = dedicated.getStatements(None, None, Kennedy, 'null', limit=1)
+    statements = dedicated.getStatements(None, None, Kennedy,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on dedicated session; should find Valjean:"
-    statements = dedicated.getStatements(None, None, Valjean, 'null', limit=1)
+    statements = dedicated.getStatements(None, None, Valjean,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
@@ -1919,23 +1920,23 @@ def example22():
     dedicated.commit()
     print "\nUsing getStatements() on common session; should find Valjean:"
     Valjean = common.createLiteral("Valjean")
-    statements = common.getStatements(None, None, Valjean, 'null', limit=1)
+    statements = common.getStatements(None, None, Valjean,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on common session; should find Kennedys:"
     Kennedy = dedicated.createLiteral("Kennedy")
-    statements = common.getStatements(None, None, Kennedy, 'null', limit=1)
+    statements = common.getStatements(None, None, Kennedy,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on dedicated session; should find Kennedys:"
-    statements = dedicated.getStatements(None, None, Kennedy, 'null', limit=1)
+    statements = dedicated.getStatements(None, None, Kennedy,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
     print "\nUsing getStatements() on dedicated session; should find Valjean:"
-    statements = dedicated.getStatements(None, None, Valjean, 'null', limit=1)
+    statements = dedicated.getStatements(None, None, Valjean,  None, False, 2)
     print "Number of results: %s" % len(statements)
     for s in statements:
         print s
