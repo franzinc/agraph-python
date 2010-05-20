@@ -555,6 +555,7 @@ def query_events(proc_num, resultq):
             queryString = """
                   (select0 (?event ?pred ?obj)
                     (:use-planner nil)
+                    (:reorder nil)
                     (q- ?event !%s (? !%s !%s) !%s)
                     (q- ?event ?pred ?obj !%s))""" % (
                         timestamp, start_nt, end_nt, customer, customer)
