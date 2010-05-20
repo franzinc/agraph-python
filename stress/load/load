@@ -53,6 +53,8 @@ from franz.openrdf.repository import Repository
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.vocabulary import XMLSchema
 
+from franz.miniclient.request import jsonRequest
+
 LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
@@ -88,6 +90,9 @@ class Defaults:
 
     # The TIMEOUT in seconds for the dedicated session
     TIMEOUT = 7200
+
+    # A Lisp file to evaluate at the end of the load
+    EVAL_FILE = None
 
 # The program options
 OPT = Defaults
@@ -280,7 +285,6 @@ def main(args):
     if the_time == 0:
         the_time = 0.0000001
     triples = conn.size() - triples
-    conn.close()
     trace('%s [%s]: %d files, %d triples loaded in %s seconds '
         ' (%s triples/second, %s file commits/second).', (PROG, datetime.now(),
         count, triples, the_time, triples/the_time, count/the_time))
@@ -288,6 +292,19 @@ def main(args):
         trace('WARNING: These paths were not found:')
         for path in bad_paths:
             trace('\t%s', path)
+
+    def eval_file():
+        mini_repo = conn.mini_repository
+        with open(OPT.EVAL_FILE, 'r') as lisp_file:
+            body = lisp_file.read()
+        return jsonRequest(mini_repo, 'POST', '/eval', body=body)
+    
+    if OPT.EVAL_FILE:
+        trace("%s [%s]: Calling evalInServer on %s.", (PROG, datetime.now(), OPT.EVAL_FILE))
+        value = eval_file()
+        trace("%s [%s]: evalInServer returned %s.", (PROG, datetime.now(), value))
+    
+    conn.close()
 
 if __name__ == '__main__':
     from copy import copy
@@ -358,6 +375,11 @@ if __name__ == '__main__':
     parser.add_option('-t', '--timeout', default=Defaults.TIMEOUT,
         type='human_timeout', dest='TIMEOUT', metavar='TIMEOUT',
         help='TIMEOUT for the dedicated loading sessions (e.g. 60s, 10m, 2h) [default=%default]')
+    parser.add_option('-e', '--eval', default=Defaults.EVAL_FILE,
+        dest='EVAL_FILE', metavar='EVAL_FILE',
+        help='Evaluate the Lisp code in EVAL_FILE at the end of the load')
+
+    options, args = parser.parse_args()
 
     options, args = parser.parse_args()
     OPT = options
