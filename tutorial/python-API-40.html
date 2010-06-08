@@ -425,18 +425,18 @@ elements &quot;subject&quot;, &quot;predicate&quot;, &quot;object&quot;, and<br>
 </table>
 <p>Note that text search is implemented through a SPARQL query using a &quot;magic&quot; predicate called <strong>fti:search</strong>. See the AllegroGraph Python API Tutorial for an example of how to set up this search. </p>
 <h3 id="Prolog Rule Inference Methods">Prolog Rule Inference Methods</h3>
-<p>These repositoryConnection methods support the use of Prolog rules in AllegroGraph. Any use of Prolog rules requires that you create a <a href="#Dedicated Back End">Dedicated Back End</a> to run them in. </p>
+<p>These repositoryConnection methods support the use of Prolog rules in AllegroGraph. Any use of Prolog rules requires that you create a <a href="#Transactions">dedicated session</a> to run them in. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
     <td valign="top">addRules(self, rules, language=None)</td>
     <td><p>Add a sequence of one or more rules (in ASCII format).<br>
       If the <em>language</em> is QueryLanguage.PROLOG, rule declarations start with '&lt;-' or '&lt;--'. The former appends a new rule; the latter overwrites any rule with the same predicate. <em>language</em> defaults to QueryLanguage.PROLOG. <br>
-      For use with a <a href="#Dedicated Back End">Dedicated Back End</a>. </p>      </td>
+      For use with a <a href="#Transactions">dedicated session</a>. </p>      </td>
   </tr>
   <tr>
     <td valign="top">loadRules(self, file ,language=None)</td>
     <td>Load a file of rules. <em>file</em> is assumed to reside on the client machine. <em>language</em> defaults to QueryLanguage.PROLOG. 
-For use with a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
+For use with a <a href="#Transactions">dedicated session</a>. </td>
   </tr>
 </table>
 <h3 id="Geospatial Reasoning Methods">Geospatial Reasoning Methods</h3>
@@ -476,14 +476,14 @@ For use with a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
   </tr>
 </table>
 <h3 id="Social Network Analysis Methods">Social Network Analysis Methods</h3>
-<p>The following repositoryConnection methods support Social Network Analysis in AllegroGraph. The Python API to the Social Network Analysis methods of AllegroGraph requires Prolog queries, and therefore must be run in a <a href="#Dedicated Back End">Dedicated Back End</a>. </p>
+<p>The following repositoryConnection methods support Social Network Analysis in AllegroGraph. The Python API to the Social Network Analysis methods of AllegroGraph requires Prolog queries, and therefore must be run in a <a href="#Transactions">dedicated session</a>. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
     <td valign="top">registerNeighborMatrix(self, name, generator, group_uris, max_depth=2)</td>
     <td>Construct a neighbor matrix named 'name'. The generator named 'generator' is applied 
 to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),<br>
 computing edges to max depth 'max_depth'.<br>
-For use in a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
+For use in a <a href="#Transactions">dedicated session</a>. </td>
   </tr>
   <tr>
     <td valign="top">registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, generator_query=None)</td>
@@ -493,7 +493,7 @@ If one already exists with the same name; redefine it.
 fullURIs or qnames, that define the edges traversed by the generator. 
 Alternatively, instead of an adjacency map, one may provide a 'generator_query', 
 that defines the edges.<br>
-For use in a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
+For use in a <a href="#Transactions">dedicated session</a>. </td>
   </tr>
 </table>
 
@@ -509,7 +509,7 @@ For use in a <a href="#Dedicated Back End">Dedicated Back End</a>. </td>
   </tr>
   <tr>
     <td valign="top">closeSession(self)</td>
-    <td>Close a dedicated back end connection. </td>
+    <td>Close a dedicated session connection. </td>
   </tr>
   <tr>
     <td valign="top">session(self,  autocommit=False, lifetime=None, loadinitfile=False)</td>
@@ -772,7 +772,7 @@ operation.</td>
     </tr>
 </table>
 <p></p>
-<p><font color="#CCCCCC">April 18, 2010 Version 4.0.3</font></p>
+<p><font color="#CCCCCC">June 8 , 2010 Version 4.0.4</font></p>
 <p>&nbsp;   </p>
 </body>
 
