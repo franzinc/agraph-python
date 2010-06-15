@@ -133,7 +133,7 @@ class Repository(Service):
         nullRequest(self, "POST", "/rollback")
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None,
-                      limit=None, tripleIDs=False, count=False):
+                      limit=None, offset=None, tripleIDs=False, count=False):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
@@ -148,7 +148,7 @@ class Repository(Service):
         elif tripleIDs: accept = "application/x-quints+json"
         return jsonRequest(self, "GET", "/statements",
                            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
-                                  obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit),
+                                  obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit, offset=offset),
                            rowreader=callback and RowReader(callback), accept=accept)
 
     def getStatementsById(self, ids, returnIDs=True):
@@ -206,10 +206,10 @@ class Repository(Service):
     def deleteStatementsById(self, ids):
         nullRequest(self, "POST", "/statements/delete?ids=true", cjson.encode(ids), contentType="application/json")
 
-    def evalFreeTextSearch(self, pattern, index=None, infer=False, callback=None, limit=None):
+    def evalFreeTextSearch(self, pattern, index=None, infer=False, callback=None, limit=None, offset=None):
         """Use free-text indices to search for the given pattern.
         Returns an array of statements."""
-        return jsonRequest(self, "GET", "/freetext", urlenc(pattern=pattern, infer=infer, limit=limit, index=index),
+        return jsonRequest(self, "GET", "/freetext", urlenc(pattern=pattern, infer=infer, limit=limit, offset=offset, index=index),
                            rowreader=callback and RowReader(callback))
 
     def listFreeTextIndices(self):
@@ -359,29 +359,29 @@ class Repository(Service):
         conv = self.unitDegreeFactor(unit)
         return "\"%s%s\"^^%s" % (asISO6709(lat * conv, 2), asISO6709(long * conv, 3), type)
 
-    def getStatementsHaversine(self, type, predicate, lat, long, radius, unit="km", limit=None):
+    def getStatementsHaversine(self, type, predicate, lat, long, radius, unit="km", limit=None, offset=None):
         """Get all the triples with a given predicate whose object
         lies within radius units from the given latitude/longitude."""
         return jsonRequest(self, "GET", "/geo/haversine",
-                           urlenc(type=type, predicate=predicate, lat=lat, long=long, radius=radius, unit=unit, limit=limit))
+                           urlenc(type=type, predicate=predicate, lat=lat, long=long, radius=radius, unit=unit, limit=limit, offset=offset))
 
-    def getStatementsInsideBox(self, type, predicate, xMin, xMax, yMin, yMax, limit=None):
+    def getStatementsInsideBox(self, type, predicate, xMin, xMax, yMin, yMax, limit=None, offset=None):
         """Get all the triples with a given predicate whose object
         lies within the specified box."""
         return jsonRequest(self, "GET", "/geo/box",
-                           urlenc(type=type, predicate=predicate, xmin=xMin, xmax=xMax, ymin=yMin, ymax=yMax, limit=limit))
+                           urlenc(type=type, predicate=predicate, xmin=xMin, xmax=xMax, ymin=yMin, ymax=yMax, limit=limit, offset=offset))
 
-    def getStatementsInsideCircle(self, type, predicate, x, y, radius, limit=None):
+    def getStatementsInsideCircle(self, type, predicate, x, y, radius, limit=None, offset=None):
         """Get all the triples with a given predicate whose object
         lies within the specified circle."""
         return jsonRequest(self, "GET", "/geo/circle",
-                           urlenc(type=type, predicate=predicate, x=x, y=y, radius=radius, limit=limit))
+                           urlenc(type=type, predicate=predicate, x=x, y=y, radius=radius, limit=limit, offset=offset))
 
-    def getStatementsInsidePolygon(self, type, predicate, polygon, limit=None):
+    def getStatementsInsidePolygon(self, type, predicate, polygon, limit=None, offset=None):
         """Get all the triples with a given predicate whose object
         lies within the specified polygon (see createPolygon)."""
         return jsonRequest(self, "GET", "/geo/polygon",
-                           urlenc(type=type, predicate=predicate, polygon=polygon, limit=limit))
+                           urlenc(type=type, predicate=predicate, polygon=polygon, limit=limit, offset=offset))
 
     def createPolygon(self, resource, points):
         """Create a polygon with the given name in the store. points

@@ -270,7 +270,7 @@ class RepositoryConnection(object):
             return self._to_ntriples(term)
     
     def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,
-                       limit=None, tripleIDs=False):
+                       limit=None, offset=None, tripleIDs=False):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
@@ -282,11 +282,11 @@ class RepositoryConnection(object):
         obj = self._convert_term_to_mini_term(object, predicate)
         cxt = self._contexts_to_ntriple_contexts(contexts)
         if isinstance(object, GeoSpatialRegion):
-            return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit)
-        else:
-            stringTuples = self._get_mini_repository().getStatements(subj, pred, obj, cxt,
-                 infer=includeInferred, limit=limit, tripleIDs=tripleIDs)
-            return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
+            return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit, offset=offset)
+
+        stringTuples = self._get_mini_repository().getStatements(subj, pred, obj, cxt,
+            infer=includeInferred, limit=limit, offset=offset, tripleIDs=tripleIDs)
+        return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
 
     def getStatementsById(self, ids):
         """
@@ -295,49 +295,34 @@ class RepositoryConnection(object):
         stringTuples = self._get_mini_repository().getStatementsById(ids)
         return RepositoryResult(stringTuples, tripleIDs=False)
     
-    def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None):
+    def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None, offset=None):
         geoType = region.geoType
         miniGeoType = geoType._getMiniGeoType()
         if isinstance(region, GeoBox):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self._get_mini_repository().getStatementsInsideBox(miniGeoType, predicate,
                                         region.xMin, region.xMax, region.yMin, region.yMax,
-                                        limit=limit)
+                                        limit=limit, offset=offset)
             elif geoType.system == GeoType.Spherical:
                 stringTuples = self._get_mini_repository().getStatementsInsideBox(miniGeoType, predicate,
                                         region.yMin, region.yMax, region.xMin, region.xMax,
-                                        limit=limit)
+                                        limit=limit, offset=offset)
         elif isinstance(region, GeoCircle):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self._get_mini_repository().getStatementsInsideCircle(miniGeoType, predicate,
-                                        region.x, region.y, region.radius, limit=limit)
+                                        region.x, region.y, region.radius, limit=limit, offset=offset)
             elif geoType.system == GeoType.Spherical:
                 stringTuples = self._get_mini_repository().getStatementsHaversine(miniGeoType, predicate,
                                         region.x, region.y, region.radius, unit=region.unit,
-                                        limit=limit)
+                                        limit=limit, offset=offset)
             else: pass ## can't happen
         elif isinstance(region, GeoPolygon):
             stringTuples = self._get_mini_repository().getStatementsInsidePolygon(miniGeoType, predicate,
                                         self._convert_term_to_mini_term(region.getResource()),
-                                        limit=limit)
+                                        limit=limit, offset=offset)
         else: pass ## can't happen
         return RepositoryResult(stringTuples, subjectFilter=subject)            
     
-    def getJDBCStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False, 
-                          limit=None, tripleIDs=False):        
-        """
-        Gets all statements with a specific subject, predicate and/or object from
-        the repository. The result is optionally restricted to the specified set
-        of named contexts.  Returns a JDBCResultSet that enables Values, strings, etc.
-        to be selectively extracted from the result, without the bulky overhead
-        of the OpenRDF BindingSet protocol.
-        """
-        object = self.repository.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
-        stringTuples = self._get_mini_repository().getStatements(self._to_ntriples(subject), self._to_ntriples(predicate),
-                 self._to_ntriples(object), self._contexts_to_ntriple_contexts(contexts), infer=includeInferred, 
-                 limit=limit, tripleIDs=tripleIDs)
-        return JDBCStatementResultSet(stringTuples, triple_ids=tripleIDs)
-
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
         """
         Calls addTriple, addStatement, or addFile.  If 'contexts' is not
@@ -856,12 +841,12 @@ class RepositoryConnection(object):
             value["indexLiterals"] = map(URI, value["indexLiterals"])
         return value
 
-    def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None, index=None):
+    def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None, offset=None, index=None):
         """
         Return an array of statements for the given free-text pattern search.
         """
         miniRep = self._get_mini_repository()
-        return miniRep.evalFreeTextSearch(pattern, index, infer, callback, limit)
+        return miniRep.evalFreeTextSearch(pattern, index, infer, callback, limit, offset=offset)
         
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         """

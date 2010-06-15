@@ -6,8 +6,7 @@
 # http://www.eclipse.org/legal/epl-v0.html
 ###############################################################################
 
-from __future__ import absolute_import
-from __future__ import with_statement
+from __future__ import absolute_import, with_statement
 
 from ..exceptions import RequestError
 from ..sail.allegrographserver import AllegroGraphServer
@@ -289,8 +288,19 @@ def test6(conn = None):
 def test7():    
     conn = test6()
     print "Match all and print subjects and contexts"
-    result = conn.getStatements(None, None, None, None, limit=25)
-    for row in result: print row.getSubject(), row.getContext()
+    result = conn.getStatements(None, None, None, None, limit=25, tripleIDs=True)
+    assert len(result) == 25
+    first_ids = set()
+    for row in result:
+        print row.getSubject(), row.getContext()
+        first_ids.add(row.getTripleID())
+    # Test limit/offset
+    result = conn.getStatements(None, None, None, None, limit=25, offset=25, tripleIDs=True)
+    assert len(result) == 25
+    second_ids = set()
+    for row in result:
+        second_ids.add(row.getTripleID())
+    assert first_ids.isdisjoint(second_ids)
     print "\nSame thing with SPARQL query (can't retrieve triples in the null context)"
     queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
@@ -763,11 +773,33 @@ def test20():
     box1 = conn.createBox(20, 40, 20, 40) 
     print box1
     print "Find people located within box1."
-    for r in conn.getStatements(None, location, box1) : print r
+    results = conn.getStatements(None, location, box1)
+    assert len(results) == 2
+    for r in results:
+        print r
+    # Test limit/offset of same
+    results = conn.getStatements(None, location, box1, limit=1, offset=0)
+    assert len(results) == 1
+    results = conn.getStatements(None, location, box1, limit=1, offset=1)
+    assert len(results) == 1
+    results = conn.getStatements(None, location, box1, limit=1, offset=2)
+    assert len(results) == 0
+
     circle1 = conn.createCircle(35, 35, radius=10)  
     print circle1
     print "Find people located within circle1."
-    for r in conn.getStatements(None, location, circle1) : print r 
+    results = conn.getStatements(None, location, circle1)
+    assert len(results) == 2
+    for r in results:
+        print r 
+    # Test limit/offset of same
+    results = conn.getStatements(None, location, circle1, limit=1, offset=0)
+    assert len(results) == 1
+    results = conn.getStatements(None, location, circle1, limit=1, offset=1)
+    assert len(results) == 1
+    results = conn.getStatements(None, location, circle1, limit=1, offset=2)
+    assert len(results) == 0
+
     polygon1 = conn.createPolygon([(10,40), (50,10), (35,40), (50,70)])
     print polygon1
     print "Find people located within polygon1."
@@ -1645,15 +1677,23 @@ def test_freetext():
 
     def contractor(i):
         return URI("http://www.franz.com/contractor#" + str(i))
+    conn.addTriple(contractor(0), pred, 'Betty Ross')
     conn.addTriple(contractor(1), pred, 'Ross Jekel')
     conn.addTriple(contractor(2), pred, 'Marijn Haverbeke')
     conn.addTriple(contractor(2), URI('http://www.franz.com/lives_in'), 'Berlin')
     conn.addTriple(contractor(3), pred, 'Ed')
 
     search1 = conn.evalFreeTextSearch('Ross', index="index1")
-    eq_(1, len(search1))
-    eq_(str(contractor(1)), str(search1[0][0]))
-    eq_(1, len(conn.evalFreeTextSearch('Ross')))
+    eq_(2, len(search1))
+    eq_(set([str(contractor(1)),str(contractor(0))]), set([str(search1[0][0]), str(search1[1][0])]))
+    eq_(2, len(conn.evalFreeTextSearch('Ross')))
+
+    # Test with limit/offset
+    search1 = conn.evalFreeTextSearch('Ross', index="index1", limit=1, offset=0)
+    search2 = conn.evalFreeTextSearch('Ross', index="index1", limit=1, offset=1)
+    assert len(search1) == 1
+    assert len(search2) == 1
+    assert search1[0][0] != search2[0][0]
 
     # min word size
     eq_(0, len(conn.evalFreeTextSearch('Ed', index="index1")))
@@ -1661,7 +1701,7 @@ def test_freetext():
 
     # indexing of predicates
     eq_(0, len(conn.evalFreeTextSearch('has_name', index="index1")))
-    eq_(3, len(conn.evalFreeTextSearch('has_name', index="index2")))
+    eq_(4, len(conn.evalFreeTextSearch('has_name', index="index2")))
 
     # sparql
     results = conn.prepareTupleQuery(QueryLanguage.SPARQL,
