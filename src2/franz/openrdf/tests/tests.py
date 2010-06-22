@@ -300,7 +300,7 @@ def test7():
     second_ids = set()
     for row in result:
         second_ids.add(row.getTripleID())
-    assert first_ids.isdisjoint(second_ids)
+    assert not first_ids.intersection(second_ids)
     print "\nSame thing with SPARQL query (can't retrieve triples in the null context)"
     queryString = "SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }"
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
