@@ -130,7 +130,7 @@ def example4():
     alice = conn.createURI("http://example.org/people/alice")
     print "Searching for Alice using getStatements():"
     statements = conn.getStatements(alice, None, None)
-    statements.enableDuplicateFilter() ## there are no duplicates, but this exercises the code that checks
+    # statements.enableDuplicateFilter() ## there are no duplicates, but this exercises the code that checks
     for s in statements:
         print s
     statements.close()
@@ -705,15 +705,14 @@ def example6(close=True):
     print "Current working directory is '%s'" % (os.getcwd())
     path1 = "./python-vcards.rdf"    
     path2 = "./python-kennedy.ntriples"                
-    baseURI = "http://example.org/example/local"
     context = conn.createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read kennedy triples into the null context:
     print "Load python-kennedy.ntriples."
-    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
+    conn.add(path2, base=None, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
     print "Load vcards triples."
-    conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);
+    conn.addFile(path1, None, format=RDFFormat.RDFXML, context=context);
     print "After loading, repository contains %i vcard triples in context '%s'\n    and   %i kennedy triples in context '%s'." % (
            conn.size(context), context, conn.size('null'), 'null')
     if close:
@@ -749,13 +748,16 @@ def example8():
     if outputFile == None:
         print "Writing RDF to Standard Out instead of to a file"
     ntriplesWriter = NTriplesWriter(outputFile)
-    conn.export(ntriplesWriter, context);
+    conn.export(ntriplesWriter, context);  # Export vcards to .nt file.
     outputFile2 = "/tmp/temp.rdf"
     #outputFile2 = None
     if outputFile2 == None:
         print "Writing NTriples to Standard Out instead of to a file"
     rdfxmlfWriter = RDFXMLWriter(outputFile2)    
-    conn.export(rdfxmlfWriter, context)
+    conn.export(rdfxmlfWriter, 'null')  # Export kennedy triples to RDF/XML file
+    print "Exporting only the Family Name triples from vcards..."
+    familyName = conn.createURI("http://www.w3.org/2001/vcard-rdf/3.0#FN")
+    conn.exportStatements(None, familyName, None, False, RDFXMLWriter(None), context)
     conn.closeSession()
     conn.close();
     myRepository = conn.repository
@@ -766,6 +768,7 @@ def example9():
     conn = example6(False)
     conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
     conn.closeSession()
+    print "About to close session in example 9:"
     conn.close();
     myRepository = conn.repository
     myRepository.shutDown()
@@ -851,7 +854,6 @@ def example11():
     alice = conn.createURI(namespace=exns, localname="alice")
     person = conn.createURI(namespace=exns, localname="Person")
     conn.add(alice, RDF.TYPE, person)
-    #conn.indexTriples(all=True)
     conn.setNamespace('ex', exns)
     #conn.removeNamespace('ex')
     queryString = """
@@ -876,8 +878,9 @@ def example12():
     conn.clear()    
     exns = "http://example.org/people/"
     conn.setNamespace('ex', exns)
-
-    conn.createFreeTextIndex("index1", predicates=[URI(namespace=exns, localname='fullname')])
+    fullname = conn.createURI(namespace=exns, localname="fullname")
+    # conn.createFreeTextIndex("index1", predicates=[URI(namespace=exns, localname='fullname')])
+    conn.createFreeTextIndex("index1", predicates=[fullname])
     config = conn.getFreeTextIndexConfiguration("index1")
     print(config)
     for item in config["predicates"]:
@@ -886,7 +889,7 @@ def example12():
     alice = conn.createURI(namespace=exns, localname="alice")
     carroll = conn.createURI(namespace=exns, localname="carroll")
     persontype = conn.createURI(namespace=exns, localname="Person")
-    fullname = conn.createURI(namespace=exns, localname="fullname")    
+    # fullname = conn.createURI(namespace=exns, localname="fullname")    
     alicename = conn.createLiteral('Alice B. Toklas')
     book =  conn.createURI(namespace=exns, localname="book1")
     booktype = conn.createURI(namespace=exns, localname="Book")
@@ -943,7 +946,7 @@ def example12():
         if count > 5: break
 
     print("\nEvalFreeTextSearch() match 'Ali*' in index1.")
-    for triple in conn.evalFreeTextSearch("Alice", index="index1"):
+    for triple in conn.evalFreeTextSearch("Ali*", index="index1"):
         print " " + str(triple)
 
     print "Wildcard match for '?l?c?'"
@@ -961,7 +964,7 @@ def example12():
         if count > 5: break
 
     print("\nEvalFreeTextSearch() match '?l?c?' in index1.")
-    for triple in conn.evalFreeTextSearch("Alice", index="index1"):
+    for triple in conn.evalFreeTextSearch("?l?c?", index="index1"):
         print " " + str(triple)
 
     print "Substring match for 'lic'"
@@ -982,6 +985,10 @@ def example12():
     for triple in conn.evalFreeTextSearch("lic", index="index1"):
         print " " + str(triple)
 
+    print("\nEvalFreeTextSearch() match '*lic*' in index1.")
+    for triple in conn.evalFreeTextSearch("*lic*", index="index1"):
+        print " " + str(triple)
+
     conn.createFreeTextIndex("index2", predicates=[URI(namespace=exns, localname='author')],
                              indexResources="short", indexFields=["object"])
     print("\nMatch 'Carroll' in index2.")
@@ -995,31 +1002,50 @@ def example12():
 
 def example13():
     """
-    Ask, Construct, and Describe queries 
+    Select, Ask, Construct, and Describe queries 
     """
     print "Starting example13()."
-    conn = example2()
-    conn.setNamespace('ex', "http://example.org/people/")
-    conn.setNamespace('ont', "http://example.org/ontology/")
-    queryString = """select ?s ?p ?o where { ?s ?p ?o} """
+    conn = example6(False)  # kennedy and vcards data
+    conn.setNamespace("kdy", "http://www.franz.com/simple#")
+    # We don't want the vcards this time. This is how to delete an entire subgraph.
+    context = conn.createURI("http://example.org#vcards")
+    conn.remove(None, None, None, context)
+    print "\nRemoved V-cards"
+    queryString = """select ?s where { ?s rdf:type kdy:person} limit 5"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     result = tupleQuery.evaluate();
-    print "SELECT result"
+    print "\nSELECT some persons"
     for r in result: print r     
-    queryString = """ask { ?s ont:name "Alice" } """
+	# ASK query
+    queryString = """ask { ?s kdy:first-name "John" } """
     booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)
     result = booleanQuery.evaluate(); 
-    print "Boolean result", result
-    queryString = """construct {?s ?p ?o} where { ?s ?p ?o . filter (?o = "Alice") } """
+    print "\nASK: Is there anyone named John?", result
+    queryString = """ask { ?s kdy:first-name "Alice" } """
+    booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)
+    result = booleanQuery.evaluate(); 
+    print "\nASK: Is there an Alice?", result
+    # CONSTRUCT query
+    queryString = """
+	construct {?a kdy:has-grandchild ?c} 
+	where { ?a kdy:has-child ?b . 
+	        ?b kdy:has-child ?c . } 
+	        """
     constructQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
     result = constructQuery.evaluate(); 
+    print "/nConstruct result, creating new has-grandchild triples:"
     for st in result:
-        print "Construct result, S P O values in statement:", st.getSubject(), st.getPredicate(), st.getObject()
-    #print "Construct result", [st for st in result]
-    queryString = """describe ?s where { ?s ?p ?o . filter (?o = "Alice") } """
+        conn.add(st.getSubject(), st.getPredicate(), st.getObject())
+    # DESCRIBE query
+    queryString = """select ?s ?o where { ?s kdy:has-grandchild ?o} limit 5"""
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate();
+    print "\nShow the has-grandchild triples:"
+    for r in result: print r     
+    queryString = """describe ?s ?o where { ?s kdy:has-grandchild ?o . } limit 1"""
     describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
     result = describeQuery.evaluate(); 
-    print "Describe result"
+    print "\nDescribe one grandparent and one grandchild:"
     for st in result: print st 
     conn.close();
     myRepository = conn.repository
@@ -1039,9 +1065,9 @@ def example14():
     result = tupleQuery.evaluate()    
     print "Facts about Alice:"
     for r in result: print r  
-    tupleQuery.setBinding("s", bob)
-    print "Facts about Bob:"    
+    tupleQuery.setBinding("p", RDF.TYPE)
     result = tupleQuery.evaluate()
+    print "Alice's RDF type triple:"    
     for r in result: print r  
     conn.close();
     myRepository = conn.repository
@@ -1063,7 +1089,7 @@ def example15():
     range = conn.createRange(30, 50)
     # range = conn.createRange(24, 42)  #this setting demonstrates that the limits are inclusive.
     if True: conn.registerDatatypeMapping(predicate=age, nativeType="int")
-    if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")  
+    if False: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")  
     # True, True: Alice Age 42(int) AND Carol Age 39(int)  
     # True, False: Alice Age 42(int) AND Carol Age 39(int)
     # False, True: Alice Age 42(int)
@@ -1072,10 +1098,9 @@ def example15():
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
     print "Persons with ages between 30 and 50."
-    rows = conn.getStatements(None, age, range)
-#    rows = conn.getStatements(None, age, (30, 50))
-    for r in rows:
-        print r 
+    statements = conn.getStatements(None, age, range)
+    for s in statements:
+        print s 
     conn.close();
     myRepository = conn.repository
     myRepository.shutDown()
@@ -1172,6 +1197,8 @@ def example18():
     for bindingSet in result:
         p = bindingSet.getValue("person")
         u = bindingSet.getValue("uncle")
+        p = p.toPython().strip('{} ').replace('} {',' ')
+        u = u.toPython().strip('{} ').replace('} {',' ')
         print "%s is the uncle of %s." % (u, p)
     conn.closeSession()
     conn.close();
@@ -2238,3 +2265,5 @@ if __name__ == '__main__':
         else:
             print "This example is not available in the current release."
     print("\nElapsed time: %s seconds." % (time.clock() - starttime))
+
+## Update: July 7, 2010 AG 4.1

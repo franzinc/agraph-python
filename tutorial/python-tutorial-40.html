@@ -40,7 +40,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
     <td width="295"><ul>
       <li><a href="#Namespaces">Namespaces</a></li>
       <li><a href="#Free Text Search">Free Text Search</a></li>
-      <li><a href="#Ask, Describe, and Construct Queries">Ask, Describe, and Construct Queries</a></li>
+      <li><a href="#Ask, Describe, and Construct Queries">Select, Ask, Describe, and Construct Queries</a></li>
       <li><a href="#Parametric Queries">Parametric Queries</a></li>
       <li><a href="#Range Matches">Range Matches</a></li>
       <li><a href="#Federated Repositories">Federated Repositories</a></li>  
@@ -358,11 +358,7 @@ http://example.org/people/bob http://www.w3.org/1999/02/22-rdf-syntax-ns#type ht
 http://example.org/people/bob http://example.org/ontology/name "Bob"
 </pre>
 <p>The Connection class is designed to be created for the duration of a sequence of updates and queries, and then closed. In practice, many AllegroGraph applications keep a connection open indefinitely. However, best practice dictates that the connection should be closed, as illustrated below. The same hygiene applies to the iterators that generate binding sets.</p>
-<pre class="input">
-        finally:
-            result.close();
-    finally:
-        conn.close();</pre>
+<pre class="input">        finally:<br>            result.close();<br>    finally:<br>        conn.close();<br>        myRepository = conn.repository<br>        myRepository.shutDown()</pre>
 <h2 id="Statement Matching">Statement Matching (example4()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 <p>
@@ -384,12 +380,8 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 (&lt;http://example.org/people/alice&gt;, &lt;http://example.org/ontology/name&gt;, &quot;Alice&quot;) </pre>
 <p>At this point it is good form to close the respositoryResponse object because they occupy memory and are rarely reused in most programs. </p>
 <pre class="input">	statements.close()</pre>
-<p>The example4() example continues with a second, more efficient way to perform simple retrievals. The second syntax borrows a trick from the JDBC API commonly used to access relational databases. The <strong>getJDBCStatements()</strong> method returns a ResultSet object that lets us iterate over the returned triples. A resultSet iterator does not materialize objects unless forced to. In this example it materializes only the object values of the returned triples. The <strong>getValue()</strong> method forces materialization of a resource or literal as an object, while the <strong>getString()</strong> call returns a string without creating an object. Developers who care about minimizing garbage will prefer to use the getJDBCStatements()' call, and they will usually call getString() in preference to getValue().</p>
-<pre class="input">    print &quot;Same thing using JDBC:&quot;<br>    resultSet = conn.getJDBCStatements(alice, None, None)<br>    while resultSet.next():        <br>        print &quot;   &quot;, resultSet.getValue(2), &quot;   &quot;, resultSet.getString(2)  </pre>
-<p>The output is:</p>
-<pre class="output">Same thing using JDBC:
-    &lt;http://example.org/ontology/Person&gt; http://example.org/ontology/Person
-    &quot;Alice&quot;    Alice  </pre>
+
+
 <h2 id="Literal Values">Literal Values (example5())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The next example, <strong>example5()</strong>, illustrates some variations on what we have seen so far.  The example creates and asserts <a href="http://www.w3.org/TR/rdf-concepts/#section-Graph-Literal">typed and plain literal values</a>, including  language-specific plain literals, and then conducts searches for them in three ways:</p>
 <ul>
@@ -416,7 +408,7 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 <pre class="input">    age = conn.createURI(namespace=exns, localname=&quot;age&quot;)</pre>
 <p>The next step is to create a variety of values representing ages. Coincidentally, these people are all 42 years old, but we're going to record that information in multiple ways:</p>
 <pre class="input">    fortyTwo = conn.createLiteral(42)             # creates long
-    fortyTwoDecimal = conn.createLiteral(42.0)    # creates double
+    fortyTwoDouble = conn.createLiteral(42.0)    # creates double
     fortyTwoInt = conn.createLiteral('42', datatype=XMLSchema.INT)
     fortyTwoLong = conn.createLiteral('42', datatype=XMLSchema.LONG) 
     fortyTwoFloat = conn.createLiteral('42', datatype=XMLSchema.FLOAT) 
@@ -426,7 +418,7 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 <p>In three other statements, we just handed AllegroGraph numeric-looking values to see what it would do with them. As we will see in a moment, 42 creates a LONG, 42.0 becomes into a DOUBLE, and '42' becomes a &quot;plain&quot; (untyped) literal value. (Note that plain literals are not <em>quite </em>the same thing as typed literal strings. A search for a plain literal will not always match a typed string, and <em>vice versa</em>.)</p>
 <p>Now we need to assemble the URIs and values into statements (which are client-side triples):</p>
 <pre class="input">    stmt1 = conn.createStatement(alice, age, fortyTwo)
-    stmt2 = conn.createStatement(bob, age, fortyTwoDecimal)    
+    stmt2 = conn.createStatement(bob, age, fortyTwoDouble)    
     stmt3 = conn.createStatement(carol, age, fortyTwoInt)    
     stmt4 = conn.createStatement(dave, age, fortyTwoLong)    
     stmt5 = conn.createStatement(eric, age, fortyTwoFloat)
@@ -807,7 +799,7 @@ WHERE {?s ?p ?o . filter (fn:lower-case(str(?o)) = &quot;rouge&quot;)}</pre>
 <pre class="input">    birthdate = conn.createURI(namespace=exns, localname=&quot;birthdate&quot;)  </pre>
 <p>We'll also need four types of literal values: a date, a time, a datetime, and a datetime with a time-zone offset.</p>
 <pre class="input">    date = conn.createLiteral('1984-12-06', datatype=XMLSchema.DATE)     <br>    datetime = conn.createLiteral('1984-12-06T09:00:00', datatype=XMLSchema.DATETIME) <br>    time = conn.createLiteral('09:00:00Z', datatype=XMLSchema.TIME) <br>    datetimeOffset = conn.createLiteral('1984-12-06T09:00:00+01:00', datatype=XMLSchema.DATETIME)</pre>
-<p>It is interesting to notice that these lilteral values print out exactly as we defined them. </p>
+<p>It is interesting to notice that these literal values print out exactly as we defined them. </p>
 <pre class="output">Printing out Literals for date, datetime, time, and datetime with Zulu offset.<br>&quot;1984-12-06&quot;^^&lt;http://www.w3.org/2001/XMLSchema#date&gt;<br>&quot;1984-12-06T09:00:00&quot;^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;<br>&quot;09:00:00Z&quot;^^&lt;http://www.w3.org/2001/XMLSchema#time&gt;<br>&quot;1984-12-06T09:00:00+01:00&quot;^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</pre>
 <p>Now we'll add them to the triple store:</p>
 <pre class="input">    conn.addTriples([(alice, birthdate, date),<br>                     (bob, birthdate, datetime),<br>                     (carol, birthdate, time),<br>                     (dave, birthdate, datetimeOffset)])</pre>
@@ -871,7 +863,7 @@ Now:<span class="output">&quot;1984-12-06T08:00:00Z&quot;</span></pre>
   </tr>
   <tr>
     <td><strong>SPARQL filter match </strong></td>
-    <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = '1984-12-06T09:00:00Z'^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</td>
+    <td>SELECT ?s ?p ?o WHERE {?s ?p ?o . filter (?o = '1984-12-06T09:00:00Z'^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;)}</td>
     <td>&quot;1984-12-06T09:00:00Z&quot;<br>
     ^^&lt;http://www.w3.org/2001/XMLSchema#dateTime&gt;</td>
   </tr>
@@ -970,18 +962,16 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
   '16' for the 'context' context argument, and the number '28' for the null context
   (None) argument. </p>
 <p>The example6() function of tutorial_examples_40.py creates a <a href="#Transaction Control">dedicated session</a> connection to AllegroGraph, using methods you have seen before, plus the Connection object's <strong>openSession()</strong> method: </p>
-<pre class="input">def example6():<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() </pre>
+<pre class="input">def example6(close=True):<br>    print &quot;Starting example6().&quot;<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)<br>    catalog = server.openCatalog(AG_CATALOG)  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.clear()<br>    conn.openSession()</pre>
 <p>The dedicated session is not immediately pertinent to the examples in this section, but will become important in later examples that reuse this connection to demonstrate <a href="#Prolog Rule Queries">Prolog Rules</a> and <a href="#Social Network Analysis">Social Network Analysis</a>. </p>
 <p>The variables path1 and path2 are bound to the RDF/XML and NTriples files, respectively. </p>
 <pre class="input">    path1 = &quot;./python-vcards.rdf&quot;    <br>    path2 = &quot;./python-kennedy.ntriples&quot;                </pre>
-<p>Both examples need a base URI as one of the required arguments to the asserting methods: </p>
-<pre class="input">    baseURI = &quot;http://example.org/example/local&quot;</pre>
 <p>The NTriples about the vcards will be added to a specific context, so naturally we need a URI to identify that context. </p>
 <pre class="input">    context = conn.createURI(&quot;http://example.org#vcards&quot;)</pre>
 <p>In the next step we use addFile() to load the vcard triples into the #vcards context: </p>
-<pre class="input">    conn.addFile(path1, baseURI, format=RDFFormat.RDFXML, context=context);</pre>
+<pre class="input">    conn.addFile(path1, None, format=RDFFormat.RDFXML, context=context)</pre>
 <p>Then we use add() to load the Kennedy family tree into the null context: </p>
-<pre class="input">    conn.add(path2, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)</pre>
+<pre class="input">    conn.add(path2, base=None, format=RDFFormat.NTRIPLES, contexts=None)</pre>
 <p>Now we'll ask AllegroGraph to report on how many triples it sees in the null context and in the #vcards context: </p>
 <pre class="input">    print &quot;After loading, repository contains %i vcard triples in context '%s'\n    
            and   %i kennedy triples in context '%s'.&quot; % <br>           (conn.size(context), context, conn.size('null'), 'null')<br>    return conn</pre>
@@ -1001,21 +991,22 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
 <pre class="input">    context = conn.createURI(&quot;http://example.org#vcards&quot;)</pre>
 <p>To write triples in
 NTriples format, call NTriplesWriter(). You have to tell it the path and file name of the exported file. If the output file argument is 'None', the writers write to standard
-output. You can uncomment that line if you'd like to see it work. </p>
+output. You can uncomment that line if you'd like to see it work. This code exports the vcards triples in ntriples format:</p>
 <pre class="input">    outputFile = &quot;/tmp/temp.nt&quot;<br>    #outputFile = None<br>    if outputFile == None:<br>        print &quot;Writing RDF to Standard Out instead of to a file&quot;<br>    ntriplesWriter = NTriplesWriter(outputFile)<br>    conn.export(ntriplesWriter, context);</pre>
-<p>To write triples in RDF/XML format, call RDFXMLWriter(). </p>
-<pre class="input">    outputFile2 = &quot;/tmp/temp.rdf&quot;<br>    #outputFile2 = None<br>    if outputFile2 == None:<br>        print &quot;Writing NTriples to Standard Out instead of to a file&quot;<br>    rdfxmlfWriter = RDFXMLWriter(outputFile2)    <br>    conn.export(rdfxmlfWriter, context)</pre>
+<p>To write triples in RDF/XML format, call RDFXMLWriter(). This code exports the Kennedy triples in RDF/XML format.</p>
+<pre class="input">    outputFile2 = &quot;/tmp/temp.rdf&quot;<br>    #outputFile2 = None<br>    if outputFile2 == None:<br>        print &quot;Writing NTriples to Standard Out instead of to a file&quot;<br>    rdfxmlfWriter = RDFXMLWriter(outputFile2)    <br>    conn.export(rdfxmlfWriter, 'null')</pre>
 <p>
 The <strong>export()</strong> method writes
   out all triples in one or more contexts.  This provides a convenient means for making
-  local backups of sections of your RDF store.  If two or more contexts are specified,
+  local backups of sections of your RDF store.  The 'null' argument targets the triples of the default graph. If two or more contexts are specified,
   then triples from all of those contexts will be written to<em> the same file</em>.  Since the
 triples are "mixed together" in the file, the context information is not recoverable. If the context argument is omitted, all triples in the store are written out, and again all context information is lost. </p>
 <p>Finally, if the objective is to write out a filtered set of triples,
   the <strong>exportStatements()</strong> method can be used.  The example below (from<strong> example9()</strong>) writes
-  out all RDF:TYPE declaration triples to standard output. </p>
+  out all <strong>familyName</strong> triples from the vcards context to standard output. </p>
 <pre class="input">
-conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
+    familyName = conn.createURI("http://www.w3.org/2001/vcard-rdf/3.0#FN")
+    conn.exportStatements(None, familyName, None, False, RDFXMLWriter(None), context)
 </pre>
 
 <h2 id="Datasets and Contexts">Datasets and Contexts (example10()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
@@ -1133,9 +1124,9 @@ It is legal, although not recommended, to redefine the built-in prefixes RDF, et
 <p>We need a namespace string (bound to the variable <strong>exns</strong>) to use when generating the <strong>alice</strong> and <strong>person</strong> URIs. </p>
 <pre class="input">
     exns = &quot;http://example.org/people/&quot;<br>    alice = conn.createURI(namespace=exns, localname=&quot;alice&quot;)<br>    person = conn.createURI(namespace=exns, localname=&quot;Person&quot;)</pre>
-<p>Now we can assert Alice's RDF:TYPE triple. Then we have to remind AllegroGraph to index it. </p>
+<p>Now we can assert Alice's RDF:TYPE triple. </p>
 <pre class="input">
-    conn.add(alice, RDF.TYPE, person)<br>    conn.indexTriples(all=True, asynchronous=True)</pre>
+    conn.add(alice, RDF.TYPE, person)</pre>
 <p>Now we register the exns namespace with the connection object, so we can use it in a SPARQL query. The query looks for triples that have &quot;rdf:type&quot; in the predicate position, and &quot;ex:Person&quot; in the object position. </p>
 <pre class="input">
     conn.setNamespace('ex', exns)<br>    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o <br>    WHERE { ?s ?p ?o . FILTER ((?p = rdf:type) &amp;&amp; (?o = ex:Person) ) }<br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate();  <br>    print    <br>    for bindingSet in result:<br>        print bindingSet[0], bindingSet[1], bindingSet[2]</pre>
@@ -1193,8 +1184,7 @@ query, and also by using the <strong>evalFreeTextSearch()</strong> method of the
 (&lt;http://example.org/people/carroll&gt;, &lt;http://example.org/people/fullname&gt;, &quot;Lewis Carroll&quot;)<br>(&lt;http://example.org/people/carroll&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;) </pre>
 <p>Now we set up the SPARQL query that looks for triples containing &quot;Alice&quot; in the object position. </p>
 <p>The text match occurs through a &quot;magic&quot; predicate called <strong>fti:match</strong>. This is not an RDF &quot;predicate&quot; but a LISP &quot;predicate,&quot; meaning that it behaves as a true/false test. This predicate  has two arguments. One is  the subject URI of the resources to search. The other is the string pattern to search for, such as &quot;Alice&quot;. Only full-word matches will be found. </p>
-<pre class="input">
-    conn.setNamespace('ex', exns)<br>    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o<br>    WHERE { ?s ?p ?o . 
+<pre class="input">    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o<br>    WHERE { ?s ?p ?o . 
             ?s fti:match 'Alice' . }<br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate(); </pre>
 <p>There is no need to include a prefix declaration for the 'fti' nickname. That is because 'fti' is included among the built-in namespace/nickname mappings in AllegroGraph.</p>
 <p>When we execute our SPARQL query, it matches the "Alice" within the literal "Alice B. Toklas" because that literal occurs in a triple having the <strong>fullname</strong> predicate, but it does not match the "Alice" in the literal "Alice in Wonderland" because the <strong>booktitle</strong> predicate was not included in our index. The SPARQL query returns <em>all of the triples of the matching resource</em>, not just the one that matched the text search. </p>
@@ -1227,38 +1217,36 @@ query, and also by using the <strong>evalFreeTextSearch()</strong> method of the
 Match 'Carroll' in index2.<br> ['&lt;http://example.org/people/book1&gt;', '&lt;http://example.org/people/author&gt;', '&lt;http://example.org/people/carroll&gt;']
 </pre>
 <p>The text search located the triple that has &quot;Carroll&quot; in the URI in the object position. </p>
-<h2 id="Ask, Describe, and Construct Queries">Ask, Describe, and Construct Queries (example13())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Ask, Describe, and Construct Queries">Select, Ask, Describe, and Construct Queries (example13())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>SPARQL provides alternatives to the standard SELECT query. Example example13() exercises these alternatives to show how AllegroGraph Server handles them. </p>
 <ul>
-  <li>    SELECT: Returns all, or a subset of, the variables bound in a query pattern match. </li>
-  <li>CONSTRUCT: Returns an RDF graph constructed by substituting variables in a set of triple templates. </li>
-  <li>ASK: Returns a boolean indicating whether a query pattern matches or not. </li>
-  <li>DESCRIBE: Returns an RDF graph that describes the resources found. </li>
+  <li>    SELECT: Returns variables bound in a query pattern match. </li>
+  <li>ASK: Returns a boolean indicating whether a query matches or not. </li>
+  <li>CONSTRUCT: Returns triples constructed by substituting variables in a set of triple templates. </li>
+  <li>DESCRIBE: Returns all of the triples of a matching resource. </li>
 </ul>
-<p>The example begins by borrowing a connection object from example2(). Then it registers two namespaces for use in the SPARQL queries.:
-<pre class="input">def example13():<br>    conn = example2()<br>    conn.setNamespace('ex', &quot;http://example.org/people/&quot;)<br>    conn.setNamespace('ont', &quot;http://example.org/ontology/&quot;)</pre>
-<p>The example begins with an unconstrained SELECT query so we can see what triples are available for matching. </p>
-<pre class="input">
-    queryString = &quot;&quot;&quot;select ?s ?p ?o where { ?s ?p ?o} &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate();<br>    print &quot;SELECT result&quot;<br>    for r in result: print r     </pre>
-The output for the SELECT query was four triples about Alice and Bob:
-<pre class="output">SELECT result<br>{'p': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 's': 'http://example.org/people/alice', 'o': 'http://example.org/ontology/Person'}
-{'p': 'http://example.org/ontology/name', 's': 'http://example.org/people/alice', 'o': '&quot;Alice&quot;'}<br>{'p': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 's': 'http://example.org/people/bob', 'o': 'http://example.org/ontology/Person'}<br>{'p': 'http://example.org/ontology/name', 's': 'http://example.org/people/bob', 'o': '&quot;Bob&quot;'}</pre>
-<p>The ASK query returns a Boolean, depending on whether the triple pattern matched any triples. In this case it looks for any ont:name triplecontaining the value &quot;Alice.&quot; Note that the ASK query uses a different construction method than the SELECT query:<strong> prepareBooleanQuery()</strong>. </p>
-<pre class="input">
-    queryString = &quot;&quot;&quot;ask { ?s ont:name &quot;Alice&quot; } &quot;&quot;&quot;<br>    booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)<br>    result = booleanQuery.evaluate(); <br>    print &quot;Boolean result&quot;, result</pre>
+<p>The example begins by borrowing a connection object from example6(). This connects to a repository that contains vcard and Kennedy data. We'll need to register a Kennedy namespace to make the queries easier to read. <pre class="input">def example13():<br>    conn = example6(False)  # kennedy and vcards data
+    conn.setNamespace(&quot;kdy&quot;, &quot;http://www.franz.com/simple#&quot;)</pre>
+<p>As it happens, we don't need the vcard data this time, so we'll remove it. This is an example of how to delete an entire subgraph (the vcards &quot;context&quot;):</p>
+<pre class=input>    context = conn.createURI(&quot;http://example.org#vcards&quot;)<br>    conn.remove(None, None, None, context)</pre>
+<p>The example begins with a SELECT query so we can see some of the Kennedy resources. </p>
+<pre class="input">    queryString = &quot;&quot;&quot;select ?s where { ?s rdf:type kdy:person} limit 5&quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate();<br>    print &quot;\nSELECT some persons&quot;<br>    for r in result: print r     </pre>
+Note that SELECT returns variable bindings.  In this case it returns subject URIs of five people:
+<pre class="output">SELECT some persons<br>{'s': u'&lt;http://www.franz.com/simple#person1&gt;'}<br>{'s': u'&lt;http://www.franz.com/simple#person2&gt;'}<br>{'s': u'&lt;http://www.franz.com/simple#person3&gt;'}<br>{'s': u'&lt;http://www.franz.com/simple#person4&gt;'}<br>{'s': u'&lt;http://www.franz.com/simple#person5&gt;'}</pre>
+<p>The ASK query returns a Boolean, depending on whether the triple pattern matched any triples. In this case we ran two tests; one seeking &quot;John&quot; and the other looking for &quot;Alice.&quot; Note that the ASK query uses a different construction method than the SELECT query:<strong> prepareBooleanQuery()</strong>. </p>
+<pre class="input">    queryString = &quot;&quot;&quot;ask { ?s kdy:first-name &quot;John&quot; } &quot;&quot;&quot;<br>    booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)<br>    result = booleanQuery.evaluate(); <br>    print &quot;\nASK: Is there anyone named John?&quot;, result
+<br>    queryString = &quot;&quot;&quot;ask { ?s kdy:first-name &quot;Alice&quot; } &quot;&quot;&quot;<br>    booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)<br>    result = booleanQuery.evaluate(); <br>    print &quot;\nASK: Is there an Alice?&quot;, result</pre>
 <p>The output of this loop is:</p>
-<pre class="output">Boolean result True</pre>
-<p>The CONSTRUCT query contructs a statement object out of the matching values in the triple pattern. A &quot;statement&quot; is a client-side triple. Construction queries use <strong>prepareGraphQuery()</strong>. The point is that the query can bind variables from existing triples and then &quot;construct&quot; a new triple by recombining the values. </p>
-<pre class="input">
-    queryString = &quot;&quot;&quot;construct {?s ?p ?o} where { ?s ?p ?o . filter (?o = &quot;Alice&quot;) } &quot;&quot;&quot;<br>    constructQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)<br>    result = constructQuery.evaluate(); <br>    for st in result:<br>        print &quot;Construct result, S P O values in statement:&quot;, st.getSubject(), st.getPredicate(), st.getObject()</pre>
-<p>The output of this loop is below. It has created a statement from values found in the repository. </p>
-<pre class="output">Construct result, S P O values in statement: &lt;http://example.org/people/alice&gt; &lt;http://example.org/ontology/name&gt; &quot;Alice&quot;</pre>
-The DESCRIBE query returns a &quot;graph,&quot; meaning all triples of the matching resources.  It uses <strong>prepareGraphQuery()</strong>. 
-<pre class="input">
-    queryString = &quot;&quot;&quot;describe ?s where { ?s ?p ?o . filter (?o = &quot;Alice&quot;) } &quot;&quot;&quot;<br>    describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)<br>    result = describeQuery.evaluate(); <br>    print &quot;Describe result&quot;<br>    for st in result: print st </pre>
-<p>The output of this loop is:</p>
-<pre class="output">Describe result<br>(&lt;http://example.org/people/alice&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/ontology/Person&gt;)
-(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/ontology/name&gt;, &quot;Alice&quot;)</pre>
+<pre class="output">ASK: Is there anyone named John? True
+ASK: Is there an Alice? False</pre>
+<p>The CONSTRUCT query contructs a statement object out of the matching values in the triple pattern. A &quot;statement&quot; is a client-side triple. Construction queries use <strong>prepareGraphQuery()</strong>. The point is that the query can bind variables from existing triples and then &quot;construct&quot; a<em> new triple</em> by recombining the values. This query constructs new triples using a <strong>kdy:has-grandchild</strong> predicate. </p>
+<pre class="input">    queryString = &quot;&quot;&quot;<br>	construct {?a kdy:has-grandchild ?c} <br>	where { ?a kdy:has-child ?b . <br>	        ?b kdy:has-child ?c . } <br>	        &quot;&quot;&quot;<br>    constructQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)<br>    result = constructQuery.evaluate(); </pre>
+<p>The CONSTRUCT query does not actually add the new triples to the store. You have to iterate through the results and add them yourself: </p>
+<pre class="input">    print &quot;/nConstruct result, creating new has-grandchild triples:&quot;<br>    for st in result:<br>        conn.add(st.getSubject(), st.getPredicate(), st.getObject())</pre>
+<p>The DESCRIBE query returns a &quot;graph,&quot; meaning all triples of the matching resources.  It uses <strong>prepareGraphQuery()</strong>. In this case we asked SPARQL to describe one grandparent and one grandchild. (This confirms that the kdy:has-grandchild triples successfully entered the triple store.) </p>
+<pre class="input">    queryString = &quot;&quot;&quot;describe ?s ?o where { ?s kdy:has-grandchild ?o . } limit 1&quot;&quot;&quot;<br>    describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)<br>    result = describeQuery.evaluate(); <br>    print &quot;Describe one grandparent and one grandchild:&quot;<br>    for st in result: print st </pre>
+<p>The output of this loop is lengthy, because the Kennedy resources have many triples. One block of triples looked like this, showing the new has-grandchild triples: </p>
+<pre class="output">(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person20&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person22&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person24&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person25&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person26&gt;)</pre>
 <h2 id="Parametric Queries">Parametric Queries (example14())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
  <p>The Python API to AllegroGraph Server lets you set up a SPARQL query and then fix the value of one of the query variables prior to matching the triples. This is more efficient than testing for the same value in the body of the query. </p>
  <p>In <strong>example14()</strong> we set up two-triple resources for Bob and Alice, and then use an unconstrained SPARQL query to retrieve the triples. Normally this query would find all four triples, but by binding the subject value ahead of time, we can retrieve the &quot;Bob&quot; triples separately from the &quot;Alice&quot; triples.</p>
@@ -1306,8 +1294,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 </pre>
 <p>Carol's age is initially represented as a string instead of an int. This breaks the range comparison. The datatype mapping forces the string value to become an int. </p>
 <p>The next step is to use getStatements() to retrieve all triples where the age value is between 30 and 50. </p>
-<pre class="input">    rows = conn.getStatements(None, age, range)<br>    for r in rows:<br>        print r 
-</pre>
+<pre class="input">    statements = conn.getStatements(None, age, range)<br>    for s in statements:<br>        print s</pre>
 <p>The output of this loop is:</p>
 <pre class="output">(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)
 (&lt;http://example.org/people/carol&gt;, &lt;http://example.org/people/age&gt;, &quot;39&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)</pre>
@@ -1393,9 +1380,10 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
     queryString = &quot;&quot;&quot;(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))&quot;&quot;&quot;</pre>
 <p>Here we execute the query and display the results:</p>
 <pre class="input">
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();     <br>    for bindingSet in result:<br>        p = bindingSet.getValue(&quot;person&quot;)<br>        u = bindingSet.getValue(&quot;uncle&quot;)<br>        print &quot;%s is the uncle of %s.&quot; % (u, p)</pre>
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();     <br>    for bindingSet in result:<br>        p = bindingSet.getValue(&quot;person&quot;)<br>        u = bindingSet.getValue(&quot;uncle&quot;)<br>        p = p.toPython().strip('{} ').replace('} {',' ')<br>        u = u.toPython().strip('{} ').replace('} {',' ')<br>        print &quot;%s is the uncle of %s.&quot; % (u, p)</pre>
+<p>The Python string functions are used to remove some {} characters that enclose values returned by Prolog. 
 <p>The output of this loop (in part) looks like this:
-<pre class="output">&quot;{Edward} {Kennedy}&quot; is the uncle of &quot;{William} {Smith}&quot;.<br>&quot;{Edward} {Kennedy}&quot; is the uncle of &quot;{Amanda} {Smith}&quot;.<br>&quot;{John} {Kennedy}&quot; is the uncle of &quot;{Anthony} {Shriver}&quot;.<br>&quot;{John} {Kennedy}&quot; is the uncle of &quot;{Mark} {Shriver}&quot;.<br>&quot;{John} {Kennedy}&quot; is the uncle of &quot;{Timothy} {Shriver}&quot;.</pre>
+<pre class="output">Robert Kennedy is the uncle of Amanda Smith.<br>Robert Kennedy is the uncle of Kym Smith.<br>Edward Kennedy is the uncle of Robert Shriver.<br>Edward Kennedy is the uncle of Maria Shriver.<br>Edward Kennedy is the uncle of Timothy Shriver.</pre>
 <p>As before, it is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeDedicated()</pre>
 
@@ -1652,8 +1640,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <p>(The Gruff illustrations were made from a parallel repository in which the resources were altered to display the character's name in the graph node rather than his URI. That file is called<strong> lemisNames.rdf</strong>.) </p>
 <h3 id="Setting Up the Example">Setting Up the Example</h3>
 <p>The SNA examples are in function <strong>example21() </strong>in <strong>tutorial_examples_40.py</strong>. This exercise begins by creating a <a href="#Transaction Control">dedicated session</a> for the SNA Prolog queries to operation within. These are the same initializing steps we have used in previous examples, plus <strong>conn.openSession()</strong> to create a dedicated connection. </p>
-<pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'username', 'password')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() # SNA requires dedicated session.
-</pre>
+<pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)<br>    catalog = server.openCatalog(AG_CATALOG)  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() # SNA requires dedicated session.</pre>
 <p>The next step is to load the python-lesmis.rdf file.</p>
 <pre class="input">    path1 = "./python-lesmis.rdf"
     print "Load Les Miserables triples."
@@ -2073,7 +2060,7 @@ Did not add new triple.</pre>
 <p>Presumably any existing repository has a purpose of its own, and has been federated with other respositories to serve some combined purpose. It would be a mistake to delete triples from one repository simply because they also occur elsewhere in the federated store. This could damage the integrity of the individual repositories when they are used in stand-alone mode. By similar reasoning, it is a mistake to add triples to a federated repository. Which repository gets the new triples? </p>
 <p>For all of these reasons, federated stores are &quot;read only&quot; in AllegroGraph. Attempting to add or delete triples in a federated system result in error messages. </p>
 <p>Federation changes the semantics of &quot;duplicate triples.&quot; Be sure to take this into account in your project design. </p>
-<p><font color="#CCCCCC">June 8, 2010 4.0.4 release</font></p>
+<p><font color="#CCCCCC">July 7, 2010 AG 4.1</font></p>
 
 </body>
 
