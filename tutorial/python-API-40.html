@@ -271,7 +271,7 @@ implementation)! </p>
   </tr>
   <tr>
     <td valign="top">exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS)</td>
-      <td>Exports all triples that match <em>subj</em>, <em>pred</em> and/or <em>obj</em>. &nbsp; May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). Each context is the URI of a subgraph. </td>
+      <td>Exports all triples that match <em>subj</em>, <em>pred</em> and/or <em>obj</em>. &nbsp; May optionally <em>includeInferred</em> statements provided by RDFS++ inference (default is False). <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). Each context is the URI of a subgraph. </td>
   </tr>
   <tr>
     <td valign="top">getAddCommitSize(self)</td>
@@ -297,7 +297,7 @@ implementation)! </p>
   <tr>
     <td valign="top">getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,<br>
 limit=None, tripleIDs=False)</td>
-      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDF++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; If <em>tripleIDs</em> is True, the output includes the triple ID field (the fifth field of the quad). </td>
+      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDFS++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; If <em>tripleIDs</em> is True, the output includes the triple ID field (the fifth field of the quad). </td>
   </tr>
   <tr>
     <td valign="top">getStatementsById(self, ids) </td>
@@ -622,7 +622,7 @@ to return the results as a string in xml or json format. (Best practice is to us
   </tr>
     <tr>
       <td valign="top">setIncludeInferred(self, includeInferred)</td>
-      <td>Determines whether results of this query should include inferred statements (if any inferred statements are present in the repository). The default setting is 'true'.</td>
+      <td>Determines whether results of this query should include inferred statements (if any inferred statements are present in the repository). Inference is turned off by default (which is the opposite of standard Sesame behavior). The default value of setIncludeInferred() is True. </td>
   </tr>
 </table>
 <h3 id="Subclass TupleQuery">Subclass TupleQuery&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a> </h3>
@@ -772,7 +772,7 @@ operation.</td>
     </tr>
 </table>
 <p></p>
-<p><font color="#CCCCCC">June 8 , 2010 Version 4.0.4</font></p>
+<p><font color="#CCCCCC">July 19, 2010 Version 4.0.5c</font></p>
 <p>&nbsp;   </p>
 </body>
 
