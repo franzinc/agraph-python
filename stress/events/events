@@ -95,6 +95,9 @@ AG_USER = os.environ.get('AGRAPH_USER', 'test')
 AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
 PROG = sys.argv[0]
 
+def nonzero(value):
+    return max(0.0001, value)
+
 def trace(formatter, values=None):
     if values:
         formatter = locale.format_string(formatter, values, grouping=True)
@@ -438,8 +441,8 @@ def load_events(proc_num):
                     'far at %s triples per commit (%f commits/sec, %f triples/'
                     'sec over last %d commits), %d loading errors.', (
                     proc_num, datetime.now(), count, tpc,
-                    status_size/(end_time - start_time),
-                    tpc*status_size/(end_time - start_time),
+                    status_size/nonzero(end_time - start_time),
+                    tpc*status_size/nonzero(end_time - start_time),
                     status_size,
                     errors))
                 start_time = end_time
@@ -500,7 +503,7 @@ def load_events(proc_num):
 
         return phase
 
-    with connect().session(True, max(3600, OPT.QUERY_TIME*60)) as conn:
+    with connect().session(True, max(3600, (OPT.QUERY_TIME+1)*60)) as conn:
         if OPT.PHASE <= LoadPhase.baseline:
             phase = get_phase([LoadPhase.baseline])
             load_phase(phase)
@@ -526,6 +529,7 @@ def load_events(proc_num):
 
 def query_events(proc_num, resultq):
     conn = connect()
+    conn.openSession(True)
 
     def dequeue():
         try:
@@ -612,17 +616,18 @@ def query_events(proc_num, resultq):
                 'returned for %d queries in %f seconds (%f queries/second, '
                 '%f triples per query), %d queries aborted.', (proc_num,
                 datetime.now(), sub_count, status_size,
-                end_time-start_time, status_size/(end_time-start_time),
+                end_time-start_time, status_size/nonzero(end_time-start_time),
                 sub_count/status_size, restarts))
             start_time = end_time
             sub_count = count
             
-    the_time = time.time() - the_time
+    the_time = nonzero(time.time() - the_time)
     trace('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
         'queries in %f seconds (%f queries/second, %f triples per query), '
         ' %d queries aborted.', (proc_num, datetime.now(), language,
         count, queries, the_time, queries/the_time, count/queries, restarts))
 
+    conn.closeSession()
     conn.close()
     resultq.put((queries, count, the_time))
     queryq.task_done()
@@ -708,7 +713,7 @@ def main():
 
         triples_end = conn.size()
         triples = triples_end - triples_start
-        phase_time = time.time() - phase_time
+        phase_time = nonzero(time.time() - phase_time)
         commits = abs(triples/(params.events_in_commit*OPT.EVENT_SIZE))
         trace('%s [%s]: %d total triples processed in %f seconds '
             '(%f triples/second, %f commits/second). '
@@ -744,7 +749,7 @@ def main():
             result = resultq.get()
             queries += result[0]
             triples += result[1]
-            phase_time = max(phase_time, result[2])
+            phase_time = nonzero(max(phase_time, result[2]))
 
         trace('%s [%s]: %d total triples returned over %d queries in '
             '%f seconds (%f triples/second, %f queries/second, '
