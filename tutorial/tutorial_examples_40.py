@@ -25,6 +25,7 @@ AG_USER = 'test'
 AG_PASSWORD = 'xyzzy'
 # AG_USER = 'anonymous'
 # AG_PASSWORD = ''
+# Updated July 23, 2010 AG 4.1 BDC
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
@@ -1175,7 +1176,7 @@ def example17():
     for bindingSet in result:
         f = bindingSet.getValue("first")
         l = bindingSet.getValue("last")
-        print "%s %s" % (f, l)
+        print "%s %s" % (f.toPython(), l.toPython())
     conn.closeSession()
     conn.close();
     myRepository = conn.repository
@@ -1191,15 +1192,20 @@ def example18():
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
     path = "./python-rules.txt"
     conn.loadRules(path)
-    queryString = """(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))"""
+    queryString = """(select (?ufirst ?ulast ?cfirst ?clast)
+                             (uncle ?uncle ?child)
+                             (name ?uncle ?ufirst ?ulast)
+                             (name ?child ?cfirst ?clast))"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
     result = tupleQuery.evaluate();     
     for bindingSet in result:
-        p = bindingSet.getValue("person")
-        u = bindingSet.getValue("uncle")
-        p = p.toPython().strip('{} ').replace('} {',' ')
-        u = u.toPython().strip('{} ').replace('} {',' ')
-        print "%s is the uncle of %s." % (u, p)
+        u1 = bindingSet.getValue("ufirst")
+        u2 = bindingSet.getValue("ulast")
+        ufull = u1.toPython() + " " + u2.toPython()
+        c1 = bindingSet.getValue("cfirst")
+        c2 = bindingSet.getValue("clast")
+        cfull = c1.toPython() + " " + c2.toPython()
+        print "%s is the uncle of %s." % (ufull, cfull)
     conn.closeSession()
     conn.close();
     myRepository = conn.repository
