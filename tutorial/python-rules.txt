@@ -5,15 +5,10 @@
 (<-- (string-concat ?result ?string1 ?string2 ?string3)
      (lisp ?result (string+ ?string1 ?string2 ?string3)))
 
-(<-- (name ?person (?first ?last))
+(<-- (name ?person ?first ?last)
      (q ?person !rltv:first-name ?first)
      (q ?person !rltv:last-name ?last))  
      
-(<-- (name ?person ?fullname)
-     (q ?person !rltv:first-name ?first)
-     (q ?person !rltv:last-name ?last)
-     (string-concat ?fullname ?first " " ?last))
-
 (<-- (woman ?person)
     (q ?person !rltv:sex !rltv:female)
     (q ?person !rdf:type !rltv:person))
