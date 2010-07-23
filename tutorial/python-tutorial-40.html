@@ -1343,15 +1343,15 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <pre class="input">    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();     </pre>
 <p>The result object contains multiple bindingSets.&nbsp; We can iterate over them to print out the values. </p>
 <pre class="input">
-    for bindingSet in result:<br>        f = bindingSet.getValue(&quot;first&quot;)<br>        l = bindingSet.getValue(&quot;last&quot;)<br>        print &quot;%s %s&quot; % (f, l)</pre>
+    for bindingSet in result:<br>        f = bindingSet.getValue(&quot;first&quot;)<br>        l = bindingSet.getValue(&quot;last&quot;)<br>        print &quot;%s %s&quot; % (f.toPython(), l.toPython())</pre>
 <p>The output contains many names; there are just a few of them. </p>
-<pre class="output">&quot;Robert&quot; &quot;Kennedy&quot;<br>&quot;Alfred&quot; &quot;Tucker&quot;<br>&quot;Arnold&quot; &quot;Schwarzenegger&quot;<br>&quot;Paul&quot; &quot;Hill&quot;<br>&quot;John&quot; &quot;Kennedy&quot;</pre>
+<pre class="output">Robert Kennedy<br>Alfred Tucker<br>Arnold Schwarzenegger<br>Paul Hill<br>John Kennedy</pre>
 <p>It is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeDedicated()</pre>
 <h2 id="Loading Prolog Rules">Loading Prolog Rules (example18())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>Example <strong>example18()</strong> demonstrates how to load a file of Prolog rules into the Python API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from example6().&nbsp; After loading a file of rules (<strong>python-rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
-<pre class="input">(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))</pre>
-<p>The problem is that the triple store contains no information about uncles.&nbsp; The rules will have to deduce this relationship by finding paths across the RDF graph..&nbsp; </p>
+<pre class="input">(select (?ufirst ?ulast ?cfirst ?clast)<br>        (uncle ?uncle ?child)<br>        (name ?uncle ?ufirst ?ulast)<br>        (name ?child ?cfirst ?clast))</pre>
+<p>The problem is that the triple store contains no information about uncles.&nbsp; The rules will have to deduce this relationship by finding paths across the RDF graph.&nbsp; </p>
 <p>What's an &quot;uncle,&quot; then?&nbsp; Here's a rule that can recognize uncles:</p>
 <pre class="input">(&lt;-- (uncle ?uncle ?child) <br>    (man ?uncle)<br>    (parent ?grandparent ?uncle)<br>    (parent ?grandparent ?siblingOfUncle)<br>    (not (= ?uncle ?siblingOfUncle))<br>    (parent ?siblingOfUncle ?child))</pre>
 <p>The rule says that an &quot;uncle&quot; is a &quot;man&quot; who has a sibling who is the &quot;parent&quot; of a child.&nbsp; (Rules like this always check to be sure that the two nominated siblings are not the same resource.) Note that none of these relationships are triple patterns. They all deal in higher-order concepts. We'll need additional rules to determine what a &quot;man&quot; is, and what a &quot;parent&quot; is.</p>
@@ -1362,11 +1362,11 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <p>A person is a &quot;parent&quot; if a person is a &quot;father.&quot;&nbsp; Similarly, a person is a &quot;parent&quot; if a person is a &quot;mother.&quot; </p>
 <p>What's a &quot;father?&quot;</p>
 <pre class="input">(&lt;-- (father ?parent ?child)<br>    (man ?parent)<br>    (q ?parent !rltv:has-child ?child))</pre>
-<p>A person is a &quot;father&quot; if the person is &quot;man&quot; and has a child. &nbsp; The final pattern is a triple match from the Kennedy family tree.</p>
+<p>A person is a &quot;father&quot; if the person is &quot;man&quot; and has a child. &nbsp; The final pattern (beginning with &quot;q&quot;) is a triple match from the Kennedy family tree.</p>
 <p>What's a &quot;man?&quot;</p>
 <pre class="input">(&lt;-- (man ?person)<br>    (q ?person !rltv:sex !rltv:male)<br>    (q ?person !rdf:type !rltv:person))</pre>
 <p>A &quot;man&quot; is a person who is male.&nbsp; These patterns both match triples in the repository.&nbsp; </p>
-<p>The<strong> relative_rules.txt</strong> file contains many more Prolog rules describing relationships, including transitive relationships like &quot;ancestor&quot; and &quot;descendant.&quot; Please examine this file for more ideas about how to use rules with AllegroGraph. </p>
+<p>The<strong> python_rules.txt</strong> file contains many more Prolog rules describing relationships, including transitive relationships like &quot;ancestor&quot; and &quot;descendant.&quot; Please examine this file for more ideas about how to use rules with AllegroGraph. </p>
 <p>The <strong>example18()</strong> example begins by borrowing a connection object from example6(), which means the Kennedy family tree is already loaded into the repository, and we are dealing with a <a href="#Transaction Control">dedicated session</a>. &nbsp; </p>
 <pre class="input">def example18():<br>    conn = example6()</pre>
 <p>We need these two namespaces because they are used in the query and in the file of rules. </p>
@@ -1374,18 +1374,15 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
     conn.setNamespace(&quot;kdy&quot;, &quot;http://www.franz.com/simple#&quot;)<br>    conn.setNamespace(&quot;rltv&quot;, &quot;http://www.franz.com/simple#&quot;)  </pre>
 <p>The next step is to load the rule file: </p>
 <pre class="input">
-    path = &quot;./relative_rules.txt&quot;<br>    conn.loadRules(path)</pre>
-<p>The query asks for the full name of each uncle and each niece/nephew.&nbsp; (The (name ?x ?fullname) relationship used in the query is provided by yet another Prolog rule, which concatenates a person's first and last names into a single string.) </p>
-<pre class="input">
-    queryString = &quot;&quot;&quot;(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))&quot;&quot;&quot;</pre>
-<p>Here we execute the query and display the results:</p>
-<pre class="input">
-    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();     <br>    for bindingSet in result:<br>        p = bindingSet.getValue(&quot;person&quot;)<br>        u = bindingSet.getValue(&quot;uncle&quot;)<br>        p = p.toPython().strip('{} ').replace('} {',' ')<br>        u = u.toPython().strip('{} ').replace('} {',' ')<br>        print &quot;%s is the uncle of %s.&quot; % (u, p)</pre>
-<p>The Python string functions are used to remove some {} characters that enclose values returned by Prolog. 
+    path = &quot;./python_rules.txt&quot;<br>    conn.loadRules(path)</pre>
+<p>The query asks for the first and last names of each uncle and each niece/nephew.&nbsp; The name strings are provided by another Prolog rule: </p>
+<pre class="input">    queryString = &quot;&quot;&quot;(select (?ufirst ?ulast ?cfirst ?clast)<br>                             (uncle ?uncle ?child)<br>                             (name ?uncle ?ufirst ?ulast)<br>                             (name ?child ?cfirst ?clast))&quot;&quot;&quot;</pre>
+<p>Here we execute the query and display the results. The code is a little more complicated than usual because of the string concatenations that build the names. </p>
+<pre class="input">    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();     <br>    for bindingSet in result:<br>        u1 = bindingSet.getValue(&quot;ufirst&quot;)<br>        u2 = bindingSet.getValue(&quot;ulast&quot;)<br>        ufull = u1.toPython() + &quot; &quot; + u2.toPython()<br>        c1 = bindingSet.getValue(&quot;cfirst&quot;)<br>        c2 = bindingSet.getValue(&quot;clast&quot;)<br>        cfull = c1.toPython() + &quot; &quot; + c2.toPython()<br>        print &quot;%s is the uncle of %s.&quot; % (ufull, cfull)</pre>
 <p>The output of this loop (in part) looks like this:
 <pre class="output">Robert Kennedy is the uncle of Amanda Smith.<br>Robert Kennedy is the uncle of Kym Smith.<br>Edward Kennedy is the uncle of Robert Shriver.<br>Edward Kennedy is the uncle of Maria Shriver.<br>Edward Kennedy is the uncle of Timothy Shriver.</pre>
 <p>As before, it is good form to close the dedicated session when you are finished with it.</p>
-<pre class="input">    conn.closeDedicated()</pre>
+<pre class="input">    conn.closeSession()<br>    conn.close();<br>    myRepository = conn.repository<br>    myRepository.shutDown()</pre>
 
 <h2 id="RDFS++ Inference">RDFS++ Inference (example19())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The great promise of the semantic web is that we can use RDF metadata to combine information from multiple sources into a single, common model.&nbsp; The great problem of the semantic web is that it is so difficult to recognize when two resource descriptions from different sources actually represent the same thing.&nbsp; This problem arises because there is no uniform or universal way to generate URIs identifying resources.&nbsp; As a result, we may create two resources, Bob and Robert, that actually represent the same person. </p>
@@ -2060,7 +2057,7 @@ Did not add new triple.</pre>
 <p>Presumably any existing repository has a purpose of its own, and has been federated with other respositories to serve some combined purpose. It would be a mistake to delete triples from one repository simply because they also occur elsewhere in the federated store. This could damage the integrity of the individual repositories when they are used in stand-alone mode. By similar reasoning, it is a mistake to add triples to a federated repository. Which repository gets the new triples? </p>
 <p>For all of these reasons, federated stores are &quot;read only&quot; in AllegroGraph. Attempting to add or delete triples in a federated system result in error messages. </p>
 <p>Federation changes the semantics of &quot;duplicate triples.&quot; Be sure to take this into account in your project design. </p>
-<p><font color="#CCCCCC">July 7, 2010 AG 4.1</font></p>
+<p><font color="#CCCCCC">July 23, 2010 AG 4.1</font></p>
 
 </body>
 
