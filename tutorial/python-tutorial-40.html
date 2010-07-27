@@ -304,7 +304,7 @@ reside in the background graph.
     conn.add(bob, name, bobsName)
 
     print "Triple count: ", conn.size()
-    for s in conn.getStatements(None, None, None, None): print s </pre>
+    for s in conn.getStatements(None, None, None, None, False): print s </pre>
 <p>The &quot;None&quot; arguments to the getStatements() method say that we don't want to restrict what values may be present in the subject, predicate, object or context positions. Just print out all the triples. </p>
 <p>This is the output at this point. We see four triples, two about Alice and two about Bob:</p>
 <pre class="output">
@@ -1414,26 +1414,22 @@ Robert and Bob have links to the child resources:
 <br>
 <pre class="input">    ## robert has a child<br>    conn.add(robert, fatherOf, roberta)<br>    ## bob has a child<br>    conn.add(bob, fatherOf, bobby)
 </pre> 
-<h3>SameAs</h3>
+<h3>SameAs, using a SPARQL Query </h3>
 <p>Now that the basic resources and relations are in place, we'll seed the triple store with a statement that &quot;Robert is the same as Bob,&quot; using the <strong>owl:sameAs</strong> predicate.&nbsp; The AllegroGraph inference engine recognizes the semantics of owl:sameAs, and automatically infers that Bob and Robert share the same attributes.&nbsp; Each of them originally had one child.&nbsp; When inference is turned on, however, they each have two children.&nbsp; </p>
 <p><img src="inferenceSaveAs.jpg" width="459" height="182"></p>
 <p>Note that SameAs does not combine the two resources.&nbsp; Instead it links each of the two resources to all of the combined children.&nbsp; The red links in the image are &quot;inferred&quot; triples.&nbsp; They have been deduced to be true, but are not actually present in the triple store. </p>
 <p>This is the critical link that tells the inference engine to regard Bob and Robert as the same resource. </p>
 <pre class="input">    ## Bob is the same person as Robert<br>    conn.add(bob, OWL.SAMEAS, robert)
 </pre>
-This is a simple getStatements() search asking for the children of Robert, with inference turned OFF. &quot;Inference&quot; is the fifth parameter to getStatements(), defaulting to &quot;False&quot;. <br>
-<pre class="input">    print &quot;Children of Robert, inference OFF&quot;<br>    for s in conn.getStatements(robert, fatherOf, None, None): print s   
-</pre> 
+<p>This is a simple SPARQL query asking for the children of Robert, with inference turned OFF. Note the use of <strong>tupleQuery.setIncludeInferred()</strong>, which controls whether or not inferred triples may be included in the query results. Inference is turned off by default, but for teaching purposes we have turned it of explicitly. We also took the liberty of setting variable bindings for ?robert and ?fatherOf, simply to make the code easier to read. Otherwise we would have had to put full-length URIs in the query string. </p>
+<pre class="input">    queryString = <strong>&quot;SELECT ?child WHERE {?robert ?fatherOf ?child .}&quot;</strong><br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    <strong>tupleQuery.setIncludeInferred(False)</strong> # Turn off inference<br>    tupleQuery.setBinding(&quot;robert&quot;, robert)<br>    tupleQuery.setBinding(&quot;fatherOf&quot;, fatherOf)<br>    result = tupleQuery.evaluate()    <br>    print &quot;Children of Robert, inference OFF:&quot;<br>    for r in result: print r  </pre> 
 <p>The search returns one triple, which is the link from Robert to his direct child, Roberta. </p>
 <pre class="output">Children of Robert, inference OFF
-(&lt;http://example.org/people/robert&gt;, &lt;http://example.org/ontology/fatherOf&gt;, &lt;http://example.org/people/roberta&gt;)
-</pre>
-<p>This is a getStatements() search with inference turned ON.&nbsp; This time we added the fifth parameter, True, to getStatements(). This turns on the inference engine. </p>
-<pre class="input">    print &quot;Children of Robert, inference ON&quot;<br>    for s in conn.getStatements(robert, fatherOf, None, None, True): print s  </pre>
+{'child': u'&lt;http://example.org/people/roberta&gt;'}</pre>
+<p>Now we'll perform the same query (the same tupleQuery, in fact), with inference turned ON.&nbsp; </p>
+<pre class="input">    tupleQuery.setIncludeInferred(True)<br>    result = tupleQuery.evaluate()    <br>    print &quot;Children of Robert, inference ON:&quot;<br>    for r in result: print r  </pre>
 <pre class="output">Children of Robert, inference ON
-(&lt;http://example.org/people/robert&gt;, &lt;http://example.org/ontology/fatherOF&gt;, &lt;http://example.org/people/roberta&gt;)
-(&lt;http://example.org/people/robert&gt;, &lt;http://example.org/ontology/fatherOf&gt;, &lt;http://example.org/people/bobby&gt;)
-</pre>
+{'child': u'&lt;http://example.org/people/roberta&gt;'}<br>{'child': u'&lt;http://example.org/people/bobby&gt;'}</pre>
 <p>Note that with inference ON, Robert suddenly has two children because Bob's child has been included.&nbsp; Also note that the final triple (robert fatherOf bobby) has been inferred.&nbsp; The inference engine has determined that this triple logically must be true, even though it does not appear in the repository. </p>
 <h3>InverseOf</h3>
 <p>We can reuse the Robert family tree to see how the inference engine can deduce the presence of inverse relationships. </p>
@@ -1447,15 +1443,15 @@ This is a simple getStatements() search asking for the children of Robert, with 
 <p>This is the line where we create a predicate resource.&nbsp; It is just a triple that describes a property of the predicate.&nbsp; The hasFather predicate is the inverse of the fatherOf predicate: </p>
 
 <pre class="input">     conn.add(hasFather, OWL.INVERSEOF, fatherOf)</pre>
-<p>First, we'll search for hasFather triples, leaving inference OFF to show that there are no such triples in the repository: </p>
+<p>For this example, we're going to use <strong>getStatements()</strong> instead of SPARQL. The simple getStatements() format is sufficient to our needs, and simplifies the code. First, we'll search for hasFather triples, leaving inference OFF to show that there are no such triples in the repository. The fifth parameter to getStatements(), shown here as <strong>False</strong>, controls inferencing. </p>
 
 <pre class="input">    print "People with fathers, inference OFF"
-    for s in conn.getStatements(None, hasFather, None, None): print s    
+    for s in conn.getStatements(None, hasFather, None, None, <strong>False</strong>): print s    
 </pre>
 <pre class="output">People with fathers, inference OFF<br></pre>
-<p>Now we'll turn inference ON.&nbsp; This time, the AllegroGraph inference engine discovers two &quot;new&quot; hasFather triples. </p>
+<p>Now we'll turn inference ON by changing the fifth parameter to <strong>True</strong>. This time, the AllegroGraph inference engine discovers two &quot;new&quot; hasFather triples. </p>
 <pre class="input">    print "People with fathers, inference ON"
-    for s in conn.getStatements(None, hasFather, None, None, True): print s  
+    for s in conn.getStatements(None, hasFather, None, None, <strong>True</strong>): print s  
 </pre>
 <pre class="output">People with fathers, inference ON<br>(&lt;http://example.org/people/bobby&gt;, &lt;http://example.org/ontology/hasFather&gt;, &lt;http://example.org/people/bob&gt;)
 (&lt;http://example.org/people/roberta&gt;, &lt;http://example.org/ontology/hasFather&gt;, &lt;http://example.org/people/robert&gt;)</pre>
@@ -1468,7 +1464,7 @@ This is a simple getStatements() search asking for the children of Robert, with 
 <pre class="input">    parentOf = conn.createURI(&quot;http://example.org/ontology/parentOf&quot;)<br>    conn.add(fatherOf, RDFS.SUBPROPERTYOF, parentOf)
 </pre>
 <p>If we now search for parentOf triples with inference OFF, we won't find any. No such triples exist in the repository. </p>
-<pre class="input">    print &quot;People with parents, inference OFF&quot;<br>    for s in conn.getStatements(None, parentOf, None, None): print s   
+<pre class="input">    print &quot;People with parents, inference OFF&quot;<br>    for s in conn.getStatements(None, parentOf, None, None, False): print s   
 </pre><pre class="output">People with parents, inference OFF
 
 </pre>
@@ -2059,7 +2055,6 @@ Did not add new triple.</pre>
 <p>Presumably any existing repository has a purpose of its own, and has been federated with other respositories to serve some combined purpose. It would be a mistake to delete triples from one repository simply because they also occur elsewhere in the federated store. This could damage the integrity of the individual repositories when they are used in stand-alone mode. By similar reasoning, it is a mistake to add triples to a federated repository. Which repository gets the new triples? </p>
 <p>For all of these reasons, federated stores are &quot;read only&quot; in AllegroGraph. Attempting to add or delete triples in a federated system result in error messages. </p>
 <p>Federation changes the semantics of &quot;duplicate triples.&quot; Be sure to take this into account in your project design. </p>
-<p><font color="#CCCCCC">September 22, 2010 AG 4.1</font></p>
 
 </body>
 
