@@ -83,7 +83,7 @@ def example2():
     bobsName = conn.createLiteral("Bob")
     alicesName = conn.createLiteral("Alice")
     print "Triple count before inserts: ", conn.size()
-    for s in conn.getStatements(None, None, None, None): print s    
+    for s in conn.getStatements(None, None, None, None, False): print s    
     ## alice is a person
     conn.add(alice, RDF.TYPE, person)
     ## alice's name is "Alice"
@@ -94,7 +94,7 @@ def example2():
     conn.add(bob, name, bobsName)
     print "Added four triples."
     print "Triple count: ", conn.size()
-    for s in conn.getStatements(None, None, None, None): print s    
+    for s in conn.getStatements(None, None, None, None, False): print s    
     conn.remove(bob, name, bobsName)
     print "Removed one triple."
     print "Triple count: ", conn.size()
@@ -130,7 +130,7 @@ def example4():
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     alice = conn.createURI("http://example.org/people/alice")
     print "Searching for Alice using getStatements():"
-    statements = conn.getStatements(alice, None, None)
+    statements = conn.getStatements(alice, None, None, False)
     # statements.enableDuplicateFilter() ## there are no duplicates, but this exercises the code that checks
     for s in statements:
         print s
@@ -797,7 +797,7 @@ def example10():
     conn.add(bob, name, bobsName, context2)
     conn.add(ted, RDF.TYPE, person)
     conn.add(ted, name, tedsName)
-    statements = conn.getStatements(None, None, None)
+    statements = conn.getStatements(None, None, None, False)
     verify(statements.rowCount(), 6, 'statements.rowCount()', 10)
     print "All triples in all contexts:"
     for s in statements:
@@ -910,7 +910,7 @@ def example12():
     conn.add(carroll, RDF.TYPE, persontype)
     # getStatements search for all triples
     print "\nCurrent content of triple store:"
-    for s in conn.getStatements(None, None, None, None): print s 
+    for s in conn.getStatements(None, None, None, None, False): print s 
     # Begin fti:match SPARQL queries
     conn.setNamespace('ex', exns)
     print "\nWhole-word match for 'Alice'"
@@ -1172,7 +1172,8 @@ def example17():
             (q ?person !kdy:last-name ?last)
             )"""
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
-    result = tupleQuery.evaluate();     
+    tupleQuery.setIncludeInferred(False)
+    result = tupleQuery.evaluate()    
     for bindingSet in result:
         f = bindingSet.getValue("first")
         l = bindingSet.getValue("last")
@@ -1246,12 +1247,19 @@ def example19():
     ## bob has a child
     conn.add(bob, fatherOf, bobby)
     ## List the children of Robert, with inference OFF.
-    print "Children of Robert, inference OFF"
-    for s in conn.getStatements(robert, fatherOf, None, None): print s    
-    ## List the children of Robert with inference ON. The owl:sameAs
-    ## link combines the children of Bob with those of Robert.
-    print "Children of Robert, inference ON"
-    for s in conn.getStatements(robert, fatherOf, None, None, True): print s  
+    queryString = "SELECT ?child WHERE {?robert ?fatherOf ?child .}"
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setIncludeInferred(False) # Turn off inference
+    tupleQuery.setBinding("robert", robert)
+    tupleQuery.setBinding("fatherOf", fatherOf)
+    result = tupleQuery.evaluate()    
+    print "Children of Robert, inference OFF:"
+    for r in result: print r  
+    ## List the children of Robert, with inference ON.
+    tupleQuery.setIncludeInferred(True)   # Turn on inference
+    result = tupleQuery.evaluate()    
+    print "Children of Robert, inference ON:"
+    for r in result: print r  
     ## Remove the owl:sameAs link so we can try the next example. 
     conn.remove(bob, OWL.SAMEAS, robert)
     ## Define new predicate, hasFather, as the inverse of fatherOf.
@@ -1260,7 +1268,7 @@ def example19():
     ## Search for people who have fathers, even though there are no hasFather triples.
     ## With inference OFF.
     print "People with fathers, inference OFF"
-    for s in conn.getStatements(None, hasFather, None, None): print s    
+    for s in conn.getStatements(None, hasFather, None, None, False): print s    
     ## With inference ON. The owl:inverseOf link allows AllegroGraph to 
     ## deduce the inverse links.
     print "People with fathers, inference ON"
@@ -1276,7 +1284,7 @@ def example19():
       ## Bob has how many children? 
       ## With inference OFF.
       #print "Who is Bob the father of, inference OFF"
-      #for s in conn.getStatements(bob, fatherOf, None, None): print s    
+      #for s in conn.getStatements(bob, fatherOf, None, None, False): print s    
       ## With inference ON. AllegroGraph knows that Bob and Robert must
       ## be the same person.
       #print "Who is Bob the father of, inference ON"
@@ -1288,7 +1296,7 @@ def example19():
     ## Search for parentOf links, even though there are no parentOf triples.
     ## With inference OFF.
     print "People with parents, inference OFF"
-    for s in conn.getStatements(None, parentOf, None, None): print s    
+    for s in conn.getStatements(None, parentOf, None, None, False): print s    
     ## With inference ON. The rdfs:subpropertyOf link allows AllegroGraph to 
     ## deduce that fatherOf links imply parentOf links.
     print "People with parents, inference ON"
@@ -2272,4 +2280,4 @@ if __name__ == '__main__':
             print "This example is not available in the current release."
     print("\nElapsed time: %s seconds." % (time.clock() - starttime))
 
-## Update: July 7, 2010 AG 4.1
+## Update: July 26, 2010 AG 4.1
