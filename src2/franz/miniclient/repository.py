@@ -29,9 +29,12 @@ class Catalog(Service):
         repos = jsonRequest(self, "GET", "/repositories")
         return [repo["id"] for repo in repos]
 
-    def createRepository(self, name):
+    def createRepository(self, name, indices=None):
         """Ask the server to create a new repository."""
-        nullRequest(self, "PUT", "/repositories/" + urllib.quote(name))
+        url = "/repositories/" + urllib.quote(name)
+        if indices is not None:
+            url = url + "?" + urlenc(index=indices)
+        nullRequest(self, "PUT", url)
         return self.getRepository(name)
 
     def deleteRepository(self, name):
@@ -313,6 +316,18 @@ class Repository(Service):
 
     def deleteMappedPredicate(self, predicate):
         nullRequest(self, "DELETE", "/mapping/predicate", urlenc(predicate=predicate))
+
+    def listIndices(self):
+        return jsonRequest(self, "GET", "/indices")
+
+    def listValidIndices(self):
+        return jsonRequest(self, "GET", "/indices?listValid=true")
+
+    def addIndex(self, type):
+        nullRequest(self, "PUT", "/indices/" + urllib.quote(type))
+
+    def dropIndex(self, type):
+        nullRequest(self, "DELETE", "/indices/" + urllib.quote(type))
 
     def getCartesianGeoType(self, stripWidth, xMin, xMax, yMin, yMax):
         """Retrieve a cartesian geo-spatial literal type."""
