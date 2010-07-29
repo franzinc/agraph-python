@@ -1089,12 +1089,7 @@ def example15():
     age = conn.createURI(namespace=exns, localname="age")    
     range = conn.createRange(30, 50)
     # range = conn.createRange(24, 42)  #this setting demonstrates that the limits are inclusive.
-    if True: conn.registerDatatypeMapping(predicate=age, nativeType="int")
-    if False: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType="int")  
-    # True, True: Alice Age 42(int) AND Carol Age 39(int)  
-    # True, False: Alice Age 42(int) AND Carol Age 39(int)
-    # False, True: Alice Age 42(int)
-    # False, False: Error
+    conn.registerDatatypeMapping(predicate=age, nativeType="int")
     conn.add(alice, age, 42)
     conn.add(bob, age, 24) 
     conn.add(carol, age, "39") 
@@ -2280,4 +2275,4 @@ if __name__ == '__main__':
             print "This example is not available in the current release."
     print("\nElapsed time: %s seconds." % (time.clock() - starttime))
 
-## Update: July 26, 2010 AG 4.1
+## Update: July 28, 2010 AG 4.1

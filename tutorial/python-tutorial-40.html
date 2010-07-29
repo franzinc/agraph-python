@@ -1281,24 +1281,22 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
     alice = conn.createURI(namespace=exns, localname=&quot;alice&quot;)<br>    bob = conn.createURI(namespace=exns, localname=&quot;bob&quot;)<br>    carol = conn.createURI(namespace=exns, localname=&quot;carol&quot;)    <br>    age = conn.createURI(namespace=exns, localname=&quot;age&quot;)    </pre>
 <p>In this step, we use the connection's createRange() method to generate a range object with limits 30 and 50:</p>
 <pre class="input">    range = conn.createRange(30, 50)</pre>
-<p>The next two lines are essential to the experiment, but you can take your pick of which one to use. The range comparison requires that all of the matching values must have the same datatype. In this case, the values must all be ints. The connection object lets us force this uniformity on the data through the <strong>registerDatatypeMapping()</strong> method. This conversion comes in two versions. You can force all values of a specific predicate to be internally represented as one datatype, as we do here: </p>
+<p>The next two lines are essential to the experiment, but you can take your pick of which one to use. The range comparison requires that all of the matching values must have the same datatype. In this case, the values must all be ints. The connection object lets us force this uniformity on the data through the <strong>registerDatatypeMapping()</strong> method. You can force all values of a specific predicate to be internally represented as one datatype, as we do here: </p>
 <pre class="input">
-    if True: conn.registerDatatypeMapping(predicate=age, nativeType=&quot;int&quot;)</pre>
-<p>This line declares that all values of the age predicate will be represented in Python as ints.</p>
-<p>We can also map one datatype into another. In this line, all values represented in the XMLSchema as INTs will be treated as ints in Python. </p>
+    conn.registerDatatypeMapping(predicate=age, nativeType=&quot;int&quot;)</pre>
+<p>This line declares that all values of the age predicate will be represented in triples as if they were &quot;int&quot; values in Python. </p>
 <pre class="input">
-    if True: conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType=&quot;int&quot;)    </pre>
-<p>If we turn off both mappings, the range comparison fails with internal errors. Why? Because the example deliberately uses inconsistent data. </p>
+    conn.registerDatatypeMapping(datatype=XMLSchema.INT, nativeType=&quot;int&quot;)    </pre>
+<p>However, this doesn't mean quite what you think it does. As it happens, due to implementation details that differ between Python and AllegroGraph, the closest AllegroGraph datatype to Python's &quot;int&quot; is XMLSchema.LONG. When we create the following triples, we find that they contain XMLSchema.LONG values. </p>
 <pre class="input">    conn.add(alice, age, 42)
     conn.add(bob, age, 24) <br>    conn.add(carol, age, &quot;39&quot;) 
 </pre>
-<p>Carol's age is initially represented as a string instead of an int. This breaks the range comparison. The datatype mapping forces the string value to become an int. </p>
 <p>The next step is to use getStatements() to retrieve all triples where the age value is between 30 and 50. </p>
 <pre class="input">    statements = conn.getStatements(None, age, range)<br>    for s in statements:<br>        print s</pre>
 <p>The output of this loop is:</p>
-<pre class="output">(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)
-(&lt;http://example.org/people/carol&gt;, &lt;http://example.org/people/age&gt;, &quot;39&quot;^^&lt;http://www.w3.org/2001/XMLSchema#int&gt;)</pre>
-<p>It has matched 42 and &quot;39&quot;, but not 24. </p>
+<pre class="output">(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/age&gt;, &quot;42&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;)
+(&lt;http://example.org/people/carol&gt;, &lt;http://example.org/people/age&gt;, &quot;39&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;)</pre>
+<p>The range query  has matched 42 and &quot;39&quot;, but not 24. </p>
 
 <h2 id="Federated Repositories">Federated Repositories (example16())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph lets you split up your triples among repositories on multiple servers and then search them all in parallel. To do this we query a single &quot;federated&quot; repository that automatically distributes the queries to the secondary repositories and combines the results. From the point of view of your Python code, it looks like you are working with a single repository. </p>
@@ -2053,7 +2051,7 @@ Did not add new triple.</pre>
 <p>Presumably any existing repository has a purpose of its own, and has been federated with other respositories to serve some combined purpose. It would be a mistake to delete triples from one repository simply because they also occur elsewhere in the federated store. This could damage the integrity of the individual repositories when they are used in stand-alone mode. By similar reasoning, it is a mistake to add triples to a federated repository. Which repository gets the new triples? </p>
 <p>For all of these reasons, federated stores are &quot;read only&quot; in AllegroGraph. Attempting to add or delete triples in a federated system result in error messages. </p>
 <p>Federation changes the semantics of &quot;duplicate triples.&quot; Be sure to take this into account in your project design. </p>
-<p><font color="#CCCCCC">July 26, 2010 AG 4.1</font></p>
+<p><font color="#CCCCCC">Update: July 28, 2010 AG 4.1</font></p>
 
 </body>
 
