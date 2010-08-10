@@ -36,7 +36,7 @@ except:
         "Use Python 2.6 or install http://pypi.python.org/pypi/multiprocessing/"
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-import locale, os, random, subprocess, sys, time, traceback
+import locale, os, pycurl, random, subprocess, sys, time, traceback
 
 sys.path.append(os.path.join(os.getcwd(), '../../src2'))
 
@@ -84,6 +84,12 @@ class Defaults:
 
     # Add mixed workload phase
     MIXED = False
+
+    # Debug mode
+    DEBUG = False
+
+    # The random seed for the run
+    SEED = 0
 
 # The program options
 OPT = None
@@ -412,6 +418,9 @@ def load_events(proc_num):
     load_files does the work of the child processes.
     """
     conn = None
+
+    if OPT.SEED:
+        random.seed(OPT.SEED+977*proc_num)
     
     def dequeue():
         try:
@@ -528,6 +537,9 @@ def load_events(proc_num):
     conn.close()
 
 def query_events(proc_num, resultq):
+    if OPT.SEED:    
+        random.seed(OPT.SEED+983*proc_num)
+   
     conn = connect()
     conn.openSession(True)
 
@@ -648,11 +660,32 @@ def monitor(phase):
     except OSError:
         pass
 
+def handle_debug():
+    if not OPT.DEBUG:
+        return
+
+    import franz.miniclient.request as request_module
+
+    handle_debug.makeRequest = request_module.makeRequest
+
+    def wrapMakeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None):
+        try:
+            return handle_debug.makeRequest(obj, method, url, body, accept, contentType, callback, errCallback)
+        except pycurl.error:
+            print >> sys.stderr, "Process id:", os.getpid(), url
+            traceback.print_exc()
+            subprocess.call(['killall', '-STOP', 'agraph', 'python'])
+            raise
+
+    request_module.makeRequest = wrapMakeRequest
+
 def main():
     """
     The parent main process.
     """
     global loadq, PHASE_PARAMS
+
+    handle_debug()
 
     initialize_events()
 
@@ -923,7 +956,7 @@ if __name__ == '__main__':
         type='int', dest='EVENT_SIZE', metavar='EVENT_SIZE',
         help='each event will contain EVENT_SIZE number of triples '
             '[default=%default]')
-    parser.add_option('-b', '--bulk', default=Defaults.BULK_EVENTS,
+    parser.add_option('-k', '--bulk', default=Defaults.BULK_EVENTS,
         type='int', dest='BULK_EVENTS', metavar='BULK_EVENTS',
         help='commit BULK_EVENTS number of events per commit during bulk load '
             '[default=%default]')
@@ -941,8 +974,15 @@ if __name__ == '__main__':
         help='OPEN the repository instead of RENEWING it [default=%default]')
     parser.add_option('-m', '--mixed', default=Defaults.MIXED,
         dest='MIXED', metavar='MIXED', action="store_true",
-        help='Add MIXED workload phase after the normal run " \
-            "(runs until a killall python) [default=do not run]')
+        help='Add MIXED workload phase after the normal run '
+            '(runs until a killall python) [default=do not run]')
+    parser.add_option('-b', '--debug', default=Defaults.DEBUG,
+        dest='DEBUG', metavar='DEBUG', action='store_true',
+        help='Sets debug mode (suspends processes on errors) '
+            '[default=non-debug]')
+    parser.add_option('-d', '--seed', default=Defaults.SEED,
+        dest='SEED', metavar='SEED', type=int,
+        help='An integer seed for the run [default=0 (random seed)]')
 
     options, args = parser.parse_args()
     OPT = options
