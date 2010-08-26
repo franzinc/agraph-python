@@ -780,38 +780,48 @@ def example10():
     """
     print "Starting example10()."
     conn = example1()
+    ## Create URIs for resources, predicates and classes.
     exns = "http://example.org/people/"
     alice = conn.createURI(namespace=exns, localname="alice")
     bob = conn.createURI(namespace=exns, localname="bob")
     ted = conn.createURI(namespace=exns, localname="ted")
     person = conn.createURI(namespace=exns, localname="Person")
-    name = conn.createURI(namespace=exns, localname="name")    
+    name = conn.createURI(namespace=exns, localname="name")  
+    ## Create literal name values.  
     alicesName = conn.createLiteral("Alice")    
     bobsName = conn.createLiteral("Bob")
     tedsName = conn.createLiteral("Ted")    
+    ## Create URIs to identify the named contexts. 
     context1 = conn.createURI(namespace=exns, localname="cxt1")      
-    context2 = conn.createURI(namespace=exns, localname="cxt2")          
+    context2 = conn.createURI(namespace=exns, localname="cxt2")  
+    ## Assemble new statements and add them to the contexts.        
     conn.add(alice, RDF.TYPE, person, context1)
     conn.add(alice, name, alicesName, context1)
     conn.add(bob, RDF.TYPE, person, context2)
     conn.add(bob, name, bobsName, context2)
-    conn.add(ted, RDF.TYPE, person)
-    conn.add(ted, name, tedsName)
-    statements = conn.getStatements(None, None, None, False)
-    verify(statements.rowCount(), 6, 'statements.rowCount()', 10)
-    print "All triples in all contexts:"
+    conn.add(ted, RDF.TYPE, person)   ## Added to null context
+    conn.add(ted, name, tedsName)     ## Added to null context
+    print "---------------------------------------------------------------"
+    statements = conn.getStatements(None, None, None)
+    print "All triples in all contexts: %s" % (conn.size())   
     for s in statements:
         print s
+    print "---------------------------------------------------------------"
+    statements = conn.getStatements(None, None, None, ['null'])
+    print "All triples in null context: %s" % (conn.size(['null']))   
+    for s in statements:
+        print s
+    print "---------------------------------------------------------------"
     statements = conn.getStatements(None, None, None, [context1, context2])
-    verify(statements.rowCount(), 4, 'statements.rowCount()', 10)
-    print "Triples in contexts 1 or 2:"
+    print "Triples in contexts 1 or 2: %s" % (conn.size([context1, context2]))
     for s in statements:
         print s
+    print "---------------------------------------------------------------"
     statements = conn.getStatements(None, None, None, ['null', context2])
-    verify(statements.rowCount(), 4, 'statements.rowCount()', 10)
-    print "Triples in contexts null or 2:"
+    print "Triples in contexts null or 2: %s" % (conn.size(['null', context2]))
     for s in statements:
         print s
+    print "---------------------------------------------------------------"
     ## testing named graph query:
     queryString = """
     SELECT ?s ?p ?o ?c
@@ -823,10 +833,10 @@ def example10():
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setDataset(ds)
     result = tupleQuery.evaluate(); 
-    verify(result.rowCount(), 4, 'result.rowCount()', 10)   
-    print "Query over contexts 1 and 2."
+    print "SPARQL query over contexts 1 and 2."
     for bindingSet in result:
         print bindingSet.getRow()
+    print "---------------------------------------------------------------"
     ## testing default graph query:
     queryString = """
     SELECT ?s ?p ?o    
@@ -837,8 +847,7 @@ def example10():
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setDataset(ds)   
     result = tupleQuery.evaluate(); 
-    verify(result.rowCount(), 2, 'result.rowCount()', 10)    
-    print "Query over the null context."
+    print "SPARQL uery over the null context."
     for bindingSet in result:
         print bindingSet.getRow()
     conn.close();
