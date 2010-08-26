@@ -367,7 +367,7 @@ limit=None, tripleIDs=False)</td>
   </tr>
   <tr>
     <td valign="top">size(self, contexts=ALL_CONTEXTS)</td>
-      <td>Returns the number of (explicit) statements that are in the specified <em>contexts</em> in this repository. contexts defaults to ALL_CONTEXTS, but can be a tuple of context names from getContextIDs(). </td>
+      <td>Returns the number of (explicit) statements that are in the specified <em>contexts</em> in this repository. contexts defaults to ALL_CONTEXTS, but can be a context URI or a tuple of context URIs from getContextIDs(). Use 'null' to get the size of the default graph (the unnamed context). </td>
   </tr>
 </table>
 <h3 id="Free Text Search Methods">Free Text Search Methods</h3>
@@ -772,7 +772,6 @@ operation.</td>
     </tr>
 </table>
 <p></p>
-<p><font color="#CCCCCC">July 19, 2010 Version 4.0.5c</font></p>
 <p>&nbsp;   </p>
 </body>
 
