@@ -107,9 +107,6 @@ class Repository:
         """
         Shuts the store down, releasing any resources that it keeps hold of.
         Once shut down, the store can no longer be used.
-        
-        TODO: WE COULD PRESUMABLY ADD SOME LOGIC TO MAKE A RESTART POSSIBLE, ALTHOUGH
-        THE ACCESS OPTION MIGHT NOT MAKE SENSE THE SECOND TIME AROUND (KILLING THAT IDEA!)
         """
         self.mini_repository = None
 
