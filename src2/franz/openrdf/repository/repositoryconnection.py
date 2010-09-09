@@ -27,44 +27,14 @@ from ..vocabulary import RDF, RDFS, OWL, XMLSchema
 import copy, datetime, os
 from contextlib import contextmanager
 
-# * Main interface for updating data in and performing queries on a Sesame
-# * repository. By default, a RepositoryConnection is in autoCommit mode, meaning
-# * that each operation corresponds to a single transaction on the underlying
-# * store. autoCommit can be switched off in which case it is up to the user to
-# * handle transaction commit/rollback. Note that care should be taking to always
-# * properly close a RepositoryConnection after one is finished with it, to free
-# * up resources and avoid unnecessary locks.
-# * <p>
-# * Several methods take a vararg argument that optionally specifies a (set of)
-# * context(s) on which the method should operate. Note that a vararg parameter
-# * is optional, it can be completely left out of the method call, in which case
-# * a method either operates on a provided statements context (if one of the
-# * method parameters is a statement or collection of statements), or operates on
-# * the repository as a whole, completely ignoring context. A vararg argument may
-# * also be 'null' (cast to Resource) meaning that the method operates on those
-# * statements which have no associated context only.
-# * <p>
-# * Examples:
-# * 
-# * <pre>
-# * // Ex 1: this method retrieves all statements that appear in either context1 or context2, or both.
-# * RepositoryConnection.getStatements(null, null, null, true, context1, context2);
-# * 
-# * // Ex 2: this method retrieves all statements that appear in the repository (regardless of context).
-# * RepositoryConnection.getStatements(null, null, null, true);
-# * 
-# * // Ex 3: this method retrieves all statements that have no associated context in the repository.
-# * // Observe that this is not equivalent to the previous method call.
-# * RepositoryConnection.getStatements(null, null, null, true, (Resource)null);
-# * 
-# * // Ex 4: this method adds a statement to the store. If the statement object itself has 
-# * // a context (i.e. statement.getContext() != null) the statement is added to that context. Otherwise,
-# * // it is added without any associated context.
-# * RepositoryConnection.add(statement);
-# * 
-# * // Ex 5: this method adds a statement to context1 in the store. It completely ignores any
-# * // context the statement itself has.
-# * RepositoryConnection.add(statement, context1);
+# RepositoryConnection is the main interface for updating data in and performing
+# queries on a repository.
+#
+# See http://www.franz.com/agraph/support/documentation/v4/python-tutorial/python-API-40.html
+# or your local installation's tutorial/python-API-40.html for the API documentation.
+#
+# See http://www.franz.com/agraph/support/documentation/v4/python-tutorial/python-tutorial-40.html
+# or your local installation's tutorial/python-tutorial-40.html for the tutorial.
 
 class RepositoryConnection(object):
     def __init__(self, repository):
@@ -151,16 +121,6 @@ class RepositoryConnection(object):
             contexts.append(self.createURI(cxt))
         return contexts
 
-
-#     * Returns the number of (explicit) statements that are in the specified
-#     * contexts in this repository.
-#     * 
-#     * @param contexts
-#     *        The context(s) to get the data from. Note that this parameter is a
-#     *        vararg and as such is optional. If no contexts are supplied the
-#     *        method operates on the entire repository.
-#     * @return The number of explicit statements from the specified contexts in
-#     *         this repository.
     def size(self, contexts=ALL_CONTEXTS):
         """
         Returns the number of (explicit) statements that are in the specified
@@ -177,14 +137,11 @@ class RepositoryConnection(object):
                 total += self._get_mini_repository().getSize(cxt)
             return total
 
-#     * Returns <tt>true</tt> if this repository does not contain any (explicit)
-#     * statements.
-#     * 
-#     * @return <tt>true</tt> if this repository is empty, <tt>false</tt>
-#     *         otherwise.
-#     * @throws RepositoryException
-#     *         If the repository could not be checked to be empty.
     def isEmpty(self):
+        """
+        Returns <tt>true</tt> if this repository does not contain any (explicit)
+        statements.
+        """
         return self.size() == 0
     
     def _context_to_ntriples(self, context, none_is_mini_null=False):
@@ -436,24 +393,6 @@ class RepositoryConnection(object):
             quads.append(quad)
         self._get_mini_repository().addStatements(quads, commitEvery=self.add_commit_size)
                 
-#     * Adds the supplied statement to this repository, optionally to one or more
-#     * named contexts.
-#     * 
-#     * @param st
-#     *        The statement to add.
-#     * @param contexts
-#     *        The contexts to add the statements to. Note that this parameter is
-#     *        a vararg and as such is optional. If no contexts are specified, the
-#     *        statement is added to any context specified in each statement, or
-#     *        if the statement contains no context, it is added without context.
-#     *        If one or more contexts are specified the statement is added to
-#     *        these contexts, ignoring any context information in the statement
-#     *        itself.
-#     * @throws RepositoryException
-#     *         If the statement could not be added to the repository, for example
-#     *         because the repository is not writable.
-
-
     def addStatement(self, statement, contexts=None):
         """
         Add the supplied statement to the specified contexts in the repository.
@@ -530,34 +469,12 @@ class RepositoryConnection(object):
         """
         self._get_mini_repository().deleteStatementsById(tids)
    
-#     * Removes the supplied statement from the specified contexts in the
-#     * repository.
-#     * @param st
-#     *        The statement to remove.
-#     * @param contexts
-#     *        The context(s) to remove the data from. Note that this parameter is
-#     *        is optional. If no contexts are supplied the
-#     *        method operates on the contexts associated with the statement
-#     *        itself, and if no context is associated with the statement, on the
-#     *        entire repository.
-#     * @throws RepositoryException
-#     *         If the statement could not be removed from the repository, for
-#     *         example because the repository is not writable.
     def removeStatement(self, statement, contexts=None):
         """
         Removes the supplied statement(s) from the specified contexts in the repository.
         """
         self.removeTriples(statement.getSubject(), statement.getPredicate(), statement.getContext(), contexts=contexts)
 
-#     * Removes all statements from a specific contexts in the repository.
-#     * 
-#     * @param contexts
-#     *        The context(s) to remove the data from. Note that this parameter is
-#     *        a vararg and as such is optional. If no contexts are supplied the
-#     *        method operates on the entire repository.
-#     * @throws RepositoryException
-#     *         If the statements could not be removed from the repository, for
-#     *         example because the repository is not writable.
     def clear(self, contexts=ALL_CONTEXTS):
         """
         Removes all statements from designated contexts in the repository.  If
@@ -565,16 +482,11 @@ class RepositoryConnection(object):
         """
         self.removeTriples(None, None, None, contexts=contexts)
          
-    ## Exports all explicit statements in the specified contexts to the supplied
-    ## RDFHandler.
-    ## 
-    ## @param contexts
-    ##        The context(s) to get the data from. Note that this parameter is a
-    ##        vararg and as such is optional. If no contexts are supplied the
-    ##        method operates on the entire repository.
-    ## @param handler
-    ##        The handler that will handle the RDF data.
     def export(self, handler, contexts=ALL_CONTEXTS):
+        """
+        Exports all explicit statements in the specified contexts to the supplied
+        RDFHandler.
+        """
         self.exportStatements(None, None, None, False, handler, contexts=contexts)
 
     def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS):
@@ -612,13 +524,12 @@ class RepositoryConnection(object):
 
     #############################################################################################
     ## ValueFactory methods
-    ## Added here because its dumb to have to dispatch from three different objects
+    ## Added here because its inconvenient to have to dispatch from three different objects
     ## (connection, repository, and value factory) when one will do
     #############################################################################################
     
     def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
         return self.repository.registerDatatypeMapping(predicate=predicate, datatype=datatype, nativeType=nativeType)
-
 
     def createLiteral(self, value, datatype=None, language=None):
         """
@@ -678,27 +589,34 @@ class RepositoryConnection(object):
     ## Server-side implementation of namespaces
     #############################################################################################
       
-    ## Get all declared prefix/namespace pairs
     def getNamespaces(self):
+        """
+        Get all declared prefix/namespace pairs
+        """
         namespaces = {}
         for pair in self._get_mini_repository().listNamespaces():
             namespaces[pair['prefix']] = pair['namespace']
         return namespaces        
 
-    ## Gets the namespace that is associated with the specified prefix, if any.
     def getNamespace(self, prefix):
+        """
+        Gets the namespace that is associated with the specified prefix, if any.
+        """
         return self._get_mini_repository().getNamespace(prefix)
 
-    ## Sets the prefix for a namespace.
     def setNamespace(self, prefix, name):
+        """
+        Sets the prefix for a namespace.
+        """
         self._get_mini_repository().addNamespace(prefix, name)
 
-    ## Removes a namespace declaration by removing the association between a
-    ## prefix and a namespace name.
     def removeNamespace(self, prefix):
+        """
+        Removes a namespace declaration by removing the association between a
+        prefix and a namespace name.
+        """
         self._get_mini_repository().deleteNamespace(prefix)
 
-    ## Removes all namespace declarations from the repository.
     def clearNamespaces(self, reset=True):
         """
         Deletes all namespaces in this repository for the current user. If a
