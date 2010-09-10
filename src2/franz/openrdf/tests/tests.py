@@ -1838,3 +1838,18 @@ def test_namespace_management():
     conn.clearNamespaces(reset=True)
 
     assert namespaces == conn.getNamespaces()
+
+def test_indices():
+    """
+    Test creating and deleting indices.
+    """
+    conn = connect()
+    assert "spogi" in conn.listValidIndices()
+    assert "spogi" in conn.listIndices()
+    assert len(conn.listValidIndices()) > len(conn.listIndices())
+    try:
+        conn.addIndex("i")
+        assert "i" in conn.listIndices()
+    finally:
+        conn.dropIndex("i")
+    assert not ("i" in conn.listIndices())

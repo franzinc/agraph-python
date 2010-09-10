@@ -6,7 +6,7 @@
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
 
-import StringIO, pycurl, urllib, cjson, locale, re, os
+import StringIO, errno, pycurl, urllib, cjson, locale, re, os, time
 from threading import Lock
 
 curlPool = None
@@ -130,6 +130,22 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     curl.setopt(pycurl.HTTPHEADER, headers)
     curl.setopt(pycurl.ENCODING, "") # which means 'any encoding that curl supports'
 
+    def retrying_perform():
+        retry = 0.1
+        while retry < 2.0:
+            try:
+                curl.perform()
+                break
+            except pycurl.error, error:
+                if (error.args[0] == 7 and
+                    curl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET): 
+                    # Retry
+                    time.sleep(retry)
+                    retry *= 2
+                    continue
+   
+                raise
+
     if callback:
         status = [None]
         error = []
@@ -142,13 +158,13 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
             else: error.append(string.decode("utf-8"))
         curl.setopt(pycurl.WRITEFUNCTION, writefunc)
         curl.setopt(pycurl.HEADERFUNCTION, headerfunc)
-        curl.perform()
+        retrying_perform()
         if status[0] != 200:
             errCallback(curl.getinfo(pycurl.RESPONSE_CODE), "".join(error))
     else:
         buf = StringIO.StringIO()
         curl.setopt(pycurl.WRITEFUNCTION, buf.write)
-        curl.perform()
+        retrying_perform()
         response = buf.getvalue().decode("utf-8")
         buf.close()
         result = (curl.getinfo(pycurl.RESPONSE_CODE), response)
