@@ -91,6 +91,9 @@ class Defaults:
     # The random seed for the run
     SEED = 0
 
+    # The random seed for the run
+    INDEXFULL = False
+
 # The program options
 OPT = None
 
@@ -116,17 +119,18 @@ def connect(access_mode=Repository.OPEN):
     """
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     catalog = server.openCatalog(OPT.CATALOG)
-    repository = catalog.getRepository(OPT.REPOSITORY, access_mode)
-    repository.initialize()
+    name = OPT.REPOSITORY
     if access_mode is Repository.RENEW:
-        repository.registerDatatypeMapping(datatype=XMLSchema.DATETIME,
-            nativeType='datetime')
-        repository.registerDatatypeMapping(datatype=XMLSchema.DATE,
-            nativeType='date')
-        repository.registerDatatypeMapping(datatype=XMLSchema.INT,
-            nativeType='int')
-        repository.registerDatatypeMapping(datatype=XMLSchema.FLOAT,
-            nativeType='float')
+        if name in catalog.listRepositories():
+            catalog.deleteRepository(name)
+        trace('%s [%s]: Creating repository with %s indices.',
+            (PROG, datetime.now(),
+            "full" if OPT.INDEXFULL else "optimal"))
+        repository = catalog.createRepository(name, None if OPT.INDEXFULL else
+            ['gposi', 'gspoi', 'spogi'])
+    else:
+        repository = catalog.getRepository(name, access_mode)
+    repository.initialize()
     return repository.getConnection()
 
 # PredInfo takes a uri in ntriples format and a generator function
@@ -987,7 +991,7 @@ if __name__ == '__main__':
         help='Run the test starting at phase PHASE [default=%default]')
     parser.add_option('-o', '--open', default=Defaults.OPEN,
         dest='OPEN', metavar='OPEN', action="store_true",
-        help='OPEN the repository instead of RENEWING it [default=%default]')
+        help='OPEN the repository instead of RENEWING it [default=RENEW]')
     parser.add_option('-m', '--mixed', default=Defaults.MIXED,
         dest='MIXED', metavar='MIXED', action="store_true",
         help='Add MIXED workload phase after the normal run '
@@ -999,6 +1003,10 @@ if __name__ == '__main__':
     parser.add_option('-d', '--seed', default=Defaults.SEED,
         dest='SEED', metavar='SEED', type=int,
         help='An integer seed for the run [default=0 (random seed)]')
+    parser.add_option('-i', '--indexfull', default=Defaults.INDEXFULL,
+        dest='INDEXFULL', metavar='INDEXFULL', action="store_true",
+        help='Create the full set of indices [default='
+            'optimal indices]')
 
     options, args = parser.parse_args()
     OPT = options
