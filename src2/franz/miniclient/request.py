@@ -138,7 +138,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
                 break
             except pycurl.error, error:
                 if (error.args[0] == 7 and
-                    pycurl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET): 
+                    curl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET): 
                     # Retry
                     time.sleep(retry)
                     retry *= 2

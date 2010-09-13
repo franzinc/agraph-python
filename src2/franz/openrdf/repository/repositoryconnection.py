@@ -609,6 +609,19 @@ class RepositoryConnection(object):
         """
         self._get_mini_repository().enableTripleCache(size=size)
 
+    ## Indexing control methods
+
+    def listIndices(self):
+        return self._get_mini_repository().listIndices()
+
+    def listValidIndices(self):
+        return self._get_mini_repository().listValidIndices()
+
+    def addIndex(self, type):
+        return self._get_mini_repository().addIndex(type)
+
+    def dropIndex(self, type):
+        return self._get_mini_repository().dropIndex(type)
 
     #############################################################################################
     ## ValueFactory methods
