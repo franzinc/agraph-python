@@ -381,7 +381,6 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 <p>At this point it is good form to close the respositoryResponse object because they occupy memory and are rarely reused in most programs. </p>
 <pre class="input">	statements.close()</pre>
 
-
 <h2 id="Literal Values">Literal Values (example5())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The next example, <strong>example5()</strong>, illustrates some variations on what we have seen so far.  The example creates and asserts <a href="http://www.w3.org/TR/rdf-concepts/#section-Graph-Literal">typed and plain literal values</a>, including  language-specific plain literals, and then conducts searches for them in three ways:</p>
 <ul>
@@ -2060,7 +2059,7 @@ Did not add new triple.</pre>
 <p>Presumably any existing repository has a purpose of its own, and has been federated with other respositories to serve some combined purpose. It would be a mistake to delete triples from one repository simply because they also occur elsewhere in the federated store. This could damage the integrity of the individual repositories when they are used in stand-alone mode. By similar reasoning, it is a mistake to add triples to a federated repository. Which repository gets the new triples? </p>
 <p>For all of these reasons, federated stores are &quot;read only&quot; in AllegroGraph. Attempting to add or delete triples in a federated system result in error messages. </p>
 <p>Federation changes the semantics of &quot;duplicate triples.&quot; Be sure to take this into account in your project design. </p>
-<p><font color="#CCCCCC">July 7, 2010 AG 4.1</font></p>
+<p><font color="#CCCCCC">September 22, 2010 AG 4.1</font></p>
 
 </body>
 
