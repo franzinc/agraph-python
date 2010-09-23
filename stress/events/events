@@ -790,41 +790,57 @@ def main():
             phase_time, triples/phase_time, queries/phase_time,
             triples/queries))
 
-    total_time = time.time()
+    phase1_time = 0
+    phase2_time = 0
+    phase3_time = 0
+    phase4_time = 0
+    phase5_time = 0
     if OPT.PHASE <= LoadPhase.baseline:
         with monitor('phase-1'):
             trace('%s [%s]: Phase 1: Baseline %d triple commits.', (
                 PROG, datetime.now(), OPT.EVENT_SIZE))
+            phase1_start = time.time()
             load_phase(LoadPhase.baseline)
+            phase1_time = time.time() - phase1_start
 
     if OPT.PHASE <= LoadPhase.bulk:
         with monitor('phase-2'):
             trace('%s [%s]: Phase 2: Grow store to about %d triples.', (
                 PROG, datetime.now(), OPT.SIZE))
+            phase2_start = time.time()
             load_phase(LoadPhase.bulk)
+            phase2_time = time.time() - phase2_start
 
     if OPT.PHASE <= LoadPhase.small_commits:
         with monitor('phase-3'):
             trace('%s [%s]: Phase 3: Perform %d triple commits.',
                 (PROG, datetime.now(), OPT.EVENT_SIZE))
+            phase3_start = time.time()
             load_phase(LoadPhase.small_commits)
+            phase3_time = time.time() - phase3_start
 
     if OPT.PHASE <= LoadPhase.query:
         with monitor('phase-4'):
             trace('%s [%s]: Phase 4: Perform customer/date range queries '
                 'with %d processes for %d minutes.', (PROG, datetime.now(),
                 OPT.QUERY_WORKERS, OPT.QUERY_TIME))
+            phase4_start = time.time()
             with run_queries():
                 time.sleep(OPT.QUERY_TIME*60)
+            phase4_time = time.time() - phase4_start
 
     if OPT.PHASE <= LoadPhase.delete_one:
         with monitor('phase-5'):
             trace('%s [%s]: Phase 5: Shrink store by 1 month.', (
                 PROG, datetime.now()))
+            phase5_start = time.time()
             load_phase(LoadPhase.delete_one)
+            phase5_time = time.time() - phase5_start
     
     # Display the results
-    total_time = time.time() - total_time
+    # We do not want the total_time to include the synchronization
+    # times between phases.
+    total_time = phase1_time + phase2_time + phase3_time + phase4_time + phase5_time
     triples_end = conn.size()
     triples = triples_end - triples
 
