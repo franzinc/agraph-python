@@ -792,8 +792,8 @@ def example10():
     bobsName = conn.createLiteral("Bob")
     tedsName = conn.createLiteral("Ted")    
     ## Create URIs to identify the named contexts. 
-    context1 = conn.createURI(namespace=exns, localname="cxt1")      
-    context2 = conn.createURI(namespace=exns, localname="cxt2")  
+    context1 = conn.createURI(namespace=exns, localname="context1")      
+    context2 = conn.createURI(namespace=exns, localname="context2")  
     ## Assemble new statements and add them to the contexts.        
     conn.add(alice, RDF.TYPE, person, context1)
     conn.add(alice, name, alicesName, context1)
@@ -801,6 +801,7 @@ def example10():
     conn.add(bob, name, bobsName, context2)
     conn.add(ted, RDF.TYPE, person)   ## Added to null context
     conn.add(ted, name, tedsName)     ## Added to null context
+    ## GetStatements() examples.
     print "---------------------------------------------------------------"
     statements = conn.getStatements(None, None, None)
     print "All triples in all contexts: %s" % (conn.size())   
@@ -821,6 +822,108 @@ def example10():
     print "Triples in contexts null or 2: %s" % (conn.size(['null', context2]))
     for s in statements:
         print s
+    ## SPARQL examples, some using FROM and FROM NAMED
+    print "---------------------------------------------------------------"
+    queryString = """
+    SELECT ?s ?p ?o WHERE {?s ?p ?o . } 
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate(); 
+    print "No dataset restrictions."
+    for bindingSet in result:
+        print bindingSet.getRow()
+    print "---------------------------------------------------------------"
+    queryString = """
+    SELECT ?s ?p ?o ?c WHERE {GRAPH ?c {?s ?p ?o . }} 
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate()
+    print "No dataset. SPARQL graph query only."
+    for bindingSet in result:
+        print bindingSet.getRow()
+    print "---------------------------------------------------------------"
+    queryString = """
+    SELECT ?s ?p ?o FROM DEFAULT 
+    WHERE {?s ?p ?o . } 
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate()
+    print queryString
+    for bindingSet in result:
+        print bindingSet.getRow()
+    print "---------------------------------------------------------------"
+    queryString = """
+    SELECT ?s ?p ?o FROM <http://example.org/people/context1> 
+    WHERE {?s ?p ?o . } 
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate()
+    print queryString
+    for bindingSet in result:
+        print bindingSet.getRow()
+    print "---------------------------------------------------------------"
+    queryString = """
+    SELECT ?s ?p ?o FROM NAMED <http://example.org/people/context1> 
+    WHERE {?s ?p ?o . } 
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate()
+    print queryString
+    for bindingSet in result:
+        print bindingSet.getRow()
+    print "---------------------------------------------------------------"
+    queryString = """
+    SELECT ?s ?p ?o ?g FROM NAMED <http://example.org/people/context1> 
+    WHERE {GRAPH ?g {?s ?p ?o . }} 
+    """
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate()
+    print queryString
+    for bindingSet in result:
+        print bindingSet.getRow()
+
+    print "---------------------------------------------------------------"
+    queryString = """
+    SELECT ?s ?p ?o ?g 
+	FROM DEFAULT
+	FROM <http://example.org/people/context1>
+	FROM NAMED <http://example.org/people/context2>  
+    WHERE {{GRAPH ?g {?s ?p ?o . }} UNION {?s ?p ?o .}}
+    """
+	## This query is the test case for bug19681
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    result = tupleQuery.evaluate()
+    print queryString
+    for bindingSet in result:
+        print bindingSet.getRow()
+
+    ## Dataset examples
+    print "---------------------------------------------------------------"
+    ## testing default graph query:
+    queryString = """
+    SELECT ?s ?p ?o WHERE {?s ?p ?o . } 
+    """
+    ds = Dataset()
+    ds.addDefaultGraph('null')
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setDataset(ds)   
+    result = tupleQuery.evaluate(); 
+    print "SPARQL query over the null context."
+    for bindingSet in result:
+        print bindingSet.getRow()
+    print "---------------------------------------------------------------"
+    ## testing named graph query:
+    queryString = """
+    SELECT ?s ?p ?o WHERE {?s ?p ?o . } 
+    """
+    ds = Dataset()
+    ds.addNamedGraph(context1)
+    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+    tupleQuery.setDataset(ds)
+    result = tupleQuery.evaluate(); 
+    print "SPARQL query over context1, no GRAPH pattern."
+    for bindingSet in result:
+        print bindingSet.getRow()
     print "---------------------------------------------------------------"
     ## testing named graph query:
     queryString = """
@@ -829,25 +932,21 @@ def example10():
     """
     ds = Dataset()
     ds.addNamedGraph(context1)
-    ds.addNamedGraph(context2)
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
     tupleQuery.setDataset(ds)
     result = tupleQuery.evaluate(); 
-    print "SPARQL query over contexts 1 and 2."
+    print "SPARQL query over context1, with GRAPH pattern."
     for bindingSet in result:
         print bindingSet.getRow()
     print "---------------------------------------------------------------"
-    ## testing default graph query:
+    ## testing named graph query:
     queryString = """
-    SELECT ?s ?p ?o    
-    WHERE {?s ?p ?o . } 
+    SELECT ?s ?p ?o ?c
+    WHERE { GRAPH ?c {?s ?p ?o . } } 
     """
-    ds = Dataset()
-    ds.addDefaultGraph('null')
     tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-    tupleQuery.setDataset(ds)   
     result = tupleQuery.evaluate(); 
-    print "SPARQL uery over the null context."
+    print "SPARQL query with GRAPH pattern, no context constraints."
     for bindingSet in result:
         print bindingSet.getRow()
     conn.close();
@@ -2284,4 +2383,4 @@ if __name__ == '__main__':
             print "This example is not available in the current release."
     print("\nElapsed time: %s seconds." % (time.clock() - starttime))
 
-## Update: August 26, 2010 AG 4.1
+## Update: September 22, 2010 AG 4.1
