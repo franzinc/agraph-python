@@ -11,8 +11,8 @@
 </style>
 </head>
 <body>
-<h1>Python API Tutorial for AllegroGraph 4.0</h1>
-<p>This is an introduction to the Python client API to AllegroGraph RDFStore&#8482; version 4.0 from <a href="http://agraph.franz.com/allegrograph/">Franz Inc.</a> </p>
+<h1>Python API Tutorial for AllegroGraph 4.1</h1>
+<p>This is an introduction to the Python client API to AllegroGraph RDFStore&#8482; version 4.1 from <a href="http://agraph.franz.com/allegrograph/">Franz Inc.</a> </p>
 <p>
 The Python API offers convenient and efficient
 access to an AllegroGraph server from a Python-based application.  This API provides methods for
@@ -35,7 +35,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Literal Values">Literal Values</a></li>
       <li><a href="#Importing Triples">Importing Triples</a></li>
 	  <li><a href="#Exporting Triples">Exporting Triples</a></li>      
-      <li><a href="#Datasets and Contexts">Datasets and Contexts</a></li>
+      <li><a href="#Datasets and Contexts">Searching Multiple Graphs </a></li>
     </ul></td>
     <td width="295"><ul>
       <li><a href="#Namespaces">Namespaces</a></li>
@@ -59,7 +59,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>The Python client tutorial rests on a simple architecture involving AllegroGraph, disk-based data files, Python, and a file of Python examples called tutorial_examples_40.py.</p>
 <table width="944" border="0">
   <tr>
-    <td width="309"><p>AllegroGraph 4.0 Server contains the Java API, which is part of the AllegroGraph installation. </p>
+    <td width="309"><p>AllegroGraph 4.1 Server contains the Java API, which is part of the AllegroGraph installation. </p>
     <p>Python communicates with AllegroGraph through HTTP port 8080 in this example. Python and AllegroGraph may be installed on the same computer, but in practice one server is shared by multiple clients. </p>
     <p>Load tutorial_examples_40.py into Python to view the tutorial examples. </p></td>
     <td width="625"><img src="allegrographdiagram.jpg" width="617" height="412"></td>
@@ -196,7 +196,7 @@ In Windows XP, you can set an environment variable by
      $ python tutorial_examples_40.py 1 5 22     runs examples 1, 5, and 22</pre>
 
     <h2 id="Creating a Repository">Creating a Repository (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The first task is to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
+<p>The first task is to attach to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
 <p>In <strong>example1()</strong> we build a chain of Python objects,  ending in a&quot;connection&quot; object that lets us manipulate triples in a specific repository. The overall process of generating the connection object follows 
 this diagram:</p>
   <table width="809" border="0">
@@ -1008,72 +1008,108 @@ triples are "mixed together" in the file, the context information is not recover
     conn.exportStatements(None, familyName, None, False, RDFXMLWriter(None), context)
 </pre>
 
-<h2 id="Datasets and Contexts">Datasets and Contexts (example10()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Datasets and Contexts">Searching Multiple Graphs   (example10()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
-We have already seen contexts at work when loading and saving files.  In example10() we provide more realistic examples of contexts, and we introduce the dataset object. A dataset is a list of contexts that should all be searched simultaneously. </p>
+ We have already seen contexts (subgraphs) at work when loading and saving files. In example10() we provide more realistic examples of contexts, and we explore the FROM, FROM DEFAULT, and FROM NAMED clauses of a SPARQL query to see how they interact with multiple subgraphs in the triple store. Finally, we will introduce the dataset object. A dataset is a list of contexts that should all be searched simultaneously. It is an object for use with SPARQL queries.
+</p>
 <p>To set up the example, we create six statements, and add two
   of each to three different contexts: context1, context2, and the null context. The process of setting up the six statements follows the same pattern as we used in the previous examples: </p>
-<pre class="input">    ## Create URIs for resources, predicates and classes.<br>    exns = &quot;http://example.org/people/&quot;<br>    alice = conn.createURI(namespace=exns, localname=&quot;alice&quot;)<br>    bob = conn.createURI(namespace=exns, localname=&quot;bob&quot;)<br>    ted = conn.createURI(namespace=exns, localname=&quot;ted&quot;)<br>    person = conn.createURI(namespace=exns, localname=&quot;Person&quot;)<br>    name = conn.createURI(namespace=exns, localname=&quot;name&quot;)  <br>    ## Create literal name values.  <br>    alicesName = conn.createLiteral(&quot;Alice&quot;)    <br>    bobsName = conn.createLiteral(&quot;Bob&quot;)<br>    tedsName = conn.createLiteral(&quot;Ted&quot;)    <br>    ## Create URIs to identify the named contexts. <br>    context1 = conn.createURI(namespace=exns, localname=&quot;cxt1&quot;)      <br>    context2 = conn.createURI(namespace=exns, localname=&quot;cxt2&quot;)  </pre>
+<pre class="input">    ## Create URIs for resources, predicates and classes.<br>    exns = &quot;http://example.org/people/&quot;<br>    alice = conn.createURI(namespace=exns, localname=&quot;alice&quot;)<br>    bob = conn.createURI(namespace=exns, localname=&quot;bob&quot;)<br>    ted = conn.createURI(namespace=exns, localname=&quot;ted&quot;)<br>    person = conn.createURI(namespace=exns, localname=&quot;Person&quot;)<br>    name = conn.createURI(namespace=exns, localname=&quot;name&quot;)  <br>    ## Create literal name values.  <br>    alicesName = conn.createLiteral(&quot;Alice&quot;)    <br>    bobsName = conn.createLiteral(&quot;Bob&quot;)<br>    tedsName = conn.createLiteral(&quot;Ted&quot;)    <br>    ## Create URIs to identify the named contexts. <br>    context1 = conn.createURI(namespace=exns, localname=&quot;context1&quot;)      <br>    context2 = conn.createURI(namespace=exns, localname=&quot;context2&quot;)  </pre>
 
 <p>The next step is to assert two triples into each of three contexts: </p>
 
 
 
 <pre class="input">    ## Assemble new statements and add them to the contexts.        <br>    conn.add(alice, RDF.TYPE, person, context1)<br>    conn.add(alice, name, alicesName, context1)<br>    conn.add(bob, RDF.TYPE, person, context2)<br>    conn.add(bob, name, bobsName, context2)<br>    conn.add(ted, RDF.TYPE, person)   // Added to null context<br>    conn.add(ted, name, tedsName)     // Added to null context</pre>
-<p>Note that the final two statements were added to the null context (the default graph). </p>
-<p>The first test uses getStatements() to return all triples in all contexts (context1, context2, and null). This is default search behavior, so there is no need to specify the contexts in either the <strong>conn.getStatements()</strong> method or the similar<strong> conn.size() </strong>method. </p>
-<pre class="input">    statements = conn.getStatements(None, None, None)<br>    print &quot;All triples in all contexts: %s&quot; % (conn.size())   <br>    for s in statements:<br>        print s</pre>
+<p> Note that the final two statements (about Ted) were added to the null context (the unnamed default graph). </p>
+<h3>GetStatements</h3>
+<p> The first test uses <strong>getStatements()</strong> to return all triples in all contexts (context1, context2, and null). This is default search behavior, so there is no need to specify the contexts in the<strong> conn.getStatements()</strong> method. Note that <strong>conn.size()</strong> also reports on all contexts by default. </p>
+<pre class="input">    statements = <strong>conn.getStatements(None, None, None)</strong><br>    print &quot;All triples in all contexts: %s&quot; % <strong>(conn.size())</strong>   <br>    for s in statements:<br>        print s</pre>
 <p>The output of this loop is shown below. The context URIs are in the fourth position. Triples from the null context have no context value. </p>
-<pre class="output">All triples in all contexts: 6<br>(&lt;http://example.org/people/alice&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/cxt1&gt;)<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/name&gt;, &quot;Alice&quot;, &lt;http://example.org/people/cxt1&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/cxt2&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://example.org/people/name&gt;, &quot;Bob&quot;, &lt;http://example.org/people/cxt2&gt;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://example.org/people/name&gt;, &quot;Ted&quot;)</pre>
+<pre class="output">All triples in all contexts: 6<br>(&lt;http://example.org/people/alice&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/context1&gt;)<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/name&gt;, &quot;Alice&quot;, &lt;http://example.org/people/context1&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/context2&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://example.org/people/name&gt;, &quot;Bob&quot;, &lt;http://example.org/people/context2&gt;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://example.org/people/name&gt;, &quot;Ted&quot;)</pre>
+<!--
 <p>Our second experiment explicitly asks for the triples in the null context:</p>
 <pre class="input">    statements = conn.getStatements(None, None, None, ['null'])<br>    print &quot;All triples in null context: %s&quot; % (conn.size(['null']))   <br>    for s in statements:<br>        print s</pre>
 <p>Note that we identified the null context as ['null'], which is a tuple containing the value 'null'. That tuple can contain as many context URIs as necessary, as will will see in the next example. In this instance, getStatements() found two triples:</p>
 <pre class="output">All triples in null context: 2<br>(&lt;http://example.org/people/ted&gt;, &lt;http://example.org/people/name&gt;, &quot;Ted&quot;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;) </pre>
-<p>The next match explicitly lists 'context1' and 'context2' as the only contexts to participate in the match. It returns four statements. </p>
+-->
+<p>The next match explicitly lists 'context1' and 'context2' as the only contexts to participate in the match. It returns four statements. 
+
+
+ The conn.size() method can also address individual contexts.</p>
 <pre class="input">    statements = conn.getStatements(None, None, None, [context1, context2])<br>    print &quot;Triples in contexts 1 or 2: %s&quot; % (conn.size([context1, context2]))<br>    for s in statements:<br>        print s</pre>
 <p>The output of this loop shows that the triples in the null context have been excluded. </p>
-<pre class="output">Triples in contexts 1 or 2: 4<br>(&lt;http://example.org/people/bob&gt;, &lt;http://example.org/people/name&gt;, &quot;Bob&quot;, &lt;http://example.org/people/cxt2&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/cxt2&gt;)<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/name&gt;, &quot;Alice&quot;, &lt;http://example.org/people/cxt1&gt;)<br>(&lt;http://example.org/people/alice&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/cxt1&gt;)</pre>
+<pre class="output">Triples in contexts 1 or 2: 4<br>(&lt;http://example.org/people/bob&gt;, &lt;http://example.org/people/name&gt;, &quot;Bob&quot;, &lt;http://example.org/people/context2&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/context2&gt;)<br>(&lt;http://example.org/people/alice&gt;, &lt;http://example.org/people/name&gt;, &quot;Alice&quot;, &lt;http://example.org/people/context1&gt;)<br>(&lt;http://example.org/people/alice&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/context1&gt;)</pre>
 <p>This time we use getStatements() to search explicitly for triples in the null context and in context 2.</p>
 <pre class="input">    statements = conn.getStatements(None, None, None, ['null', context2])<br>    print &quot;Triples in contexts null or 2: %s&quot; % (conn.size(['null', context2]))<br>    for s in statements:<br>        print s</pre>
 <p>The output of this loop is:</p>
-<pre class="output">Triples in contexts null or 2: 4<br>(&lt;http://example.org/people/bob&gt;, &lt;http://example.org/people/name&gt;, &quot;Bob&quot;, &lt;http://example.org/people/cxt2&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/cxt2&gt;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://example.org/people/name&gt;, &quot;Ted&quot;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;)</pre>
-<p>Next, we switch to SPARQL queries. Below, we illustrate the procedural equivalent, which is to create a <strong>dataset</strong> object, add the contexts to that, and then to attach the dataset to the query object. This restricts the query to only those statements in the contexts you select.</p>
-<pre class="input">queryString = """
-SELECT ?s ?p ?o ?c
-WHERE { GRAPH ?c {?s ?p ?o . } } 
-"""
-ds = Dataset()
-ds.addNamedGraph(context1)
-ds.addNamedGraph(context2)
-tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-tupleQuery.setDataset(ds)
-result = tupleQuery.evaluate();    
-print "Query over contexts 1 and 2."
-for bindingSet in result:
-    print bindingSet.getRow()
+<pre class="output">Triples in contexts null or 2: 4<br>(&lt;http://example.org/people/bob&gt;, &lt;http://example.org/people/name&gt;, &quot;Bob&quot;, &lt;http://example.org/people/context2&gt;)<br>(&lt;http://example.org/people/bob&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;, &lt;http://example.org/people/context2&gt;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://example.org/people/name&gt;, &quot;Ted&quot;)<br>(&lt;http://example.org/people/ted&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://example.org/people/Person&gt;)</pre>
+<p> The lesson is that getStatements() can freely mix triples from the null context and named contexts. It is all you need as long as the query is a very simple one. </p>
+<h3>SPARQL using FROM, FROM DEFAULT, and FROM NAMED </h3>
+<p>In many of our examples we have used a simple SPARQL query to retrieve triples from AllegroGraph's default graph. This has been very convenient but it is also misleading. As soon as we tell SPARQL to search a <em>specific</em> graph, we lose the ability to search AllegroGraph's default graph! Triples from the null graph vanish from the search results. Why is that? </p>
+<ul>
+  <li style="margin-bottom: 15px ">It is important to understand that AllegroGraph and SPARQL use the phrase &quot;default graph&quot; to identify two very different things. AllegroGraph's default graph, or null context, is simply the set of all triples that have &quot;null&quot; in the fourth field of the &quot;triple.&quot; The &quot;default graph&quot; is an <em>unnamed subgraph</em> of the AllegroGraph triple store. </li>
+  <li>SPARQL uses &quot;default graph&quot; to describe something that is very different. In SPARQL, the &quot;default graph&quot; is a temporary pool of triples imported from one or more &quot;named&quot; graphs. SPARQL's &quot;default graph&quot; is constructed and discarded in the service of a single query. </li>
+</ul>
+<p>Standard SPARQL was designed for <em>named graphs only</em>, and has no syntax to indentify a truly unnamed graph. AllegroGraph's SPARQL, however, has been extended to allow the unnamed graph to participate in multi-graph queries. </p>
+<p>We can use AllegroGraph's SPARQL to search specific subgraphs in three ways. We can create a temporary &quot;default graph&quot; using the FROM operator; we can put AllegroGraph's unnamed graph into SPARQL's default graph using FROM DEFAULT; or we can target specific named graphs using the FROM NAMED operator. </p>
+<ul>
+  <li style="margin-bottom: 15px "><strong>FROM</strong> takes one (or more) subgraphs identified by their URIs and temporarily turns them into a single default graph.&nbsp; We match triples in this graph using simple (non-GRAPH) patterns. </li>
+  <li style="margin-bottom: 15px "><strong>FROM DEFAULT</strong> takes AllegroGraph's null graph and temporarily makes it part of SPARQL's default graph. Again, we use simple patterns to match this graph. </li>
+  <li><strong>FROM NAMED</strong> takes one (or more) named graphs, and declares them to be named graphs in the query.&nbsp; Named graphs must be addressed using explicit GRAPH patterns. </li>
+</ul>
+<p>We can also combine these operators in a single query, to search the SPARQL default graph and one or more named graphs at the same time. 
+<p>The first example is a SPARQL query that used FROM DEFAULT to place AllegroGraph's unnamed graph into SPARQL's default graph.&nbsp; 
+<pre class="input">SELECT ?s ?p ?o FROM DEFAULT <br>WHERE {?s ?p ?o . }</pre>
+<p>This query finds triples from the unnamed graph only (which are triples about Ted).&nbsp; Note the simple query pattern. 
+<pre class="output">['&lt;http://example.org/people/ted&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Ted&quot;']
 </pre>
-<p>The output of this loop contains four triples, as expected. </p>
-<pre class="output">Query over contexts 1 and 2.<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/cxt1&gt;']
-['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;', '&lt;http://example.org/people/cxt1&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/cxt2&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Bob&quot;', '&lt;http://example.org/people/cxt2&gt;']</pre>
-<p> Currently, its not possible to combine the null context with other contexts in a SPARQL query. Below, we illustrate how to evaluate a query against only the null context.</p>
-<pre class="input">queryString = """
-SELECT ?s ?p ?o    
-WHERE {?s ?p ?o . } 
-"""
-ds = Dataset()
-ds.addDefaultGraph(None)
-tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-tupleQuery.setDataset(ds)
-result = tupleQuery.evaluate();    
-print "Query over the null context."
-for bindingSet in result:
-    print bindingSet.getRow()
-</pre>
-
-<p>The output of this loop is:</p>
-<pre class="output">Query over the null context.<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']
-['&lt;http://example.org/people/ted&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Ted&quot;']</pre>
-
+<p>Here's an example of a query that uses FROM. It instructs SPARQL to regard context1 as the default graph for the purposes of this query. 
+<pre class="input">SELECT ?s ?p ?o 
+FROM &lt;http://example.org/people/context1&gt; 
+WHERE {?s ?p ?o . }</pre>
+<p>SPARQL uses the simple pattern {?s ?p ?o . } to match triples in context1, which is the temporary default graph:</p>
+<pre class="output">['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;']</pre>
+<p>Notice that these query results do not have the fourth value we have come to expect.&nbsp; That was stripped off when context1 became the (temporary) default context.&nbsp; </p>
+<p>The next example changes FROM to FROM NAMED in the same query:</p>
+<pre class="input">SELECT ?s ?p ?o 
+FROM NAMED &lt;http://example.org/people/context1&gt; 
+WHERE {?s ?p ?o . }</pre>
+<p>This time there are no matches! The pattern {?s ?p ?o . } only matches the SPARQL default graph. We declared context1 to be a &quot;named&quot; graph, so it is no longer the default graph. To match triples in named graphs, SPARQL requires a GRAPH pattern: </p>
+<pre class="input">SELECT ?s ?p ?o ?g 
+FROM NAMED &lt;http://example.org/people/context1&gt; 
+WHERE {GRAPH ?g {?s ?p ?o . }}&quot;;</pre>
+<p>When we combine GRAPH with FROM NAMED, we get the expected matches: </p>
+<pre class="output">['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/context1&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;', '&lt;http://example.org/people/context1&gt;']</pre>
+<p>What about a combination query? The graph commands can be mixed in a single query.</p>
+<pre class="input">SELECT ?s ?p ?o ?g <br>FROM DEFAULT<br>FROM &lt;http://example.org/people/context1&gt;<br>FROM NAMED &lt;http://example.org/people/context2&gt; <br>WHERE {{GRAPH ?g {?s ?p ?o . }} UNION {?s ?p ?o .}}</pre>
+<p>This query puts AllegroGraph's unnamed graph and the context1 graph into SPARQL's default graph, where the triples can be found by using a simple {?s ?p ?o . } query.&nbsp; Then it identifies context2 as a named graph, which can be searched using a GRAPH pattern.&nbsp; In the final line, we used a UNION operator to combine the matches of the simple and GRAPH patterns. </p>
+<p>This query should find all six triples, and here they are: </p>
+<pre class="output">['&lt;http://example.org/people/bob&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/context2&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Bob&quot;', '&lt;http://example.org/people/context2&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;']<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Ted&quot;'] </pre>
+<h3>SPARQL with Dataset Object</h3>
+<p>Next, we switch to SPARQL queries where the subgraphs are constrained by Sesame dataset objects. First we'll run the wide-open SPARQL query to see what it finds. In the next two SPARQL examples, we will control the scope of the search by using datasets. A dataset contains lists of contexts to search, and is applied to the tupleQuery object to control the scope of the search. </p>
+<p>Here's the wide-open search, which contains no information about which graph we want to search:</p>
+<pre class="input">    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o WHERE {?s ?p ?o . } <br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate(); <br>    print &quot;No dataset restrictions.&quot;<br>    for bindingSet in result:<br>        print bindingSet.getRow()</pre>
+<p>In this case the query returns triples from AllegroGraph's default graph <em>and </em>from both named graphs. This accommodates the person who just wants to &quot;search everything.&quot; </p>
+<pre class="output">No dataset restrictions.<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Bob&quot;']<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Ted&quot;']</pre>
+<p>A dataset object is a Sesame construct that contains two lists of named graphs. There is one list of graphs that will become the SPARQL default graph, just like using FROM in the query. There is a second list of graphs that will be &quot;named&quot; graphs in the query, just like using FROM NAMED. To use the dataset, we put the graph URIs into the dataset object, and then add the dataset to the tupleQuery object. When we evaluate the tupleQuery, the results will be confined to the graphs listed in the dataset. </p>
+<p>The next example shows how to use an AllegroGraph <strong>dataset</strong> object in an exceptional way, to restrict the SPARQL query to the triples in AllegroGraph's default graph. The dataset.addDefaultGarph() method accepts &quot;null&quot; as the name of AllegroGraph's default graph. This lets us direct a SPARQL query at AllegoGraph's default graph. </p>
+<pre class="input">    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o WHERE {?s ?p ?o . } <br>    &quot;&quot;&quot;<br>    ds = Dataset()<br>    <strong>ds.addDefaultGraph('null')</strong><br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    tupleQuery.setDataset(ds)   <br>    result = tupleQuery.evaluate(); <br>    print &quot;SPARQL query over the null context.&quot;<br>    for bindingSet in result:<br>        print bindingSet.getRow()</pre>
+<p>The output of this loop is the two triples that are in the default graph:</p>
+<!-- TODO Java was returning six triples, should be two. -->
+<pre class="output">SPARQL query over the null context.<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;']<br>['&lt;http://example.org/people/ted&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Ted&quot;']</pre>
+<p>In the next example  we'll add a graph to the dataset using the<strong> addNamedGraph() </strong>method. This time the wide-open query is restricted to only those statements in context1, which will be treated as a &quot;named graph&quot; in the query:</p>
+<pre class="input">    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o WHERE {?s ?p ?o . } <br>    &quot;&quot;&quot;<br>    ds = Dataset()<br>    <strong>ds.addNamedGraph(context1)</strong><br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    tupleQuery.setDataset(ds)<br>    result = tupleQuery.evaluate(); <br>    print &quot;SPARQL query over context1, no GRAPH pattern.&quot;<br>    for bindingSet in result:<br>        print bindingSet.getRow()</pre>
+<p>The output of this query is somewhat unexpected. The query returns no results! </p>
+<pre class="output">SPARQL query over context1, no GRAPH pattern.</pre>
+<p>Why did this happen? Once we explicitly identify a subgraph as a &quot;named graph&quot; in the query, SPARQL insists that we use a GRAPH pattern. The following example uses a dataset to target context1, and adds a GRAPH element to the query. This small change lets us focus on one subgraph only. </p>
+<pre class="input">    queryString = &quot;&quot;&quot;<br><strong>    SELECT ?s ?p ?o ?c<br>    WHERE { GRAPH ?c {?s ?p ?o . } } </strong><br>    &quot;&quot;&quot;<br>    ds = Dataset()<br>    ds.addNamedGraph(context1)<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    tupleQuery.setDataset(ds)<br>    result = tupleQuery.evaluate(); <br>    print &quot;SPARQL query over context1, with GRAPH pattern.&quot;<br>    for bindingSet in result:<br>        print bindingSet.getRow()</pre>
+<p>The output of this loop contains two triples, as expected. These are the triples from context1.</p>
+<pre class="output">SPARQL query over context1, with GRAPH pattern.<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/context1&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;', '&lt;http://example.org/people/context1&gt;']</pre>
+<p>One naturally wonders what the SPARQL GRAPH query would find if we got out of its way and ran it without any dataset restrictions. Here it is:</p>
+<pre class="input">    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o ?c<br>    WHERE { GRAPH ?c {?s ?p ?o . } } <br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate(); <br>    print &quot;SPARQL query with GRAPH pattern, no context constraints.&quot;<br>    for bindingSet in result:<br>        print bindingSet.getRow()</pre>
+<p>The output of this loop contains four triples, two from each of the named subgraphs in the store (context1 and context2). The query was not able to find the triples that were in the AllegroGraph default graph. </p>
+<pre class="output">SPARQL query with GRAPH pattern, no context constraints.<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/context1&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;', '&lt;http://example.org/people/context1&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/context2&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Bob&quot;', '&lt;http://example.org/people/context2&gt;']</pre>
 <h2 id="Namespaces">Namespaces (example11()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 A <i>namespace</i> is that portion of a URI that preceeds the last '#',
@@ -1864,7 +1900,8 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Most of the time, multiple AllegroGraph users pool triples in a common session. Their data may be segregated into multiple contexts (subgraphs) for convenience, but in fact any part of this data may be retrieved by any of the users.</p>
 <p>There are situations where a little more security is required. You may open a &quot;dedicated session&quot; and populate it with triples that the other users cannot view. These triples may be searched and manipulated in the usual ways, but do not become visible to other users until you &quot;commit&quot; them to the common session. </p>
 <p>In order to use transaction semantics, the user account must have &quot;start sessions&quot; privileges with AllegroGraph Server. This is an elevated level of privilege. AllegroGraph users are profiled through the <a href="#Creating Users with WebView">WebView interface.</a></p>
-<p>In practice, transaction semantics require at least two connections to the triple store, one in auto-commit mode and one in transaction mode. Queries should be run against the auto-commit connection, where the resources are always in a known and complete state. The transaction connection is used for loading and commiting batches of triples. </p>
+<p>To experiment with transaction semantics in AllegroGraph, we will need two connections to the triple store. In the &quot;transaction connection&quot; we will load, rollback, reload and commit incoming triples.&nbsp; In the "autocommit connection" we will run queries against the resulting triple store, where the resources are always in a known and complete state. </p>
+<p>In practice, transactions require only one connection.&nbsp; We create a special connection for transaction behavior, use it, and close it. </p>
 <p>&quot;Commit&quot; means to make the triples in the dedicated session visible in the common session. At the time of the commit, triples in the common session are also made visible to queries in the dedicated session. The two sessions are &quot;synched up&quot; by the commit. </p>
 <p>&quot;Rollback&quot; means to discard the contents of the dedicated session. It also makes all common-session triples visible in the dedicated session. </p>
 <p>&quot;Closing&quot; the dedicated session deletes all uncommitted triples, and all rules, generators and matrices that were created in the dedicated session. Rules, generators and matrices cannot be committed. They persist as long as the dedicated session persists, and are deleted when the dedicated session is closed.</p>
