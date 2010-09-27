@@ -928,8 +928,14 @@ class RepositoryConnection(object):
         """
         return self._get_mini_repository().rollback()
 
-    
+    def evalInServer(self, code):
+        """
+        Evaluate the Lisp code in the server.
 
+        You must have "eval" permissions to the store to use this feature.
+        """
+
+        return self._get_mini_repository().evalInServer(code)
 
 class GeoType:
     Cartesian = 'CARTESIAN'

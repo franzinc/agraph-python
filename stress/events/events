@@ -91,6 +91,9 @@ class Defaults:
     # The random seed for the run
     SEED = 0
 
+    # To Profile or not to Profile
+    PROFILER = 'off'
+
 # The program options
 OPT = None
 
@@ -406,6 +409,18 @@ class PhaseParameters(object):
     def commits_per_worker(self):
         return int(self.commits / OPT.LOAD_WORKERS)
 
+@contextmanager
+def profiler(conn, on, phase):
+    if not on or OPT.PROFILER == 'off':
+        yield
+        return
+
+    conn.evalInServer('(profiler:start-profiler :type :%s)' % OPT.PROFILER)
+    yield
+    conn.evalInServer('(progn (db.agraph.log:log-info :events "Profile for Phase %d")'
+        '(profiler:stop-profiler) (profiler:show-flat-profile) '
+        '(profiler:show-call-graph))' % phase)
+
 # The Phase Parameters
 PHASE_PARAMS = None
 
@@ -429,6 +444,10 @@ def load_events(proc_num):
             return None
 
     def load_phase(phase):
+        with profiler(conn, proc_num == 0, phase): 
+            load_phase_body(phase)
+
+    def load_phase_body(phase):
         params = PHASE_PARAMS[phase]
         random_datetime.range = params.date_range
         quads = [None]*(OPT.EVENT_SIZE*params.events_in_commit)
@@ -472,6 +491,10 @@ def load_events(proc_num):
         loadq.task_done()
 
     def delete_phase(phase):
+        with profiler(conn, phase == LoadPhase.delete_one, phase):
+            delete_phase_body(phase)
+
+    def delete_phase_body(phase):
         timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp'
             ).toNTriples()
         date_range = PHASE_PARAMS[phase].date_range
@@ -602,48 +625,51 @@ def query_events(proc_num, resultq):
 
         return count
 
-    status_size = 10
-    start_time = the_time = time.time()
-    sub_count = 0
-    queries = 0
-    count = 0
-    restarts = 0
+    def do_queries():
+        status_size = 10
+        start_time = the_time = time.time()
+        sub_count = 0
+        queries = 0
+        count = 0
+        restarts = 0
 
-    # Run the query at least once
-    stop = None
-    while stop is None:
-        result = random_query()
-        if result >= 0:
-            count += result
-        else:
-            restarts += 1
+        # Run the query at least once
+        stop = None
+        while stop is None:
+            result = random_query()
+            if result >= 0:
+                count += result
+            else:
+                restarts += 1
 
-        queries += 1
-        stop = dequeue()
+            queries += 1
+            stop = dequeue()
 
-        if queries % status_size == 0:
-            end_time = time.time()
-            sub_count = count - sub_count
-            trace('query(%d) [%s]: Querying status - %d triple results '
-                'returned for %d queries in %f seconds (%f queries/second, '
-                '%f triples per query), %d queries aborted.', (proc_num,
-                datetime.now(), sub_count, status_size,
-                end_time-start_time, status_size/nonzero(end_time-start_time),
-                sub_count/status_size, restarts))
-            start_time = end_time
-            sub_count = count
-            
-    the_time = nonzero(time.time() - the_time)
-    trace('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
-        'queries in %f seconds (%f queries/second, %f triples per query), '
-        ' %d queries aborted.', (proc_num, datetime.now(), language,
-        count, queries, the_time, queries/the_time, count/queries, restarts))
+            if queries % status_size == 0:
+                end_time = time.time()
+                sub_count = count - sub_count
+                trace('query(%d) [%s]: Querying status - %d triple results '
+                    'returned for %d queries in %f seconds (%f queries/second, '
+                    '%f triples per query), %d queries aborted.', (proc_num,
+                    datetime.now(), sub_count, status_size,
+                    end_time-start_time, status_size/nonzero(end_time-start_time),
+                    sub_count/status_size, restarts))
+                start_time = end_time
+                sub_count = count
+                
+        the_time = nonzero(time.time() - the_time)
+        trace('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
+            'queries in %f seconds (%f queries/second, %f triples per query), '
+            ' %d queries aborted.', (proc_num, datetime.now(), language,
+            count, queries, the_time, queries/the_time, count/queries, restarts))
+        resultq.put((queries, count, the_time))
+
+    with profiler(conn, proc_num in [0, 1], LoadPhase.query):
+        do_queries()
 
     conn.closeSession()
     conn.close()
-    resultq.put((queries, count, the_time))
     queryq.task_done()
-
 
 @contextmanager
 def monitor(phase):
@@ -947,10 +973,18 @@ if __name__ == '__main__':
             raise OptionValueError(
                 "option %s: invalid human-readable size value: %r" % (opt, value))
 
+    def check_profiler(option, opt, value):
+        value = value.lower()
+        if value not in ['off', 'time', 'space']:
+            raise OptionValueError(
+                "option %s: %s not valid. Profile options are off, time, or space." % (opt, value))
+        return value
+
     class EventsOption(Option):
-        TYPES = Option.TYPES + ('human_size',)
+        TYPES = Option.TYPES + ('human_size','profiler')
         TYPE_CHECKER = copy(Option.TYPE_CHECKER)
         TYPE_CHECKER['human_size'] = check_human_size
+        TYPE_CHECKER['profiler'] = check_profiler
     
     parser = OptionParser(option_class=EventsOption, usage=usage, version="%prog 1.0")
     parser.add_option('-s', '--size', default=Defaults.SIZE,
@@ -999,6 +1033,9 @@ if __name__ == '__main__':
     parser.add_option('-d', '--seed', default=Defaults.SEED,
         dest='SEED', metavar='SEED', type=int,
         help='An integer seed for the run [default=0 (random seed)]')
+    parser.add_option('-f', '--profile', default=Defaults.PROFILER,
+        type='profiler', dest='PROFILER', metavar='PROFILER',
+        help='PROFILER option for one connection per phase [default=%default]')
 
     options, args = parser.parse_args()
     OPT = options
