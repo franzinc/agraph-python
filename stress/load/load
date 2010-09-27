@@ -294,10 +294,8 @@ def main(args):
             trace('\t%s', path)
 
     def eval_file():
-        mini_repo = conn.mini_repository
         with open(OPT.EVAL_FILE, 'r') as lisp_file:
-            body = lisp_file.read()
-        return jsonRequest(mini_repo, 'POST', '/eval', body=body)
+            return conn.evalInServer(lisp_file.read())
     
     if OPT.EVAL_FILE:
         trace("%s [%s]: Calling evalInServer on %s.", (PROG, datetime.now(), OPT.EVAL_FILE))
