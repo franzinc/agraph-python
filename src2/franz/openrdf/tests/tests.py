@@ -141,7 +141,7 @@ def test3():
     conn = test2()
     try:
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
         result = tupleQuery.evaluate();
         verify(result.rowCount(), 4, 'len(result)', 3)
         try:
@@ -507,7 +507,7 @@ def test13():
     print "SELECT result"
     for r in result: print r     
     queryString = """ask { ?s ont:name "Alice" } """
-    booleanQuery = conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString)
+    booleanQuery = conn.prepareBooleanQuery("SPARQL", queryString)
     result = booleanQuery.evaluate(); 
     print "Boolean result", result
     queryString = """construct {?s ?p ?o} where { ?s ?p ?o . filter (?o = "Alice") } """
@@ -650,7 +650,7 @@ def test18():
     #    pq("""(select ?x (string-concat ?x "a" "b" "c"))""")
     #    pq("""(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))""")
         queryString = """(select (?person ?uncle) (uncle ?y ?x)(name ?x ?person)(name ?y ?uncle))"""
-        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        tupleQuery = conn.prepareTupleQuery("PROLOG", queryString)
         result = tupleQuery.evaluate();     
         for bindingSet in result:
             p = bindingSet.getValue("person")
@@ -1615,7 +1615,7 @@ def test_json_xml_response():
 def test_construct_query():
     """Test whether Construct Query"""
     conn = setup()
-    query = conn.prepareGraphQuery(QueryLanguage.SPARQL,
+    query = conn.prepareGraphQuery("SPARQL",
         'CONSTRUCT { ?p %s ?child . } WHERE { ?p ?relationship ?child . }' % 
         URIs.hasChild)
     query.setBinding('relationship', URIs.fatherOf)

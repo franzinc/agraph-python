@@ -57,7 +57,7 @@ class Query(object):
     different bindings.
     """
     def __init__(self, queryLanguage, queryString, baseURI=None):
-        self.queryLanguage = queryLanguage
+        self.queryLanguage = Query._check_language(queryLanguage)
         self.queryString = queryString
         self.baseURI = baseURI
         self.dataset = None
@@ -200,11 +200,6 @@ class Query(object):
        
   
 class TupleQuery(Query):
-    def __init__(self, queryLanguage, queryString, baseURI=None):
-        queryLanguage = Query._check_language(queryLanguage)
-        super(TupleQuery, self).__init__(queryLanguage, queryString, baseURI=baseURI)
-        self.connection = None
-        
     def evaluate(self, count=False):
         """
         Execute the embedded query against the RDF store.  Return
