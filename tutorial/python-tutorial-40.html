@@ -11,13 +11,13 @@
 </style>
 </head>
 <body>
-<h1>Python API Tutorial for AllegroGraph 4.1</h1>
+<h1>Python Sesame API Tutorial for AllegroGraph 4.1</h1>
 <p>This is an introduction to the Python client API to AllegroGraph RDFStore&#8482; version 4.1 from <a href="http://agraph.franz.com/allegrograph/">Franz Inc.</a> </p>
 <p>
-The Python API offers convenient and efficient
+The Python Sesame API offers convenient and efficient
 access to an AllegroGraph server from a Python-based application.  This API provides methods for
 creating, querying and maintaining RDF data, and for managing the stored triples. </p>
-<p>The Python API deliberately emulates the Aduma Sesame API to make it easier to migrate from Sesame to AllegroGraph.&nbsp; The Python API has also been extended in ways that make it easier and more intuitive than the Sesame API.&nbsp; </p>
+<p>The Python Sesame API deliberately emulates the Aduna Sesame API to make it easier to migrate from Sesame to AllegroGraph.&nbsp; The Python Sesame API has also been extended in ways that make it easier and more intuitive than the Sesame API.&nbsp; </p>
 <h2 id="Contents">Contents</h2>
 <table width="554" border="0" style="vertical-align:top" >
   <tr>
@@ -261,7 +261,7 @@ to create resources describing two
 people, Bob and Alice, by asserting individual triples into the respository. The example also retracts and replaces a triple.  Assertions and retractions to the triple store
 are executed by 'add' and 'remove' methods belonging to the connection object, which we obtain by calling the example1() function (described above).
 </p>
-<p>Before asserting a triple, we have to generate the URI values for the subject, predicate and object fields. The Python API to AllegroGraph Server predefines a number of classes and predicates for the RDF, RDFS, XSD, and OWL ontologies.  RDF.TYPE is one of the predefined predicates we will use. </p>
+<p>Before asserting a triple, we have to generate the URI values for the subject, predicate and object fields. The Python Sesame API to AllegroGraph Server predefines a number of classes and predicates for the RDF, RDFS, XSD, and OWL ontologies.  RDF.TYPE is one of the predefined predicates we will use. </p>
 <p>
 The 'add' and 'remove' methods take an optional 'contexts' argument that
 specifies one or more subgraphs that are the target of triple assertions
@@ -928,7 +928,7 @@ Now:<span class="output">&quot;1984-12-06T08:00:00Z&quot;</span></pre>
 <p>Note that we searched for &quot;1984-12-06T09:00:00+01:00&quot; but found &quot;1984-12-06T08:00:00Z&quot;. It is the same moment in time. </p>
 <h2 id="Importing Triples">Importing Triples (example6() and example7()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
-The Python API client can load triples in either RDF/XML format or  NTriples format.  The example below calls the connection object's <strong>add()</strong> method to load 
+The Python Sesame API client can load triples in either RDF/XML format or  NTriples format.  The example below calls the connection object's <strong>add()</strong> method to load 
 an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both methods work, but the best practice is to use addFile(). </p>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
@@ -1263,7 +1263,7 @@ ASK: Is there an Alice? False</pre>
 <p>The output of this loop is lengthy, because the Kennedy resources have many triples. One block of triples looked like this, showing the new has-grandchild triples: </p>
 <pre class="output">(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person20&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person22&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person24&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person25&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person26&gt;)</pre>
 <h2 id="Parametric Queries">Parametric Queries (example14())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
- <p>The Python API to AllegroGraph Server lets you set up a SPARQL query and then fix the value of one of the query variables prior to matching the triples. This is more efficient than testing for the same value in the body of the query. </p>
+ <p>The Python Sesame API to AllegroGraph Server lets you set up a SPARQL query and then fix the value of one of the query variables prior to matching the triples. This is more efficient than testing for the same value in the body of the query. </p>
  <p>In <strong>example14()</strong> we set up two-triple resources for Bob and Alice, and then use an unconstrained SPARQL query to retrieve the triples. Normally this query would find all four triples, but by binding the subject value ahead of time, we can retrieve the &quot;Bob&quot; triples separately from the &quot;Alice&quot; triples.</p>
  <p>The example begins by borrowing a connection object from example2(). This means there are already Bob and Alice resources in the repository. We do need to recreate the URIs for the two resources, however. </p>
  <pre class="input">def example14():<br>    conn = example2()<br>    alice = conn.createURI(&quot;http://example.org/people/alice&quot;)<br>    bob = conn.createURI(&quot;http://example.org/people/bob&quot;)</pre>
@@ -1362,7 +1362,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <p>It is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeDedicated()</pre>
 <h2 id="Loading Prolog Rules">Loading Prolog Rules (example18())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>Example <strong>example18()</strong> demonstrates how to load a file of Prolog rules into the Python API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from example6().&nbsp; After loading a file of rules (<strong>python-rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
+<p>Example <strong>example18()</strong> demonstrates how to load a file of Prolog rules into the Python Sesame API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from example6().&nbsp; After loading a file of rules (<strong>python-rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
 <pre class="input">(select (?ufirst ?ulast ?cfirst ?clast)<br>        (uncle ?uncle ?child)<br>        (name ?uncle ?ufirst ?ulast)<br>        (name ?child ?cfirst ?clast))</pre>
 <p>The problem is that the triple store contains no information about uncles.&nbsp; The rules will have to deduce this relationship by finding paths across the RDF graph.&nbsp; </p>
 <p>What's an &quot;uncle,&quot; then?&nbsp; Here's a rule that can recognize uncles:</p>
@@ -1399,7 +1399,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 
 <h2 id="RDFS++ Inference">RDFS++ Inference (example19())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The great promise of the semantic web is that we can use RDF metadata to combine information from multiple sources into a single, common model.&nbsp; The great problem of the semantic web is that it is so difficult to recognize when two resource descriptions from different sources actually represent the same thing.&nbsp; This problem arises because there is no uniform or universal way to generate URIs identifying resources.&nbsp; As a result, we may create two resources, Bob and Robert, that actually represent the same person. </p>
-<p>This problem has generated much creativity in the field. One way to approach the problem is through inference.&nbsp; There are certain relationships and circumstances where an inference engine can deduce that two resource descriptions actually represent one thing, and then automatically merge the descriptions.&nbsp; AllegroGraph's <a href="http://www.franz.com/agraph/support/documentation/3.0.1/reasoner-tutorial.html">inference engine</a> can be turned on or off each time you run a query against the triple store.&nbsp; (Note that inference is turned off by default, which is the opposite of standard Sesame behavior.) </p>
+<p>This problem has generated much creativity in the field. One way to approach the problem is through inference.&nbsp; There are certain relationships and circumstances where an inference engine can deduce that two resource descriptions actually represent one thing, and then automatically merge the descriptions.&nbsp; AllegroGraph's <a href="../reasoner-tutorial.html">inference engine</a> can be turned on or off each time you run a query against the triple store.&nbsp; (Note that inference is turned off by default, which is the opposite of standard Sesame behavior.) </p>
 <p>In example example19(), we will create four resources: Bob, with son Bobby, and Robert with daughter Roberta.&nbsp; </p>
 <p><img src="inferenceSetup.jpg" width="448" height="101"></p>
 <p>First we have to set up the data. We begin by generating four URIs for the new resources. </p>
@@ -1628,7 +1628,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 </ul>
 <p>Most (but not all) of AllegroGraph's SNA features can be accessed from Python. We access them in multiple ways:</p>
 <ul>
-  <li>The Python API to AllegroGraph contains setup functions that let you create an SNA environment ready for queries.</li>
+  <li>The Python Sesame API to AllegroGraph contains setup functions that let you create an SNA environment ready for queries.</li>
   <li>From Python, we can issue Prolog queries to AllegroGraph. Some of the SNA functions have Prolog equivalents that can be called directly from a query. These are explored in the sections below. </li>
   <li>Within a Prolog query, we can open a window into Lisp and reach for the AllegroGraph's Lisp SNA functions. </li>
 </ul>
@@ -1788,7 +1788,7 @@ Found 1 query results
 <p><img src="allLinksValjean.jpg" width="720" height="341"> </p>
 <p>The nodal-degree function requires the URI of the target node (Valjean is character11), the generator, and a variable to bind the returned value to. </p>
 <pre class="input">    print &quot;\nHow many neighbors are around Valjean? (should be 36).&quot;<br>    queryString = &quot;&quot;&quot;<br>    (select ?neighbors<br>      (nodal-degree !lm:character11 everyone ?neighbors))<br>      &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)<br>    result = tupleQuery.evaluate();<br>    for bindingSet in result:<br>        p = bindingSet.getValue(&quot;neighbors&quot;)<br>        print &quot;%s&quot; % (p)<br>        print &quot;%s&quot; % <strong>p.toPython()</strong></pre>
-<p>Note that this function returns a string that describes an integer, which in its raw form is difficult for Python to use. We convert the raw value to a Python integer using the <strong>.toPython() </strong>method that is available to all literal values in the Python API to AllegroGraph. This example prints out both the string value and the converted number.</p>
+<p>Note that this function returns a string that describes an integer, which in its raw form is difficult for Python to use. We convert the raw value to a Python integer using the <strong>.toPython() </strong>method that is available to all literal values in the Python Sesame API to AllegroGraph. This example prints out both the string value and the converted number.</p>
 <pre class="output">How many neighbors are around Valjean? (should be 36).
 "36"^^&lt;http://www.w3.org/2001/XMLSchema#integer&gt;
 36</pre>
