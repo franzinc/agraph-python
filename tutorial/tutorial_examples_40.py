@@ -65,10 +65,24 @@ def example1(accessMode=Repository.RENEW):
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
     myRepository = catalog.getRepository(AG_REPOSITORY, accessMode)
     myRepository.initialize()
-    connection = myRepository.getConnection()
+    conn = myRepository.getConnection()
     print "Repository %s is up!  It contains %i statements." % (
-                myRepository.getDatabaseName(), connection.size())
-    return connection
+                myRepository.getDatabaseName(), conn.size())
+    indices = conn.listValidIndices()
+    print "All valid triple indices: %s" % (indices)
+    indices = conn.listIndices()
+    print "Current triple indices: %s" % (indices)
+    print "Removing graph indices..."
+    conn.dropIndex("gospi")
+    conn.dropIndex("gposi")
+    conn.dropIndex("gspoi")
+    indices = conn.listIndices()
+    print "Current triple indices: %s" % (indices)
+    print "Adding one graph index back in..."
+    conn.addIndex("gspoi")
+    indices = conn.listIndices()
+    print "Current triple indices: %s" % (indices)
+    return conn
 
     
 def example2():
