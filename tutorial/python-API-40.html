@@ -20,7 +20,7 @@ access to an AllegroGraph server from a Python-based application.  This API prov
 creating, querying and maintaining RDF data, and for managing the stored triples. </p>
 <table border="1">
     <tr>
-        <td width="867">The Python API deliberately emulates the Aduma Sesame API to make it easier to migrate from Sesame to AllegroGraph.&nbsp; The Python API has also been extended in ways that make it easier and more intuitive than the Sesame API.</td>
+        <td width="867">The Python API deliberately emulates the Aduna Sesame API to make it easier to migrate from Sesame to AllegroGraph.&nbsp; The Python API has also been extended in ways that make it easier and more intuitive than the Sesame API.</td>
     </tr>
 </table>
 <h2 id="Contents">Contents</h2>
@@ -370,6 +370,27 @@ limit=None, tripleIDs=False)</td>
       <td>Returns the number of (explicit) statements that are in the specified <em>contexts</em> in this repository. contexts defaults to ALL_CONTEXTS, but can be a context URI or a tuple of context URIs from getContextIDs(). Use 'null' to get the size of the default graph (the unnamed context). </td>
   </tr>
 </table>
+<h3 id="Triple Index Methods">Triple Index Methods</h3>
+<p>These repositoryConnection methods support user-defined triple indices.&nbsp; See <a href="../triple-index.html">AllegroGraph Triple Indices</a> for more information on this topic. </p>
+<table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+    <tr>
+        <td valign="top">listIndices(self)</td>
+        <td><p>Returns a tuple containing a list of the current set of triple indices.</p></td>
+    </tr>
+    <tr>
+        <td valign="top">listValidIndices(self)</td>
+        <td>Returns a tuple containing the list of all possible triple indices. </td>
+    </tr>
+    <tr>
+        <td valign="top">addIndex(self, type)</td>
+        <td>Adds a specific type of index to the current set of triple indices.&nbsp;<em> type </em>is a string containing one of the following index names: spogi, spgoi, sopgi, sogpi, sgpoi, sgopi, psogi, psgoi, posgi, pogsi, pgsoi, pgosi, ospgi, osgpi, opsgi, opgsi, ogspi, ogpsi, gspoi, gsopi, gpsoi, gposi, gospi, gopsi, or i. </td>
+    </tr>
+    <tr>
+        <td valign="top">dropIndex(self, type)</td>
+        <td>Removes a specific type of index to the current set of triple indices.&nbsp;<em> type </em>is a string containing one of the following index names: spogi, spgoi, sopgi, sogpi, sgpoi, sgopi, psogi, psgoi, posgi, pogsi, pgsoi, pgosi, ospgi, osgpi, opsgi, opgsi, ogspi, ogpsi, gspoi, gsopi, gpsoi, gposi, gospi, gopsi, or i. </td>
+    </tr>
+</table>
+<h3 id="Geospatial Reasoning Methods"></h3>
 <h3 id="Free Text Search Methods">Free Text Search Methods</h3>
 <p>The following repositoryConnection method supports free-text indexing in AllegroGraph. </p>
 <table width="792" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">

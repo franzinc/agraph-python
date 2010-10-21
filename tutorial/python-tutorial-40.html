@@ -28,7 +28,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Terminology">Terminology</a></li>
 	  <li><a href="#Creating Users with WebView">Creating Users with WebView</a></li>
       <li><a href="#Running Python">Running Python Tutorial Examples</a></li>
-      <li><a href="#Creating a Repository">Creating a Repository</a></li>
+      <li><a href="#Creating a Repository">Creating a Repository and Triple Indices </a></li>
       <li><a href="#Asserting and Retracting Triples">Asserting and Retracting Triples</a></li>
       <li><a href="#A SPARQL Query">A SPARQL Query</a></li>
       <li><a href="#Statement Matching">Statement Matching</a></li>
@@ -59,7 +59,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>The Python client tutorial rests on a simple architecture involving AllegroGraph, disk-based data files, Python, and a file of Python examples called tutorial_examples_40.py.</p>
 <table width="944" border="0">
   <tr>
-    <td width="309"><p>AllegroGraph 4.1 Server contains the Java API, which is part of the AllegroGraph installation. </p>
+    <td width="309"><p>AllegroGraph 4.1 Server contains the Python API, which is part of the AllegroGraph installation. </p>
     <p>Python communicates with AllegroGraph through HTTP port 8080 in this example. Python and AllegroGraph may be installed on the same computer, but in practice one server is shared by multiple clients. </p>
     <p>Load tutorial_examples_40.py into Python to view the tutorial examples. </p></td>
     <td width="625"><img src="allegrographdiagram.jpg" width="617" height="412"></td>
@@ -195,8 +195,8 @@ In Windows XP, you can set an environment variable by
      $ python tutorial_examples_40.py 10         runs example10()
      $ python tutorial_examples_40.py 1 5 22     runs examples 1, 5, and 22</pre>
 
-    <h2 id="Creating a Repository">Creating a Repository (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The first task is to attach to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
+    <h2 id="Creating a Repository">Creating a Repository and Triple Indices (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+    <p>The first task is to attach to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
 <p>In <strong>example1()</strong> we build a chain of Python objects,  ending in a&quot;connection&quot; object that lets us manipulate triples in a specific repository. The overall process of generating the connection object follows 
 this diagram:</p>
   <table width="809" border="0">
@@ -243,12 +243,42 @@ Available catalogs ['/', 'scratch']</pre>
     connection = myRepository.getConnection()
     print &quot;Repository %s is up! It contains %i statements.&quot; % (
     myRepository.getDatabaseName(), connection.size())
-    return connection</pre>
+</pre>
  <p>The <strong>size()</strong> method of the connection object returns how many triples are present. In the example1() function, this number should always be zero because we &quot;renewed&quot; the repository. This is the output in the Python window: </p>
 <pre class="output">   Repository pythontutorial is up! It contains 0 statements.
    &lt;franz.openrdf.repository.repositoryconnection.RepositoryConnection object at 0x0127D710&gt;
  &gt;&gt;&gt; </pre>
-<p>The last line is the pointer to the new connection object. This is the value returned by example1() when it is called by other functions in tutorial_examples_40.py. The other functions then use the connection object to access the repository. </p>
+<p>Whenever you create a new repository, you should stop to consider which kinds of triple indices you will need.&nbsp; This is an important efficiency decision.&nbsp; AllegroGraph uses a set of sorted indices to quickly identify a contiguous block of triples that are likely to match a specific query pattern. </p>
+<p>These indices are identified by names that describe their organization. The default set of indices are called <strong>spogi, posgi, ospgi, gspoi, gposi, gospi</strong>, and<strong> i</strong> , where: </p>
+<ul>
+    <li>S stands for the subject URI. </li>
+    <li>P stands for the predicate URI. </li>
+    <li>O stands for the object URI or literal. </li>
+    <li>G stands for the graph URI. </li>
+    <li>I stands for the triple identifier (its unique id number within the triple store). </li>
+</ul>
+<p> The order of the letters denotes how the index has been organized. For instance, the <strong>spogi</strong> index contains all of the triples in the store, sorted first by subject, then by predicate, then by object, and finally by graph. The triple id number is present as a fifth column in the index. If you know the URI of a desired resource (the <em>subject</em> value of the query pattern), then the <strong>spogi</strong> index lets you retrieve all triples with that subject as a single block.&nbsp; </p>
+<p>The idea is to provide your respository with the indices that your queries will need, and to avoid maintaining indices that you will never need.&nbsp; </p>
+<p>We can use the connection object's <strong>listValidIndices()</strong> method to examine the list of all possible AllegroGraph triple indices: </p>
+<pre class="input">    indices = conn.listValidIndices()<br>    print &quot;All valid triple indices: %s&quot; % (indices)</pre>
+<p>This is the list of all possible valid indices:</p>
+<pre class="output">All valid triple indices: ['spogi', 'spgoi', 'sopgi', 'sogpi', 'sgpoi', 'sgopi', 
+'psogi', 'psgoi', 'posgi', 'pogsi', 'pgsoi', 'pgosi', 'ospgi', 'osgpi', 'opsgi', 
+'opgsi', 'ogspi', 'ogpsi', 'gspoi', 'gsopi', 'gpsoi', 'gposi', 'gospi', 'gopsi', 'i']</pre>
+<p>AllegroGraph can generate any of these indices if you need them, but it creates only seven indices by default.&nbsp; We can see the current indices by using the connection object's <strong>listIndices()</strong> method:</p>
+<pre class="input">    indices = conn.listIndices()<br>    print &quot;Current triple indices: %s&quot; % (indices)</pre>
+<p>There are currently seven indices:</p>
+<pre class="output">Current triple indices: ['i', 'gospi', 'gposi', 'gspoi', 'ospgi', 'posgi', 'spogi']</pre>
+<p>The indices that begin with &quot;g&quot; are sorted primarily by subgraph (or &quot;context&quot;).&nbsp; If you application does not use subgraphs, you should consider removing these indices from the repository.&nbsp; You don't want to build and maintain triple indices that your application will never use.&nbsp; This wastes CPU time and disk space.&nbsp; The connection object has a convenient <strong>dropIndex()</strong> method:</p>
+<pre class="input">    print &quot;Removing graph indices...&quot;<br>    conn.dropIndex(&quot;gospi&quot;)<br>    conn.dropIndex(&quot;gposi&quot;)<br>    conn.dropIndex(&quot;gspoi&quot;)<br>    indices = conn.listIndices()<br>    print &quot;Current triple indices: %s&quot; % (indices)</pre>
+<p>Having dropped three of the triple indices, there are now four remaining:</p>
+<pre class="output">Removing graph indices...<br>Current triple indices: ['i', 'ospgi', 'posgi', 'spogi']</pre>
+<p>The <strong>i</strong> index is for deleting triples by using the triple id number.&nbsp; The <strong>ospgi</strong> index is sorted primarily by object value, which makes it possible to grab a range of object values as a single block of triples from the index.&nbsp; Similarly, the <strong>posgi</strong> index lets us reach for a block of triples that all share the same predicate.&nbsp; We mentioned previously that the <strong>spogi</strong> index lets us retrieve blocks of triples that all have the same subject URI.&nbsp; </p>
+<p>As it happens, we may have been overly hasty in eliminating all of the graph indices.&nbsp; AllegroGraph can find the right matches as long as there is <em>any</em> one index present, but using the &quot;right&quot; index is much faster.&nbsp; Let's put one of the graph indices back, just in case we need it. We'll use the connection object's<strong> addIndex()</strong> method: </p>
+<pre class="input">    print &quot;Adding one graph index back in...&quot;<br>    conn.addIndex(&quot;gspoi&quot;)<br>    indices = conn.listIndices()<br>    print &quot;Current triple indices: %s&quot; % (indices)
+    return conn</pre>
+<pre class="output">Adding one graph index back in...<br>Current triple indices: ['i', 'gspoi', 'ospgi', 'posgi', 'spogi']</pre>
+<p>The last line (return conn) is the pointer to the new connection object. This is the value returned by example1() when it is called by other functions in tutorial_examples_40.py. The other functions then use the connection object to access the repository. </p>
 <h2 id="Asserting and Retracting Triples">Asserting and Retracting Triples (example2()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 
