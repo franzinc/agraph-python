@@ -778,14 +778,14 @@ def main():
         triples = triples_end - triples_start
         phase_time = nonzero(time.time() - phase_time)
         commits = abs(triples/(params.events_in_commit*OPT.EVENT_SIZE))
-        trace('%s [%s]: %d total triples processed in %f seconds '
+        trace('%s [%s] Phase %d End: %d total triples processed in %f seconds '
             '(%f triples/second, %f commits/second). '
             'Store contains %d triples.', (
-            PROG, datetime.now(), triples, phase_time, triples/phase_time,
+            PROG, datetime.now(), phase, triples, phase_time, triples/phase_time,
             commits/phase_time, triples_end))
 
     @contextmanager
-    def run_queries():
+    def run_queries(phase):
         global queryq
         queryq = JoinableQueue(OPT.QUERY_WORKERS)
         resultq = Queue(OPT.QUERY_WORKERS)
@@ -814,9 +814,9 @@ def main():
             triples += result[1]
             phase_time = nonzero(max(phase_time, result[2]))
 
-        trace('%s [%s]: %d total triples returned over %d queries in '
+        trace('%s [%s] Phase %d End: %d total triples returned over %d queries in '
             '%f seconds (%f triples/second, %f queries/second, '
-            '%f triples/query). ', (PROG, datetime.now(), triples, queries,
+            '%f triples/query). ', (PROG, datetime.now(), phase, triples, queries,
             phase_time, triples/phase_time, queries/phase_time,
             triples/queries))
 
@@ -827,7 +827,7 @@ def main():
     phase5_time = 0
     if OPT.PHASE <= LoadPhase.baseline:
         with monitor('phase-1'):
-            trace('%s [%s]: Phase 1: Baseline %d triple commits.', (
+            trace('%s [%s]: Phase 1 Begin: Baseline %d triple commits.', (
                 PROG, datetime.now(), OPT.EVENT_SIZE))
             phase1_start = time.time()
             load_phase(LoadPhase.baseline)
@@ -835,7 +835,7 @@ def main():
 
     if OPT.PHASE <= LoadPhase.bulk:
         with monitor('phase-2'):
-            trace('%s [%s]: Phase 2: Grow store to about %d triples.', (
+            trace('%s [%s]: Phase 2 Begin: Grow store to about %d triples.', (
                 PROG, datetime.now(), OPT.SIZE))
             phase2_start = time.time()
             load_phase(LoadPhase.bulk)
@@ -843,7 +843,7 @@ def main():
 
     if OPT.PHASE <= LoadPhase.small_commits:
         with monitor('phase-3'):
-            trace('%s [%s]: Phase 3: Perform %d triple commits.',
+            trace('%s [%s]: Phase 3 Begin: Perform %d triple commits.',
                 (PROG, datetime.now(), OPT.EVENT_SIZE))
             phase3_start = time.time()
             load_phase(LoadPhase.small_commits)
@@ -851,17 +851,17 @@ def main():
 
     if OPT.PHASE <= LoadPhase.query:
         with monitor('phase-4'):
-            trace('%s [%s]: Phase 4: Perform customer/date range queries '
+            trace('%s [%s]: Phase 4 Begin: Perform customer/date range queries '
                 'with %d processes for %d minutes.', (PROG, datetime.now(),
                 OPT.QUERY_WORKERS, OPT.QUERY_TIME))
             phase4_start = time.time()
-            with run_queries():
+            with run_queries(LoadPhase.query):
                 time.sleep(OPT.QUERY_TIME*60)
             phase4_time = time.time() - phase4_start
 
     if OPT.PHASE <= LoadPhase.delete_one:
         with monitor('phase-5'):
-            trace('%s [%s]: Phase 5: Shrink store by 1 month.', (
+            trace('%s [%s]: Phase 5 Begin: Shrink store by 1 month.', (
                 PROG, datetime.now()))
             phase5_start = time.time()
             load_phase(LoadPhase.delete_one)
@@ -925,7 +925,7 @@ def main():
                         PROG, datetime.now(), FullDateRange.start,
                         FullDateRange.end))
 
-                    with run_queries():
+                    with run_queries(6):
                         # Create the work queue
                         loadq = JoinableQueue(OPT.LOAD_WORKERS)
 
