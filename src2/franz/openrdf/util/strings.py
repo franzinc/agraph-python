@@ -76,7 +76,9 @@ encode_ntriple_string.UPPER_ASCII = hex2int('7E')
 def uriref(string): 
   uri = None
   if string[0] == '<': 
-     uri = uriref.pattern.match(string).group(1).decode('unicode-escape')
+    match = uriref.pattern.match(string)
+    assert match, "%s is not a valid URI." % string
+    uri = match.group(1).decode('unicode-escape')
   return uri
 
 uri_pattern = r'<([^:]+:[^\s"<>]+)>'
