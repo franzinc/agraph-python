@@ -173,7 +173,8 @@ class Repository(Service):
         """Add a collection of statements to the repository. Quads
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
-        nullRequest(self, "POST", "/statements" + urlenc(commit=commitEvery), cjson.encode(quads), contentType="application/json")
+        nullRequest(self, "POST", "/statements?" + urlenc(commit=commitEvery),
+            cjson.encode(quads), contentType="application/json")
 
     class UnsupportedFormatError(Exception):
         def __init__(self, format): self.format = format
@@ -455,7 +456,14 @@ class Repository(Service):
 
     def setAutoCommit(self, on):
         """Only allowed when a session is active."""
+        assert self.sessionAlive, "AutoCommit can only be set on a session."
         nullRequest(self, "POST", "/session/autoCommit?" + urlenc(on=on))
+
+    def setBulkMode(self, on):
+        nullRequest(self, "PUT" if on else "DELETE", "/bulkMode")
+
+    def getBulkMode(self):
+        return jsonRequest(self, "GET", "/bulkMode")
 
     def __del__(self):
         self.closeSession()
