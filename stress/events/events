@@ -91,11 +91,15 @@ class Defaults:
     # The random seed for the run
     SEED = 0
 
-    # The random seed for the run
+    # Whether or not to create all indices
     INDEXFULL = False
 
     # To Profile or not to Profile
     PROFILER = 'off'
+
+    # Turn on bulk-mode on the server
+    BULK_MODE = False
+    
 
 # The program options
 OPT = None
@@ -540,6 +544,7 @@ def load_events(proc_num):
         return phase
 
     with connect().session(True, max(3600, (OPT.QUERY_TIME+1)*60)) as conn:
+        conn.bulk_mode = OPT.BULK_MODE
         if OPT.PHASE <= LoadPhase.baseline:
             phase = get_phase([LoadPhase.baseline])
             load_phase(phase)
@@ -1013,7 +1018,7 @@ if __name__ == '__main__':
     parser.add_option('-k', '--bulk', default=Defaults.BULK_EVENTS,
         type='int', dest='BULK_EVENTS', metavar='BULK_EVENTS',
         help='commit BULK_EVENTS number of events per commit during bulk load '
-            '[default=%default]')
+            '(Phase 2) [default=%default]')
     parser.add_option('-c', '--catalog', default=Defaults.CATALOG,
         dest='CATALOG', metavar='CATALOG',
         help='CATALOG name on server [default=%default]')
@@ -1044,6 +1049,10 @@ if __name__ == '__main__':
     parser.add_option('-f', '--profile', default=Defaults.PROFILER,
         type='profiler', dest='PROFILER', metavar='PROFILER',
         help='PROFILER option for one connection per phase [default=%default]')
+    parser.add_option('-u', '--bulk-mode', default=Defaults.BULK_MODE,
+        dest='BULK_MODE', metavar='BULK_MODE', action="store_true",
+        help='Turn on bulk mode in the server during load phases [default='
+            'bulk mode off]')
 
     options, args = parser.parse_args()
     OPT = options
