@@ -855,6 +855,7 @@ class RepositoryConnection(object):
 
         return self._get_mini_repository().evalInServer(code)
 
+
 class GeoType:
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'
