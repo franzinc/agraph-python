@@ -1853,3 +1853,15 @@ def test_indices():
     finally:
         conn.dropIndex("i")
     assert not ("i" in conn.listIndices())
+
+def test_bulkmode():
+    """
+    Test the setting and getting of bulk mode.
+    """
+    conn = connect()
+    repo = conn.repository
+
+    repo.bulk_mode = True;
+    assert repo.bulk_mode, "BulkMode should be on."
+    repo.bulk_mode = False;
+    assert not repo.bulk_mode, "BulkMode should be off."

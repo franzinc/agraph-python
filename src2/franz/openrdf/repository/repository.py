@@ -30,7 +30,7 @@ import urllib
 # * and that it should be shut down before it is discarded/garbage collected.
 # * Forgetting the latter can result in loss of data (depending on the Repository
 # * implementation)!
-class Repository:
+class Repository(object):
     RENEW = 'RENEW'
     ACCESS = 'ACCESS'
     OPEN = 'OPEN'
@@ -136,3 +136,18 @@ class Repository:
         if not self.value_factory:
             self.value_factory = ValueFactory(self)
         return self.value_factory
+
+    def setBulkMode(self, on):
+        return self.mini_repository.setBulkMode(on)
+
+    def getBulkMode(self):
+        return self.mini_repository.getBulkMode()
+
+    bulk_mode = property(getBulkMode, setBulkMode,
+        "Turn BulkMode on with True or off with False.\n"
+        "\n"
+        "In bulk mode, all statements are added to the triple-store without flushing\n"
+        "disk writes to the transaction log. There is overhead to switching\n"
+        "out of bulk-mode, and it is a global repository state, so all clients.\n"
+        "are affected.\n")
+
