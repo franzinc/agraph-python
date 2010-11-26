@@ -83,6 +83,8 @@ class Client(Catalog):
         return rep
 
 class Repository(Service):
+    _bulkMode = False
+
     def getSize(self, context=None):
         """Returns the amount of triples in the repository."""
         return jsonRequest(self, "GET", "/size", urlenc(context=context))
@@ -160,7 +162,7 @@ class Repository(Service):
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
-        nullRequest(self, "POST", "/statements", cjson.encode([[subj, pred, obj, context]]),
+        nullRequest(self, "POST", "/statements?" + urlenc(bulkMode="true" if self._bulkMode else "false"), cjson.encode([[subj, pred, obj, context]]),
                     contentType="application/json")
 
     def deleteMatchingStatements(self, subj=None, pred=None, obj=None, context=None):
@@ -173,7 +175,8 @@ class Repository(Service):
         """Add a collection of statements to the repository. Quads
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
-        nullRequest(self, "POST", "/statements" + urlenc(commit=commitEvery), cjson.encode(quads), contentType="application/json")
+        nullRequest(self, "POST", "/statements?" + urlenc(commit=commitEvery, bulkMode="true" if self._bulkMode else "false"),
+            cjson.encode(quads), contentType="application/json")
 
     class UnsupportedFormatError(Exception):
         def __init__(self, format): self.format = format
@@ -455,7 +458,17 @@ class Repository(Service):
 
     def setAutoCommit(self, on):
         """Only allowed when a session is active."""
+        assert self.sessionAlive, "AutoCommit can only be set on a session."
         nullRequest(self, "POST", "/session/autoCommit?" + urlenc(on=on))
+
+    def setBulkMode(self, on):
+        assert self.sessionAlive, "BulkMode can only be set in a session."
+        self._bulkMode = on
+        nullRequest(self, "PUT" if on else "DELETE", "/session/bulkMode")
+
+    def getBulkMode(self):
+        assert self.sessionAlive, "BulkMode value can only be returned in a session"
+        return jsonRequest(self, "GET", "/session/bulkMode")
 
     def __del__(self):
         self.closeSession()

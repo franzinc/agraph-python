@@ -1853,3 +1853,22 @@ def test_indices():
     finally:
         conn.dropIndex("i")
     assert not ("i" in conn.listIndices())
+
+def test_bulkmode():
+    """
+    Test the setting and getting of bulk mode.
+    """
+    conn = connect()
+
+    # Try  setting without a session
+    try:
+        conn.bulk_mode = True
+        assert False, "Setting bulk_mode should assert"
+    except AssertionError:
+        assert True
+    
+    with connect().session() as conn:
+        conn.bulk_mode = True;
+        assert conn.bulk_mode, "BulkMode should be on."
+        conn.bulk_mode = False;
+        assert not conn.bulk_mode, "BulkMode should be off."
