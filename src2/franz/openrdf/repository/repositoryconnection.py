@@ -855,6 +855,20 @@ class RepositoryConnection(object):
 
         return self._get_mini_repository().evalInServer(code)
 
+    def setBulkMode(self, on):
+        return self._get_mini_repository().setBulkMode(on)
+
+    def getBulkMode(self):
+        return self._get_mini_repository().getBulkMode()
+
+    bulk_mode = property(getBulkMode, setBulkMode,
+        "Turn BulkMode on with True or off with False - for use only with a session.\n"
+        "\n"
+        "In bulk mode, statements are added to the triple-store without flushing\n"
+        "disk writes to the transaction log. There is overhead to switching\n"
+        "out of bulk-mode, so do your bulk-load work in bulk.\n")
+
+
 class GeoType:
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'
