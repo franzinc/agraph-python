@@ -92,7 +92,8 @@ class Repository(Service):
         return [t["contextID"] for t in jsonRequest(self, "GET", "/contexts")]
 
     def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
-                        bindings=None, planner=None, checkVariables=None, count=False, accept=None):
+                        bindings=None, planner=None, checkVariables=None, count=False, accept=None, analyze=False,
+                        analysisTechnique=None, analysisTimeout=None):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -102,13 +103,17 @@ class Repository(Service):
         ASK queries."""
         if accept is None:
             accept="text/integer" if count else "application/json"
+        if analyze:
+            accept="text/plain"
         if bindings is not None:
             bindings = "".join(["&$" + urllib.quote(a) + "=" + urllib.quote(b.encode("utf-8")) for a, b in bindings.items()])
         return jsonRequest(self, "GET", self.url,
-                           urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                                  planner=planner, checkVariables=checkVariables) + (bindings or ""),
-                           rowreader=callback and RowReader(callback),
-                           accept=accept)
+                   urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
+                       planner=planner, checkVariables=checkVariables,
+                       analyzeIndicesUsed=analyze, queryAnalysisTechnique=analysisTechnique,
+                       queryAnalysisTimeout=analysisTimeout) + (bindings or ""),
+                       rowreader=callback and RowReader(callback),
+                       accept=accept)
 
     def evalPrologQuery(self, query, infer=False, callback=None, limit=None, count=False, accept=None):
         """Execute a Prolog query. Returns a {names, values} object."""
