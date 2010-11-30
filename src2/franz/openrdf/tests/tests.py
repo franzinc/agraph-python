@@ -1800,7 +1800,7 @@ def test_namespace_management():
         'rltv': 'http://www.franz.com/simple#'}
 
     for namespace, value in test_spaces.iteritems():
-        print 'calling setNamspace', namespace, value
+        print 'calling setNamespace', namespace, value
         conn.setNamespace(namespace, value)
 
     assert count + len(test_spaces) == len(conn.getNamespaces())
@@ -1853,3 +1853,18 @@ def test_indices():
     finally:
         conn.dropIndex("i")
     assert not ("i" in conn.listIndices())
+
+def test_analyze_query():    
+    """
+    Tests query analysis on a SPARQL Tuple Query.
+    """
+    conn = test2()
+    try:
+        queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
+        tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
+        result = tupleQuery.analyze(analysisTechnique="static");
+        assert "desired" in result and "actual" in result
+        result = tupleQuery.evaluate();
+        verify(result.rowCount(), 4, 'len(result)', 3)
+    finally:
+        conn.close()

@@ -157,10 +157,15 @@ class Query(object):
     def _get_connection(self):
         return self.connection
     
-    def evaluate_generic_query(self, count=False, accept=None):
+    def evaluate_generic_query(self, count=False, accept=None, analyze=False, analysisTechnique=None, analysisTimeout=None):
         """
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
+
+        If analysis is True it will perform query analysis for SPARQL queries.
+        analysisTechnique defaults to "executed", which executes the query to perform dynamic analysis.
+            "static" analysis is the other option.
+        For analysisTimeout, pass a float of the number of seconds to run the query if executed.
         """
         ##if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
         ##    raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
@@ -178,10 +183,13 @@ class Query(object):
         if self.queryLanguage == QueryLanguage.SPARQL:  
             response = mini.evalSparqlQuery(self.queryString, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings,
-                                            checkVariables=self.checkVariables, count=count, accept=accept)
+                                            checkVariables=self.checkVariables, count=count, accept=accept, analyze=analyze,
+                                            analysisTechnique=analysisTechnique, analysisTimeout=analysisTimeout)
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
+            if analyze:
+                raise QueryMissingFeatureException("Prolog queries do not support analysis.")
             response = mini.evalPrologQuery(self.queryString, infer=self.includeInferred, count=count, accept=accept)
         return response
 
@@ -213,6 +221,18 @@ class TupleQuery(Query):
             return response
         
         return TupleQueryResult(response['names'], response['values'])
+
+    def analyze(self, analysisTechnique=None, analysisTimeout=None):
+        """
+        Analysis is only available for SPARQL queries.
+
+        analysisTechnique defaults to the string "executed", which executes the query to perform dynamic analysis.
+            "static" analysis is the other option.
+        For analysisTimeout, pass a float of the number of seconds to run the query if executed.
+        """
+        response = self.evaluate_generic_query(analyze=True, analysisTechnique=analysisTechnique,
+            analysisTimeout=analysisTimeout)
+        return response
 
 class GraphQuery(Query):
     
