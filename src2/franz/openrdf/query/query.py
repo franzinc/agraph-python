@@ -157,7 +157,7 @@ class Query(object):
     def _get_connection(self):
         return self.connection
     
-    def evaluate_generic_query(self, count=False, accept=None):
+    def evaluate_generic_query(self, count=False, accept=None, analyze=False):
         """
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
@@ -178,7 +178,7 @@ class Query(object):
         if self.queryLanguage == QueryLanguage.SPARQL:  
             response = mini.evalSparqlQuery(self.queryString, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings,
-                                            checkVariables=self.checkVariables, count=count, accept=accept)
+                                            checkVariables=self.checkVariables, count=count, accept=accept, analyze=analyze)
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
@@ -213,6 +213,10 @@ class TupleQuery(Query):
             return response
         
         return TupleQueryResult(response['names'], response['values'])
+
+    def analyze(self):
+        response = self.evaluate_generic_query(analyze=True)
+        return response
 
 class GraphQuery(Query):
     
