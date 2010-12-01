@@ -681,12 +681,12 @@ def monitor(phase):
     Start and end the monitor for a phase.
     """
     try:
-        subprocess.call(['./monitor.sh', 'start', phase])
+        subprocess.call(['./monitor.sh', 'start', phase, OPT.CATALOG, OPT.REPOSITORY])
     except OSError:
         pass
     yield
     try:
-        subprocess.call(['./monitor.sh', 'end'])
+        subprocess.call(['./monitor.sh', 'end', phase, OPT.CATALOG, OPT.REPOSITORY])
     except OSError:
         pass
 
