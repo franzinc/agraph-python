@@ -3,7 +3,7 @@ DISTDIR = agraph-$(VERSION)-client-python
 
 TARNAME = $(DISTDIR).tar.gz
 
-FILES = LICENSE src2 stress tutorial windows-support
+FILES = LICENSE franz stress tutorial windows-support
 
 PATH := /usr/local/python26/bin:$(PATH)
 
@@ -24,6 +24,6 @@ endif
 
 prepush: FORCE
 	@echo Using port $(AGRAPH_PORT)
-	cd src2; nosetests
+	nosetests
 
 FORCE:
