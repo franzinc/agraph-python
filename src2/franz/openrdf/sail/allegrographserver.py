@@ -159,7 +159,7 @@ class Catalog(object):
 
         return Repository(self, name, self.mini_catalog.getRepository(name))
 
-    def createRepository(self, name, indices=None):
-        return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices))
+    def createRepository(self, name, indices=None, deleteDuplicates=True):
+        return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices, deleteDuplicates=deleteDuplicates))
 
 

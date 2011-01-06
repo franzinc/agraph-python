@@ -151,3 +151,15 @@ class Repository(object):
         "out of bulk-mode, and it is a global repository state, so all clients.\n"
         "are affected.\n")
 
+    def setDeleteDuplicates(self, on):
+        return self.mini_repository.setDeleteDuplicates(on)
+
+    def getDeleteDuplicates(self):
+        return self.mini_repository.getDeleteDuplicates()
+
+    delete_duplicates = property(getDeleteDuplicates, setDeleteDuplicates,
+        "Turn delete_duplicates on with True or off with False.\n"
+        "\n"
+        "When delete_duplicates is True for a store, duplicate\n"
+        "triples/quads are removed during index merging.\n"
+        "This is a per-store property.")
