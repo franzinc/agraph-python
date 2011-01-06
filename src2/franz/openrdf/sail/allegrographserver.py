@@ -159,7 +159,15 @@ class Catalog(object):
 
         return Repository(self, name, self.mini_catalog.getRepository(name))
 
-    def createRepository(self, name, indices=None):
-        return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices))
+    def createRepository(self, name, indices=None, deleteDuplicates=None):
+        """
+        createsRepository - makes a new repository with the given name.
+
+        indices - if provided, creates a store with the given indices
+        deleteDuplicates - sets behavior for duplicate removal. See
+            http protocol documentation for description. None will
+            result in using the server's default behavior.
+        """
+        return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices, deleteDuplicates=deleteDuplicates))
 
 
