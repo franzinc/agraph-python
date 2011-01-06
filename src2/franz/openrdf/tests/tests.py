@@ -1708,6 +1708,23 @@ def test_freetext():
         'SELECT ?something WHERE { ?something fti:match "Ross Jekel". }').evaluate()
     assert len(results)
 
+def test_javascript():
+    conn = connect()
+    assert conn.evalJavaScript("1+1") == 2
+    assert conn.evalJavaScript("store.addTriple('<a>', '<b>', '\"blah blah\"'); store.size") == 1
+    assert conn.evalJavaScript("store.getTriplesArray()[0].subject.value") == "a"
+    assert conn.evalJavaScript("store.getTriplesArray()[1]") is None
+    assert conn.evalJavaScript("store.getTriples().next().object.toString()") == '"blah blah"'
+    assert conn.evalJavaScript("store.indices.length > 2") is True
+    assert conn.evalJavaScript("store.createTextIndex('foo'); store.textSearch('blah', 'foo').next().predicate.value") == "b"
+    assert conn.evalJavaScript("namespaces.collect().length > 1") is True
+    assert conn.evalJavaScript("namespaces.register('blah', 'http://blah.com'); x = namespaces.lookup('blah'); " \
+      "namespaces.unregister('blah'); x + namespaces.lookup('blah')") == "http://blah.comnull"
+
+    with conn.session():
+        conn.evalJavaScript("var x = 100;")
+        assert conn.evalJavaScript("x") == 100
+    
 def test_roundtrips():
     """
     Test round-tripping of Python values.

@@ -855,6 +855,14 @@ class RepositoryConnection(object):
 
         return self._get_mini_repository().evalInServer(code)
 
+    def evalJavaScript(self, code):
+        """
+        Evaluate the JavaScript code in the server.
+
+        You must have "eval" permissions to the store to use this feature.
+        """
+        return self._get_mini_repository().evalJavaScript(code)
+
 
 class GeoType:
     Cartesian = 'CARTESIAN'

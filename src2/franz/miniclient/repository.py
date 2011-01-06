@@ -130,6 +130,10 @@ class Repository(Service):
         <- operators)."""
         nullRequest(self, "POST", "/functor", definitions)
 
+    def evalJavaScript(self, code):
+        """Evaluate JavaScript code in the server."""
+        return jsonRequest(self, "POST", "/eval", code, 'text/javascript')
+
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
         return jsonRequest(self, "POST", "/eval", code)
