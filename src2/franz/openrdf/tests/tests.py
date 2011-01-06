@@ -81,12 +81,12 @@ def connect(accessMode=Repository.RENEW):
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     print "Available catalogs", server.listCatalogs()
     catalog = server.openCatalog(CATALOG)
-    catalogs = catalog.listRepositories()
+    stores = catalog.listRepositories()
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
 
     # Instead of renewing the database, clear it.
     if accessMode == Repository.RENEW:
-        mode = Repository.CREATE if STORE not in catalogs else Repository.OPEN
+        mode = Repository.CREATE if STORE not in stores else Repository.OPEN
     else:
         mode = accessMode
 
@@ -1856,6 +1856,37 @@ def test_namespace_management():
 
     assert namespaces == conn.getNamespaces()
 
+def test_delete_duplicates():
+    """
+    Test setting/getting the store's deleteDeplicates property
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    catalog = server.openCatalog(CATALOG)
+    if STORE in catalog.listRepositories():
+        catalog.deleteRepository(STORE)
+
+    myRepository = catalog.createRepository(STORE, deleteDuplicates=False)
+    myRepository.initialize()
+    assert not myRepository.delete_duplicates
+
+    myRepository.delete_duplicates = True
+    assert myRepository.delete_duplicates is True
+
+    myRepository.delete_duplicates = "spog"
+    # Check both in case the http server ever returns "spog"
+    assert (myRepository.delete_duplicates is True) or \
+        (myRepository.delete_duplicates == "spog")
+
+    myRepository.delete_duplicates = "spo"
+    print myRepository.delete_duplicates
+    assert myRepository.delete_duplicates == "spo"
+
+    catalog.deleteRepository(STORE)
+
+    # Check the default create
+    conn = connect()
+    assert not conn.repository.delete_duplicates
+    
 def test_indices():
     """
     Test creating and deleting indices.
