@@ -1902,6 +1902,10 @@ def test_indices():
         conn.dropIndex("i")
     assert not ("i" in conn.listIndices())
 
+def test_optimize_indices():
+    conn=test6()
+    # Need a bigger store to test for real, just test the call for now
+    conn.optimizeIndices(wait=True);
 
 def test_bulkmode():
     """

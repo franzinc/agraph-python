@@ -529,11 +529,27 @@ class RepositoryConnection(object):
     def listValidIndices(self):
         return self._get_mini_repository().listValidIndices()
 
-    def addIndex(self, type):
-        return self._get_mini_repository().addIndex(type)
+    def addIndex(self, _type):
+        return self._get_mini_repository().addIndex(_type)
 
-    def dropIndex(self, type):
-        return self._get_mini_repository().dropIndex(type)
+    def dropIndex(self, _type):
+        return self._get_mini_repository().dropIndex(_type)
+
+    def optimizeIndices(self, forceLevel=None, wait=None):
+        """
+        Optimize indices.
+
+        forceLevel - integer
+            None - use server default (currently 2)
+            1 - merge up to one file per level
+            2 - merge up to one file per level and remove duplicates on files
+                merged (doesn't remove all dups from store)
+            
+        wait - bool:
+            True waits
+            False or None returns immediately.
+        """
+        return self._get_mini_repository().optimizeIndices(forceLevel, wait);
 
     #############################################################################################
     ## ValueFactory methods
