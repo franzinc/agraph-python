@@ -529,11 +529,21 @@ class RepositoryConnection(object):
     def listValidIndices(self):
         return self._get_mini_repository().listValidIndices()
 
-    def addIndex(self, type):
-        return self._get_mini_repository().addIndex(type)
+    def addIndex(self, _type):
+        return self._get_mini_repository().addIndex(_type)
 
-    def dropIndex(self, type):
-        return self._get_mini_repository().dropIndex(type)
+    def dropIndex(self, _type):
+        return self._get_mini_repository().dropIndex(_type)
+
+    def optimizeIndices(self, forceLevel=None, wait=None):
+        """
+        Optimize indices
+
+        Please see documenation for argument values and meanings:
+
+        http://www.franz.com/agraph/support/documentation/v4/triple-index.html#optimize
+        """
+        return self._get_mini_repository().optimizeIndices(forceLevel, wait);
 
     #############################################################################################
     ## ValueFactory methods

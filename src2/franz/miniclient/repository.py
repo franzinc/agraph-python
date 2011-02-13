@@ -31,18 +31,8 @@ class Catalog(Service):
 
     def createRepository(self, name, indices=None, deleteDuplicates=None):
         """Ask the server to create a new repository."""
-        url = "/repositories/" + urllib.quote(name)
-        args = {}
-        if indices is not None:
-            args["index"] = indices
-
-        if deleteDuplicates is not None:
-            args["deleteDuplicates"] = deleteDuplicates
-
-        if args:
-            url = url + '?' + urlenc(**args)
-
-        nullRequest(self, "PUT", url)
+        nullRequest(self, "PUT", "/repositories/" + urllib.quote(name) + "?" +
+            urlenc(indices=indices, deleteDuplicates=deleteDuplicates))
         return self.getRepository(name)
 
     def deleteRepository(self, name):
@@ -341,11 +331,15 @@ class Repository(Service):
     def listValidIndices(self):
         return jsonRequest(self, "GET", "/indices?listValid=true")
 
-    def addIndex(self, type):
-        nullRequest(self, "PUT", "/indices/" + urllib.quote(type))
+    def addIndex(self, _type):
+        nullRequest(self, "PUT", "/indices/" + urllib.quote(_type))
 
-    def dropIndex(self, type):
-        nullRequest(self, "DELETE", "/indices/" + urllib.quote(type))
+    def dropIndex(self, _type):
+        nullRequest(self, "DELETE", "/indices/" + urllib.quote(_type))
+
+    def optimizeIndices(self, forceLevel=None, wait=None):
+        nullRequest(self, "POST", "/indices/optimize?" + urlenc(
+            forceLevel=forceLevel,wait=wait))
 
     def getCartesianGeoType(self, stripWidth, xMin, xMax, yMin, yMax):
         """Retrieve a cartesian geo-spatial literal type."""
