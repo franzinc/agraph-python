@@ -32,7 +32,7 @@ class Catalog(Service):
     def createRepository(self, name, indices=None, deleteDuplicates=None):
         """Ask the server to create a new repository."""
         nullRequest(self, "PUT", "/repositories/" + urllib.quote(name) + "?" +
-            urlenc(indices=indices, deleteDuplicates=deleteDuplicates))
+            urlenc(index=indices, deleteDuplicates=deleteDuplicates))
         return self.getRepository(name)
 
     def deleteRepository(self, name):
@@ -337,9 +337,9 @@ class Repository(Service):
     def dropIndex(self, _type):
         nullRequest(self, "DELETE", "/indices/" + urllib.quote(_type))
 
-    def optimizeIndices(self, forceLevel=None, wait=None):
+    def optimizeIndices(self, level=None, wait=None):
         nullRequest(self, "POST", "/indices/optimize?" + urlenc(
-            forceLevel=forceLevel,wait=wait))
+            level=level,wait=wait))
 
     def getCartesianGeoType(self, stripWidth, xMin, xMax, yMin, yMax):
         """Retrieve a cartesian geo-spatial literal type."""
