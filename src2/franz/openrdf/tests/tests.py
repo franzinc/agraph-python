@@ -1902,6 +1902,21 @@ def test_indices():
         conn.dropIndex("i")
     assert not ("i" in conn.listIndices())
 
+def test_indices_on_create():
+    """
+    Test passing indices to createRepository.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    catalog = server.openCatalog(CATALOG)
+    if "optimal" in catalog.listRepositories():
+        catalog.deleteRepository("optimal");
+
+    indices = ["posgi", "gspoi"]
+    myRepository = catalog.createRepository("optimal", indices=indices)
+    myRepository.initialize()
+    conn = myRepository.getConnection()
+    assert set(indices) == set(conn.listIndices())
+
 def test_optimize_indices():
     conn=test6()
     # Need a bigger store to test for real, just test the call for now

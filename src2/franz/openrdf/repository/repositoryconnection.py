@@ -535,7 +535,7 @@ class RepositoryConnection(object):
     def dropIndex(self, _type):
         return self._get_mini_repository().dropIndex(_type)
 
-    def optimizeIndices(self, forceLevel=None, wait=None):
+    def optimizeIndices(self, level=None, wait=None):
         """
         Optimize indices
 
@@ -543,7 +543,7 @@ class RepositoryConnection(object):
 
         http://www.franz.com/agraph/support/documentation/v4/triple-index.html#optimize
         """
-        return self._get_mini_repository().optimizeIndices(forceLevel, wait);
+        return self._get_mini_repository().optimizeIndices(level, wait);
 
     #############################################################################################
     ## ValueFactory methods
