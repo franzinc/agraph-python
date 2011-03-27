@@ -1886,7 +1886,7 @@ def test_delete_duplicates():
     # Check the default create
     conn = connect()
     assert not conn.repository.delete_duplicates
-    
+
 def test_indices():
     """
     Test creating and deleting indices.
@@ -1948,4 +1948,53 @@ def test_analyze_query():
         verify(result.rowCount(), 4, 'len(result)', 3)
     finally:
         conn.close()
+
+def test_encoded_ids():
+    """
+    Tests encoded ids.
+    """
+    with connect().session() as conn:
+        prefixes = ["http://www.franz.com/customer",
+            "http://www.franz.com/employee","http://www.franz.com/company",
+            "http://www.franz.com/remove"]
+        formats = ["[0-9]{1,10}", "[0-9]{1,11}", "[0-9]{12}", "[0-9]{1,5}"]
+        conn.registerEncodedIdPrefix(prefixes[0], formats[0])
+
+        regs = conn.listEncodedIdPrefixes()
+
+        assert (len(regs) == 1 and regs[0].prefix == prefixes[0] and
+            regs[0].format == formats[0])
+
+        regs = [(prefixes[i], formats[i]) for i in range(1, len(prefixes))]
+        conn.registerEncodedIdPrefixes(regs)
+
+        regs = conn.listEncodedIdPrefixes()
+        assert len(regs) == 4
+
+        for reg in regs:
+            index = prefixes.index(reg.prefix)
+            assert index >= 0 and formats[index] == reg.format
+
+        ids = conn.allocateEncodedIds(prefixes[2], 100);
+
+        assert len(ids) == 100
+        assert ids == ["<%s@@%012d>" % (prefixes[2], i)
+            for i in range(0, 100)]
+
+        conn.addTriple('<%s@@0>' % prefixes[0], '<%s@@0>' % prefixes[1],
+            conn.createURI(ids[0]), '<%s@@0>' % prefixes[0])
+
+        assert conn.evalInServer("(= (upi-type-code (subject (first (get-triples-list)))) 45)")
+        assert conn.evalInServer("(= (upi-type-code (predicate (first (get-triples-list)))) 45)")
+        assert conn.evalInServer("(= (upi-type-code (object (first (get-triples-list)))) 45)")
+        assert conn.evalInServer("(= (upi-type-code (graph (first (get-triples-list)))) 45)")
+
+        conn.unregisterEncodedIdPrefix(prefixes[3])
+
+        regs = conn.listEncodedIdPrefixes()
+        assert len(regs) == 3
+
+        for reg in regs:
+            index = prefixes.index(reg.prefix)
+            assert index < 4 and formats[index] == reg.format
 

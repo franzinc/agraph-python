@@ -54,6 +54,9 @@ class Defaults:
     # The namespace
     NS = 'http://franz.com/events#';
 
+    # Reg Enc Prefix
+    REG_PREFIX = 'http://franz.com/events/'
+
     # Number of worker processes
     LOAD_WORKERS = 20
     QUERY_WORKERS = 8
@@ -99,6 +102,9 @@ class Defaults:
 
     # Turn on bulk-mode on the server
     BULK_MODE = False
+    
+    # Turn on bulk-mode on the server
+    REG_ENC_ID = False
     
 
 # The program options
@@ -243,8 +249,14 @@ def random_money():
     return Literal(round(random.uniform(0.01, 10000.00), 2)).toNTriples()
 
 def random_uri(prefix, limit):
-    return URI(namespace=OPT.NS,
-        localname='%s-%d' % (prefix, random.randrange(int(limit)))).toNTriples()
+    key = random.randrange(int(limit))
+
+    if OPT.REG_ENC_ID:
+        uri=URI(uri="%s%s@@%d" % (OPT.REG_PREFIX, prefix, key))
+    else:
+        uri=URI(namespace=OPT.NS, localname='%s-%d' % (prefix, key))
+
+    return uri.toNTriples()
 
 def random_customer():
     # Striving for 1000 ids per prefix (e.g. customer) when SIZE is 1 billion,
@@ -346,7 +358,10 @@ def initialize_events():
         PredInfo('TotalOneTimeCharges', random_money)]
 
     def pad_events(event):
-        pred_format = event[0].generator()[:-1] + 'Pad-%d>'
+        if OPT.REG_ENC_ID:
+            pred_format = "<%sPad@@%%d>" % OPT.REG_PREFIX
+        else:
+            pred_format = event[0].generator()[:-1] + 'Pad-%d>'
 
         for i in range(len(event), OPT.EVENT_SIZE):
             event.append(PredInfo(URI(uri=pred_format % i), random_int))
@@ -749,6 +764,13 @@ def main():
         'Repository contains %d triples.', (
         PROG, datetime.now(), OPT.LOAD_WORKERS, OPT.QUERY_WORKERS, triples))
     
+    if (OPT.REG_ENC_ID):
+        conn.registerEncodedIdPrefixes(
+            [(OPT.REG_PREFIX + name, '[0-9]{1,12}')
+                for name in ['Customer', 'Account', 'PaymentTarget',
+                    'DepositDesignation', 'BusinessUnit', 'Product',
+                    'Pad']])
+    
     # Create the work queue
     loadq = JoinableQueue(OPT.LOAD_WORKERS)
 
@@ -1054,8 +1076,12 @@ if __name__ == '__main__':
         dest='BULK_MODE', metavar='BULK_MODE', action="store_true",
         help='Turn on bulk mode in the server during load phases [default='
             'bulk mode off]')
+    parser.add_option('-x', '--reg-enc-id-prefix', default=Defaults.REG_ENC_ID,
+        dest='REG_ENC_ID', metavar='REG_ENC_ID', action="store_true",
+        help='Register encoded id prefixes [default=%default]')
 
     options, args = parser.parse_args()
     OPT = options
+    OPT.REG_PREFIX = OPT.NS[:-1] + '/'
     del args
     main()

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#s!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
@@ -23,6 +23,14 @@ from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLang
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
 from ..vocabulary import RDF, RDFS, OWL, XMLSchema
+
+try:
+    from collections import namedtuple
+except ImportError:
+    from ..util.namedtuple import namedtuple
+
+class PrefixFormat(namedtuple('EncodedIdPrefix', 'prefix format')):
+    __slots__ = ()
 
 import copy, datetime, os
 from contextlib import contextmanager
@@ -873,6 +881,58 @@ class RepositoryConnection(object):
         """
         return self._get_mini_repository().evalJavaScript(code)
 
+    def registerEncodedIdPrefix(self, prefix, format):
+        """
+        Registers a single encoded prefix.
+
+        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        """
+        return self._get_mini_repository().registerEncodedIdPrefix(prefix, format)
+
+    def registerEncodedIdPrefixes(self, registrations):
+        """
+        Registers multiple encoded prefixes. Any kind of iteratable collection
+        of items with a prefix attribute and format attribute, or the prefix
+        at index 0 and the format at index 1 will do (e.g. a list of tuples).
+        Using PrefixFormat instances also works well.
+
+        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        """
+        return self._get_mini_repository().registerEncodedIdPrefixes(registrations)
+
+    def listEncodedIdPrefixes(self):
+        """
+        Lists all encoded id prefixes.
+
+        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        """
+        regs = []
+
+        enc_ids = self._get_mini_repository().listEncodedIdPrefixes()
+        for enc_id in enc_ids:
+            regs.append(PrefixFormat(enc_id["prefix"], enc_id["format"]))
+
+        return regs
+
+    def unregisterEncodedIdPrefix(self, prefix):
+        """
+        Unregisters the specified encoded id prefix.
+
+        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        """
+        return self._get_mini_repository().unregisterEncodedIdPrefix(prefix)
+
+    def allocateEncodedIds(self, prefix, amount=1):
+        """
+        allocateEncodedIds allows you to use the server to allocate
+        unique ids for a given registered prefix which has a fixed-width
+        format specifier.
+
+        See notes on next-encoded-upi-for-prefix in:
+        
+        http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        """
+        return self._get_mini_repository().allocateEncodedIds(prefix, amount)
 
 class GeoType:
     Cartesian = 'CARTESIAN'

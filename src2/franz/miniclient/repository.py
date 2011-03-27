@@ -6,7 +6,7 @@
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
 
-import time, cjson, math, re, threading
+import time, cjson, math, operator, re, threading
 from request import *
 
 class Service(object):
@@ -487,3 +487,30 @@ class Repository(Service):
 
     def __del__(self):
         self.closeSession()
+
+    def registerEncodedIdPrefix(self, prefix, format):
+        return nullRequest(self, "POST", "/encodedIds/prefixes?" +
+            urlenc(prefix=prefix, format=format))
+
+    def registerEncodedIdPrefixes(self, registrations):
+        body = []
+        for reg in registrations:
+            body.append({
+                "prefix":
+                    reg.prefix if hasattr(reg, "prefix") else reg[0],
+                "format":
+                    reg.format if hasattr(reg, "format") else reg[1]})
+
+        nullRequest(self, "POST", "/encodedIds/prefixes",
+            contentType="application/json", body=cjson.encode(body))
+
+    def listEncodedIdPrefixes(self):
+        return jsonRequest(self, "GET", "/encodedIds/prefixes")
+
+    def unregisterEncodedIdPrefix(self, prefix):
+        nullRequest(self, "DELETE", "/encodedIds/prefixes?" + urlenc(prefix=prefix))
+
+    def allocateEncodedIds(self, prefix, amount):
+        return jsonRequest(self, "POST", "/encodedIds?" + urlenc(prefix=prefix,
+            amount=amount))
+
