@@ -559,6 +559,9 @@ def load_events(proc_num):
         return phase
 
     with connect().session(True, max(3600, (OPT.QUERY_TIME+1)*60)) as conn:
+        phase = get_phase([LoadPhase.start])
+        loadq.task_done()
+        
         if OPT.PHASE <= LoadPhase.baseline:
             phase = get_phase([LoadPhase.baseline])
             load_phase(phase)
@@ -588,6 +591,9 @@ def query_events(proc_num, resultq):
    
     conn = connect()
     conn.openSession(True)
+
+    queryq.get()
+    queryq.task_done();
 
     def dequeue():
         try:
@@ -755,7 +761,11 @@ def main():
     # Renew/Open the repository
     trace('%s [%s]: %s %s:%s.', (PROG, datetime.now(),
         "Opening" if OPT.OPEN else "Renewing", OPT.CATALOG, OPT.REPOSITORY))
+    phase_time = time.time()
     conn = connect(Repository.OPEN if OPT.OPEN else Repository.RENEW)
+    phase_time = nonzero(time.time() - phase_time)
+    trace('%s [%s]: Initial %s took %s seconds.', (PROG, datetime.now(),
+        "opening" if OPT.OPEN else "renewing", phase_time))
     # Set the global bulk mode state of the store
     conn.repository.bulk_mode = OPT.BULK_MODE
     triples = conn.size()
@@ -773,11 +783,6 @@ def main():
     
     # Create the work queue
     loadq = JoinableQueue(OPT.LOAD_WORKERS)
-
-    # Start the loading processes
-    for proc_num in range(OPT.LOAD_WORKERS):
-        p = Process(target=load_events, args=(proc_num,))
-        p.start()
 
     def load_phase(phase):
         params = PHASE_PARAMS[phase]
@@ -806,11 +811,11 @@ def main():
         triples = triples_end - triples_start
         phase_time = nonzero(time.time() - phase_time)
         commits = abs(triples/(params.events_in_commit*OPT.EVENT_SIZE))
-        trace('%s [%s] Phase %d End: %d total triples processed in %f seconds '
+        trace('%s [%s]: Phase %d End: %d total triples processed in %f seconds '
             '(%f triples/second, %f commits/second). '
-            'Store contains %d triples.', (
-            PROG, datetime.now(), phase, triples, phase_time, triples/phase_time,
-            commits/phase_time, triples_end))
+            'Store contains %d triples.', (PROG, datetime.now(), phase,
+                triples, phase_time, triples/phase_time, commits/phase_time,
+                triples_end))
 
     @contextmanager
     def run_queries(phase):
@@ -818,10 +823,18 @@ def main():
         queryq = JoinableQueue(OPT.QUERY_WORKERS)
         resultq = Queue(OPT.QUERY_WORKERS)
 
+        trace('%s [%s]: Phase 0 Begin: Launching child query processes.',
+            (PROG, datetime.now()))
+        phase_time = time.time()
         # Start the query processes
         for proc_num in range(OPT.QUERY_WORKERS):
             p = Process(target=query_events, args=(proc_num, resultq))
             p.start()
+            queryq.put('Start')
+        queryq.join()
+        phase_time = time.time() - phase_time
+        trace('%s [%s]: Phase 0 End: Launched child query processes in '
+            '%f seconds.', (PROG, datetime.now(), phase_time))
 
         yield
 
@@ -842,10 +855,10 @@ def main():
             triples += result[1]
             phase_time = nonzero(max(phase_time, result[2]))
 
-        trace('%s [%s] Phase %d End: %d total triples returned over %d queries in '
-            '%f seconds (%f triples/second, %f queries/second, '
-            '%f triples/query). ', (PROG, datetime.now(), phase, triples, queries,
-            phase_time, triples/phase_time, queries/phase_time,
+        trace('%s [%s]: Phase %d End: %d total triples returned over %d queries '
+            'in %f seconds (%f triples/second, %f queries/second, '
+            '%f triples/query). ', (PROG, datetime.now(), phase, triples,
+            queries, phase_time, triples/phase_time, queries/phase_time,
             triples/queries))
 
     phase1_time = 0
@@ -853,37 +866,51 @@ def main():
     phase3_time = 0
     phase4_time = 0
     phase5_time = 0
+
+    trace('%s [%s]: Phase 0 Begin: Launching child loading processes.', (
+        PROG, datetime.now()))
+    # Start the loading processes
+    for proc_num in range(OPT.LOAD_WORKERS):
+        p = Process(target=load_events, args=(proc_num,))
+        p.start()
+        loadq.put(LoadPhase.start)
+    phase_time = time.time()
+    loadq.join()
+    phase_time = time.time() - phase_time
+    trace('%s [%s]: Phase 0 End: Launched child loading processes in '
+        '%f seconds.', (PROG, datetime.now(), phase_time))
+
     if OPT.PHASE <= LoadPhase.baseline:
         with monitor('phase-1'):
             trace('%s [%s]: Phase 1 Begin: Baseline %d triple commits.', (
                 PROG, datetime.now(), OPT.EVENT_SIZE))
-            phase1_start = time.time()
+            phase_start = time.time()
             load_phase(LoadPhase.baseline)
-            phase1_time = time.time() - phase1_start
+            phase1_time = time.time() - phase_start
 
     if OPT.PHASE <= LoadPhase.bulk:
         with monitor('phase-2'):
             trace('%s [%s]: Phase 2 Begin: Grow store to about %d triples.', (
                 PROG, datetime.now(), OPT.SIZE))
-            phase2_start = time.time()
+            phase_start = time.time()
             load_phase(LoadPhase.bulk)
-            phase2_time = time.time() - phase2_start
+            phase2_time = time.time() - phase_start
 
     if OPT.PHASE <= LoadPhase.small_commits:
         with monitor('phase-3'):
             trace('%s [%s]: Phase 3 Begin: Perform %d triple commits.',
                 (PROG, datetime.now(), OPT.EVENT_SIZE))
-            phase3_start = time.time()
+            phase_start = time.time()
             load_phase(LoadPhase.small_commits)
-            phase3_time = time.time() - phase3_start
+            phase3_time = time.time() - phase_start
 
     if OPT.PHASE <= LoadPhase.query:
-        with monitor('phase-4'):
-            trace('%s [%s]: Phase 4 Begin: Perform customer/date range queries '
-                'with %d processes for %d minutes.', (PROG, datetime.now(),
-                OPT.QUERY_WORKERS, OPT.QUERY_TIME))
-            phase4_start = time.time()
-            with run_queries(LoadPhase.query):
+        with run_queries(LoadPhase.query):
+            with monitor('phase-4'):
+                trace('%s [%s]: Phase 4 Begin: Perform customer/date range '
+                    'queries with %d processes for %d minutes.',
+                    (PROG, datetime.now(), OPT.QUERY_WORKERS, OPT.QUERY_TIME))
+                phase4_start = time.time()
                 time.sleep(OPT.QUERY_TIME*60)
             phase4_time = time.time() - phase4_start
 
@@ -891,9 +918,9 @@ def main():
         with monitor('phase-5'):
             trace('%s [%s]: Phase 5 Begin: Shrink store by 1 month.', (
                 PROG, datetime.now()))
-            phase5_start = time.time()
+            phase_start = time.time()
             load_phase(LoadPhase.delete_one)
-            phase5_time = time.time() - phase5_start
+            phase5_time = time.time() - phase_start
     
     # Display the results
     # We do not want the total_time to include the synchronization
