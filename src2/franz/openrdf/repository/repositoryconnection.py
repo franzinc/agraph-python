@@ -120,7 +120,7 @@ class RepositoryConnection(object):
     
     def getContextIDs(self):
         """
-        Return a list of context resources, one for each context referenced by a quad in 
+        Return a list of context resources, one for each context referenced bya quad in 
         the triple store.  Omit the default context, since no one had the intelligence to
         make it a first-class object.
         """                         
@@ -933,6 +933,11 @@ class RepositoryConnection(object):
         http://franz.com/agraph/support/documentation/v4/encoded-ids.html
         """
         return self._get_mini_repository().allocateEncodedIds(prefix, amount)
+
+    def callStoredProc(self, function, module, *args):
+        return self._get_mini_repository().callStoredProc(function, module,
+            *args)
+
 
 class GeoType:
     Cartesian = 'CARTESIAN'

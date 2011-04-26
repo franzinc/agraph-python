@@ -87,6 +87,21 @@ class AllegroGraphServer(object):
         minirep = self._client.openSession(spec, autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile)
         return RepositoryConnection(Repository(None, None, minirep))
 
+    def listScripts(self):
+        """
+        List the registered scripts.
+        """
+        return self._client.listScripts()
+
+    def addScript(self, module, code):
+        return self._client.addScript(module, code)
+
+    def deleteScript(self, module):
+        return self._client.deleteScript(module)
+
+    def getScript(self, module):
+        return self._client.getScript(module)
+
     def openFederated(self, repositories, autocommit=False, lifetime=None, loadinitfile=False):
         """
         Open a session that federates several repositories. The
