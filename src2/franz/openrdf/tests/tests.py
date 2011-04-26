@@ -1795,6 +1795,33 @@ def test_add_commit_size():
 
     assert conn.size() == 0
 
+def test_script_management():
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    assert len(server.listScripts()) == 0
+
+    server.addScript("script.cl", test_script_management.code)
+    assert len(server.listScripts()) == 1
+    assert server.getScript("script.cl") == test_script_management.code
+    
+    conn = connect()
+    result = conn.callStoredProc("add-two-ints", "script.cl", 1, 2)
+    print result
+    assert int(result) == 3
+    
+    server.deleteScript("script.cl")
+    assert len(server.listScripts()) == 0
+    
+test_script_management.code = """
+;; ag 4.x style where we let the def-stored-proc code generate code
+;; to check if the correct number of arguments were passed in the
+;; argument vector and if not to return an error indication
+
+(def-stored-proc add-two-ints (a b)
+      ;; takes two values and adds them
+      (+ a b))
+"""
+
+
 def test_namespace_management():
     """
     Test namespace management features

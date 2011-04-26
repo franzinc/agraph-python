@@ -112,7 +112,7 @@ class RepositoryConnection(object):
     
     def getContextIDs(self):
         """
-        Return a list of context resources, one for each context referenced by a quad in 
+        Return a list of context resources, one for each context referenced bya quad in 
         the triple store.  Omit the default context, since no one had the intelligence to
         make it a first-class object.
         """                         
@@ -872,6 +872,10 @@ class RepositoryConnection(object):
         You must have "eval" permissions to the store to use this feature.
         """
         return self._get_mini_repository().evalJavaScript(code)
+
+    def callStoredProc(self, function, module, *args):
+        return self._get_mini_repository().callStoredProc(function, module,
+            *args)
 
 
 class GeoType:

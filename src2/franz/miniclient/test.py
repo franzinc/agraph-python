@@ -8,7 +8,7 @@
 
 import repository, re
 from os import environ
-from request import RequestError
+from request import RequestError, encode, decode, serialize, deserialize
 
 from nose.tools import with_setup, eq_ as eq
 
@@ -127,3 +127,11 @@ def testFreeText():
     eq(len(rep.evalFreeTextSearch("rhubarb")), 1)
     rep.deleteFreeTextIndex("index")
     eq(rep.listFreeTextIndices(), [])
+
+def test_stored_proc_args():
+    orig = [1, 2, "3", "4", "5", [1, [1, "2", 3], "3"]]
+    serial = serialize(orig)
+    enc = encode(serial)
+    assert serial == decode(enc)
+    assert orig == deserialize(serial)
+    
