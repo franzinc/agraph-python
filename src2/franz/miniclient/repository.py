@@ -72,6 +72,22 @@ class Client(Catalog):
         else:
             nullRequest(self, "PUT", "/initfile?" + urlenc(restart=restart), content)
 
+    def listScripts(self):
+        """
+        List the registered scripts.
+        """
+        return jsonRequest(self, "GET", "/scripts")
+
+    def addScript(self, module, code):
+        nullRequest(self, "PUT", "/scripts/" + module,
+            body=code)
+
+    def getScript(self, module):
+        return jsonRequest(self, "GET", "/scripts/" + module)
+
+    def deleteScript(self, module):
+        nullRequest(self, "DELETE", "/scripts/" + module)
+
     def openSession(self, spec, autocommit=False, lifetime=None, loadinitfile=False):
         url = jsonRequest(self, "POST", "/session?" +
                           urlenc(autoCommit=autocommit, lifetime=lifetime,
@@ -157,13 +173,14 @@ class Repository(Service):
         if count: accept = "text/integer"
         elif tripleIDs: accept = "application/x-quints+json"
         return jsonRequest(self, "GET", "/statements",
-                           urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
-                                  obj=obj, objEnd=objEnd, context=context, infer=infer, limit=limit, offset=offset),
-                           rowreader=callback and RowReader(callback), accept=accept)
+            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
+                obj=obj, objEnd=objEnd, context=context, infer=infer,
+                limit=limit, offset=offset),
+            rowreader=callback and RowReader(callback), accept=accept)
 
     def getStatementsById(self, ids, returnIDs=True):
         return jsonRequest(self, "GET", "/statements/id", urlenc(id=ids),
-                           accept=(returnIDs and "application/x-quints+json") or "application/json")
+            accept=(returnIDs and "application/x-quints+json") or "application/json")
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
@@ -514,3 +531,8 @@ class Repository(Service):
         return jsonRequest(self, "POST", "/encodedIds?" + urlenc(prefix=prefix,
             amount=amount))
 
+    def callStoredProc(self, function, module, *args):
+        encoded = encode(serialize(args))
+        return deserialize(decode(jsonRequest(self, "POST", "/custom/"+function,
+            body=urlenc(spargstr=encoded), accept="text/plain",
+            headers=["x-scripts: " + module])))
