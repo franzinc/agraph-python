@@ -1755,7 +1755,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
       (ego-group-member !lm:character11 1 associates ?member)
       (q ?member !dc:title ?name))
 </pre>
-<p>In this example, <strong>ego-group-member</strong> is an AllegroGraph SNA function that has been adapted for use in Prolog queries. There is a list of such functions on the <a href="http://www.franz.com/agraph/support/documentation/current/reference-guide.html#sna">AllegroGraph documentation reference page</a>. </p>
+<p>In this example, <strong>ego-group-member</strong> is an AllegroGraph SNA function that has been adapted for use in Prolog queries. There is a list of such functions on the <a href="http://www.franz.com/agraph/support/documentation/current/lisp-reference.html#sna">AllegroGraph documentation reference page</a>. </p>
 <p>The query will execute <strong>ego-group-member</strong>, using Valjean (character11) as the starting point, following the predicates described in &quot;associates,&quot; to a depth of 1 link. It binds each matching node to <strong>?member</strong>. Then, for each binding of ?member, the query looks for the member's <strong>dc:title</strong> triple, and binds the member's <strong>?name</strong>.  The query returns multiple results, where each result is a (?member ?name) pair. The result object is passed back to Python, where we can iterate over the results and print out their values. </p>
 <p>This is the output of the example:</p>
 <pre class="output">Valjean's ego group (using associates).
