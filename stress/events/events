@@ -790,7 +790,8 @@ def main():
                 loadq.put(phase)
         else:
             loadq.put(LoadPhase.delete_one)
-            loadq.put(LoadPhase.delete_two)
+            if OPT.LOAD_WORKERS > 1:
+                loadq.put(LoadPhase.delete_two)
 
         if phase == LoadPhase.last:
             for proc_num in range(OPT.LOAD_WORKERS):
@@ -878,22 +879,20 @@ def main():
             phase3_time = time.time() - phase3_start
 
     if OPT.PHASE <= LoadPhase.query:
-        with monitor('phase-4'):
-            trace('%s [%s]: Phase 4 Begin: Perform customer/date range queries '
-                'with %d processes for %d minutes.', (PROG, datetime.now(),
-                OPT.QUERY_WORKERS, OPT.QUERY_TIME))
-            phase4_start = time.time()
-            with run_queries(LoadPhase.query):
-                time.sleep(OPT.QUERY_TIME*60)
-            phase4_time = time.time() - phase4_start
+        trace('%s [%s]: Phase 4 Begin: Perform customer/date range queries '
+              'with %d processes for %d minutes.', (PROG, datetime.now(),
+              OPT.QUERY_WORKERS, OPT.QUERY_TIME))
+        phase4_start = time.time()
+        with run_queries(LoadPhase.query):
+            time.sleep(OPT.QUERY_TIME*60)
+        phase4_time = time.time() - phase4_start
 
     if OPT.PHASE <= LoadPhase.delete_one:
-        with monitor('phase-5'):
-            trace('%s [%s]: Phase 5 Begin: Shrink store by 1 month.', (
-                PROG, datetime.now()))
-            phase5_start = time.time()
-            load_phase(LoadPhase.delete_one)
-            phase5_time = time.time() - phase5_start
+        trace('%s [%s]: Phase 5 Begin: Shrink store by 1 month.', (
+              PROG, datetime.now()))
+        phase5_start = time.time()
+        load_phase(LoadPhase.delete_one)
+        phase5_time = time.time() - phase5_start
     
     # Display the results
     # We do not want the total_time to include the synchronization
