@@ -706,8 +706,9 @@ def monitor(phase, conn):
     yield
     try:
         subprocess.call(['./monitor.sh', 'end', 'phase %d' % phase, OPT.CATALOG, OPT.REPOSITORY])
-        force_merge(conn)
-        force_checkpoint(conn)
+        if(phase < LoadPhase.query):
+            force_merge(conn)
+            force_checkpoint(conn)
 
     except OSError:
         pass
@@ -806,7 +807,8 @@ def main():
                 loadq.put(phase)
         else:
             loadq.put(LoadPhase.delete_one)
-            loadq.put(LoadPhase.delete_two)
+            if OPT.LOAD_WORKERS > 1:
+                loadq.put(LoadPhase.delete_two)
 
         if phase == LoadPhase.last:
             for proc_num in range(OPT.LOAD_WORKERS):
