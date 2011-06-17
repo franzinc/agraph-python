@@ -695,19 +695,35 @@ def query_events(proc_num, resultq):
     queryq.task_done()
 
 @contextmanager
-def monitor(phase):
+def monitor(phase, conn):
     """
     Start and end the monitor for a phase.
     """
     try:
-        subprocess.call(['./monitor.sh', 'start', phase, OPT.CATALOG, OPT.REPOSITORY])
+        subprocess.call(['./monitor.sh', 'start', 'phase %d' % phase, OPT.CATALOG, OPT.REPOSITORY])
     except OSError:
         pass
     yield
     try:
-        subprocess.call(['./monitor.sh', 'end', phase, OPT.CATALOG, OPT.REPOSITORY])
+        subprocess.call(['./monitor.sh', 'end', 'phase %d' % phase, OPT.CATALOG, OPT.REPOSITORY])
+        force_merge(conn)
+        force_checkpoint(conn)
+
     except OSError:
         pass
+
+from franz.miniclient.request import nullRequest
+
+def force_checkpoint(conn):
+    trace('%s [%s]: Phase 0 Begin: Forced Checkpoint', (PROG, datetime.now()))
+    nullRequest(conn.mini_repository, "POST", "/force-checkpoint")
+    trace('%s [%s]: Phase 0 End: Forced Checkpoint.', (PROG, datetime.now()))    
+
+def force_merge(conn):
+    trace('%s [%s]: Phase 0 Begin: Forced Merge', (PROG, datetime.now()))
+    conn.optimizeIndices(1, True);
+    nullRequest(conn.mini_repository, "POST", "/ensure-db-idle")
+    trace('%s [%s]: Phase 0 End: Forced Merge.', (PROG, datetime.now()))    
 
 def handle_debug():
     if not OPT.DEBUG:
@@ -854,31 +870,31 @@ def main():
     phase4_time = 0
     phase5_time = 0
     if OPT.PHASE <= LoadPhase.baseline:
-        with monitor('phase-1'):
+        with monitor(1, conn):
             trace('%s [%s]: Phase 1 Begin: Baseline %d triple commits.', (
-                PROG, datetime.now(), OPT.EVENT_SIZE))
+                    PROG, datetime.now(), OPT.EVENT_SIZE))
             phase1_start = time.time()
             load_phase(LoadPhase.baseline)
             phase1_time = time.time() - phase1_start
 
     if OPT.PHASE <= LoadPhase.bulk:
-        with monitor('phase-2'):
+        with monitor(2, conn):
             trace('%s [%s]: Phase 2 Begin: Grow store to about %d triples.', (
-                PROG, datetime.now(), OPT.SIZE))
+                    PROG, datetime.now(), OPT.SIZE))
             phase2_start = time.time()
             load_phase(LoadPhase.bulk)
             phase2_time = time.time() - phase2_start
 
     if OPT.PHASE <= LoadPhase.small_commits:
-        with monitor('phase-3'):
+        with monitor(3, conn):
             trace('%s [%s]: Phase 3 Begin: Perform %d triple commits.',
-                (PROG, datetime.now(), OPT.EVENT_SIZE))
+                  (PROG, datetime.now(), OPT.EVENT_SIZE))
             phase3_start = time.time()
             load_phase(LoadPhase.small_commits)
             phase3_time = time.time() - phase3_start
 
     if OPT.PHASE <= LoadPhase.query:
-        with monitor('phase-4'):
+        with monitor(4, conn):
             trace('%s [%s]: Phase 4 Begin: Perform customer/date range queries '
                 'with %d processes for %d minutes.', (PROG, datetime.now(),
                 OPT.QUERY_WORKERS, OPT.QUERY_TIME))
@@ -888,7 +904,7 @@ def main():
             phase4_time = time.time() - phase4_start
 
     if OPT.PHASE <= LoadPhase.delete_one:
-        with monitor('phase-5'):
+        with monitor(5, conn):
             trace('%s [%s]: Phase 5 Begin: Shrink store by 1 month.', (
                 PROG, datetime.now()))
             phase5_start = time.time()
@@ -912,7 +928,7 @@ def main():
         def run_mixed():
             global SmallCommitsRange, DeleteRangeOne, DeleteRangeTwo, FullDateRange, loadq
 
-            with monitor('phase-6'):
+            with monitor(6, conn):
                 trace('%s [%s]: Phase 6: Mix workload - adds, queries, '
                     'and deletes.', (PROG, datetime.now()))
 
