@@ -709,6 +709,19 @@ def monitor(phase):
     except OSError:
         pass
 
+from franz.miniclient.request import nullRequest
+
+def force_checkpoint(conn):
+    trace('%s [%s]: Phase 0 Begin: Forced Checkpoint', (PROG, datetime.now()))
+    nullRequest(conn.mini_repository, "POST", "/force-checkpoint")
+    trace('%s [%s]: Phase 0 End: Forced Checkpoint.', (PROG, datetime.now()))    
+
+def force_merge(conn):
+    trace('%s [%s]: Phase 0 Begin: Forced Merge', (PROG, datetime.now()))
+    conn.optimizeIndices(1, True);
+    nullRequest(conn.mini_repository, "POST", "/ensure-db-idle")
+    trace('%s [%s]: Phase 0 End: Forced Merge.', (PROG, datetime.now()))    
+
 def handle_debug():
     if not OPT.DEBUG:
         return
@@ -855,28 +868,37 @@ def main():
     phase4_time = 0
     phase5_time = 0
     if OPT.PHASE <= LoadPhase.baseline:
-        with monitor('phase-1'):
-            trace('%s [%s]: Phase 1 Begin: Baseline %d triple commits.', (
-                PROG, datetime.now(), OPT.EVENT_SIZE))
-            phase1_start = time.time()
-            load_phase(LoadPhase.baseline)
-            phase1_time = time.time() - phase1_start
+#        with monitor('phase-1'):
+        trace('%s [%s]: Phase 1 Begin: Baseline %d triple commits.', (
+            PROG, datetime.now(), OPT.EVENT_SIZE))
+        phase1_start = time.time()
+        load_phase(LoadPhase.baseline)
+        phase1_time = time.time() - phase1_start
+
+        force_merge(conn)
+        force_checkpoint(conn)
 
     if OPT.PHASE <= LoadPhase.bulk:
-        with monitor('phase-2'):
-            trace('%s [%s]: Phase 2 Begin: Grow store to about %d triples.', (
-                PROG, datetime.now(), OPT.SIZE))
-            phase2_start = time.time()
-            load_phase(LoadPhase.bulk)
-            phase2_time = time.time() - phase2_start
+#        with monitor('phase-2'):
+        trace('%s [%s]: Phase 2 Begin: Grow store to about %d triples.', (
+            PROG, datetime.now(), OPT.SIZE))
+        phase2_start = time.time()
+        load_phase(LoadPhase.bulk)
+        phase2_time = time.time() - phase2_start
+
+        force_merge(conn)
+        force_checkpoint(conn)
 
     if OPT.PHASE <= LoadPhase.small_commits:
-        with monitor('phase-3'):
-            trace('%s [%s]: Phase 3 Begin: Perform %d triple commits.',
-                (PROG, datetime.now(), OPT.EVENT_SIZE))
-            phase3_start = time.time()
-            load_phase(LoadPhase.small_commits)
-            phase3_time = time.time() - phase3_start
+#        with monitor('phase-3'):
+        trace('%s [%s]: Phase 3 Begin: Perform %d triple commits.',
+            (PROG, datetime.now(), OPT.EVENT_SIZE))
+        phase3_start = time.time()
+        load_phase(LoadPhase.small_commits)
+        phase3_time = time.time() - phase3_start
+
+        force_merge(conn)
+        force_checkpoint(conn)
 
     if OPT.PHASE <= LoadPhase.query:
         trace('%s [%s]: Phase 4 Begin: Perform customer/date range queries '
