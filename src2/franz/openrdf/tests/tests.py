@@ -1663,7 +1663,10 @@ def test_freetext():
     conn = connect()
     pred = URI('http://www.franz.com/has_name')
     conn.createFreeTextIndex("index1", predicates=[pred])
-    conn.createFreeTextIndex("index2", indexFields=["predicate", "object"], indexResources="short", minimumWordSize=2)
+    conn.createFreeTextIndex("index2", indexFields=["predicate", "object"], indexResources="short", minimumWordSize=4,
+        innerChars='alpha', tokenizer='default')
+    conn.modifyFreeTextIndex("index2", indexFields=["predicate", "object"], indexResources="short", minimumWordSize=2,
+        innerChars='alphanumeric', tokenizer='default')
 
     # config parameter fetching
     preds = conn.getFreeTextIndexConfiguration("index1")["predicates"]
@@ -1673,6 +1676,9 @@ def test_freetext():
     eq_(["object", "predicate"], sorted(config["indexFields"]))
     eq_(2, config["minimumWordSize"])
     eq_("short", config["indexResources"])
+    eq_(['alphanumeric'], config["innerChars"])
+    eq_([], config["borderChars"])
+    eq_("default", config["tokenizer"])
     assert len(config["stopWords"])
 
     def contractor(i):

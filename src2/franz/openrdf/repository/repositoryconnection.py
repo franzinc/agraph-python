@@ -739,7 +739,8 @@ class RepositoryConnection(object):
         return self.mini_repository.listFreeTextIndices()
 
     def createFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None):
+                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
+                            innerChars=None, borderChars=None, tokenizer=None):
         """
         Create a free-text index with the given parameters.
         If no predicates are given, triples are indexed regardless of
@@ -762,23 +763,28 @@ class RepositoryConnection(object):
         words as they are indexed or queried. Can be a list of filter
         names. Currently, only \"drop-accents\" and \"stem.english\"
         are supported.
+        innerChars and borderChars can be lists. tokenizer is a string.
+
+        See  http://www.franz.com/agraph/support/documentation/v4/http-protocol.html#put-freetext-index
         """
         if predicates: predicates = map(uris.asURIString, predicates)
         if isinstance(indexLiterals, list): indexLiterals = map(uris.asURIString, indexLiterals)
         self.mini_repository.createFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
                                                  indexResources=indexResources, indexFields=indexFields,
                                                  minimumWordSize=minimumWordSize, stopWords=stopWords,
-                                                 wordFilters=wordFilters)
+                                                 wordFilters=wordFilters, innerChars=innerChars,
+                                                 borderChars=borderChars, tokenizer=tokenizer)
 
     def modifyFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
                             indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
-                            reIndex=None):
+                            reIndex=None, innerChars=None, borderChars=None, tokenizer=None):
         if predicates: predicates = map(uris.asURIString, predicates)
         if isinstance(indexLiterals, list): indexLiterals = map(uris.asURIString, indexLiterals)
         self.mini_repository.modifyFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
                                                  indexResources=indexResources, indexFields=indexFields,
                                                  minimumWordSize=minimumWordSize, stopWords=stopWords,
-                                                 wordFilters=wordFilters, reIndex=reIndex)
+                                                 wordFilters=wordFilters, reIndex=reIndex, innerChars=innerChars,
+                                                 borderChars=borderChars, tokenizer=tokenizer)
 
     def deleteFreeTextIndex(self, name):
         self.mini_repository.deleteFreeTextIndex(name)
