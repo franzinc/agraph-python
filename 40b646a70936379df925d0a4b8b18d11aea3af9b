@@ -1,0 +1,8 @@
+Code-Review+1: Ahmon Dancy <dancy@franz.com>
+Code-Review+2: Kevin Layer <layer@franz.com>
+Verified+1: Kevin Layer <layer@franz.com>
+Submitted-by: Kevin Layer <layer@franz.com>
+Submitted-at: Fri, 17 Dec 2010 22:20:50 -0700
+Reviewed-on: https://gerrit.franz.com:9080/1069
+Project: agraph-python
+Branch: refs/heads/v4.2
