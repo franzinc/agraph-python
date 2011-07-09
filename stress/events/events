@@ -413,8 +413,8 @@ else:
     from multiprocessing import JoinableQueue
 
 class LoadPhase:
-    start, baseline, bulk, small_commits, query, delete_one,\
-        delete_two, die = range(8)
+    start, baseline, bulk, small_commits, sparqlQuery, prologQuery, delete_one,\
+        delete_two, die = range(9)
     last = delete_one
 
 class PhaseParameters(object):
@@ -585,7 +585,7 @@ def load_events(proc_num):
 
     conn.close()
 
-def query_events(proc_num, resultq):
+def query_events(proc_num, resultq, lang):
     if OPT.SEED:    
         random.seed(OPT.SEED+983*proc_num)
    
@@ -604,8 +604,11 @@ def query_events(proc_num, resultq):
     timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp').toNTriples()
 
     # Perform the query in prolog or sparql
-    language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
-        else QueryLanguage.SPARQL
+    if lang is None:
+        language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
+            else QueryLanguage.SPARQL
+    else:
+        language = lang
 
     def random_query():
         # Pick a random customer
@@ -693,7 +696,7 @@ def query_events(proc_num, resultq):
             count, queries, the_time, queries/the_time, count/queries, restarts))
         resultq.put((queries, count, the_time))
 
-    with profiler(conn, proc_num in [0, 1], LoadPhase.query):
+    with profiler(conn, proc_num in [0, 1], LoadPhase.sparqlQuery):
         do_queries()
 
     conn.closeSession()
@@ -712,7 +715,7 @@ def monitor(phase, conn):
     yield
     try:
         subprocess.call(['./monitor.sh', 'end', 'phase %d' % phase, OPT.CATALOG, OPT.REPOSITORY])
-        if(phase < LoadPhase.query):
+        if(phase < LoadPhase.sparqlQuery):
             force_merge(conn)
             force_checkpoint(conn)
 
@@ -755,7 +758,7 @@ def main():
     """
     The parent main process.
     """
-    global loadq, PHASE_PARAMS
+    global queryq, resultq, loadq, PHASE_PARAMS
 
     handle_debug()
 
@@ -771,7 +774,7 @@ def main():
         PhaseParameters(BaselineRange, 1, OPT.SIZE/10),
         PhaseParameters(BulkRange, OPT.BULK_EVENTS, (OPT.SIZE*9)/10),
         PhaseParameters(SmallCommitsRange, 1, OPT.SIZE/10),
-        None,
+        None, None,
         PhaseParameters(DeleteRangeOne, OPT.BULK_EVENTS, OPT.SIZE/10),
         PhaseParameters(DeleteRangeTwo, OPT.BULK_EVENTS, OPT.SIZE/10)]
 
@@ -839,29 +842,12 @@ def main():
     @contextmanager
     def run_queries(phase):
         global queryq
-        queryq = JoinableQueue(OPT.QUERY_WORKERS)
-        resultq = Queue(OPT.QUERY_WORKERS)
-
-        trace('%s [%s]: Phase 0 Begin: Launching child query processes.',
-            (PROG, datetime.now()))
-        phase_time = time.time()
-        # Start the query processes
-        for proc_num in range(OPT.QUERY_WORKERS):
-            p = Process(target=query_events, args=(proc_num, resultq))
-            p.start()
-            queryq.put('Start')
-        queryq.join()
-        phase_time = time.time() - phase_time
-        trace('%s [%s]: Phase 0 End: Initial query_workers took '
-            '%f seconds.', (PROG, datetime.now(), phase_time))
 
         yield
 
         for proc_num in range(OPT.QUERY_WORKERS):
             queryq.put('Stop')
 
-        # Signal that there is no more work for the queue
-        queryq.close()
         queryq.join()
 
         queries = 0
@@ -885,6 +871,7 @@ def main():
     phase3_time = 0
     phase4_time = 0
     phase5_time = 0
+    phase6_time = 0
 
     trace('%s [%s]: Phase 0 Begin: Launching child loading processes.', (
         PROG, datetime.now()))
@@ -923,15 +910,49 @@ def main():
             load_phase(LoadPhase.small_commits)
             phase3_time = time.time() - phase3_start
 
-    if OPT.PHASE <= LoadPhase.query:
-        with run_queries(LoadPhase.query):
+    if OPT.PHASE <= LoadPhase.sparqlQuery:
+        queryq = JoinableQueue(OPT.QUERY_WORKERS)
+        resultq = Queue(OPT.QUERY_WORKERS)
+
+        trace('%s [%s]: Phase 0 Begin: Launching child query processes.',
+            (PROG, datetime.now()))
+        phase_time = time.time()
+        # Start the sparql query processes
+        for proc_num in range(OPT.QUERY_WORKERS):
+            p = Process(target=query_events, args=(proc_num, resultq, QueryLanguage.SPARQL))
+            p.start()
+            queryq.put('Start')
+        queryq.join()
+        phase_time = time.time() - phase_time
+        trace('%s [%s]: Phase 0 End: Initial query_workers took '
+            '%f seconds.', (PROG, datetime.now(), phase_time))
+
+        phase4_start = time.time()
+        with run_queries(LoadPhase.sparqlQuery):
             with monitor(4, conn):
-                trace('%s [%s]: Phase 4 Begin: Perform customer/date range '
+                trace('%s [%s]: Phase 4 Begin: Perform sparql range '
                       'queries with %d processes for %d minutes.',
                       (PROG, datetime.now(), OPT.QUERY_WORKERS, OPT.QUERY_TIME))
-                phase4_start = time.time()
                 time.sleep(OPT.QUERY_TIME*60)
                 phase4_time = time.time() - phase4_start
+
+        # Start the prolog query processes
+        for proc_num in range(OPT.QUERY_WORKERS):
+            p = Process(target=query_events, args=(proc_num, resultq, QueryLanguage.PROLOG))
+            p.start()
+            queryq.put('Start')
+
+        phase5_start = time.time()
+        with run_queries(LoadPhase.prologQuery):
+            with monitor(5, conn):
+                trace('%s [%s]: Phase 5 Begin: Perform prolog range '
+                      'queries with %d processes for %d minutes.',
+                      (PROG, datetime.now(), OPT.QUERY_WORKERS, OPT.QUERY_TIME))
+                time.sleep(OPT.QUERY_TIME*60)
+                phase5_time = time.time() - phase4_start
+
+        # Signal that there is no more work for the queue
+        queryq.close()
 
     if OPT.PHASE <= LoadPhase.delete_one:
         # put in a stub phase here, python reuses load workers, but we need a phase here.
@@ -940,17 +961,18 @@ def main():
                 PROG, datetime.now()))
         trace('%s [%s]: Phase 0 End: Initial delete_workers took '
               '%f seconds.', (PROG, datetime.now(), time.time() - phase_time))
-        with monitor(5, conn):
-            trace('%s [%s]: Phase 5 Begin: Shrink store by 1 month.', (
+        with monitor(6, conn):
+            trace('%s [%s]: Phase 6 Begin: Shrink store by 1 month.', (
                     PROG, datetime.now()))
-            phase5_start = time.time()
+            phase6_start = time.time()
             load_phase(LoadPhase.delete_one)
-            phase5_time = time.time() - phase5_start
+            phase6_time = time.time() - phase6_start
     
     # Display the results
     # We do not want the total_time to include the synchronization
     # times between phases.
-    total_time = phase1_time + phase2_time + phase3_time + phase4_time + phase5_time
+    total_time = phase1_time + phase2_time + phase3_time + phase4_time + phase5_time + \
+        phase6_time
     triples_end = conn.size()
     triples = triples_end - triples
 
