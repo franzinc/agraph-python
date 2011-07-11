@@ -1797,10 +1797,10 @@ def test_add_commit_size():
 
 def test_script_management():
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
-    assert len(server.listScripts()) == 0
+    scripts = len(server.listScripts())
 
     server.addScript("script.cl", test_script_management.code)
-    assert len(server.listScripts()) == 1
+    assert len(server.listScripts()) == (scripts + 1)
     assert server.getScript("script.cl") == test_script_management.code
     
     conn = connect()
@@ -1809,7 +1809,7 @@ def test_script_management():
     assert int(result) == 3
     
     server.deleteScript("script.cl")
-    assert len(server.listScripts()) == 0
+    assert len(server.listScripts()) == scripts
     
 test_script_management.code = """
 ;; ag 4.x style where we let the def-stored-proc code generate code
