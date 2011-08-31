@@ -709,12 +709,12 @@ def monitor(phase, conn):
     Start and end the monitor for a phase.
     """
     try:
-        subprocess.call(['./monitor.sh', 'start', 'phase %d' % phase, OPT.CATALOG, OPT.REPOSITORY])
+        subprocess.call(['./monitor.sh', 'start', 'phase-%d' % phase, OPT.CATALOG, OPT.REPOSITORY])
     except OSError:
         pass
     yield
     try:
-        subprocess.call(['./monitor.sh', 'end', 'phase %d' % phase, OPT.CATALOG, OPT.REPOSITORY])
+        subprocess.call(['./monitor.sh', 'end', 'phase-%d' % phase, OPT.CATALOG, OPT.REPOSITORY])
         if(phase < LoadPhase.sparqlQuery):
             force_merge(conn)
             force_checkpoint(conn)
