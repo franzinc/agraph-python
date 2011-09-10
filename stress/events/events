@@ -63,6 +63,8 @@ class Defaults:
 
     # Time to run queries in minutes
     QUERY_TIME = 10
+    # When non-zero perform QUERY_SIZE queries in each query phase
+    QUERY_SIZE = 0
 
     # Size of the Events
     EVENT_SIZE = 50
@@ -593,7 +595,7 @@ def query_events(proc_num, resultq, lang):
     conn.openSession(True)
 
     queryq.get()
-    queryq.task_done();
+    queryq.task_done()
 
     def dequeue():
         try:
@@ -675,7 +677,12 @@ def query_events(proc_num, resultq, lang):
                 restarts += 1
 
             queries += 1
-            stop = dequeue()
+            if OPT.QUERY_SIZE == 0:
+                # timed query. Look for stop task and stop.
+                stop = dequeue()
+            elif queries >= OPT.QUERY_SIZE / OPT.QUERY_WORKERS:
+                # iterative query. After # iterations, pull stop task from queue.
+                stop = dequeue()
 
             if queries % status_size == 0:
                 end_time = time.time()
@@ -928,13 +935,16 @@ def main():
             '%f seconds.', (PROG, datetime.now(), phase_time))
 
         phase4_start = time.time()
-        with run_queries(LoadPhase.sparqlQuery):
-            with monitor(4, conn):
+        with monitor(4, conn):
+            with run_queries(LoadPhase.sparqlQuery):
                 trace('%s [%s]: Phase 4 Begin: Perform sparql range '
-                      'queries with %d processes for %d minutes.',
-                      (PROG, datetime.now(), OPT.QUERY_WORKERS, OPT.QUERY_TIME))
-                time.sleep(OPT.QUERY_TIME*60)
-                phase4_time = time.time() - phase4_start
+                      'queries with %d processes for %d %s.',
+                      (PROG, datetime.now(), OPT.QUERY_WORKERS,
+                       OPT.QUERY_TIME if OPT.QUERY_SIZE == 0 else OPT.QUERY_SIZE,
+                       'minutes' if OPT.QUERY_SIZE == 0 else 'queries'))
+                # only sleep when doing timed queries
+                if OPT.QUERY_SIZE == 0: time.sleep(OPT.QUERY_TIME*60)
+        phase4_time = time.time() - phase4_start
 
         # Start the prolog query processes
         for proc_num in range(OPT.QUERY_WORKERS):
@@ -943,13 +953,16 @@ def main():
             queryq.put('Start')
 
         phase5_start = time.time()
-        with run_queries(LoadPhase.prologQuery):
-            with monitor(5, conn):
+        with monitor(5, conn):
+            with run_queries(LoadPhase.prologQuery):
                 trace('%s [%s]: Phase 5 Begin: Perform prolog range '
-                      'queries with %d processes for %d minutes.',
-                      (PROG, datetime.now(), OPT.QUERY_WORKERS, OPT.QUERY_TIME))
-                time.sleep(OPT.QUERY_TIME*60)
-                phase5_time = time.time() - phase4_start
+                      'queries with %d processes for %d %s.',
+                      (PROG, datetime.now(), OPT.QUERY_WORKERS,
+                       OPT.QUERY_TIME if OPT.QUERY_SIZE == 0 else OPT.QUERY_SIZE,
+                       'minutes' if OPT.QUERY_SIZE == 0 else 'queries'))
+                # only sleep when doing timed queries
+                if OPT.QUERY_SIZE == 0: time.sleep(OPT.QUERY_TIME*60)
+        phase5_time = time.time() - phase5_start
 
         # Signal that there is no more work for the queue
         queryq.close()
@@ -1108,6 +1121,9 @@ if __name__ == '__main__':
     parser.add_option('-t', '--time', default=Defaults.QUERY_TIME,
         type='int', dest='QUERY_TIME', metavar='MINUTES',
         help='MINUTES time limit for query phase [default=%default]')
+    parser.add_option('--query-size', default=Defaults.QUERY_SIZE,
+        type='int', dest='QUERY_SIZE', metavar='QUERY_EVENTS',
+        help='Total QUERY_EVENTS to perform in each query phase [default=%default]')
     parser.add_option('-e', '--event', default=Defaults.EVENT_SIZE,
         type='int', dest='EVENT_SIZE', metavar='EVENT_SIZE',
         help='each event will contain EVENT_SIZE number of triples '
