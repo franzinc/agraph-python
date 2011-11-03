@@ -174,7 +174,7 @@ class Catalog(object):
 
         return Repository(self, name, self.mini_catalog.getRepository(name))
 
-    def createRepository(self, name, indices=None, deleteDuplicates=None):
+    def createRepository(self, name, indices=None):
         """
         createsRepository - makes a new repository with the given name.
 
@@ -183,6 +183,6 @@ class Catalog(object):
             http protocol documentation for description. None will
             result in using the server's default behavior.
         """
-        return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices, deleteDuplicates=deleteDuplicates))
+        return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices))
 
 

@@ -29,10 +29,10 @@ class Catalog(Service):
         repos = jsonRequest(self, "GET", "/repositories")
         return [repo["id"] for repo in repos]
 
-    def createRepository(self, name, indices=None, deleteDuplicates=None):
+    def createRepository(self, name, indices=None):
         """Ask the server to create a new repository."""
         nullRequest(self, "PUT", "/repositories/" + urllib.quote(name) + "?" +
-            urlenc(index=indices, deleteDuplicates=deleteDuplicates))
+            urlenc(index=indices))
         return self.getRepository(name)
 
     def deleteRepository(self, name):
@@ -502,15 +502,6 @@ class Repository(Service):
 
     def getBulkMode(self):
         return jsonRequest(self, "GET", "/bulkMode")
-
-    def setDeleteDuplicates(self, on):
-        if on is not None:
-            nullRequest(self, "PUT", "/deleteDuplicates?" + urlenc(type=on))
-        else:
-            nullRequest(self, "DELETE", "/deleteDuplicates")
-
-    def getDeleteDuplicates(self):
-        return jsonRequest(self, "GET", "/deleteDuplicates")
 
     def __del__(self):
         self.closeSession()
