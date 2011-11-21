@@ -1924,6 +1924,56 @@ def test_optimize_indices():
     # Need a bigger store to test for real, just test the call for now
     conn.optimizeIndices(wait=True);
 
+def test_delete_duplicates():
+    graph1 = URI("http://www.example.com/graph#1")
+    graph2 = URI("http://www.example.com/graph#2")
+
+    with connect().session() as conn:
+        conn.add(URIs.robert, URIs.hasChild, URIs.roberta)
+        conn.add(URIs.robert, URIs.hasChild, URIs.roberta, graph1)
+        conn.add(URIs.robert, URIs.hasChild, URIs.roberta, graph2)
+        conn.add(URIs.robert, URIs.hasChild, URIs.roberta, graph2)
+
+        conn.add(URIs.bob, URIs.hasChild, URIs.bobby)
+        conn.add(URIs.bob, URIs.hasChild, URIs.bobby, graph1)
+        conn.add(URIs.bob, URIs.hasChild, URIs.bobby, graph2)
+        conn.add(URIs.bob, URIs.hasChild, URIs.bobby, graph2)
+
+        conn.commit()
+
+        assert conn.size() == 8
+
+        conn.deleteDuplicates("spog")
+        conn.commit()
+
+        assert conn.size() == 6
+
+        conn.deleteDuplicates("spo")
+        conn.commit()
+
+        assert conn.size() == 2
+        
+
+class URIs:
+    ## Create URIs for Bob and Robert (and kids) 
+    robert = URI('http://example.org/people/robert')
+    roberta = URI('http://example.org/people/roberta')
+    bob = URI('http://example.org/people/bob')
+    bobby = URI('http://example.org/people/bobby')
+
+    ## create name and child predicates, and Person class.
+    name = URI('http://example.org/ontology/name')
+    fatherOf = URI('http://example.org/ontology/fatherOf')
+    person = URI('http://example.org/ontology/Person')
+
+    hasChild = URI('http://example.org/ontology/hasChild')
+
+    pointBlank = URI('http://example.org/ontology/pointBlank')
+
+    
+
+    
+
 def test_bulkmode():
     """
     Test the setting and getting of bulk mode.

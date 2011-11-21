@@ -940,6 +940,18 @@ class RepositoryConnection(object):
         """
         return self._get_mini_repository().allocateEncodedIds(prefix, amount)
 
+    def deleteDuplicates(self, mode):
+        """
+        Delete all duplicates in the store. Must commit.
+        
+        mode - "spog" or "spo"
+
+        For details see:
+
+    http://www.franz.com/agraph/support/documentation/current/http-protocol.html#delete-statements-duplicates
+        """
+        self._get_mini_repository().deleteDuplicates(mode)
+
     def callStoredProc(self, function, module, *args):
         return self._get_mini_repository().callStoredProc(function, module,
             *args)

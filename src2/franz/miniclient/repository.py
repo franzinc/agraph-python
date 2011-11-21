@@ -532,6 +532,9 @@ class Repository(Service):
         return jsonRequest(self, "POST", "/encodedIds?" + urlenc(prefix=prefix,
             amount=amount))
 
+    def deleteDuplicates(self, mode):
+        nullRequest(self, "DELETE", "/statements/duplicates?" + urlenc(mode=mode))
+
     def callStoredProc(self, function, module, *args):
         encoded = encode(serialize(args))
         return deserialize(decode(jsonRequest(self, "POST", "/custom/"+function,
