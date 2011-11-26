@@ -956,6 +956,64 @@ class RepositoryConnection(object):
         return self._get_mini_repository().callStoredProc(function, module,
             *args)
 
+    def getSpinFunction(self, uri):
+        """
+        Gets the string of the function for the given uri.
+         uri - Spin function identifier
+        """
+        return self._get_mini_repository().getSpinFunction(uri)
+
+    def putSpinFunction(self, uri, sparqlQuery, arguments):
+        """
+        Adds a Spin function.
+         uri - Spin function identifier
+         sparqlQuery - Spin function query text
+         arguments - names of arguments in the sparqlQuery
+        """
+        self._get_mini_repository().putSpinFunction(uri, sparqlQuery, arguments)
+
+    def deleteSpinFunction(self, uri):
+        """
+        Deletes the Spin function at the given uri.
+         uri - Spin function identifier
+        """
+        return self._get_mini_repository().deleteSpinFunction(uri)
+
+    def listSpinFunctions(self):
+        """
+        Returns a list of defined SPIN function.
+        """
+        return self._get_mini_repository().listSpinFunctions()
+
+    def putSpinMagicProperty(self, uri, sparqlQuery, arguments):
+        """
+        Add a Spin magic property.
+         uri - Spin magic property identifier
+         sparqlQuery
+         arguments - names of arguments to the sparqlQuery - must contain the leading question mark
+        """
+        self._get_mini_repository().putSpinMagicProperty(uri, sparqlQuery, arguments)
+
+    def getSpinMagicProperty(self, uri):
+        """
+        Get the spin magic property for the uri
+         uri - spin magic property identifier
+        """
+        return self._get_mini_repository().getSpinMagicProperty(uri)
+
+    def listSpinMagicProperties(self):
+        """
+        Returns a list of defined SPIN magic properties function.
+        """
+        return self._get_mini_repository().listSpinMagicProperties()
+
+    def deleteSpinMagicProperty(self, uri):
+        """
+        Deletes the Spin magic property at the given uri.
+         uri - Spin magic property identifier
+        """
+        self._get_mini_repository().deleteSpinMagicProperty(uri)
+
 
 class GeoType:
     Cartesian = 'CARTESIAN'

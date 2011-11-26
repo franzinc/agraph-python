@@ -2050,3 +2050,86 @@ def test_encoded_ids():
             index = prefixes.index(reg.prefix)
             assert index < 4 and formats[index] == reg.format
 
+def test_spin():
+    "Testing spin functions."
+    baseuri = "http://ex.org#"
+    age_fn = baseuri + "age"
+    parents_mp = baseuri + "parents"
+
+    with connect().session() as conn:
+        conn.setNamespace("ex", baseuri)
+        test6(conn)
+
+        def check_function():
+            try:
+                conn.getSpinFunction(age_fn)
+            except RequestError, e:
+                if e.message.find("is not a registered SPIN function") >= 0:
+                    print "Correct: no age function is defined."
+                else:
+                    assert False, age_fn + " should not exist!"
+
+        check_function()
+
+        ageFnSparql = ("prefix kennedy: <http://www.franz.com/simple#>\n"
+        + "prefix xs: <http://www.w3.org/2001/XMLSchema#>\n"
+        + "select ( (2011 - xs:int(?birthYear)) as ?age ) { ?who kennedy:birth-year ?birthYear . }")
+        conn.putSpinFunction(age_fn, ageFnSparql, ["?who"])
+        assert ageFnSparql == conn.getSpinFunction(age_fn)
+
+        results =  conn.prepareTupleQuery('SPARQL', "prefix ex: <" + baseuri + ">\n"
+            + "prefix kennedy: <http://www.franz.com/simple#>\n"
+            + "select ?first ?last ?age ?birthYear {\n"
+            + "?person kennedy:first-name ?first .\n"
+            + "?person kennedy:last-name ?last .\n"
+            + "?person kennedy:birth-year ?birthYear .\n"
+            + "bind( ex:age( ?person ) as ?age ) .\n"
+            + "} order by ?age limit 2").evaluate()
+
+        assert results.next()['age'] == conn.createLiteral(39, XMLSchema.INTEGER)
+        assert results.next()['age'] == conn.createLiteral(43, XMLSchema.INTEGER)
+        results = conn.listSpinFunctions()
+        assert results[0]['uri'] == '<' + age_fn + '>'
+        assert results[0]['query'] == ageFnSparql
+        assert results[0]['arguments'] == "?who"
+
+        conn.deleteSpinFunction(age_fn)
+
+        check_function()
+
+        def check_property():
+            try:
+                conn.getSpinMagicProperty(parents_mp)
+            except RequestError, e:
+                if e.message.find("is not a registered SPIN magic property"):
+                    print "Correct: no parents magic property is defined."
+                else:
+                    assert False, parents_mp + " should not exist"
+        
+        check_property()
+
+        parents_fn = ("prefix kennedy: <http://www.franz.com/simple#>\n"
+            + "select ?parent { ?parent kennedy:has-child ?child . }")
+        conn.putSpinMagicProperty(parents_mp, parents_fn, ["?child"])
+        assert parents_fn == conn.getSpinMagicProperty(parents_mp)
+
+        query = ("prefix ex: <" + baseuri + ">\n"
+            + "prefix kennedy: <http://www.franz.com/simple#>\n"
+    	    + "select ?person ?parentFirst {\n"
+            + "?person kennedy:first-name 'Joseph' .\n"
+            + "?person kennedy:birth-year '1915' .\n"
+            + "?person ex:parents ?parent .\n"
+            + "?parent kennedy:first-name ?parentFirst .\n}")
+        results =  conn.prepareTupleQuery('SPARQL', query).evaluate()
+
+        assert unicode(results.next()['parentFirst']) == u'"Joseph"'#
+        assert unicode(results.next()['parentFirst']) == u'"Rose"'
+
+        results = conn.listSpinMagicProperties()
+        assert results[0]['uri'] == "<" + parents_mp + ">"
+        print results[0]['query'] == parents_fn
+        assert results[0]['arguments'] == "?child"
+
+        conn.deleteSpinMagicProperty(parents_mp)
+        
+        check_property()
