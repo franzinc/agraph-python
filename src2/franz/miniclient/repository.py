@@ -6,7 +6,7 @@
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
 
-import time, cjson, math, operator, re, threading
+import time, cjson, math, operator, re, threading, urllib
 from request import *
 
 class Service(object):
@@ -540,3 +540,62 @@ class Repository(Service):
         return deserialize(decode(jsonRequest(self, "POST", "/custom/"+function,
             body=urlenc(spargstr=encoded), accept="text/plain",
             headers=["x-scripts: " + module])))
+
+    def getSpinFunction(self, uri):
+        """
+        Gets the string of the function for the given uri.
+         uri - Spin function identifier
+        """
+        return jsonRequest(self, "GET", "/spin/function/" + urllib.quote(uri, ''))
+
+    def putSpinFunction(self, uri, sparqlQuery, arguments):
+        """
+        Adds a Spin function.
+         uri - Spin function identifier
+         sparqlQuery - Spin function query text
+         arguments - names of arguments in the sparqlQuery
+        """
+        nullRequest(self, "PUT", "/spin/function/" + urllib.quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
+
+    def deleteSpinFunction(self, uri):
+        """
+        Deletes the Spin function at the given uri.
+         uri - Spin function identifier
+        """
+        nullRequest(self, "DELETE", "/spin/function/" + urllib.quote(uri, ''))
+
+    def listSpinFunctions(self):
+        """
+        Returns a list of defined SPIN function.
+        """
+        return jsonRequest(self, "GET", "/spin/function")
+
+    def putSpinMagicProperty(self, uri, sparqlQuery, arguments):
+        """
+        Add a Spin magic property.
+         uri - Spin magic property identifier
+         sparqlQuery
+         arguments - names of arguments to the sparqlQuery - must contain the leading question mark
+        """
+        nullRequest(self, "PUT", "/spin/magicproperty/" + urllib.quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
+
+    def getSpinMagicProperty(self, uri):
+        """
+        Get the spin magic property for the uri
+         uri - spin magic property identifier
+        """
+        return jsonRequest(self, "GET", "/spin/magicproperty/" + urllib.quote(uri, ''))
+
+    def listSpinMagicProperties(self):
+        """
+        Returns a list of defined SPIN magic properties function.
+        """
+        return jsonRequest(self, "GET", "/spin/magicproperty")
+
+    def deleteSpinMagicProperty(self, uri):
+        """
+        Deletes the Spin magic property at the given uri.
+         uri - Spin magic property identifier
+        """
+        nullRequest(self, "DELETE", "/spin/magicproperty/" + urllib.quote(uri, ''))
+
