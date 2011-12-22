@@ -129,6 +129,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     headers.extend(["Connection: keep-alive", "Accept: " + accept, "Expect:"])
     if callback: headers.append("Connection: close")
     if contentType and postbody: headers.append("Content-Type: " + contentType)
+    if obj.runAsName: headers.append("x-masquerade-as-user: " + obj.runAsName)
     curl.setopt(pycurl.HTTPHEADER, headers)
     curl.setopt(pycurl.ENCODING, "") # which means 'any encoding that curl supports'
 
