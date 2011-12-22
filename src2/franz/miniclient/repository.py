@@ -14,6 +14,7 @@ class Service(object):
         self.url = url
         self.user = user
         self.password = password
+        self.runAsName = None
 
     def _instanceFromUrl(self, constructor, url):
         return constructor(url, self.user, self.password)
@@ -96,7 +97,110 @@ class Client(Catalog):
         rep._enableSession(lifetime)
         return rep
 
+    def listUsers(self):
+        return jsonRequest(self, "GET", "/users")
+
+    def addUser(self, name, password=None):
+        assert password is not None or name == "anonymous"
+        nullRequest(self, "PUT", "/users/" + urllib.quote(name) + "?" + urlenc(password=password))
+
+    def deleteUser(self, name):
+        nullRequest(self, "DELETE", "/users/" + urllib.quote(name))
+
+    def changeUserPassword(self, name, password):
+        nullRequest(self, "POST", "/users/" + urllib.quote(name) + "/password", password) 
+
+    def listUserAccess(self, name):
+        return jsonRequest(self, "GET", "/users/" + urllib.quote(name) + "/access")
+
+    def addUserAccess(self, name, read, write, catalog, repository):
+        nullRequest(self, "PUT", "/users/" + urllib.quote(name) + "/access?" +
+            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+
+    def deleteUserAccess(self, name, read, write, catalog, repository):
+        nullRequest(self, "DELETE", "/users/" + urllib.quote(name) + "/access?" +
+            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+
+    def listUserEffectiveAccess(self, name):
+        return jsonRequest(self, "GET", "/users/" + urllib.quote(name) + "/effectiveAccess")
+
+
+    def listUserPermissions(self, name):
+        return jsonRequest(self, "GET", "/users/" + urllib.quote(name) + "/permissions")
+
+    def listUserEffectivePermissions(self, name):
+        return jsonRequest(self, "GET", "/users/" + urllib.quote(name) + "/effectivePermissions")
+
+    def addUserPermission(self, name, _type):
+        nullRequest(self, "PUT", "/users/" + urllib.quote(name) + "/permissions/" + _type)
+
+    def deleteUserPermission(self, name, _type):
+        nullRequest(self, "DELETE", "/users/" + urllib.quote(name) + "/permissions/" + _type)
+
+    def listRoles(self):
+        return jsonRequest(self, "GET", "/roles")
+
+    def addRole(self, role):
+        nullRequest(self, "PUT", "/roles/" + urllib.quote(role))
+
+    def deleteRole(self, role):
+        nullRequest(self, "DELETE", "/roles/" + urllib.quote(role))
+
+    def listRolePermissions(self, role):
+        return jsonRequest(self, "GET", "/roles/" + urllib.quote(role) + "/permissions")
+
+    def addRolePermission(self, role, _type):
+        nullRequest(self, "PUT", "/roles/" + urllib.quote(role) + "/permissions/" + _type)
+
+    def deleteRolePermission(self, role, _type):
+        nullRequest(self, "DELETE", "/roles/" + urllib.quote(role) + "/permissions/" + _type)
+
+    def listRoleAccess(self, role):
+        return jsonRequest(self, "GET", "/roles/" + urllib.quote(role) + "/access")
+
+    def addRoleAccess(self, role, read, write, catalog, repository):
+        nullRequest(self, "PUT", "/roles/" + urllib.quote(role) + "/access?" +
+            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+
+    def deleteRoleAccess(self, role, read, write, catalog, repository):
+        nullRequest(self, "DELETE", "/roles/" + urllib.quote(role) + "/access?" +
+            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+
+    def listUserRoles(self, name):
+        return jsonRequest(self, "GET", "/users/" + urllib.quote(name) + "/roles")
+
+    def addUserRole(self, name, role):
+        nullRequest(self, "PUT", "/users/" + urllib.quote(name) + "/roles/" + urllib.quote(role))
+
+    def deleteUserRole(self, name, role):
+        nullRequest(self, "DELETE", "/users/" + urllib.quote(name) + "/roles/" + urllib.quote(role))
+
+    def listUserSecurityFilters(self, name, _type):
+        return jsonRequest(self, "GET", "/users/" + urllib.quote(name) + '/security-filters/' + _type)
+
+    def addUserSecurityFilter(self, name, _type, s=None, p=None, o=None, g=None):
+        nullRequest(self, "POST", "/users/" + urllib.quote(name) + "/security-filters/" + _type + "?" +
+            urlenc(s=s, p=p, o=o, g=g))
+
+    def deleteUserSecurityFilter(self, name, _type, s=None, p=None, o=None, g=None):
+        nullRequest(self, "DELETE", "/users/" + urllib.quote(name) + "/security-filters/" + _type + "?" +
+            urlenc(s=s, p=p, o=o, g=g))
+
+    def listRoleSecurityFilters(self, role, _type):
+        return jsonRequest(self, "GET", "/roles/" + urllib.quote(role) + '/security-filters/' + _type)
+
+    def addRoleSecurityFilter(self, role, _type, s=None, p=None, o=None, g=None):
+        nullRequest(self, "POST", "/roles/" + urllib.quote(role) + "/security-filters/" + _type + "?" +
+            urlenc(s=s, p=p, o=o, g=g))
+
+    def deleteRoleSecurityFilter(self, role, _type, s=None, p=None, o=None, g=None):
+        nullRequest(self, "DELETE", "/roles/" + urllib.quote(role) + "/security-filters/" + _type + "?" +
+            urlenc(s=s, p=p, o=o, g=g))
+
+
 class Repository(Service):
+    sessionAlive = None
+    
     def getSize(self, context=None):
         """Returns the amount of triples in the repository."""
         return jsonRequest(self, "GET", "/size", urlenc(context=context))
@@ -151,6 +255,17 @@ class Repository(Service):
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
         return jsonRequest(self, "POST", "/eval", code)
+
+    def runAsUser(self, username=None):
+        """
+        Only for use as a superuser during a session.
+
+        Runs requests on this connection as username.
+        
+        None - the default - clears the setting.
+        """
+        assert self.sessionAlive, "runAsUser can only be used on a session."
+        self.runAsName = username
 
     def commit(self):
         nullRequest(self, "POST", "/commit")
@@ -465,8 +580,6 @@ class Repository(Service):
     def enableTripleCache(self, size=None):
         nullRequest(self, "PUT", "/tripleCache?" + urlenc(size=size))
 
-    sessionAlive = None
-    
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         if self.sessionAlive: return
         self.oldUrl = self.url

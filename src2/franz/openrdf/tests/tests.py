@@ -2001,6 +2001,121 @@ def test_analyze_query():
     finally:
         conn.close()
 
+def test_users_roles_filters():
+    """
+    Test user/role/filter management.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    assert ['test'] == server.listUsers()
+    server.addUser('user-test', 'xyzzy')
+    assert 'user-test' in server.listUsers()
+    server.changeUserPassword('user-test', 'xyzzy-new')
+
+    server_user = AllegroGraphServer(AG_HOST, AG_PORT, 'user-test', 'xyzzy-new')
+    assert 'tests' in server_user.listCatalogs()
+
+    server.addUserAccess('user-test', True, True)
+    access = server.listUserAccess('user-test')
+    assert len(access) == 1
+    access = access[0]
+    assert access['read'] and access['write'] and access['catalog'] == '*' and access['repository'] == '*'
+
+    access = server.listUserEffectiveAccess('user-test')
+    assert len(access) == 1
+    access = access[0]
+    assert access['read'] and access['write'] and access['catalog'] == '*' and access['repository'] == '*'
+
+    permission = server.listUserPermissions('user-test')
+    assert len(permission) == 0
+
+    permission = server.listUserEffectivePermissions('user-test')
+    assert len(permission) == 0
+
+    server.addUserPermission('user-test', 'eval')
+    server.addUserPermission('user-test', 'replication')
+    server.deleteUserPermission('user-test', 'replication')
+
+    permission = server.listUserPermissions('user-test')
+    assert len(permission) == 1 and 'eval' in permission
+
+    roles = server.listRoles()
+    assert len(roles) == 0
+
+    server.addRole('role-test')
+    server.addRole('role-to-delete')
+    roles = server.listRoles()
+    assert len(roles) == 2
+
+    server.addRoleAccess('role-to-delete', True, True, '/', '*')
+    access = server.listRoleAccess('role-to-delete')
+    assert len(access) == 1
+    access = access[0]
+    assert access['read'] and access['write'] and access['catalog'] == '/' and access['repository'] == '*'
+    server.addRoleSecurityFilter('role-to-delete', 'allow', s=URI('<allowed>'))
+    filters = server.listRoleSecurityFilters('role-to-delete', 'allow')
+    assert len(filters) == 1
+    filters = filters[0]
+    assert filters['s'] == '<allowed>' and not filters['p'] and not filters['o'] and not filters['g']
+    server.deleteRoleSecurityFilter('role-to-delete', 'allow', s=URI('<allowed>'))
+    filters = server.listRoleSecurityFilters('role-to-delete', 'allow')
+    assert len(filters) == 0
+    server.addUserRole('user-test', 'role-to-delete')
+    access = server.listUserEffectiveAccess('user-test')
+    assert len(access) == 2
+
+    server.addUserSecurityFilter('user-test', 'allow', s=URI('<allowed>'))
+    filters = server.listUserSecurityFilters('user-test', 'allow')
+    assert len(filters) == 1
+    filters = filters[0]
+    assert filters['s'] == '<allowed>' and not filters['p'] and not filters['o'] and not filters['g']
+
+    with connect().session() as conn:
+        conn.addTriple(URI('<allowed>'), URI('<p>'), URI('<o>'), URI('<there>'))
+        conn.addTriple(URI('<secret>'), URI('<p>'), URI('<o>'), URI('<gone>'))
+        assert conn.size() == 2
+
+        conn.runAsUser('user-test')
+        assert conn.size() == 1
+
+    server.deleteUserSecurityFilter('user-test', 'allow', s=URI('<allowed>'))
+    server.deleteUserRole('user-test', 'role-to-delete')
+    server.deleteRoleAccess('role-to-delete', True, True, '/', '*')
+    access = server.listRoleAccess('role-to-delete')
+    assert len(access) == 0
+
+    server.deleteRole('role-to-delete')
+    roles = server.listRoles()
+    assert len(roles) == 1
+    server.addRolePermission('role-test', 'eval')
+    server.addRolePermission('role-test', 'session')
+    server.deleteRolePermission('role-test', 'eval')
+    permission = server.listRolePermissions('role-test')
+    assert len(permission) == 1 and 'session' in permission
+
+    server.addUserRole('user-test', 'role-test')
+    roles = server.listUserRoles('user-test')
+    assert len(roles) == 1 and 'role-test' in roles
+
+    permission = server.listUserEffectivePermissions('user-test')
+    assert len(permission) == 2 and 'eval' in permission and 'session' in permission
+
+    roles = server.listRoles()
+
+    server.deleteUserRole('user-test', 'role-test')
+    roles = server.listUserRoles('user-test')
+    assert len(roles) == 0
+
+    server.deleteRole('role-test')
+    roles = server.listRoles()
+    assert len(roles) == 0
+
+    server.deleteUserAccess('user-test', True, True)
+    access = server.listUserAccess('user-test')
+    assert len(access) == 0
+
+    server.deleteUser('user-test')
+    assert ['test'] == server.listUsers() 
+
 def test_encoded_ids():
     """
     Tests encoded ids.

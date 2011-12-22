@@ -858,6 +858,16 @@ class RepositoryConnection(object):
         yield self
         self.closeSession()
 
+    def runAsUser(self, username=None):
+        """
+        Only for use as a superuser during a session.
+
+        Runs requests on this connection as username.
+        
+        None - the default - clears the setting.
+        """
+        return self._get_mini_repository().runAsUser(username)
+
     def commit(self):
         """
         Commits changes on an open session.
