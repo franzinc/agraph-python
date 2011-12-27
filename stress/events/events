@@ -50,6 +50,14 @@ from franz.openrdf.repository.repository import Repository
 from franz.openrdf.vocabulary import XMLSchema, RDF
 from franz.openrdf.model import Literal, Statement, URI, ValueFactory
 
+# Allows use of:
+#
+# kill -SIGNUSR1 <pid>
+#
+# to print stack traces to file $TMPDIR/tipper*<pid>.txt
+import tipper
+
+
 class Defaults:
     # The namespace
     NS = 'http://franz.com/events#';
