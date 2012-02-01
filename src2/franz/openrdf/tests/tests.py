@@ -1,4 +1,3 @@
-###############################################################################
 # Copyright (c) 2006-2009 Franz Inc.
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the Eclipse Public License v1.0
@@ -26,7 +25,7 @@ from ..model import Literal, Statement, URI, ValueFactory
 from nose.tools import eq_, assert_raises
 from nose import SkipTest
 
-import os, urllib, datetime, time, locale, threading
+import os, urllib, datetime, time, locale, StringIO, threading
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -314,16 +313,8 @@ import urlparse
 def test8():
     conn = test6()
     context = conn.createURI("http://example.org#vcards")
-    outputFile = None
-    if outputFile == None:
-        print "Writing NTriples to Standard Out instead of to a file"
-    ntriplesWriter = NTriplesWriter(outputFile)
-    conn.export(ntriplesWriter, context);
-    outputFile2 = None
-    if outputFile2 == None:
-        print "Writing RDF to Standard Out instead of to a file"
-    rdfxmlfWriter = RDFXMLWriter(outputFile2)    
-    conn.export(rdfxmlfWriter, context)
+    conn.export(NTriplesWriter(None), context);
+    conn.export(RDFXMLWriter(None), context)
 
 def test9():
     conn = test6()
@@ -2000,6 +1991,39 @@ def test_analyze_query():
         verify(result.rowCount(), 4, 'len(result)', 3)
     finally:
         conn.close()
+
+def test_save_response():
+    """
+    Tests saving the response object.
+    """
+    conn = test2()
+    buf = StringIO.StringIO()
+    queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
+    tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
+    with conn.saveResponse(buf, 'application/sparql-results+xml'):
+        tupleQuery.evaluate()
+    
+    print buf.getvalue()
+    assert len(buf.getvalue()) > 0
+
+    buf = StringIO.StringIO()
+    with conn.saveResponse(buf, 'application/rdf+xml', True):
+        try:
+            conn.getStatements()
+        except TypeError:
+            pass
+        else:
+            assert False, "Throwing exceptions failed."
+
+    assert len(buf.getvalue()) == 0
+
+    buf = StringIO.StringIO()
+    with conn.saveResponse(buf, 'application/rdf+xml'):
+        conn.getStatements(subject=None, predicate=None, object=None)
+
+    print buf.getvalue()
+    assert len(buf.getvalue()) > 0
+        
 
 def test_encoded_ids():
     """
