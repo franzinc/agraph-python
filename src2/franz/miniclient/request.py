@@ -175,7 +175,13 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         return result
 
 def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json", headers=None):
-    if rowreader is None:
+    # If there is a _saveFile and _saveAccept, they override the arguments
+    callback = None if rowreader is None else rowreader.process
+    if hasattr(obj, '_saveFile') and hasattr(obj, '_saveAccept'):
+        accept = obj._saveAccept
+        callback = obj._saveFile.write
+
+    if callback is None:
         status, body = makeRequest(obj, method, url, body, accept, contentType, headers=headers)
         if (status == 200):
             if accept in ('application/json', 'text/integer', "application/x-quints+json"):
@@ -184,7 +190,7 @@ def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form
         else: raise RequestError(status, body)
     else:
         def raiseErr(status, message): raise RequestError(status, message)
-        makeRequest(obj, method, url, body, accept, contentType, callback=rowreader.process, errCallback=raiseErr, headers=headers)
+        makeRequest(obj, method, url, body, accept, contentType, callback=callback, errCallback=raiseErr, headers=headers)
 
 def nullRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded"):
     status, body = makeRequest(obj, method, url, body, "application/json", contentType)

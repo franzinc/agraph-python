@@ -13,7 +13,6 @@
 from __future__ import absolute_import
 
 from .rdfformat import RDFFormat
-from .converter import statement2ntriples
 
 class RDFWriter(object):
     def __init__(self, rdfFormat, filePath=None):
@@ -38,29 +37,3 @@ class NTriplesWriter(RDFWriter):
     """
     def __init__(self, filePath=None):
         super(NTriplesWriter, self).__init__(RDFFormat.NTRIPLES, filePath)
-        
-    def handleNamespace(self, prefix, name):
-        """
-        NTriples doesn't use prefixes.
-        """
-        pass
-        
-    def export(self, statements):
-        """
-        Iterator over the statements in 'statements', and write an NTriples 
-        representation of each statement to a file, or to standard output.
-        """
-        if self.file_path:
-            file = open(self.file_path, 'w')
-            strings = []
-            for s in statements:
-                strings.append(statement2ntriples(s, None))
-            file.writelines(strings)
-        else:
-            buffer = []
-            for s in statements:
-                statement2ntriples(s, buffer)
-            result = ''.join(buffer)
-            print result
-            
-        
