@@ -1,4 +1,4 @@
-#s!/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
@@ -32,7 +32,7 @@ except ImportError:
 class PrefixFormat(namedtuple('EncodedIdPrefix', 'prefix format')):
     __slots__ = ()
 
-import copy, datetime, os
+import copy, datetime, os, sys, warnings
 from contextlib import contextmanager
 
 # RepositoryConnection is the main interface for updating data in and performing
@@ -495,6 +495,8 @@ class RepositoryConnection(object):
         Exports all explicit statements in the specified contexts to the supplied
         RDFHandler.
         """
+        
+        warnings.warn("export is deprecated. Use saveResponse instead.", DeprecationWarning, stacklevel=2)
         self.exportStatements(None, None, None, False, handler, contexts=contexts)
 
     def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS):
@@ -502,10 +504,16 @@ class RepositoryConnection(object):
         Exports all statements with a specific subject, predicate and/or object
         from the repository, optionally from the specified contexts.        
         """
-        for prefix, name in self.getNamespaces().iteritems():
-            handler.handleNamespace(prefix, name)
-        statements = self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
-        handler.export(statements)
+        warnings.warn("exportStatements is deprecated. Use saveResponse instead.", DeprecationWarning, stacklevel=2)
+        def doit(fileobj):
+            with self.saveResponse(fileobj, handler.getRDFFormat().mime_types[0]):
+                self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
+            
+        if handler.getFilePath() is None:
+            doit(sys.stdout)
+        else:
+            with open(handler.getFilePath(), 'w') as outfile:
+                doit(outfile)
 
     def getSubjectTriplesCacheSize(self):
         """
@@ -857,6 +865,32 @@ class RepositoryConnection(object):
         self.openSession(autocommit, lifetime, loadinitfile)
         yield self
         self.closeSession()
+
+    @contextmanager
+    def saveResponse(self, fileobj, accept, raiseAll=False):
+        """
+        Save the server response(s) for the call(s) within the with statement
+        to fileobj, using accept for the response type requested.
+ 
+        Responses will be uncompressed and saved to fileobj, but not decoded.
+        Therefore, the API called will likely error out shortly after the
+        response is saved (which is okay because we really only want
+        the side-effect of saving the response).
+
+        RequestError is always thrown on errors from the server.  
+        Other exceptions can be optionally raised with raiseAll=True.
+
+        You will only want to make only one conn call in the with statement
+        unless you wrap each call in its own try/except.
+
+        Example:
+
+        with open('out', 'w') as response:
+            with conn.saveResponse(response, 'application/rdf+xml'):
+                conn.getStatements(None, None, None) # The response is written to response
+        """
+        with self._get_mini_repository().saveResponse(fileobj,accept,raiseAll):
+            yield
 
     def commit(self):
         """

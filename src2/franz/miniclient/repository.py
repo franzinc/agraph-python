@@ -6,7 +6,9 @@
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
 
+from __future__ import with_statement
 import time, cjson, math, operator, re, threading, urllib
+from contextlib import contextmanager
 from request import *
 
 class Service(object):
@@ -599,3 +601,21 @@ class Repository(Service):
         """
         nullRequest(self, "DELETE", "/spin/magicproperty/" + urllib.quote(uri, ''))
 
+    @contextmanager
+    def saveResponse(self, fileobj, accept, raiseAll=False):
+        """
+        Save the server response(s) for the call(s) within the with statement
+        to fileobj, using accept for the response type requested.
+        """
+        self._saveFile = fileobj
+        self._saveAccept = accept
+        try:
+            yield
+        except RequestError:
+            raise
+        except:
+            if raiseAll:
+                raise
+        finally:
+            del self._saveFile
+            del self._saveAccept
