@@ -18,7 +18,7 @@ from ..model import URI, ValueFactory
 from .repositoryconnection import RepositoryConnection
 from ..vocabulary.xmlschema import XMLSchema
 
-import urllib
+import re, urllib
 
 # * A Sesame repository that contains RDF data that can be queried and updated.
 # * Access to the repository can be acquired by opening a connection to it.
@@ -52,10 +52,12 @@ class Repository(object):
         return self.database_name
 
     def getSpec(self):
-        catName = self.catalog.getName()
-        if (catName is None or catName == "/"): catName = ""
-        else: catName = catName + ":"
-        return "<%s%s>" % (catName, self.getDatabaseName())
+        mini = self.mini_repository
+        urlstart = re.match("^https?://", mini.url).group(0)
+        url = "<%s%s:%s@%s>" % (urlstart, mini.user, mini.password,
+            mini.url[len(urlstart):])
+
+        return url
         
     def initialize(self):
         """
