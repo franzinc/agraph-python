@@ -314,16 +314,20 @@ import urlparse
 def test8():
     conn = test6()
     context = conn.createURI("http://example.org#vcards")
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+    warnings.simplefilter('ignore')
+    try:
         conn.export(NTriplesWriter(None), context);
         conn.export(RDFXMLWriter(None), context)
+    finally:
+        warnings.resetwarnings()
 
 def test9():
     conn = test6()
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+    warnings.simplefilter('ignore')
+    try:
         conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
+    finally:
+        warnings.resetwarnings()
 
 def test10():
     """
