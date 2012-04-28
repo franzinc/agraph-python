@@ -15,7 +15,7 @@ from __future__ import absolute_import
 from ..exceptions import ServerException
 from ..repository.repository import Repository, RepositoryConnection
 from ...miniclient import repository as miniserver
-import urllib
+import re, urllib
 from . import spec
 
 READ_ONLY = 'READ_ONLY'
@@ -26,8 +26,23 @@ class AllegroGraphServer(object):
     """
     Connects to an AllegroGraph HTTP Server
     """
-    def __init__(self, host, port=10035, user=None, password=None, **options):
-        self._client = miniserver.Client("http://%s:%d" % (host, port), user, password)
+    def __init__(self, host, port=10035, user=None, password=None, cainfo=None, sslcert=None, **options):
+        """
+        Defines the connection to the AllegroGraph HTTP server.
+
+        Pass either user & password for Basic Authentication or
+        the full path to the cainfo file and sslcert file for
+        client x.509 certificate authentication.
+        """
+        
+        if re.match('^https?://', host):
+            uri = host + ':%d'
+        elif sslcert != None:
+            uri = 'https://%s:%d'
+        else:
+            uri = 'http://%s:%d'
+        
+        self._client = miniserver.Client(uri % (host, port), user, password, cainfo, sslcert)
 
     @property
     def url(self):

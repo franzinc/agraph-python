@@ -12,11 +12,13 @@ from contextlib import contextmanager
 from request import *
 
 class Service(object):
-    def __init__(self, url, user=None, password=None):
+    def __init__(self, url, user=None, password=None, cainfo=None, sslcert=None):
         self.url = url
         self.user = user
         self.password = password
         self.runAsName = None
+        self.cainfo = cainfo
+        self.sslcert = sslcert
 
     def _instanceFromUrl(self, constructor, url):
         return constructor(url, self.user, self.password)
@@ -55,7 +57,7 @@ class Client(Catalog):
         return [cat["id"] if cat["id"] != "/" else None for cat in jsonRequest(self, "GET", "/catalogs")]
 
     def openCatalog(self, uriOrName):
-        if (uriOrName.startswith("http://")):
+        if re.match("^https?://", uriOrName):
             return self._instanceFromUrl(Catalog, uriOrName)
         else:
             return self.openCatalogByName(uriOrName)

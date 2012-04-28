@@ -41,6 +41,7 @@ CURRENT_DIRECTORY = os.path.dirname(__file__)
 LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
+AG_SSLPORT = int(os.environ.get('AGRAPH_SSL_PORT', '10036'))
 AG_ONSERVER = AG_HOST == LOCALHOST
 
 CATALOG = 'tests'
@@ -2115,6 +2116,29 @@ def test_users_roles_filters():
 
     server.deleteUser('user-test')
     assert ['test'] == server.listUsers() 
+
+def test_ssl():
+    """
+    Connect is called by the other tests to startup the connection to the test database.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_SSLPORT, 
+        cainfo=os.path.join(CURRENT_DIRECTORY, 'ca.cert'),
+        sslcert=os.path.join(CURRENT_DIRECTORY, 'test.cert'))
+    print "Available catalogs", server.listCatalogs()
+    catalog = server.openCatalog(CATALOG)
+    stores = catalog.listRepositories()
+    print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
+
+    # Instead of renewing the database, clear it.
+    mode = Repository.CREATE if STORE not in stores else Repository.OPEN
+
+    myRepository = catalog.getRepository(STORE, mode)
+    myRepository.initialize()
+    connection = myRepository.getConnection()
+    connection.clear()
+    connection.clearNamespaces()
+
+    assert connection.size() == 0
 
 def test_save_response():
     """
