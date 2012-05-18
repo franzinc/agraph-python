@@ -6,7 +6,8 @@
 # http://www.eclipse.org/legal/epl-v0.html
 ###############################################################################
 
-from __future__ import absolute_import, with_statement
+from __future__ import absolute_import
+from __future__ import with_statement
 
 from ..exceptions import RequestError
 from ..sail.allegrographserver import AllegroGraphServer
@@ -26,7 +27,8 @@ from ..model import Literal, Statement, URI, ValueFactory
 from nose.tools import eq_, assert_raises
 from nose import SkipTest
 
-import os, urllib, datetime, time, locale, StringIO, threading, warnings
+import pycurl
+import os, urllib, datetime, time, locale, StringIO, subprocess, threading, warnings
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -41,6 +43,7 @@ CURRENT_DIRECTORY = os.path.dirname(__file__)
 LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
+AG_SSLPORT = int(os.environ.get('AGRAPH_SSL_PORT', '10036'))
 AG_ONSERVER = AG_HOST == LOCALHOST
 
 CATALOG = 'tests'
@@ -2115,6 +2118,50 @@ def test_users_roles_filters():
 
     server.deleteUser('user-test')
     assert ['test'] == server.listUsers() 
+
+def test_ssl():
+    """
+    Test the SSL port and certificate functionality via a series of
+    server calls to connect to and empty a store.
+    """
+
+    if pycurl.version.find(' NSS/') == -1:
+        # Method for when pycurl is compiled with OpenSSL or another
+        # library that supports PEM files
+        server = AllegroGraphServer(AG_HOST, AG_SSLPORT,
+            cainfo=os.path.join(CURRENT_DIRECTORY, 'ca.cert'),
+            sslcert=os.path.join(CURRENT_DIRECTORY, 'test.cert'),
+            # Test files setup for localhost; if running elsewhere don't verify
+            verifyhost=(AG_HOST==LOCALHOST))
+        catalogs = server.listCatalogs()
+    else:
+        # Convert PEM files to NSS db entry w/ name 'Test Client'
+        proc = subprocess.Popen(os.path.join(CURRENT_DIRECTORY, 'ssl-dir.sh'), stdout=subprocess.PIPE)
+        result = proc.communicate() # Ignore this output
+        os.environ['SSL_DIR'] = os.path.join(CURRENT_DIRECTORY, 'certs.db')
+        # Method for when pycurl only support NSS
+        server = AllegroGraphServer(AG_HOST, AG_SSLPORT, 
+            sslcert='Test Client',
+            # Test files setup for localhost; if running elsewhere don't verify
+            verifyhost=(AG_HOST==LOCALHOST))
+        catalogs = server.listCatalogs()
+
+    print "Available catalogs", catalogs
+        
+    catalog = server.openCatalog(CATALOG)
+    stores = catalog.listRepositories()
+    print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
+
+    # Instead of renewing the database, clear it.
+    mode = Repository.CREATE if STORE not in stores else Repository.OPEN
+
+    myRepository = catalog.getRepository(STORE, mode)
+    myRepository.initialize()
+    connection = myRepository.getConnection()
+    connection.clear()
+    connection.clearNamespaces()
+
+    assert connection.size() == 0
 
 def test_save_response():
     """

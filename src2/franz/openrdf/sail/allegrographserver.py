@@ -15,7 +15,7 @@ from __future__ import absolute_import
 from ..exceptions import ServerException
 from ..repository.repository import Repository, RepositoryConnection
 from ...miniclient import repository as miniserver
-import urllib
+import re, urllib
 from . import spec
 
 READ_ONLY = 'READ_ONLY'
@@ -26,8 +26,28 @@ class AllegroGraphServer(object):
     """
     Connects to an AllegroGraph HTTP Server
     """
-    def __init__(self, host, port=10035, user=None, password=None, **options):
-        self._client = miniserver.Client("http://%s:%d" % (host, port), user, password)
+    def __init__(self, host, port=10035, user=None, password=None, cainfo=None, sslcert=None, verifyhost=None, verifypeer=None, **options):
+        """
+        Defines the connection to the AllegroGraph HTTP server.
+
+        Pass either user & password for Basic Authentication or
+        cainfo, sslcert values for client x.509 certificate
+        authentication. You can optionally set verifyhost/verifypeer
+        to True or False. Default behavior is True.
+
+        See pycurl documentation for the meanings of cainfo, sslcert,
+        verifyhost, verifypeer as those values are just passed 
+        through to the Curl object's setopt function.
+        """
+        
+        if re.match('^https?://', host):
+            uri = host + ':%d'
+        elif sslcert != None:
+            uri = 'https://%s:%d'
+        else:
+            uri = 'http://%s:%d'
+        
+        self._client = miniserver.Client(uri % (host, port), user, password, cainfo, sslcert, verifyhost, verifypeer)
 
     @property
     def url(self):
