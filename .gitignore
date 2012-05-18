@@ -2,4 +2,5 @@
 /DIST
 build.out
 !windows-support/curl/__init__.pyc
+certs.db/
 
