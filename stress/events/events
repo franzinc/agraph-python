@@ -932,9 +932,10 @@ def main():
             load_phase(LoadPhase.small_commits)
             phase3_time = time.time() - phase3_start
 
+    queryq = JoinableQueue(OPT.QUERY_WORKERS)
+    resultq = Queue(OPT.QUERY_WORKERS)
+
     if OPT.PHASE <= LoadPhase.sparqlQuery:
-        queryq = JoinableQueue(OPT.QUERY_WORKERS)
-        resultq = Queue(OPT.QUERY_WORKERS)
 
         trace('%s [%s]: Phase 0 Begin: Launching child SPARQL query processes.',
             (PROG, datetime.now()))
