@@ -96,18 +96,29 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     curl = Pool.instance().get()
 
     # Uncomment these 5 lines to see pycurl debug output
-    ## def report(debug_type, debug_msg):
-    ##     if debug_type != 3:
-    ##         print "debug(%d): %s" % (debug_type, debug_msg)
-    ## curl.setopt(pycurl.VERBOSE, 1)
-    ## curl.setopt(pycurl.DEBUGFUNCTION, report)
+    ### def report(debug_type, debug_msg):
+    ###     if debug_type != 3:
+    ###         print "debug(%d): %s" % (debug_type, debug_msg)
 
+    #curl.setopt(pycurl.VERBOSE, 1)
+    #curl.setopt(pycurl.DEBUGFUNCTION, report)
     #curl.setopt(pycurl.TIMEOUT, 45)
 
     if obj.user is not None and obj.password is not None:
         curl.setopt(pycurl.USERPWD, "%s:%s" % (obj.user, obj.password))
         curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-    if not url.startswith("http:"): url = obj.url + url
+    else:
+        curl.unsetopt(pycurl.USERPWD)
+    if obj.cainfo != None:
+        curl.setopt(pycurl.CAINFO, obj.cainfo)
+    if obj.sslcert != None:
+        curl.setopt(pycurl.SSLCERT, obj.sslcert)
+    if obj.verifyhost != None:
+        curl.setopt(pycurl.SSL_VERIFYHOST, obj.verifyhost)
+    if obj.verifypeer != None:
+        curl.setopt(pycurl.SSL_VERIFYPEER, obj.verifypeer)
+
+    if not url.startswith("http:") and not url.startswith("https:"): url = obj.url + url
 
     postbody = method == "POST" or method == "PUT"
     curl.setopt(pycurl.POSTFIELDS, "")
