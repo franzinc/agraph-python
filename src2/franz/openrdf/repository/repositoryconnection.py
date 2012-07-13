@@ -19,7 +19,7 @@ from ..exceptions import IllegalOptionException, IllegalArgumentException
 from ..model import Statement, Value, URI
 from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
 from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from ..query.query import Query, TupleQuery, GraphQuery, BooleanQuery, QueryLanguage
+from ..query.query import Query, TupleQuery, UpdateQuery, GraphQuery, BooleanQuery, QueryLanguage
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
 from ..vocabulary import RDF, RDFS, OWL, XMLSchema
@@ -94,6 +94,17 @@ class RepositoryConnection(object):
         query.  The result of query execution is an iterator of tuples.
         """
         query = TupleQuery(queryLanguage, queryString, baseURI=baseURI)
+        query.setConnection(self)
+        return query
+
+    def prepareUpdate(self, queryLanguage, queryString, baseURI=None):
+        """
+        Embed 'queryString' into a query object which can be
+        executed against the RDF storage.  'queryString' can be a
+	SPARQL 1.1 Update command such as INSERT DATA or DELETE DATA.
+        The returned result of execution either True or False.
+	"""
+        query = UpdateQuery(queryLanguage, queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
 

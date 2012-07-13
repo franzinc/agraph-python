@@ -2327,3 +2327,31 @@ def test_spin():
         conn.deleteSpinMagicProperty(parents_mp)
         
         check_property()
+
+
+def test_sparql_update():
+    conn = connect()
+    ## create some resources and literals to make statements out of
+    alice = conn.createURI("http://example.org/people/alice")
+    bob = conn.createURI("http://example.org/people/bob")
+    name = conn.createURI("http://example.org/ontology/name")
+    person = conn.createURI("http://example.org/ontology/Person")
+    bobsName = conn.createLiteral("Bob")
+    alicesName = conn.createLiteral("Alice")
+    print "Triple count before inserts: ", conn.size()
+    for s in conn.getStatements(None, None, None, None): print s    
+    query = "INSERT DATA { %s %s %s. %s %s %s. %s %s %s. %s %s %s. }" % (
+        alice.toNTriples(), RDF.TYPE.toNTriples(), person.toNTriples(),
+        alice.toNTriples(), name.toNTriples(), alicesName.toNTriples(),
+        bob.toNTriples(), RDF.TYPE.toNTriples(), person.toNTriples(),
+        bob.toNTriples(), name.toNTriples(), bobsName.toNTriples())
+    conn.prepareUpdate(QueryLanguage.SPARQL, query).evaluate()
+    print "Triple count: ", conn.size()
+    verify(conn.size(), 4, 'conn.size()', 'test_sparql_update')
+    for s in conn.getStatements(None, None, None, None): print s    
+    query = "DELETE DATA { %s %s %s. }" % (
+        bob.toNTriples(), name.toNTriples(), bobsName.toNTriples())
+    conn.prepareUpdate(QueryLanguage.SPARQL, query).evaluate()
+    print "Triple count: ", conn.size()
+    verify(conn.size(), 3, 'conn.size()', 'test_sparql_update')
+    for s in conn.getStatements(None, None, None, None): print s    

@@ -157,7 +157,7 @@ class Query(object):
     def _get_connection(self):
         return self.connection
     
-    def evaluate_generic_query(self, count=False, accept=None, analyze=False, analysisTechnique=None, analysisTimeout=None):
+    def evaluate_generic_query(self, count=False, accept=None, analyze=False, analysisTechnique=None, analysisTimeout=None, update=False):
         """
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
@@ -184,12 +184,13 @@ class Query(object):
             response = mini.evalSparqlQuery(self.queryString, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings,
                                             checkVariables=self.checkVariables, count=count, accept=accept, analyze=analyze,
-                                            analysisTechnique=analysisTechnique, analysisTimeout=analysisTimeout)
+                                            analysisTechnique=analysisTechnique, analysisTimeout=analysisTimeout, update=update)
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
             if analyze:
                 raise QueryMissingFeatureException("Prolog queries do not support analysis.")
+            # evalPrologQuery is already always done as if update=True
             response = mini.evalPrologQuery(self.queryString, infer=self.includeInferred, count=count, accept=accept)
         return response
 
@@ -233,6 +234,14 @@ class TupleQuery(Query):
         response = self.evaluate_generic_query(analyze=True, analysisTechnique=analysisTechnique,
             analysisTimeout=analysisTimeout)
         return response
+
+class UpdateQuery(Query):
+    def evaluate(self):
+        """
+        Execute the embedded update against the RDF store.  Returns
+        True or False.
+        """
+        return self.evaluate_generic_query(update=True)
 
 class GraphQuery(Query):
     

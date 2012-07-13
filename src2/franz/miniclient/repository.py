@@ -218,7 +218,7 @@ class Repository(Service):
 
     def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
                         bindings=None, planner=None, checkVariables=None, count=False, accept=None, analyze=False,
-                        analysisTechnique=None, analysisTimeout=None):
+                        analysisTechnique=None, analysisTimeout=None, update=False):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -232,7 +232,7 @@ class Repository(Service):
             accept="text/plain"
         if bindings is not None:
             bindings = "".join(["&$" + urllib.quote(a) + "=" + urllib.quote(b.encode("utf-8")) for a, b in bindings.items()])
-        return jsonRequest(self, "GET", self.url,
+        return jsonRequest(self, "POST" if update else "GET", self.url,
                    urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
                        planner=planner, checkVariables=checkVariables,
                        analyzeIndicesUsed=analyze, queryAnalysisTechnique=analysisTechnique,
