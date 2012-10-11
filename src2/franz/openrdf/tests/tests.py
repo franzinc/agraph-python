@@ -2355,3 +2355,23 @@ def test_sparql_update():
     print "Triple count: ", conn.size()
     verify(conn.size(), 3, 'conn.size()', 'test_sparql_update')
     for s in conn.getStatements(None, None, None, None): print s    
+
+def test_materializer():
+    conn = connect()
+    data = """
+        <http://www.franz.com/simple#birra> <http://www.w3.org/2002/07/owl#sameAs> <http://www.franz.com/simple#son-of-samira> .
+        <http://www.franz.com/simple#aasman> <http://www.w3.org/2002/07/owl#sameAs> <http://www.franz.com/simple#jannes> .
+        <http://www.franz.com/simple#jans> <http://www.w3.org/2002/07/owl#sameAs> <http://www.franz.com/simple#jannes> .
+        <http://www.franz.com/simple#birra> <http://www.franz.com/simple#age> <http://www.franz.com/simple#twelve> .
+        <http://www.franz.com/simple#pet-of> <http://www.w3.org/2002/07/owl#inverseOf> <http://www.franz.com/simple#has-pet> .
+        <http://www.franz.com/simple#has-pet> <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://www.franz.com/simple#owns> .
+        <http://www.franz.com/simple#has> <http://www.w3.org/2002/07/owl#inverseOf> <http://www.franz.com/simple#owned-by> .
+        <http://www.franz.com/simple#owned-by> <http://www.w3.org/2002/07/owl#inverseOf> <http://www.franz.com/simple#owns> .
+        <http://www.franz.com/simple#jans> <http://www.franz.com/simple#has-pet> <http://www.franz.com/simple#birra> .
+        """
+    conn.mini_repository.loadData(data, 'ntriples')
+
+    entailed = conn.materializeEntailed(_with='all')
+    print "There were", entailed, "entailed triples"
+    assert conn.materializeEntailed(_with="all") == 40
+    assert conn.deleteMaterialized() == 40

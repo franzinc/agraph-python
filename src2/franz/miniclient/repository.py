@@ -719,6 +719,28 @@ class Repository(Service):
         """
         nullRequest(self, "DELETE", "/spin/magicproperty/" + urllib.quote(uri, ''))
 
+    def materializeEntailed(self, _with=None, without=None, useTypeSubproperty=False, commit=100000):
+        """
+        Call to materialize entailed triples to enable reasoning queries without the dynamic query-time reasoner.
+        Returns the number of triples added.
+
+        _with and without can be either a single string or a list of strings denoting rules beyond rdfs++ you wish to use.
+        See the documentation for the current set, but "same-as", "restriction", "values-from", "class", and "property" are examples.
+
+        useTypeSubproperty tells the materializer to prefer using types that are rdfs:subPropertyOf rdf:type rather than rdf:type directly.
+
+        commit indicates the number of triples per commit for the materializer.
+        """
+        args = { "with": _with, "without": without, "useTypeSubproperty": useTypeSubproperty, "commit": commit }
+        return jsonRequest(self, "PUT", "/materializeEntailed?" + urlenc(**args))
+
+    def deleteMaterialized(self):
+        """
+        Deletes all previously materialized triples.
+        Returns the number of triples deleted.
+        """
+        return jsonRequest(self, "DELETE", "/materializeEntailed")
+
     @contextmanager
     def saveResponse(self, fileobj, accept, raiseAll=False):
         """
