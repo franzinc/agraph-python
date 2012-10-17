@@ -2373,5 +2373,5 @@ def test_materializer():
 
     entailed = conn.materializeEntailed(_with='all')
     print "There were", entailed, "entailed triples"
-    assert conn.materializeEntailed(_with="all") == 40
-    assert conn.deleteMaterialized() == 40
+    assert conn.materializeEntailed(_with="all") >= 40
+    assert conn.deleteMaterialized() >= 40
