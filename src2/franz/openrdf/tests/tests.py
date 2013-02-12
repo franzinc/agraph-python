@@ -1741,6 +1741,7 @@ def test_roundtrips():
     conn = connect()
     now = datetime.datetime.now()
     conn.addTriple('<http:object>', '<http:bool>', True)
+    conn.addTriple('<http:object>', '<http:bool2>', False)
     conn.addTriple('<http:object>', '<http:str>', 'Me')
     conn.addTriple('<http:object>', '<http:int>', 1234)
     conn.addTriple('<http:object>', '<http:long>', 1234L)
@@ -1765,6 +1766,7 @@ def test_roundtrips():
         assert obj == value or abs(obj.microsecond - value.microsecond) < 300
 
     checkit("bool", bool, True)
+    checkit("bool2", bool, False)
     checkit("str", basestring, 'Me')
     checkit("int", int, 1234)
     checkit("long", long, 1234L)
