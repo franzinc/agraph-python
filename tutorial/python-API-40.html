@@ -586,7 +586,7 @@ non-instantiable. It is an abstract class from which the three query subclasses 
 <h3>Constructor</h3>
 <p>The best practice is to allow the <a href="#RepositoryConnection Class">RepositoryConnection</a> object to create an instance of one of the Query subclasses (<a href="#Subclass TupleQuery">TupleQuery</a>, <a href="#Subclass GraphQuery">GraphQuery</a>, <a href="#Subclass BooleanQuery">BooleanQuery</a>). There is no reason for the Python application programmer to create a Query object directly.&nbsp; </p>
 <pre>   tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-   result = tupleQuery.evaluate();</span>)</pre>
+   result = tupleQuery.evaluate()</pre>
 <h3>Methods</h3>
 <table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
