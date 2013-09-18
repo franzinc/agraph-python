@@ -396,9 +396,12 @@ def random_event(conn, storage, index):
 
     return index
 
+def filter_non_digits(string):
+    return filter(lambda x: x.isdigit(), string)
+
 def buggy_version():
     """There is a bug in Python versions <= 2.6.2"""
-    return map(int, sys.version.split()[0].split('.')) <= [2, 6, 2]
+    return map(int, map(filter_non_digits, sys.version.split()[0].split('.'))) <= [2, 6, 2]
 
 if buggy_version():
     from multiprocessing.queues import JoinableQueue as BadJoinableQueue
