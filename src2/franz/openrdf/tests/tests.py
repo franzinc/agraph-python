@@ -2316,8 +2316,17 @@ def test_spin():
             + "?parent kennedy:first-name ?parentFirst .\n}")
         results =  conn.prepareTupleQuery('SPARQL', query).evaluate()
 
-        assert unicode(results.next()['parentFirst']) == u'"Joseph"'#
-        assert unicode(results.next()['parentFirst']) == u'"Rose"'
+        seen_joseph = False
+        seen_rose = False
+        
+        for bindingSet in results:
+            if unicode(bindingSet['parentFirst']) == u'"Joseph"':
+                seen_joseph = True
+            if unicode(bindingSet['parentFirst']) == u'"Rose"':
+                seen_rose = True
+            
+        assert seen_joseph
+        assert seen_rose
 
         results = conn.listSpinMagicProperties()
         assert results[0]['uri'] == "<" + parents_mp + ">"
