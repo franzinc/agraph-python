@@ -1724,7 +1724,7 @@ def test_javascript():
     assert conn.evalJavaScript("store.getTriplesArray()[0].subject.value") == "a"
     assert conn.evalJavaScript("store.getTriplesArray()[1]") is None
     assert conn.evalJavaScript("store.getTriples().next().object.toString()") == '"blah blah"'
-    assert conn.evalJavaScript("store.indices.length > 2") is True
+    assert conn.evalJavaScript("store.indices.length > 0") is True
     assert conn.evalJavaScript("store.createTextIndex('foo'); store.textSearch('blah', 'foo').next().predicate.value") == "b"
     assert conn.evalJavaScript("namespaces.collect().length > 1") is True
     assert conn.evalJavaScript("namespaces.register('blah', 'http://blah.com'); x = namespaces.lookup('blah'); " \
@@ -1916,7 +1916,7 @@ def test_indices_on_create():
     if "optimal" in catalog.listRepositories():
         catalog.deleteRepository("optimal");
 
-    indices = ["posgi", "gspoi"]
+    indices = ["spogi", "posgi", "gspoi"]
     myRepository = catalog.createRepository("optimal", indices=indices)
     myRepository.initialize()
     conn = myRepository.getConnection()
