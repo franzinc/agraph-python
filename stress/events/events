@@ -38,7 +38,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 import locale, os, random, subprocess, sys, time, traceback
 
-sys.path.append(os.path.join(os.getcwd(), '../../src2'))
+sys.path.append(os.path.join(os.getcwd(), '../..'))
 
 try:
     from collections import namedtuple
