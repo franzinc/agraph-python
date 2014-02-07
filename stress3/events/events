@@ -1,0 +1,1173 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+##***** BEGIN LICENSE BLOCK *****
+##Version: MPL 1.1
+##
+##The contents of this file are subject to the Mozilla Public License Version
+##1.1 (the "License"); you may not use this file except in compliance with
+##the License. You may obtain a copy of the License at
+##http:##www.mozilla.org/MPL/
+##
+##Software distributed under the License is distributed on an "AS IS" basis,
+##WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+##for the specific language governing rights and limitations under the
+##License.
+##
+##The Original Code is the AllegroGraph Java Client interface.
+##
+##The Original Code was written by Franz Inc.
+##Copyright (C) 2006 Franz Inc.  All Rights Reserved.
+##
+##***** END LICENSE BLOCK *****
+
+"""
+Usage: events
+
+An event store stress tests.
+"""
+
+
+from queue import Empty
+import collections
+try:
+    from multiprocessing import Process, Queue
+except:
+    assert False, \
+        "Use Python 2.6 or install http://pypi.python.org/pypi/multiprocessing/"
+from contextlib import contextmanager
+from datetime import datetime, timedelta
+import locale, os, pycurl, random, subprocess, sys, time, traceback
+
+sys.path.append(os.path.join(os.getcwd(), '../../src3'))
+
+try:
+    from collections import namedtuple
+except ImportError:
+    from franz.openrdf.util.namedtuple import namedtuple
+from franz.openrdf.sail.allegrographserver import AllegroGraphServer
+from franz.openrdf.query.query import QueryLanguage
+from franz.openrdf.repository.repository import Repository
+from franz.openrdf.vocabulary import XMLSchema, RDF
+from franz.openrdf.model import Literal, Statement, URI, ValueFactory
+
+# Allows use of:
+#
+# kill -SIGNUSR1 <pid>
+#
+# to print stack traces to file $TMPDIR/tipper*<pid>.txt
+import tipper
+
+
+class Defaults:
+    # The namespace
+    NS = 'http://franz.com/events#';
+
+    # Reg Enc Prefix
+    REG_PREFIX = 'http://franz.com/events/'
+
+    # Number of worker processes
+    LOAD_WORKERS = 20
+    QUERY_WORKERS = 8
+
+    # Time to run queries in minutes
+    QUERY_TIME = 10
+    # When non-zero perform QUERY_SIZE queries in each query phase
+    QUERY_SIZE = 0
+
+    # Size of the Events
+    EVENT_SIZE = 50
+
+    # Events per commit in bulk load phase
+    BULK_EVENTS = 250
+
+    # Goal store size
+    SIZE = (10**9)
+
+    # The catalog name
+    CATALOG = 'tests'
+
+    # The repository name
+    REPOSITORY = 'events_test'
+
+    # The starting phase
+    PHASE = 1
+
+    # OPEN OR RENEW
+    OPEN = False
+
+    # Add mixed workload phase
+    MIXED = False
+
+    # Debug mode
+    DEBUG = False
+
+    # The random seed for the run
+    SEED = 0
+
+    # Whether or not to create all indices
+    INDEXFULL = False
+
+    # To Profile or not to Profile
+    PROFILER = 'off'
+
+    # Turn on bulk-mode on the server
+    BULK_MODE = False
+    
+    # Turn on bulk-mode on the server
+    REG_ENC_ID = False
+    
+
+# The program options
+OPT = None
+
+LOCALHOST = 'localhost'
+AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
+AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
+AG_USER = os.environ.get('AGRAPH_USER', 'test')
+AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
+PROG = sys.argv[0]
+
+def nonzero(value):
+    return max(0.0001, value)
+
+def trace(formatter, values=None):
+    if values:
+        formatter = locale.format_string(formatter, values, grouping=True)
+    print(formatter)
+    sys.stdout.flush()
+
+def connect(access_mode=Repository.OPEN):
+    """
+    Connect is called to connect to a store.
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
+    catalog = server.openCatalog(OPT.CATALOG)
+    name = OPT.REPOSITORY
+    if access_mode is Repository.RENEW:
+        if name in catalog.listRepositories():
+            catalog.deleteRepository(name)
+        trace('%s [%s]: Creating repository with %s indices.',
+            (PROG, datetime.now(),
+            "full" if OPT.INDEXFULL else "optimal"))
+        repository = catalog.createRepository(name, None if OPT.INDEXFULL else
+            ['gposi', 'gspoi', 'spogi'])
+    else:
+        repository = catalog.getRepository(name, access_mode)
+    repository.initialize()
+    return repository.getConnection()
+
+# PredInfo takes a uri in ntriples format and a generator function
+# for the object ntriple string
+class PredInfo(namedtuple('PredInfo', 'uri generator')):
+    __slots__ = ()
+
+    def __new__(cls, uri, generator):
+        assert isinstance(generator, collections.Callable)
+
+        if not isinstance(uri, URI):
+            uri = URI(namespace=OPT.NS, localname=uri)
+        uri = uri.toNTriples()
+        
+        return tuple.__new__(cls, (uri, generator)) 
+
+# Define some generators
+class RandomDate(object):
+    def __init__(self, start, end):
+        object.__init__(self)
+        self.start = start
+        self.end = end
+        self.seconds = (end - start).days * 24 * 60 * 60
+
+    def random(self):
+        return self.start + timedelta(seconds=random.randrange(self.seconds))
+
+BaselineRange = \
+    RandomDate(datetime(2008, 1, 1, 0, 0, 0),
+               datetime(2008, 2, 1, 0, 0, 0))
+BulkRange = \
+    RandomDate(datetime(2008, 2, 1, 0, 0, 0),
+               datetime(2009, 1, 1, 0, 0, 0))
+SmallCommitsRange = \
+    RandomDate(datetime(2009, 1, 1, 0, 0, 0),
+               datetime(2009, 2, 1, 0, 0, 0))
+DeleteRangeOne = \
+    RandomDate(BaselineRange.start,
+               datetime(2008, 1, 16, 0, 0, 0))
+DeleteRangeTwo = \
+    RandomDate(datetime(2008, 1, 16, 0, 0, 0),
+               BaselineRange.end)
+FullDateRange = \
+    RandomDate(datetime(2008, 1, 1, 0, 0, 0),
+               datetime(2009, 2, 1, 0, 0, 0))
+
+def random_datetime():
+    fn = random_datetime
+    return Literal(fn.range.random()).toNTriples()
+
+random_datetime.range = BaselineRange
+
+def random_date():
+    fn = random_datetime
+    return Literal(fn.range.random().date()).toNTriples()
+
+def random_int():
+    return Literal(random.randrange(2**31-1), XMLSchema.INT).toNTriples()
+
+def random_name():
+    fn = random_name
+    return Literal(' '.join((random.choice(fn.firsts), random.choice(fn.lasts)))
+                   ).toNTriples()
+
+random_name.firsts = ( 'Sam', 'Bruce', 'Mandy', 'Stacy', 'Marcus', 'Susan',
+    'Jason', 'Chris', 'Becky', 'Britney', 'David', 'Paul', 'Daniel', 'James',
+    'Bradley', 'Amy', 'Tina', 'Brandy', 'Jessica', 'Mary', 'George', 'Jane' )
+random_name.lasts = ( 'Smith', 'Jones', 'Flintstones', 'Rubble', 'Jetson',
+    'Wayne', 'McFly', 'Stadtham', 'Lee', 'Chan', 'Brown', 'Quinn',
+    'Henderson', 'Anderson', 'Roland' )
+
+def random_direction():
+    fn = random_direction
+    return Literal(random.choice(fn.choices)).toNTriples()
+
+random_direction.choices = ('Inbound', 'Outbound')
+
+def random_bool():
+    fn = random_bool
+    return Literal(random.choice(fn.choices)).toNTriples()
+
+random_bool.choices = (False, True)
+
+def random_origin():
+    fn = random_origin
+    return Literal(random.choice(fn.origins)).toNTriples()
+
+random_origin.origins = ('Call Center', 'Sales', 'Front Desk' )
+
+def random_payoption():
+    fn = random_payoption
+    return Literal(random.choice(fn.options)).toNTriples()
+
+random_payoption.options = ('Cash', 'Credit', 'Money Order')
+
+def random_delivery():
+    fn = random_delivery
+    return Literal(random.choice(fn.types)).toNTriples()
+
+random_delivery.types = ('Mail', 'FedEx', 'UPS', 'Truck Freight')
+
+def random_money():
+    return Literal(round(random.uniform(0.01, 10000.00), 2)).toNTriples()
+
+def random_uri(prefix, limit):
+    key = random.randrange(int(limit))
+
+    if OPT.REG_ENC_ID:
+        uri=URI(uri="%s%s@@%d" % (OPT.REG_PREFIX, prefix, key))
+    else:
+        uri=URI(namespace=OPT.NS, localname='%s-%d' % (prefix, key))
+
+    return uri.toNTriples()
+
+def random_customer():
+    # Striving for 1000 ids per prefix (e.g. customer) when SIZE is 1 billion,
+    # so by default there are SIZE/1000 ids
+    return random_uri('Customer', OPT.SIZE/1000)
+
+def random_account():
+    return random_uri('Account', OPT.SIZE/1000)
+
+def random_action():
+    fn = random_action
+    return Literal(random.choice(fn.actions)).toNTriples()
+
+random_action.actions = ('Add', 'Modify')
+
+def random_handling():
+    fn = random_handling
+    return Literal(random.choice(fn.handling)).toNTriples()
+
+random_handling.handling = ('Nothing', 'Past Due Notice', 'Collections') 
+
+def type_uri(label):
+    return URI(namespace=OPT.NS, localname=label).toNTriples()
+
+# The list of events to generate
+EVENTS = None
+
+def initialize_events():
+    global EVENTS
+
+    interaction = [
+        PredInfo(RDF.TYPE, lambda: type_uri('CustomerInteraction')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('EntityId', random_int),
+        PredInfo('OriginatingSystem', lambda: '"CRM"'),
+        PredInfo('Agent', random_name),
+        PredInfo('Direction', random_direction),
+        PredInfo('DoneInOne', random_bool),
+        PredInfo('EndDate', random_datetime),
+        PredInfo('FeeBased', random_bool),
+        PredInfo('InteractionId', random_int),
+        PredInfo('Origin', random_origin),
+        PredInfo('PayOption', random_payoption),
+        PredInfo('ReasonLevel1', random_int),
+        PredInfo('ReasonLevel2', random_int),
+        PredInfo('OriginatingSystem', random_int),
+        PredInfo('Result', random_int)]
+
+    invoice = [
+        PredInfo(RDF.TYPE, lambda: type_uri('Invoice')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('AccountId', random_account),
+        PredInfo('OriginatingSystem', lambda: '"Invoicing"'), 
+        PredInfo('DueDate', random_datetime),
+        PredInfo('Action', random_action),
+        PredInfo('TotalAmountDue', random_money),
+        PredInfo('AmountDueHandling', random_handling),
+        PredInfo('LegalInvoiceNumber', random_int),
+        PredInfo('PreviousBalanceAmount', random_money),
+        PredInfo('TotalFinanceActivites', random_money),
+        PredInfo('BillDate', random_date),
+        PredInfo('TotalUsageCharges', random_money),
+        PredInfo('TotalRecurringCharges', random_money),
+        PredInfo('TotalOneTimeCharges', random_money)]
+
+    payment = [
+        PredInfo(RDF.TYPE, lambda: type_uri('AccountPayment')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('AccountId', random_account),
+        PredInfo('OriginatingSystem', lambda: '"Ordering"'),
+        PredInfo('SubscriberId', random_customer),
+        PredInfo('InvoiceId', random_int),
+        PredInfo('PaymentAmount', random_money),
+        PredInfo('OriginalAmount', random_money),
+        PredInfo('AmountDue', random_money),
+        PredInfo('DepositDate', random_datetime),
+        PredInfo('PaymentType', random_payoption),
+        PredInfo('OriginalPostedAmount', random_money),
+        PredInfo('PaymentTarget', lambda: random_uri('PaymentTarget', 100)),
+        PredInfo('DepositDesignation',
+            lambda: random_uri('DepositDesignation', 100)),
+        PredInfo('BusinessEntity', lambda: random_uri('BusinessUnit', 100))]
+
+    purchase = [
+        PredInfo(RDF.TYPE, lambda: type_uri('Purchase')),
+        PredInfo('EventTimeStamp', random_datetime),
+        PredInfo('AccountId', random_account),
+        PredInfo('OriginatingSystem', lambda: '"Sales"'),
+        PredInfo('PurchaseDate', random_datetime),
+        PredInfo('PurchaseAmount', random_money),
+        PredInfo('InvoiceID', random_int),
+        PredInfo('ProductID', lambda: random_uri('Product', OPT.SIZE/1000)), 
+        PredInfo('LegalInvoiceNumber', random_int),
+        PredInfo('PreviousBalanceAmount', random_money),
+        PredInfo('DeliveredVia', random_delivery),
+        PredInfo('PaidVia', random_payoption),
+        PredInfo('CCApprovalNumber', random_int),
+        PredInfo('TotalRecurringCharges', random_money),
+        PredInfo('TotalOneTimeCharges', random_money)]
+
+    def pad_events(event):
+        if OPT.REG_ENC_ID:
+            pred_format = "<%sPad@@%%d>" % OPT.REG_PREFIX
+        else:
+            pred_format = event[0].generator()[:-1] + 'Pad-%d>'
+
+        for i in range(len(event), OPT.EVENT_SIZE):
+            event.append(PredInfo(URI(uri=pred_format % i), random_int))
+
+        assert len(event) == OPT.EVENT_SIZE
+        return event
+
+    EVENTS = list(map(pad_events, [interaction, invoice, payment, purchase]))
+
+def random_event(conn, storage, index):
+    event = random.choice(EVENTS)
+
+    # A customer URI for the quad's graph
+    customer = random_customer()
+
+    # Groups the event triples via an anonymous node
+    bnode = conn.createBNode().toNTriples()
+
+    for info in event:
+        storage[index] = (bnode, info.uri, info.generator(), customer)
+        index += 1
+
+    return index
+
+from multiprocessing import JoinableQueue
+
+class LoadPhase:
+    start, baseline, bulk, small_commits, sparqlQuery, prologQuery, delete_one,\
+        delete_two, die = list(range(9))
+    last = delete_one
+
+class PhaseParameters(object):
+    def __init__(self, date_range, events_in_commit, triples):
+        object.__init__(self)
+        self.date_range = date_range
+        self.events_in_commit = events_in_commit
+        self.triples = triples
+
+    @property
+    def commits(self):
+        return int(self.triples / (self.events_in_commit * OPT.EVENT_SIZE))
+
+    @property
+    def commits_per_worker(self):
+        return int(self.commits / OPT.LOAD_WORKERS)
+
+@contextmanager
+def profiler(conn, on, phase):
+    if not on or OPT.PROFILER == 'off':
+        yield
+        return
+
+    conn.evalInServer('(profiler:start-profiler :type :%s)' % OPT.PROFILER)
+    yield
+    conn.evalInServer('(progn (db.agraph.log:log-info :events "Profile for Phase %d")'
+        '(profiler:stop-profiler) (profiler:show-flat-profile) '
+        '(profiler:show-call-graph))' % phase)
+
+# The Phase Parameters
+PHASE_PARAMS = None
+
+# The work queues for loading and querying
+loadq = None
+queryq = None
+
+def load_events(proc_num):
+    """
+    load_files does the work of the child processes.
+    """
+    conn = None
+
+    if OPT.SEED:
+        random.seed(OPT.SEED+977*proc_num)
+    
+    def dequeue():
+        try:
+            return loadq.get()
+        except Empty:
+            return None
+
+    def load_phase(phase):
+        with profiler(conn, proc_num == 0, phase): 
+            load_phase_body(phase)
+
+    def load_phase_body(phase):
+        params = PHASE_PARAMS[phase]
+        random_datetime.range = params.date_range
+        quads = [None]*(OPT.EVENT_SIZE*params.events_in_commit)
+
+        status_size = 50 if params.events_in_commit == 1 else 25
+        start_time = time.time()
+
+        count = 0
+        errors = 0
+        for commit in range(params.commits_per_worker):
+            index = 0
+            for event in range(params.events_in_commit):
+                index = random_event(conn, quads, index)
+
+            if commit > 0 and commit % status_size == 0:
+                end_time = time.time()
+                tpc = OPT.EVENT_SIZE*params.events_in_commit
+                trace('loader(%d) [%s]: Loading Status - %d triples loaded so '
+                    'far at %s triples per commit (%f commits/sec, %f triples/'
+                    'sec over last %d commits), %d loading errors.', (
+                    proc_num, datetime.now(), count, tpc,
+                    status_size/nonzero(end_time - start_time),
+                    tpc*status_size/nonzero(end_time - start_time),
+                    status_size,
+                    errors))
+                start_time = end_time
+
+            try:
+                conn.mini_repository.addStatements(quads)
+                count += len(quads)
+            except Exception:
+                trace('loader(%d) [%s]: Error adding quads...', (
+                    proc_num, datetime.now()))
+                errors += 1
+                traceback.print_exc()
+            
+        trace('loader(%d) [%s]: Loading done - %d triples at %s triples '
+            'per commit, %d loading errors.', (proc_num, datetime.now(),
+            count, OPT.EVENT_SIZE*params.events_in_commit, errors))
+        sys.stdout.flush()
+        loadq.task_done()
+
+    def delete_phase(phase):
+        with profiler(conn, phase == LoadPhase.delete_one, phase):
+            delete_phase_body(phase)
+
+    def delete_phase_body(phase):
+        timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp'
+            ).toNTriples()
+        date_range = PHASE_PARAMS[phase].date_range
+        start, end = date_range.start, date_range.end
+        start_nt = Literal(start).toNTriples()
+        end_nt = Literal(end).toNTriples()
+
+        queryString = """
+            (select0 (?event)
+              (:count-only t)
+              (q- ?event !%s (? !%s !%s))
+              (lisp (delete-triples :s ?event)))""" % (
+                     timestamp, start_nt, end_nt)
+
+        try:
+            events = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString
+                ).evaluate(count=True)
+        except Exception:
+            events = 0
+            trace('loader(%d) [%s]: Error deleting triples...\n%s', (
+                proc_num, datetime.now(), queryString))
+            traceback.print_exc()
+
+        trace('loader(%d) [%s]: Found %d events (%d triples) to delete.', (
+            proc_num, datetime.now(), events, events * OPT.EVENT_SIZE))
+        
+        loadq.task_done()
+
+    def get_phase(expected):
+        phase = dequeue()
+
+        while phase not in expected:
+            # Put it back
+            loadq.put(phase)
+            loadq.task_done()
+            time.sleep(1)
+            phase = dequeue()
+
+        return phase
+
+    with connect().session(True, max(3600, (OPT.QUERY_TIME+1)*60)) as conn:
+        phase = get_phase([LoadPhase.start])
+        loadq.task_done()
+        
+        if OPT.PHASE <= LoadPhase.baseline:
+            phase = get_phase([LoadPhase.baseline])
+            load_phase(phase)
+        
+        if OPT.PHASE <= LoadPhase.bulk:
+            phase = get_phase([LoadPhase.bulk])
+            load_phase(phase)
+
+        if OPT.PHASE <= LoadPhase.small_commits:
+            phase = get_phase([LoadPhase.small_commits])
+            load_phase(phase)
+
+        if OPT.PHASE <= LoadPhase.die:
+            phase = get_phase([LoadPhase.delete_one, LoadPhase.delete_two,
+                LoadPhase.die])
+            if phase in [LoadPhase.delete_one, LoadPhase.delete_two]:
+                delete_phase(phase)
+                phase = get_phase([LoadPhase.die])
+
+        loadq.task_done()
+
+    conn.close()
+
+def query_events(proc_num, resultq, lang):
+    if OPT.SEED:    
+        random.seed(OPT.SEED+983*proc_num)
+   
+    conn = connect()
+    conn.openSession(True)
+
+    queryq.get()
+    queryq.task_done()
+
+    def dequeue():
+        try:
+            return queryq.get_nowait()
+        except Empty:
+            return None
+
+    timestamp = URI(namespace=OPT.NS, localname='EventTimeStamp').toNTriples()
+
+    # Perform the query in prolog or sparql
+    if lang is None:
+        language = QueryLanguage.PROLOG if proc_num % 2 == 1 \
+            else QueryLanguage.SPARQL
+    else:
+        language = lang
+
+    def random_query():
+        # Pick a random customer
+        customer = random_customer()
+
+        # Pick a random date range
+        start, end = FullDateRange.random(), FullDateRange.random()
+        if start > end:
+            start, end = end, start
+
+        start_nt = Literal(start).toNTriples()
+        end_nt = Literal(end).toNTriples()
+
+        if language is QueryLanguage.PROLOG:
+            queryString = """
+                  (select0 (?event ?pred ?obj)
+                    (:use-planner nil)
+                    (:reorder nil)
+                    (q- ?event !%s (? !%s !%s) !%s)
+                    (q- ?event ?pred ?obj !%s))""" % (
+                        timestamp, start_nt, end_nt, customer, customer)
+        else:
+            queryString = """
+                SELECT ?event ?pred ?obj {
+                 GRAPH %s {
+                   ?event %s ?time .
+                   FILTER (?time <= %s)
+                   FILTER (?time >= %s)
+                 }
+                 GRAPH %s {
+                    ?event ?pred ?obj }
+                }""" % (customer, timestamp, end_nt, start_nt, customer)
+    
+        try:
+            # Actually pull the full results to the client, then just count them
+            count = len(conn.prepareTupleQuery(language, queryString
+                ).evaluate())
+        except Exception:
+            # During huge bulk deletions, some queries may be invalidated
+            # and a error returned to indicate they should be rerun. Keep
+            # track of it if this happens.
+            trace('query(%d) [%s]: Error executing query:\n%s\n', (
+                proc_num, datetime.now(), queryString))
+            traceback.print_exc()
+            count = -1
+
+        return count
+
+    def do_queries():
+        status_size = 10
+        start_time = the_time = time.time()
+        sub_count = 0
+        queries = 0
+        count = 0
+        restarts = 0
+
+        # Run the query at least once
+        stop = None
+        while stop is None:
+            result = random_query()
+            if result >= 0:
+                count += result
+            else:
+                restarts += 1
+
+            queries += 1
+            if OPT.QUERY_SIZE == 0:
+                # timed query. Look for stop task and stop.
+                stop = dequeue()
+            elif queries >= OPT.QUERY_SIZE / OPT.QUERY_WORKERS:
+                # iterative query. After # iterations, pull stop task from queue.
+                stop = dequeue()
+
+            if queries % status_size == 0:
+                end_time = time.time()
+                sub_count = count - sub_count
+                trace('query(%d) [%s]: Querying status - %d triple results '
+                    'returned for %d queries in %f seconds (%f queries/second, '
+                    '%f triples per query), %d queries aborted.', (proc_num,
+                    datetime.now(), sub_count, status_size,
+                    end_time-start_time, status_size/nonzero(end_time-start_time),
+                    sub_count/status_size, restarts))
+                start_time = end_time
+                sub_count = count
+                
+        the_time = nonzero(time.time() - the_time)
+        trace('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
+            'queries in %f seconds (%f queries/second, %f triples per query), '
+            ' %d queries aborted.', (proc_num, datetime.now(), language,
+            count, queries, the_time, queries/the_time, count/queries, restarts))
+        resultq.put((queries, count, the_time))
+
+    with profiler(conn, proc_num in [0, 1], LoadPhase.sparqlQuery):
+        do_queries()
+
+    conn.closeSession()
+    conn.close()
+    queryq.task_done()
+
+@contextmanager
+def monitor(phase, conn):
+    """
+    Start and end the monitor for a phase.
+    """
+    try:
+        subprocess.call(['./monitor.sh', 'start', 'phase-%d' % phase, OPT.CATALOG, OPT.REPOSITORY])
+    except OSError:
+        pass
+    yield
+    try:
+        subprocess.call(['./monitor.sh', 'end', 'phase-%d' % phase, OPT.CATALOG, OPT.REPOSITORY])
+        if(phase < LoadPhase.sparqlQuery):
+            force_merge(conn)
+            force_checkpoint(conn)
+
+    except OSError:
+        pass
+
+from franz.miniclient.request import nullRequest
+
+def force_checkpoint(conn):
+    trace('%s [%s]: Phase 0 Begin: Forced Checkpoint', (PROG, datetime.now()))
+    nullRequest(conn.mini_repository, "POST", "/force-checkpoint")
+    trace('%s [%s]: Phase 0 End: Forced Checkpoint.', (PROG, datetime.now()))    
+
+def force_merge(conn):
+    trace('%s [%s]: Phase 0 Begin: Forced Merge', (PROG, datetime.now()))
+    conn.optimizeIndices(1, True);
+    nullRequest(conn.mini_repository, "POST", "/ensure-db-idle")
+    trace('%s [%s]: Phase 0 End: Forced Merge.', (PROG, datetime.now()))    
+
+def handle_debug():
+    if not OPT.DEBUG:
+        return
+
+    import franz.miniclient.request as request_module
+
+    handle_debug.makeRequest = request_module.makeRequest
+
+    def wrapMakeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None):
+        try:
+            return handle_debug.makeRequest(obj, method, url, body, accept, contentType, callback, errCallback)
+        except pycurl.error:
+            print("Process id:", os.getpid(), url, file=sys.stderr)
+            traceback.print_exc()
+            subprocess.call(['killall', '-STOP', 'agraph', 'python'])
+            raise
+
+    request_module.makeRequest = wrapMakeRequest
+
+def main():
+    """
+    The parent main process.
+    """
+    global queryq, resultq, loadq, PHASE_PARAMS
+
+    handle_debug()
+
+    initialize_events()
+
+    # Reduce the number of times we need to round-trip to the server
+    # for blank nodes
+    ValueFactory.BLANK_NODE_AMOUNT = OPT.BULK_EVENTS * 4
+
+    # Initialize the Phase Parameters
+    PHASE_PARAMS = [
+        None,
+        PhaseParameters(BaselineRange, 1, OPT.SIZE/10),
+        PhaseParameters(BulkRange, OPT.BULK_EVENTS, (OPT.SIZE*9)/10),
+        PhaseParameters(SmallCommitsRange, 1, OPT.SIZE/10),
+        None, None,
+        PhaseParameters(DeleteRangeOne, OPT.BULK_EVENTS, OPT.SIZE/10),
+        PhaseParameters(DeleteRangeTwo, OPT.BULK_EVENTS, OPT.SIZE/10)]
+
+    # Renew/Open the repository
+    trace('%s [%s]: Phase 0 Begin: %s %s:%s.', (PROG, datetime.now(),
+        "Opening" if OPT.OPEN else "Renewing", OPT.CATALOG, OPT.REPOSITORY))
+    phase_time = time.time()
+    conn = connect(Repository.OPEN if OPT.OPEN else Repository.RENEW)
+    phase_time = nonzero(time.time() - phase_time)
+    trace('%s [%s]: Phase 0 End: Initial %s took %s seconds.', (PROG, datetime.now(),
+        "opening" if OPT.OPEN else "renewing", phase_time))
+    # Set the global bulk mode state of the store
+    conn.repository.bulk_mode = OPT.BULK_MODE
+    triples = conn.size()
+
+    trace('%s [%s]: Testing with %d loading, %d querying processes. '
+        'Repository contains %d triples.', (
+        PROG, datetime.now(), OPT.LOAD_WORKERS, OPT.QUERY_WORKERS, triples))
+    
+    if (OPT.REG_ENC_ID):
+        conn.registerEncodedIdPrefixes(
+            [(OPT.REG_PREFIX + name, '[0-9]{1,12}')
+                for name in ['Customer', 'Account', 'PaymentTarget',
+                    'DepositDesignation', 'BusinessUnit', 'Product',
+                    'Pad']])
+    
+    # Create the work queue
+    loadq = JoinableQueue(OPT.LOAD_WORKERS)
+
+    def load_phase(phase):
+        params = PHASE_PARAMS[phase]
+        triples_start = conn.size()
+        phase_time = time.time()
+
+        # Tell the processes what to do (We only need one deletion process)
+        if phase != LoadPhase.delete_one:
+            for proc_num in range(OPT.LOAD_WORKERS):
+                loadq.put(phase)
+        else:
+            loadq.put(LoadPhase.delete_one)
+            if OPT.LOAD_WORKERS > 1:
+                loadq.put(LoadPhase.delete_two)
+
+        if phase == LoadPhase.last:
+            for proc_num in range(OPT.LOAD_WORKERS):
+                loadq.put(LoadPhase.die)
+
+            # Signal that there is no more work for the queue
+            loadq.close()
+
+        # Wait for all the work to be completed
+        loadq.join()
+
+        triples_end = conn.size()
+        triples = triples_end - triples_start
+        phase_time = nonzero(time.time() - phase_time)
+        commits = abs(triples/(params.events_in_commit*OPT.EVENT_SIZE))
+        trace('%s [%s]: Phase %d End: %d total triples processed in %f seconds '
+            '(%f triples/second, %f commits/second). '
+            'Store contains %d triples.', (PROG, datetime.now(), phase,
+                triples, phase_time, triples/phase_time, commits/phase_time,
+                triples_end))
+
+    def start_query_workers(kind):
+        # Start the query processes of a certain kind
+        for proc_num in range(OPT.QUERY_WORKERS):
+            p = Process(target=query_events, args=(proc_num, resultq, kind))
+            p.start()
+            queryq.put('Start')
+        queryq.join()
+
+    @contextmanager
+    def run_queries(phase):
+        global queryq
+
+        yield
+
+        for proc_num in range(OPT.QUERY_WORKERS):
+            queryq.put('Stop')
+
+        queryq.join()
+
+        queries = 0
+        triples = 0
+        phase_time = 0
+
+        for proc_num in range(OPT.QUERY_WORKERS):
+            result = resultq.get()
+            queries += result[0]
+            triples += result[1]
+            phase_time = nonzero(max(phase_time, result[2]))
+
+        trace('%s [%s]: Phase %d End: %d total triples returned over %d queries '
+            'in %f seconds (%f triples/second, %f queries/second, '
+            '%f triples/query). ', (PROG, datetime.now(), phase, triples,
+            queries, phase_time, triples/phase_time, queries/phase_time,
+            triples/queries))
+
+    phase1_time = 0
+    phase2_time = 0
+    phase3_time = 0
+    phase4_time = 0
+    phase5_time = 0
+    phase6_time = 0
+
+    trace('%s [%s]: Phase 0 Begin: Launching child loading processes.', (
+        PROG, datetime.now()))
+    # Start the loading processes
+    for proc_num in range(OPT.LOAD_WORKERS):
+        p = Process(target=load_events, args=(proc_num,))
+        p.start()
+        loadq.put(LoadPhase.start)
+    phase_time = time.time()
+    loadq.join()
+    phase_time = time.time() - phase_time
+    trace('%s [%s]: Phase 0 End: Initial load_workers took '
+        '%f seconds.', (PROG, datetime.now(), phase_time))
+
+    if OPT.PHASE <= LoadPhase.baseline:
+        with monitor(1, conn):
+            trace('%s [%s]: Phase 1 Begin: Baseline %d triple commits.', (
+                    PROG, datetime.now(), OPT.EVENT_SIZE))
+            phase1_start = time.time()
+            load_phase(LoadPhase.baseline)
+            phase1_time = time.time() - phase1_start
+
+    if OPT.PHASE <= LoadPhase.bulk:
+        with monitor(2, conn):
+            trace('%s [%s]: Phase 2 Begin: Grow store to about %d triples.', (
+                    PROG, datetime.now(), OPT.SIZE))
+            phase2_start = time.time()
+            load_phase(LoadPhase.bulk)
+            phase2_time = time.time() - phase2_start
+
+    if OPT.PHASE <= LoadPhase.small_commits:
+        with monitor(3, conn):
+            trace('%s [%s]: Phase 3 Begin: Perform %d triple commits.',
+                  (PROG, datetime.now(), OPT.EVENT_SIZE))
+            phase3_start = time.time()
+            load_phase(LoadPhase.small_commits)
+            phase3_time = time.time() - phase3_start
+
+    queryq = JoinableQueue(OPT.QUERY_WORKERS)
+    resultq = Queue(OPT.QUERY_WORKERS)
+
+    if OPT.PHASE <= LoadPhase.sparqlQuery:
+
+        trace('%s [%s]: Phase 0 Begin: Launching child SPARQL query processes.',
+            (PROG, datetime.now()))
+        phase_time = time.time()
+        start_query_workers(QueryLanguage.SPARQL)
+        phase_time = time.time() - phase_time
+        trace('%s [%s]: Phase 0 End: Initial SPARQL query_workers took '
+            '%f seconds.', (PROG, datetime.now(), phase_time))
+
+        phase4_start = time.time()
+        with monitor(4, conn):
+            with run_queries(LoadPhase.sparqlQuery):
+                trace('%s [%s]: Phase 4 Begin: Perform sparql range '
+                      'queries with %d processes for %d %s.',
+                      (PROG, datetime.now(), OPT.QUERY_WORKERS,
+                       OPT.QUERY_TIME if OPT.QUERY_SIZE == 0 else OPT.QUERY_SIZE,
+                       'minutes' if OPT.QUERY_SIZE == 0 else 'queries'))
+                # only sleep when doing timed queries
+                if OPT.QUERY_SIZE == 0: time.sleep(OPT.QUERY_TIME*60)
+        phase4_time = time.time() - phase4_start
+
+        trace('%s [%s]: Phase 0 Begin: Launching child PROLOG query processes.',
+            (PROG, datetime.now()))
+        phase_time = time.time()
+        start_query_workers(QueryLanguage.PROLOG)
+        phase_time = time.time() - phase_time
+        trace('%s [%s]: Phase 0 End: Initial PROLOG query_workers took '
+            '%f seconds.', (PROG, datetime.now(), phase_time))
+
+        phase5_start = time.time()
+        with monitor(5, conn):
+            with run_queries(LoadPhase.prologQuery):
+                trace('%s [%s]: Phase 5 Begin: Perform prolog range '
+                      'queries with %d processes for %d %s.',
+                      (PROG, datetime.now(), OPT.QUERY_WORKERS,
+                       OPT.QUERY_TIME if OPT.QUERY_SIZE == 0 else OPT.QUERY_SIZE,
+                       'minutes' if OPT.QUERY_SIZE == 0 else 'queries'))
+                # only sleep when doing timed queries
+                if OPT.QUERY_SIZE == 0: time.sleep(OPT.QUERY_TIME*60)
+        phase5_time = time.time() - phase5_start
+
+    if OPT.PHASE <= LoadPhase.delete_one:
+        # put in a stub phase here, python reuses load workers, but we need a phase here.
+        phase_time = time.time()
+        trace('%s [%s]: Phase 0 Begin: Launching child delete processes.', (
+                PROG, datetime.now()))
+        trace('%s [%s]: Phase 0 End: Initial delete_workers took '
+              '%f seconds.', (PROG, datetime.now(), time.time() - phase_time))
+        with monitor(6, conn):
+            trace('%s [%s]: Phase 6 Begin: Shrink store by 1 month.', (
+                    PROG, datetime.now()))
+            phase6_start = time.time()
+            load_phase(LoadPhase.delete_one)
+            phase6_time = time.time() - phase6_start
+    
+    # Display the results
+    # We do not want the total_time to include the synchronization
+    # times between phases.
+    total_time = phase1_time + phase2_time + phase3_time + phase4_time + phase5_time + \
+        phase6_time
+    triples_end = conn.size()
+    triples = triples_end - triples
+
+    trace('%s [%s]: Test completed in %f total seconds - '
+        'store contains %d triples (%d triples added/removed).',
+        (PROG, datetime.now(), total_time, triples_end, triples))
+
+
+    if OPT.MIXED:
+        # Do the mixed workload
+        def run_mixed():
+            global SmallCommitsRange, DeleteRangeOne, DeleteRangeTwo, FullDateRange, loadq
+
+            with monitor(7, conn):
+                trace('%s [%s]: Phase 6: Mix workload - adds, queries, '
+                    'and deletes.', (PROG, datetime.now()))
+
+                # Just do small commit range and delete phases on loaders
+                OPT.PHASE = 3
+
+                # Basically, we'll add 30 days at a time, while doing queries
+                # over the whole range. At the end of each 30 days, we'll
+                # delete the oldest 30 days, the do it all again.
+                fifteen_days = timedelta(days=15)
+                thirty_days = timedelta(days=30)
+
+                i = 1
+                while i:
+                    trace('%s [%s]: Phase 7: Performing workload iteration %d.'
+                        ' Store contains %d triples.',
+                        (PROG, datetime.now(), i, conn.size()))
+                    i += 1
+
+                    # Setup dates
+                    SmallCommitsRange = RandomDate(SmallCommitsRange.end,
+                        SmallCommitsRange.end + thirty_days)
+                    FullDateRange = RandomDate(DeleteRangeTwo.end,
+                        SmallCommitsRange.end)
+                    DeleteRangeOne = RandomDate(DeleteRangeTwo.end,
+                        DeleteRangeTwo.end + fifteen_days)
+                    DeleteRangeTwo = RandomDate(DeleteRangeOne.end,
+                        DeleteRangeOne.end + fifteen_days)
+
+                    PHASE_PARAMS[LoadPhase.small_commits].date_range = \
+                        SmallCommitsRange
+                    PHASE_PARAMS[LoadPhase.delete_one].date_range = \
+                        DeleteRangeOne
+                    PHASE_PARAMS[LoadPhase.delete_two].date_range = \
+                        DeleteRangeTwo
+
+                    kind = QueryLanguage.PROLOG if (i & 1) == 0 else QueryLanguage.SPARQL
+                    trace('%s [%s]: Phase 7: Running %s queries from %s to %s.', (
+                        PROG, datetime.now(), kind, FullDateRange.start,
+                        FullDateRange.end))
+
+                    # Start the query processes - alternate between sparql and prolog
+                    start_query_workers(kind)
+
+                    with run_queries(7):
+                        # Create the work queue
+                        loadq = JoinableQueue(OPT.LOAD_WORKERS)
+
+                        # Start the loading processes
+                        for proc_num in range(OPT.LOAD_WORKERS):
+                            p = Process(target=load_events, args=(proc_num,))
+                            p.start()
+                            loadq.put(LoadPhase.start)
+
+                        trace('%s [%s]: Phase 7: Perform %d triple commits '
+                            'from %s to %s.', (PROG, datetime.now(),
+                            OPT.EVENT_SIZE, SmallCommitsRange.start,
+                            SmallCommitsRange.end))
+                        load_phase(LoadPhase.small_commits)
+                        print("Load_Phase small commits done.")
+                        trace('%s [%s]: Phase 7: Shrink store by 30 days '
+                            '(%s-%s).', (PROG, datetime.now(),
+                            DeleteRangeOne.start, DeleteRangeTwo.end))
+                        load_phase(LoadPhase.delete_one)
+
+        run_mixed()
+
+        # Signal that there is no more work for the queue
+        queryq.close()
+
+    conn.close()
+
+if __name__ == '__main__':
+    from copy import copy
+    from optparse import OptionParser, Option, OptionValueError
+
+    locale.setlocale(locale.LC_ALL, '')
+
+    usage = 'Usage: %prog [options]\n\n' \
+        'Environment Variables Consulted:\n' \
+        'AGRAPH_HOST [default=localhost]\n' \
+        'AGRAPH_PORT [default=10035]\n' \
+        'AGRAPH_USER [default=test]\n' \
+        'AGRAPH_PASSWORD [default=xyzzy]'
+
+    def check_human_size(option, opt, value):
+        try:
+            if value[-1] == 'm':
+                value = locale.atof(value[:-1])*10**6
+            elif value[-1] == 'b':
+                value = locale.atof(value[:-1])*10**9
+            elif value[-1] == 't':
+                value = locale.atof(value[:-1])*10**12
+            else:
+                value = locale.atoi(value)
+
+            return int(value)
+        except ValueError:
+            raise OptionValueError(
+                "option %s: invalid human-readable size value: %r" % (opt, value))
+
+    def check_profiler(option, opt, value):
+        value = value.lower()
+        if value not in ['off', 'time', 'space']:
+            raise OptionValueError(
+                "option %s: %s not valid. Profile options are off, time, or space." % (opt, value))
+        return value
+
+    class EventsOption(Option):
+        TYPES = Option.TYPES + ('human_size','profiler')
+        TYPE_CHECKER = copy(Option.TYPE_CHECKER)
+        TYPE_CHECKER['human_size'] = check_human_size
+        TYPE_CHECKER['profiler'] = check_profiler
+    
+    parser = OptionParser(option_class=EventsOption, usage=usage, version="%prog 1.0")
+    parser.add_option('-s', '--size', default=Defaults.SIZE,
+        type='human_size', dest='SIZE', metavar='SIZE',
+        help='SIZE triple limit for bulk load (e.g. 10,000, 100m, 2b, 1.5t) [default=%default]')
+    parser.add_option('-l', '--load', default=Defaults.LOAD_WORKERS,
+        type='int', dest='LOAD_WORKERS', metavar='LOAD',
+        help='use LOAD number of loading processes [default=%default]')
+    parser.add_option('-q', '--query', default=Defaults.QUERY_WORKERS,
+        type='int', dest='QUERY_WORKERS', metavar='QUERY',
+        help='use QUERY number of querying processes [default=%default]')
+    parser.add_option('-n', '--namespace', default=Defaults.NS,
+        dest='NS', metavar='NAMESPACE',
+        help='use NAMESPACE for the store\'s URIs [default=%default]')
+    parser.add_option('-t', '--time', default=Defaults.QUERY_TIME,
+        type='int', dest='QUERY_TIME', metavar='MINUTES',
+        help='MINUTES time limit for query phase [default=%default]')
+    parser.add_option('--query-size', default=Defaults.QUERY_SIZE,
+        type='int', dest='QUERY_SIZE', metavar='QUERY_EVENTS',
+        help='Total QUERY_EVENTS to perform in each query phase [default=%default]')
+    parser.add_option('-e', '--event', default=Defaults.EVENT_SIZE,
+        type='int', dest='EVENT_SIZE', metavar='EVENT_SIZE',
+        help='each event will contain EVENT_SIZE number of triples '
+            '[default=%default]')
+    parser.add_option('-k', '--bulk', default=Defaults.BULK_EVENTS,
+        type='int', dest='BULK_EVENTS', metavar='BULK_EVENTS',
+        help='commit BULK_EVENTS number of events per commit during bulk load '
+            '(Phase 2) [default=%default]')
+    parser.add_option('-c', '--catalog', default=Defaults.CATALOG,
+        dest='CATALOG', metavar='CATALOG',
+        help='CATALOG name on server [default=%default]')
+    parser.add_option('-r', '--repository', default=Defaults.REPOSITORY,
+        dest='REPOSITORY', metavar='REPOSITORY',
+        help='REPOSITORY name in the CATALOG [default=%default]')
+    parser.add_option('-p', '--phase', default=Defaults.PHASE,
+        dest='PHASE', metavar='PHASE', type='int',
+        help='Run the test starting at phase PHASE [default=%default]')
+    parser.add_option('-o', '--open', default=Defaults.OPEN,
+        dest='OPEN', metavar='OPEN', action="store_true",
+        help='OPEN the repository instead of RENEWING it [default=RENEW]')
+    parser.add_option('-m', '--mixed', default=Defaults.MIXED,
+        dest='MIXED', metavar='MIXED', action="store_true",
+        help='Add MIXED workload phase after the normal run '
+            '(runs until a killall python) [default=do not run]')
+    parser.add_option('-b', '--debug', default=Defaults.DEBUG,
+        dest='DEBUG', metavar='DEBUG', action='store_true',
+        help='Sets debug mode (suspends processes on errors) '
+            '[default=non-debug]')
+    parser.add_option('-d', '--seed', default=Defaults.SEED,
+        dest='SEED', metavar='SEED', type=int,
+        help='An integer seed for the run [default=0 (random seed)]')
+    parser.add_option('-i', '--indexfull', default=Defaults.INDEXFULL,
+        dest='INDEXFULL', metavar='INDEXFULL', action="store_true",
+        help='Create the full set of indices [default='
+            'optimal indices]')
+    parser.add_option('-f', '--profile', default=Defaults.PROFILER,
+        type='profiler', dest='PROFILER', metavar='PROFILER',
+        help='PROFILER option for one connection per phase [default=%default]')
+    parser.add_option('-u', '--bulk-mode', default=Defaults.BULK_MODE,
+        dest='BULK_MODE', metavar='BULK_MODE', action="store_true",
+        help='Turn on bulk mode in the server during load phases [default='
+            'bulk mode off]')
+    parser.add_option('-x', '--reg-enc-id-prefix', default=Defaults.REG_ENC_ID,
+        dest='REG_ENC_ID', metavar='REG_ENC_ID', action="store_true",
+        help='Register encoded id prefixes [default=%default]')
+
+    options, args = parser.parse_args()
+    OPT = options
+    OPT.REG_PREFIX = OPT.NS[:-1] + '/'
+    del args
+    main()

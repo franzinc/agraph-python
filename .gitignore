@@ -1,3 +1,6 @@
+src3/.noseids
+
+*.bak
 *.pyc
 /DIST
 /TAGS
@@ -5,3 +8,5 @@ build.out
 !windows-support/curl/__init__.pyc
 certs.db/
 
+stress/events/phase*
+stress3/events/phase*

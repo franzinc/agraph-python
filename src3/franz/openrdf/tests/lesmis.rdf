@@ -1,0 +1,1597 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+       xmlns:rdfs = "http://www.w3.org/2000/01/rdf-schema#"
+	 xmlns:dc = "http://purl.org/dc/elements/1.1/"
+       xmlns:dcterms = "http://purl.org/dc/terms/"
+	 xmlns:char = "http://www.franz.com/lesmis#">
+
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character0">
+    <dc:title>Myriel</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character1">
+    <dc:title>Napoleon</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character2">
+    <dc:title>MlleBaptistine</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character3">
+    <dc:title>MmeMagloire</dc:title>
+</char:Character>
+
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character4">
+    <dc:title>CountessDeLo</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character5">
+    <dc:title>Geborand</dc:title>
+</char:Character>
+
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character6">
+    <dc:title>Champtercier</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character7">
+    <dc:title>Cravatte</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character8">
+    <dc:title>Count</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character9">
+    <dc:title>OldMan</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character10">
+    <dc:title>Labarre</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character11">
+    <dc:title>Valjean</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character12">
+    <dc:title>Marguerite</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character13">
+    <dc:title>MmeDeR</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character14">
+    <dc:title>Isabeau</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character15">
+    <dc:title>Gervais</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character16">
+    <dc:title>Tholomyes</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character17">
+    <dc:title>Listolier</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character18">
+    <dc:title>Fameuil</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character19">
+    <dc:title>Blacheville</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character20">
+    <dc:title>Favourite</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character21">
+    <dc:title>Dahlia</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character22">
+    <dc:title>Zephine</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <dc:title>Fantine</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character24">
+    <dc:title>MmeThenardier</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character25">
+    <dc:title>Thenardier</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character26">
+    <dc:title>Cosette</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character27">
+    <dc:title>Javert</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character28">
+    <dc:title>Fauchelevent</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character29">
+    <dc:title>Bamatabois</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character30">
+    <dc:title>Perpetue</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character31">
+    <dc:title>Simplice</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character32">
+    <dc:title>Scaufflaire</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character33">
+    <dc:title>Woman1</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character34">
+    <dc:title>Judge</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character35">
+    <dc:title>Champmathieu</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character36">
+    <dc:title>Brevet</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character37">
+    <dc:title>Chenildieu</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character38">
+    <dc:title>Cochepaille</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character39">
+    <dc:title>Pontmercy</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character40">
+    <dc:title>Boulatruelle</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character41">
+    <dc:title>Eponine</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character42">
+    <dc:title>Anzelma</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character43">
+    <dc:title>Woman2</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character44">
+    <dc:title>MotherInnocent</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character45">
+    <dc:title>Gribier</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character46">
+    <dc:title>Jondrette</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character47">
+    <dc:title>MmeBurgon</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character48">
+    <dc:title>Gavroche</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character49">
+    <dc:title>Gillenormand</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character50">
+    <dc:title>Magnon</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character51">
+    <dc:title>MlleGillenormand</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character52">
+    <dc:title>MmePontmercy</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character53">
+    <dc:title>MlleVaubois</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character54">
+    <dc:title>LtGillenormand</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <dc:title>Marius</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character56">
+    <dc:title>BaronessT</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character57">
+    <dc:title>Mabeuf</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character58">
+    <dc:title>Enjolras</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character59">
+    <dc:title>Combeferre</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character60">
+    <dc:title>Prouvaire</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character61">
+    <dc:title>Feuilly</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <dc:title>Courfeyrac</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <dc:title>Bahorel</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <dc:title>Bossuet</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <dc:title>Joly</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <dc:title>Grantaire</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character67">
+    <dc:title>MotherPlutarch</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character68">
+    <dc:title>Gueulemer</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <dc:title>Babet</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <dc:title>Claquesous</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <dc:title>Montparnasse</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character72">
+    <dc:title>Toussaint</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character73">
+    <dc:title>Child1</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character74">
+    <dc:title>Child2</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <dc:title>Brujon</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <dc:title>MmeHucheloup</dc:title>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character1">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character2">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>8</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character3">
+        <char:knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>10</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character3">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character2"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character4">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character5">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character6">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character7">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character8">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character9">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character11">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character10"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character11">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character3"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character11">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character2"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character11">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character0"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character12">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character13">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character14">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character15">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character17">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character18">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character18">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character17"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character19">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character19">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character17"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character19">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character18"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character20">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character20">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character17"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character20">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character18"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character20">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character19"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character21">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character21">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character17"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character21">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character18"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character21">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character19"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character21">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character20"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character22">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character22">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character17"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character22">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character18"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character22">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character19"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character22">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character20"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character22">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character21"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character17"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character18"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character19"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character20"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character21"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character22"/>
+    <rdfs:comment>4</rdfs:comment>
+
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character12"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character23">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>9</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character24">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character23"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character24">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>7</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character25">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>13</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character25">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character23"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character25">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>12</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character26">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character26">
+    <char:knows_well rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>31</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character26">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character26">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character27">
+    <char:knows_well rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>17</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character27">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character23"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character27">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character27">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character27">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character26"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character28">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>8</rdfs:comment>
+</char:Character>
+
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character28">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character29">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character23"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character29">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character29">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character30">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character23"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character31">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character30"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character31">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character31">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character23"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character31">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character32">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character33">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character33">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character34">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character34">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character29"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character35">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character35">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character34"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character35">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character29"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character36">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character34"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character36">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character35"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character36">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character36">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character29"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character37">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character34"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character37">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character35"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character37">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character36"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character37">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character37">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character29"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character38">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character34"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character38">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character35"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character38">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character36"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character38">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character37"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character38">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character38">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character29"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character39">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character40">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character41">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24">
+
+    </char:barely_knows><rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character41">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character42">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character42">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character42">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character43">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character43">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character26"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character43">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character44">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character28"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character44">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character45">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character28"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character47">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character46"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character48">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character47"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character48">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character48">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character48">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character49">
+
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character26"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character49">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character50">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character49"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character50">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character51">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character49"/>
+    <rdfs:comment>9</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character51">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character26"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character51">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character52">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character51"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character52">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character39"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character53">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character51"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character54">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character51"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character54">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character49"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character54">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character26"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character51"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character49"/>
+    <rdfs:comment>12</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character39"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character54"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:knows_well rdf:resource="http://www.franz.com/lesmis#character26"/>
+    <rdfs:comment>21</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:knows_well rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>19</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character16"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character55">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character56">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character49"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character56">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character57">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character57">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character57">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character58">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>7</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character58">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>7</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character58">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character58">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character58">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character59">
+    <char:knows_well rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>15</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character59">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character59">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character59">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character60">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character60">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character60">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character59"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character61">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character61">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character61">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character60"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character61">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character59"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character61">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character61">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>9</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:knows_well rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>17</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character59"/>
+    <rdfs:comment>13</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>7</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character61"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character62">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character60"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character59"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character62"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>4</rdfs:comment>
+
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character61"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character60"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character63">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character62"/>
+    <rdfs:comment>12</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character63"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>10</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character61"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character60"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character59"/>
+    <rdfs:comment>9</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character64">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character63"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:knows rdf:resource="http://www.franz.com/lesmis#character64"/>
+    <rdfs:comment>7</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character62"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character61"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character60"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character59"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character65">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character55"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character64"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character59"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character62"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character65"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character63"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character61"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character66">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character60"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character67">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character57"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character68">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>5</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character68">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character68">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character68">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character68">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character68">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character68"/>
+    <rdfs:comment>6</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character69">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character69"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character68"/>
+    <rdfs:comment>4</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character24"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character70">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character69"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character68"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character70"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character71">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character72">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character26"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character72">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character27"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character72">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character11"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character73">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character74">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>2</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character74">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character73"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character69"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character68"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character25"/>
+    <rdfs:comment>3</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character41"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character70"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character75">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character71"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character64"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character65"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character66"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character63"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character62"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character48"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+<char:Character rdf:about="http://www.franz.com/lesmis#character76">
+    <char:barely_knows rdf:resource="http://www.franz.com/lesmis#character58"/>
+    <rdfs:comment>1</rdfs:comment>
+</char:Character>
+
+</rdf:RDF>
+

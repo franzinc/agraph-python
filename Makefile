@@ -22,9 +22,26 @@ ifdef DESTDIR
 	cp -p DIST/$(TARNAME) $(DESTDIR)
 endif
 
-prepush: FORCE
+checkPort: FORCE
+ifndef AGRAPH_PORT
+	echo "AGRAPH_PORT not set"
+	exit 1
+endif
 	@echo Using port $(AGRAPH_PORT)
-	cd src2; nosetests
+
+prepush: prepush2 prepush3
+
+prepush2: checkPort
+	cd src2; python `which nosetests`
+
+prepush3: checkPort
+	cd src3; python3 -m nose
+
+events: checkPort
+	cd stress/events ; python ./events -s 10m -l 8 -q 8
+
+events3: checkPort
+	cd stress3/events ; python3 ./events -s 10m -l 8 -q 8
 
 tags: FORCE
 	etags `find . -name '*.py'`
