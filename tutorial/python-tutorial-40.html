@@ -1,7 +1,7 @@
 <html>
 <head>
       <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" >
-<title>Python API Tutorial for AllegroGraph 4.2</title>
+<title>AllegroGraph Python Sesame API Tutorial</title>
 
 <style type="text/css">
 
@@ -11,8 +11,8 @@
 </style>
 </head>
 <body>
-<h1>Python Sesame API Tutorial for AllegroGraph 4.2</h1>
-<p>This is an introduction to the Python client API to AllegroGraph RDFStore&#8482; version 4.2 from <a href="http://agraph.franz.com/allegrograph/">Franz Inc.</a> </p>
+<h1>AllegroGraph Python Sesame API Tutorial</h1>
+<p>This is an introduction to the Python client API to AllegroGraph RDFStore&#8482; version 4.x from <a href="http://agraph.franz.com/allegrograph/">Franz Inc.</a> </p>
 <p>
 The Python Sesame API offers convenient and efficient
 access to an AllegroGraph server from a Python-based application.  This API provides methods for
@@ -23,8 +23,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <tr>
     <td width="249"><ul>
       <li><a href="#Overview">Overview</a></li>
-<!--      <li><a href="#PrerequisitesWindows">Prerequisites (Windows)</a> </li>
--->      <li><a href="#PrerequisitesLinux">Prerequisites (Linux)</a></li>
+      <li><a href="#PrerequisitesLinux">Prerequisites (Linux)</a></li>
       <li><a href="#Terminology">Terminology</a></li>
 	  <li><a href="#Creating Users with WebView">Creating Users with WebView</a></li>
       <li><a href="#Running Python">Running Python Tutorial Examples</a></li>
@@ -59,70 +58,13 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <p>The Python client tutorial rests on a simple architecture involving AllegroGraph, disk-based data files, Python, and a file of Python examples called tutorial_examples_40.py.</p>
 <table width="944" border="0">
   <tr>
-    <td width="309"><p>AllegroGraph 4.1 Server contains the Python API, which is part of the AllegroGraph installation. </p>
+    <td width="309"><p>AllegroGraph 4.x Server contains the Python API, which is part of the AllegroGraph installation. </p>
     <p>Python communicates with AllegroGraph through HTTP port 8080 in this example. Python and AllegroGraph may be installed on the same computer, but in practice one server is shared by multiple clients. </p>
     <p>Load tutorial_examples_40.py into Python to view the tutorial examples. </p></td>
     <td width="625"><img src="allegrographdiagram.jpg" width="617" height="412"></td>
   </tr>
 </table>
 <p>Each lesson in <strong>tutorial_examples_40.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 21 (or more). The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
-<!-- Commented out until new procedures become clear. 
-<h2 id="PrerequisitesLinux">Prerequisites (Windows) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<table border="1">
-    <tr>
-        <td width="867">The following procedure describes the installation of both the paid and free versions of AllegroGraph Server. Note that you cannot install both versions on the same computer. Follow the instructions that are appropriate to your version. </td>
-    </tr>
-</table>
-
-<p>The tutorial examples can be run on a 32-bit Windows XP computer, running AllegroGraph and Python on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have  been installed and configured using this procedure:</p>
-<p>&nbsp;</p>
-<ol>
-  <li>Download an AllegroGraph 4.0 installation file (agraph-4.0-windows.exe). The free edition is available <a href="http://www.franz.com/downloads/clp/ag_survey">here.</a> For the licensed edition please contact <a href="mailto:support@franz.com">Franz customer support</a> for a download link and authorizing key. </li>
-  <li>Run the agraph-4.0-windows.exe to install AllegroGraph. The default installation directory is C:\Program Files\AllegroGraphFJE32 for the free edition, or c:\Program Files\AllegroGraphJEE32 for the licensed edition.</li>
-  <li>Create a scratch directory for AllegroGraph to use for disk-based data storage. In this tutorial the directory is c:\tmp\scratch. If you elect to use a different location, the configuration and example files will have to be modified in the same way.</li>
-  <li>
-  Edit the <strong>agraph.cfg</strong> configuration file. You'll find it in the AllegroGraph installation directory. Set the following parameters to the indicated values. 
-      <pre>:new-http-port 8080
-:new-http-catalog ("c:/tmp/scratch")
-:client-prolog t </pre>
-  If you use a different port number, you will need to change the value of the AG_PORT variable at the top of tutorial_examples_40.py.
- It defaults to 8080. <br>
- <br>
- NOTE: On Windows Vista and Windows 7 systems, you must edit this file with elevated privileges. To do this, either start a Command Prompt with&nbsp; the context menu item &quot;Run as Administrator&quot; then edit the file using a text editor launched in that shell, or run your favorite editor with &quot;Run as Administrator&quot;. If you do not edit with elevated privileges, the file will look like it was saved successfully but the changes will not be seen by the service when it is started. This produces a &quot;cannot connect to server&quot; error message. 
-  <li>To update AllegroGraph Server with recent patches, open a connection to the Internet. Run <strong>update.exe</strong>, which you will find the AllegroGraph installation directory. This automatically downloads and installs all current patches. </li>
-  <li>On a Windows computer, the AllegroGraph Server runs as a Windows service. You have to restart this service to load the updates. Beginning at the Windows <strong>Start </strong>button, navigate this path: <br>
-    <br>
-  Start &gt; Settings &gt; Control Panel &gt; Administrative Tools &gt; Services. <br>
-  <br>
-  Locate the AllegroGraph Server service and select it. Click the <strong>Restart</strong> link to restart the service. </li>
-  <li>This example used ActivePython 2.5 from ActiveState.com. Download and install the Windows installation file, 
-
- 
-  <a href="http://downloads.activestate.com/ActivePython/windows/2.5/ActivePython-2.5.2.2-win32-x86.msi">ActivePython-2.5.2.2-win32-x86.msi.</a> The default installation direction is C:\Python25.</li>
-  <li>It is necessary to augment Python 2.5 with the CJSON package from python.cs.hu. Download and run the installation file, 
-
- 
-  <a href="http://python.cx.hu/python-cjson/python-cjson-1.0.3x6.win32-py2.5.exe">python-cjson-1.0.3x6.win32-py2.5.exe.</a> It will add files to the default Python directory structure.</li>
-  <li>It is also necessary to augment Python 2.5 with the Pycurl package. Download and run the installation file, 
-
- 
-  <a href="http://pycurl.sourceforge.net/download/pycurl-ssl-7.18.2.win32-py2.5.exe">pycurl-ssl-7.18.2.win32-py2.5.exe.</a> It will add a small directory to your default Python directory structure. </li>
-  <li>
-    Link the Python software to the AllegroGraph Python API by setting a PYTHONPATH environment variable. For the free edition of AllegroGraph, the path value is:
-      <pre>PYTHONPATH=C:\Program Files\AllegroGraphFJE40\python</pre>
-For the licensed edition of AllegroGraph, the path value is:
-      <pre>PYTHONPATH=C:\Program Files\AllegroGraphJEE40\python</pre>
-In Windows XP, you can set an environment variable by 
-
-
- right-clicking on the <strong>My Computer</strong> icon, then navigate to Properties &gt; Advanced tab &gt; Environment Variables. Create a new variable showing the path to the AllegroGraph python subdirectory.<br>
- <br>
- <img src="environmentvariable.jpg" width="423" height="205"> <br>
-  </li>
-  <li>Start the ActivePython 2.5 PythonWin editor. Navigate this path:  <strong>Start</strong> button &gt; Programs &gt; ActiveState ActivePython 2.5 &gt;  PythonWin Editor. </li>
-  <li>In the PythonWin editor, open the File menu, select Run, and browse to the location of the tutorial_examples_40.py file. It will be in the AllegroGraph\python subdirectory. Run this file. This loads and runs the Python tutorial examples.</li>
-</ol>
--->
 <h2 id="PrerequisitesLinux">Prerequisites (Linux) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using the procedure posted on <a href="http://www.franz.com/agraph/support/documentation/4.0/server-installation.html">this webpage</a>. </p>
 <h2 id="Terminology">Terminology&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
