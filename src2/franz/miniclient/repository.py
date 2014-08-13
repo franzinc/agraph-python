@@ -655,6 +655,10 @@ class Repository(Service):
     def deleteDuplicates(self, mode):
         nullRequest(self, "DELETE", "/statements/duplicates?" + urlenc(mode=mode))
 
+    def getDuplicateStatements(self, mode):
+        accept = "application/json"
+        return jsonRequest(self, "GET", "/statements/duplicates?" + urlenc(mode=mode), accept=accept)
+
     def callStoredProc(self, function, module, *args):
         encoded = encode(serialize(args))
         return deserialize(decode(jsonRequest(self, "POST", "/custom/"+function,

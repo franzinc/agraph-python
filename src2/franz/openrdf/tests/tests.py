@@ -1946,10 +1946,14 @@ def test_delete_duplicates():
 
         assert conn.size() == 8
 
+        assert conn.getDuplicateStatements("spog").rowCount() == 2
+
         conn.deleteDuplicates("spog")
         conn.commit()
 
         assert conn.size() == 6
+
+        assert conn.getDuplicateStatements("spo").rowCount() == 4
 
         conn.deleteDuplicates("spo")
         conn.commit()

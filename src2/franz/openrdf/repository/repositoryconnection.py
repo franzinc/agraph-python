@@ -1008,6 +1008,19 @@ class RepositoryConnection(object):
         """
         self._get_mini_repository().deleteDuplicates(mode)
 
+    def getDuplicateStatements(self, mode):
+        """
+        Return all duplicates in the store. Must commit.
+        
+        mode - "spog" or "spo", specifies how duplicates are determined
+
+        For details see:
+
+    http://www.franz.com/agraph/support/documentation/current/http-protocol.html#delete-statements-duplicates
+        """
+        stringTuples = self._get_mini_repository().getDuplicateStatements(mode)
+        return RepositoryResult(stringTuples)
+
     def callStoredProc(self, function, module, *args):
         return self._get_mini_repository().callStoredProc(function, module,
             *args)
