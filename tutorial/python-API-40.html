@@ -266,6 +266,15 @@ implementation)! </p>
     <em>namespace/localname </em>pair.</td>
   </tr>
   <tr>
+    <td valign="top">deleteDuplicateStatements(mode)</td>
+      <td>Deletes duplicate triples from the store. <i>mode</i> can be
+      "spo" (triples are duplicates if they have the same subject,
+      predicate, and object, regardless of the graph) or "spog"
+      (triples are duplicates if they have the same subject,
+      predicate, object, and graph). See also getDuplicateStatements
+      below.</td>
+  </tr>
+  <tr>
     <td valign="top">export(self, handler, contexts=ALL_CONTEXTS)</td>
       <td>Exports all triples in the repository to an external file.&nbsp; <em>handler</em> is either an NTriplesWriter() object or an RDFXMLWriter() object.&nbsp; The export may be optionally confined to a list of <em>contexts</em> (default is ALL_CONTEXTS). Each context is the URI of a subgraph. </td>
   </tr>
@@ -281,6 +290,15 @@ implementation)! </p>
     <td valign="top">getContextIDs(self)</td>
       <td>Return a list of context URIs, one for each subgraph referenced by a quad in 
     the triple store. Omits the default context because its ID would be null.</td>
+  </tr>
+  <tr>
+    <td valign="top">getDuplicateStatements(mode)</td>
+      <td>Gets duplicate triples in the store. <i>mode</i> can be
+      "spo" (triples are duplicates if they have the same subject,
+      predicate, and object, regardless of the graph) or "spog"
+      (triples are duplicates if they have the same subject,
+      predicate, object, and graph). See also deleteDuplicateStatements
+      above.</td>
   </tr>
   <tr>
     <td valign="top">getNamespace(self, prefix)</td>
