@@ -12,7 +12,7 @@
 </head>
 <body>
 <h1>AllegroGraph Python Sesame API Tutorial</h1>
-<p>This is an introduction to the Python client API to AllegroGraph RDFStore&#8482; version 4.x from <a href="http://agraph.franz.com/allegrograph/">Franz Inc.</a> </p>
+<p>This is an introduction to the Python client API to the AllegroGraph RDFStore&#8482; from <a href="http://agraph.franz.com/allegrograph/">Franz Inc.</a> </p>
 <p>
 The Python Sesame API offers convenient and efficient
 access to an AllegroGraph server from a Python-based application.  This API provides methods for
@@ -55,18 +55,18 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 </table>
 <p>&nbsp;</p>
 <h2 id="Overview">Overview&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The Python client tutorial rests on a simple architecture involving AllegroGraph, disk-based data files, Python, and a file of Python examples called tutorial_examples_40.py.</p>
+<p>The Python client tutorial rests on a simple architecture involving AllegroGraph, disk-based data files, Python, and a file of Python examples called tutorial_examples.py.</p>
 <table width="944" border="0">
   <tr>
-    <td width="309"><p>AllegroGraph 4.x Server contains the Python API, which is part of the AllegroGraph installation. </p>
+    <td width="309"><p>AllegroGraph Server contains the Python API, which is part of the AllegroGraph installation. </p>
     <p>Python communicates with AllegroGraph through HTTP port 8080 in this example. Python and AllegroGraph may be installed on the same computer, but in practice one server is shared by multiple clients. </p>
-    <p>Load tutorial_examples_40.py into Python to view the tutorial examples. </p></td>
+    <p>Load tutorial_examples.py into Python to view the tutorial examples. </p></td>
     <td width="625"><img src="allegrographdiagram.jpg" width="617" height="412"></td>
   </tr>
 </table>
-<p>Each lesson in <strong>tutorial_examples_40.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 21 (or more). The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
+<p>Each lesson in <strong>tutorial_examples.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 21 (or more). The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
 <h2 id="PrerequisitesLinux">Prerequisites (Linux) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using the procedure posted on <a href="http://www.franz.com/agraph/support/documentation/4.0/server-installation.html">this webpage</a>. </p>
+<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using the procedure posted on <a href="http://www.franz.com/agraph/support/documentation/current/server-installation.html">this webpage</a>. </p>
 <h2 id="Terminology">Terminology&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>We need to clarify some terminology before proceeding. </p>
 <ul>
@@ -98,7 +98,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <p>Each connection to an AllegroGraph server runs under the credentials of a registered AllegroGraph user account. </p>
   <h3>Initial Superuser Account </h3>
   <p>The installation instructions for AllegroGraph advise you to create a default <strong>superuser</strong> called &quot;test&quot;, with password &quot;xyzzy&quot;. This is the user (and password) expected by the tutorial examples. If you created this account as directed, you can proceed to the <a href="#Creating a Repository">next section</a> and return to this topic at a later time when you need to create non-superuser accounts. </p>
-  <p>If you created a different superuser account you'll have to edit the <strong>tutorial_examples_40.py</strong> file before proceeding. Modify these entries near the top of the file:</p>
+  <p>If you created a different superuser account you'll have to edit the <strong>tutorial_examples.py</strong> file before proceeding. Modify these entries near the top of the file:</p>
   <pre class="input">AG_USER = 'test'<br>AG_PASSWORD = 'xyzzy' </pre>
   
   <p>Otherwise you'll get an authentication failure when you attempt to connect to the server. </p>
@@ -132,18 +132,18 @@ creating, querying and maintaining RDF data, and for managing the stored triples
     <p>To repeat, the &quot;test&quot; superuser is all you need to run all of the tutorial examples. This section is for the day when you want to issue more modest credentials to some of your operators. </p>
     <h2 id="Running Python">Running Python Tutorial Examples &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
     <p>The AllegroGraph Python Tutorial examples are in the<strong> tutorial </strong>subdirectory where you unpacked the Python client tar.gz file. Navigate to that directory and follow one of these examples:</p>
-    <pre>     $ python tutorial_examples_40.py            runs all tests.
-     $ python tutorial_examples_40.py all        runs all tests.
-     $ python tutorial_examples_40.py 10         runs example10()
-     $ python tutorial_examples_40.py 1 5 22     runs examples 1, 5, and 22</pre>
+    <pre>     $ python tutorial_examples.py            runs all tests.
+     $ python tutorial_examples.py all        runs all tests.
+     $ python tutorial_examples.py 10         runs example10()
+     $ python tutorial_examples.py 1 5 22     runs examples 1, 5, and 22</pre>
 
     <h2 id="Creating a Repository">Creating a Repository and Triple Indices (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-    <p>The first task is to attach to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples_40.py</strong>. </p>
+    <p>The first task is to attach to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples.py</strong>. </p>
 <p>In <strong>example1()</strong> we build a chain of Python objects,  ending in a&quot;connection&quot; object that lets us manipulate triples in a specific repository. The overall process of generating the connection object follows 
 this diagram:</p>
   <table width="809" border="0">
   <tr>
-    <td width="378"><p>The example1() function opens (or creates) a repository by building a series of client-side objects, culminating in a &quot;connection&quot; object. The connection object will be passed to other functions in tutorial_examples_40.py. </p>
+    <td width="378"><p>The example1() function opens (or creates) a repository by building a series of client-side objects, culminating in a &quot;connection&quot; object. The connection object will be passed to other functions in tutorial_examples.py. </p>
       <p>The connection object contains the methods that let us manipulate triples in a specific repository. </p></td>
     <td width="421"><img src="createconnectionobject.jpg" width="448" height="212"></td>
   </tr>
@@ -174,7 +174,7 @@ Available catalogs ['/', 'scratch']</pre>
   <li><strong>Repository.ACCESS</strong> opens an existing repository, or creates a new one if the repository is not found.</li>
   <li><strong>Repository.CREATE</strong> creates a new repository, or throws an exception if one by that name already exists.</li>
 </ul>
-<p>Repository.RENEW is the default setting for the example1() function of tutorial_examples_40.py. It can be overridden by calling 
+<p>Repository.RENEW is the default setting for the example1() function of tutorial_examples.py. It can be overridden by calling 
   example1() with the appropriate argument, such as example1(Repository.OPEN).</p>
 <pre class="input">
     myRepository = catalog.getRepository(AG_REPOSITORY, accessMode)
@@ -220,7 +220,7 @@ Available catalogs ['/', 'scratch']</pre>
 <pre class="input">    print &quot;Adding one graph index back in...&quot;<br>    conn.addIndex(&quot;gspoi&quot;)<br>    indices = conn.listIndices()<br>    print &quot;Current triple indices: %s&quot; % (indices)
     return conn</pre>
 <pre class="output">Adding one graph index back in...<br>Current triple indices: ['i', 'gspoi', 'ospgi', 'posgi', 'spogi']</pre>
-<p>The last line (return conn) is the pointer to the new connection object. This is the value returned by example1() when it is called by other functions in tutorial_examples_40.py. The other functions then use the connection object to access the repository. </p>
+<p>The last line (return conn) is the pointer to the new connection object. This is the value returned by example1() when it is called by other functions in tutorial_examples.py. The other functions then use the connection object to access the repository. </p>
 <h2 id="Asserting and Retracting Triples">Asserting and Retracting Triples (example2()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 
@@ -337,7 +337,7 @@ http://example.org/people/bob http://example.org/ontology/name "Bob"
 The getStatements() method of the connection object provides a simple way to perform unsophisticated queries. This method lets you enter a mix of required values and wildcards, and retrieve all matching triples. (If you need to perform sophisticated tests and comparisons you should use the SPARQL query instead.)</p>
 <p>
 Below, we illustrate two kinds of 'getStatement' calls.  The first mimics
-traditional Sesame syntax, and returns a Statement object at each iteration. This is the <strong>example4()</strong> function of tutorial_examples_40.py. It begins by calling example2() to create a connection object and populate the <strong>pythontutorial</strong> repository with four triples describing Bob and Alice. We're going to search for triples that mention Alice, so we have to create an &quot;Alice&quot; URI  to use in the search pattern: </p>
+traditional Sesame syntax, and returns a Statement object at each iteration. This is the <strong>example4()</strong> function of tutorial_examples.py. It begins by calling example2() to create a connection object and populate the <strong>pythontutorial</strong> repository with four triples describing Bob and Alice. We're going to search for triples that mention Alice, so we have to create an &quot;Alice&quot; URI  to use in the search pattern: </p>
 <pre class="input">def example4():<br>    conn = example2()<br>    alice = conn.createURI(&quot;http://example.org/people/alice&quot;)
 </pre>
 <p> Now we search for triples with Alice's URI in the subject position.  The &quot;None&quot; values are wildcards for the predicate and object positions of the triple. </p>
@@ -904,7 +904,7 @@ The Python Sesame API client can load triples in either RDF/XML format or  NTrip
 an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both methods work, but the best practice is to use addFile(). </p>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>
-    <td width="928"><strong>Note:</strong> If you get a &quot;file not found&quot; error while running this example, it means that Python is looking in the wrong directory for the data files to load. The usual explanation is that you have moved the tutorial_examples_40.py file to an unexpected directory. You can clear the issue by putting the data files in the same directory as tutorial_examples_40.py, or by setting the Python current working directory to the location of the data files using os.setcwd(). </td>
+    <td width="928"><strong>Note:</strong> If you get a &quot;file not found&quot; error while running this example, it means that Python is looking in the wrong directory for the data files to load. The usual explanation is that you have moved the tutorial_examples.py file to an unexpected directory. You can clear the issue by putting the data files in the same directory as tutorial_examples.py, or by setting the Python current working directory to the location of the data files using os.setcwd(). </td>
   </tr>
 </table>
 <p>The RDF/XML file contains a short list of v-cards (virtual business cards), like this one:</p>
@@ -932,7 +932,7 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
   argument, it returns the total number of triples in the repository.  Below, it returns the number
   '16' for the 'context' context argument, and the number '28' for the null context
   (None) argument. </p>
-<p>The example6() function of tutorial_examples_40.py creates a <a href="#Transaction Control">dedicated session</a> connection to AllegroGraph, using methods you have seen before, plus the Connection object's <strong>openSession()</strong> method: </p>
+<p>The example6() function of tutorial_examples.py creates a <a href="#Transaction Control">dedicated session</a> connection to AllegroGraph, using methods you have seen before, plus the Connection object's <strong>openSession()</strong> method: </p>
 <pre class="input">def example6(close=True):<br>    print &quot;Starting example6().&quot;<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)<br>    catalog = server.openCatalog(AG_CATALOG)  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.clear()<br>    conn.openSession()</pre>
 <p>The dedicated session is not immediately pertinent to the examples in this section, but will become important in later examples that reuse this connection to demonstrate <a href="#Prolog Rule Queries">Prolog Rules</a> and <a href="#Social Network Analysis">Social Network Analysis</a>. </p>
 <p>The variables path1 and path2 are bound to the RDF/XML and NTriples files, respectively. </p>
@@ -948,7 +948,7 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
            and   %i kennedy triples in context '%s'.&quot; % <br>           (conn.size(context), context, conn.size('null'), 'null')<br>    return conn</pre>
 <p>The output of this report was:</p>
 <pre class="output">After loading, repository contains 16 vcard triples in context 'http://example.org#vcards'<br>    and   1214 kennedy triples in context 'null'. </pre>
-<p>The SPARQL query below is found in example7() of tutorial_examples_40.py. It borrows the same triples we loaded in example6(), above, and runs two unconstrained retrievals. The first uses getStatement, and prints out the subject URI and context of each triple. </p>
+<p>The SPARQL query below is found in example7() of tutorial_examples.py. It borrows the same triples we loaded in example6(), above, and runs two unconstrained retrievals. The first uses getStatement, and prints out the subject URI and context of each triple. </p>
 <pre class="input">def example7():    <br>    conn = example6()<br>    print &quot;Match all and print subjects and contexts&quot;<br>    result = conn.getStatements(None, None, None, None, limit=25)<br>    for row in result: print row.getSubject(), row.getContext()</pre>
 <p>This loop prints out a mix of triples from the null context and from the #vcards context. We set a limit of 25 triples because the Kennedy dataset contains over a thousand triples. </p>
 <p>The following loop, however, does not produce the same results. This is a SPARQL query that should match all available triples, printing out the subject and context of each triple. We limited this query by using the DISTINCT keyword. Otherwise there would be many duplicate results. </p>
@@ -1617,7 +1617,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 </ul>
 <p>(The Gruff illustrations were made from a parallel repository in which the resources were altered to display the character's name in the graph node rather than his URI. That file is called<strong> lemisNames.rdf</strong>.) </p>
 <h3 id="Setting Up the Example">Setting Up the Example</h3>
-<p>The SNA examples are in function <strong>example21() </strong>in <strong>tutorial_examples_40.py</strong>. This exercise begins by creating a <a href="#Transaction Control">dedicated session</a> for the SNA Prolog queries to operation within. These are the same initializing steps we have used in previous examples, plus <strong>conn.openSession()</strong> to create a dedicated connection. </p>
+<p>The SNA examples are in function <strong>example21() </strong>in <strong>tutorial_examples.py</strong>. This exercise begins by creating a <a href="#Transaction Control">dedicated session</a> for the SNA Prolog queries to operation within. These are the same initializing steps we have used in previous examples, plus <strong>conn.openSession()</strong> to create a dedicated connection. </p>
 <pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)<br>    catalog = server.openCatalog(AG_CATALOG)  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() # SNA requires dedicated session.</pre>
 <p>The next step is to load the python-lesmis.rdf file.</p>
 <pre class="input">    path1 = "./python-lesmis.rdf"
