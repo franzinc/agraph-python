@@ -38,11 +38,11 @@ from contextlib import contextmanager
 # RepositoryConnection is the main interface for updating data in and performing
 # queries on a repository.
 #
-# See http://www.franz.com/agraph/support/documentation/v4/python-tutorial/python-API-40.html
-# or your local installation's tutorial/python-API-40.html for the API documentation.
+# See http://www.franz.com/agraph/support/documentation/v5/python-tutorial/python-API.html
+# or your local installation's tutorial/python-API.html for the API documentation.
 #
-# See http://www.franz.com/agraph/support/documentation/v4/python-tutorial/python-tutorial-40.html
-# or your local installation's tutorial/python-tutorial-40.html for the tutorial.
+# See http://www.franz.com/agraph/support/documentation/v5/python-tutorial/python-tutorial.html
+# or your local installation's tutorial/python-tutorial.html for the tutorial.
 
 class RepositoryConnection(object):
     def __init__(self, repository):
@@ -568,7 +568,7 @@ class RepositoryConnection(object):
 
         Please see documenation for argument values and meanings:
 
-        http://www.franz.com/agraph/support/documentation/v4/triple-index.html#optimize
+        http://www.franz.com/agraph/support/documentation/v5/triple-index.html#optimize
         """
         return self._get_mini_repository().optimizeIndices(level, wait);
 
@@ -784,7 +784,7 @@ class RepositoryConnection(object):
         are supported.
         innerChars and borderChars can be lists. tokenizer is a string.
 
-        See  http://www.franz.com/agraph/support/documentation/v4/http-protocol.html#put-freetext-index
+        See  http://www.franz.com/agraph/support/documentation/v5/http-protocol.html#put-freetext-index
         """
         if predicates: predicates = map(uris.asURIString, predicates)
         if isinstance(indexLiterals, list): indexLiterals = map(uris.asURIString, indexLiterals)
@@ -947,7 +947,7 @@ class RepositoryConnection(object):
         """
         Registers a single encoded prefix.
 
-        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
         """
         return self._get_mini_repository().registerEncodedIdPrefix(prefix, format)
 
@@ -958,7 +958,7 @@ class RepositoryConnection(object):
         at index 0 and the format at index 1 will do (e.g. a list of tuples).
         Using PrefixFormat instances also works well.
 
-        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
         """
         return self._get_mini_repository().registerEncodedIdPrefixes(registrations)
 
@@ -966,7 +966,7 @@ class RepositoryConnection(object):
         """
         Lists all encoded id prefixes.
 
-        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
         """
         regs = []
 
@@ -980,7 +980,7 @@ class RepositoryConnection(object):
         """
         Unregisters the specified encoded id prefix.
 
-        See: http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
         """
         return self._get_mini_repository().unregisterEncodedIdPrefix(prefix)
 
@@ -992,7 +992,7 @@ class RepositoryConnection(object):
 
         See notes on next-encoded-upi-for-prefix in:
         
-        http://franz.com/agraph/support/documentation/v4/encoded-ids.html
+        http://franz.com/agraph/support/documentation/v5/encoded-ids.html
         """
         return self._get_mini_repository().allocateEncodedIds(prefix, amount)
 

@@ -388,7 +388,7 @@ class Repository(Service):
         "innerChars" and "borderChars" can be lists. "tokenizer" is
         a string. See documentation:
 
-        http://www.franz.com/agraph/support/documentation/v4/http-protocol.html#put-freetext-index"""
+        http://www.franz.com/agraph/support/documentation/v5/http-protocol.html#put-freetext-index"""
         # Not passing these at all causes the defaults to be used. So
         # when they are given, they should be passed with an empty
         # value.
