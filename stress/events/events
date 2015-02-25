@@ -113,7 +113,7 @@ class Defaults:
     # Turn on bulk-mode on the server
     BULK_MODE = False
     
-    # Turn on bulk-mode on the server
+    # Register encoded id prefixes
     REG_ENC_ID = False
     
 
