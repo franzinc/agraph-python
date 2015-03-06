@@ -137,7 +137,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
      $ python tutorial_examples.py 10         runs example10()
      $ python tutorial_examples.py 1 5 22     runs examples 1, 5, and 22</pre>
 
-    <h2 id="Creating a Repository">Creating a Repository and Triple Indices (example1()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+    <h2 id="Creating a Repository">Creating a Repository and Triple Indices (example1) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
     <p>The first task is to attach to our AllegroGraph Server and open a repository. This task is implemented in<strong> example1()</strong> from<strong> tutorial_examples.py</strong>. </p>
 <p>In <strong>example1()</strong> we build a chain of Python objects,  ending in a&quot;connection&quot; object that lets us manipulate triples in a specific repository. The overall process of generating the connection object follows 
 this diagram:</p>
@@ -221,7 +221,7 @@ Available catalogs ['/', 'scratch']</pre>
     return conn</pre>
 <pre class="output">Adding one graph index back in...<br>Current triple indices: ['i', 'gspoi', 'ospgi', 'posgi', 'spogi']</pre>
 <p>The last line (return conn) is the pointer to the new connection object. This is the value returned by example1() when it is called by other functions in tutorial_examples.py. The other functions then use the connection object to access the repository. </p>
-<h2 id="Asserting and Retracting Triples">Asserting and Retracting Triples (example2()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Asserting and Retracting Triples">Asserting and Retracting Triples (example2) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 
 
@@ -297,7 +297,7 @@ Triple count:  4
 Triple count:  3
 &lt;franz.openrdf.repository.repositoryconnection.RepositoryConnection object at 0x01466830&gt;</pre>
  
- <h2 id="A SPARQL Query">A SPARQL Query (example3()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+ <h2 id="A SPARQL Query">A SPARQL Query (example3) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>SPARQL stands for  the &quot;<a href="http://www.w3.org/TR/rdf-sparql-query/">SPARQL Protocol and RDF Query Language</a>,&quot; a recommendation of the <a href="http://www.w3.org/">World Wide Web Consortium (W3C)</a>. SPARQL is a query language for retrieving RDF triples. </p>
  <p>Our next example illustrates how to evaluate a SPARQL query. This is the simplest query, the one that returns all triples. Note that example3() continues with the four triples created in example2(). </p>
  <pre class="input">def example3():    
@@ -331,7 +331,7 @@ http://example.org/people/bob http://example.org/ontology/name "Bob"
 </pre>
 <p>The Connection class is designed to be created for the duration of a sequence of updates and queries, and then closed. In practice, many AllegroGraph applications keep a connection open indefinitely. However, best practice dictates that the connection should be closed, as illustrated below. The same hygiene applies to the iterators that generate binding sets.</p>
 <pre class="input">        finally:<br>            result.close();<br>    finally:<br>        conn.close();<br>        myRepository = conn.repository<br>        myRepository.shutDown()</pre>
-<h2 id="Statement Matching">Statement Matching (example4()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Statement Matching">Statement Matching (example4) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 
 <p>
 The getStatements() method of the connection object provides a simple way to perform unsophisticated queries. This method lets you enter a mix of required values and wildcards, and retrieve all matching triples. (If you need to perform sophisticated tests and comparisons you should use the SPARQL query instead.)</p>
@@ -353,7 +353,7 @@ traditional Sesame syntax, and returns a Statement object at each iteration. Thi
 <p>At this point it is good form to close the respositoryResponse object because they occupy memory and are rarely reused in most programs. </p>
 <pre class="input">	statements.close()</pre>
 
-<h2 id="Literal Values">Literal Values (example5())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Literal Values">Literal Values (example5)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The next example, <strong>example5()</strong>, illustrates some variations on what we have seen so far.  The example creates and asserts <a href="http://www.w3.org/TR/rdf-concepts/#section-Graph-Literal">typed and plain literal values</a>, including  language-specific plain literals, and then conducts searches for them in three ways:</p>
 <ul>
   <li>getStatements() search, which is an efficient way to match a single triple pattern. </li>
@@ -898,7 +898,7 @@ Now:<span class="output">&quot;1984-12-06T08:00:00Z&quot;</span></pre>
   </tr>
 </table>
 <p>Note that we searched for &quot;1984-12-06T09:00:00+01:00&quot; but found &quot;1984-12-06T08:00:00Z&quot;. It is the same moment in time. </p>
-<h2 id="Importing Triples">Importing Triples (example6() and example7()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Importing Triples">Importing Triples (example6 and example7) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 The Python Sesame API client can load triples in either RDF/XML format or  NTriples format.  The example below calls the connection object's <strong>add()</strong> method to load 
 an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both methods work, but the best practice is to use addFile(). </p>
@@ -954,7 +954,7 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
 <p>The following loop, however, does not produce the same results. This is a SPARQL query that should match all available triples, printing out the subject and context of each triple. We limited this query by using the DISTINCT keyword. Otherwise there would be many duplicate results. </p>
 <pre class="input">    print &quot;\nSame thing with SPARQL query (can't retrieve triples in the null context)&quot;<br>    queryString = &quot;SELECT DISTINCT ?s ?c WHERE {graph ?c {?s ?p ?o .} }&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate();<br>    for i, bindingSet in enumerate(result):<br>        print bindingSet[0], bindingSet[1]<br>    conn.close()</pre>
 <p>In this case, the loop prints out only v-card results.  The SPARQL query is not able to access the null context when a non-null context is also present. </p>
-<h2 id="Exporting Triples">Exporting Triples (example8() and example9()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Exporting Triples">Exporting Triples (example8 and example9) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The next examples show how to write triples out to a file in either NTriples format or RDF/XML format. The output of either format may be optionally redirected to standard output (the Python command window) for inspection.</p>
 <p>Example example8() begins by obtaining a connection object from example6(). This means the repository contains v-card triples in the <strong>#vcards</strong> context, and Kennedy family tree triples in the<strong> null </strong>context. </p>
 <pre class="input">def example8():<br>    conn = example6()</pre>
@@ -980,7 +980,7 @@ triples are "mixed together" in the file, the context information is not recover
     conn.exportStatements(None, familyName, None, False, RDFXMLWriter(None), context)
 </pre>
 
-<h2 id="Datasets and Contexts">Searching Multiple Graphs   (example10()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Datasets and Contexts">Searching Multiple Graphs   (example10) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
  We have already seen contexts (subgraphs) at work when loading and saving files. In example10() we provide more realistic examples of contexts, and we explore the FROM, FROM DEFAULT, and FROM NAMED clauses of a SPARQL query to see how they interact with multiple subgraphs in the triple store. Finally, we will introduce the dataset object. A dataset is a list of contexts that should all be searched simultaneously. It is an object for use with SPARQL queries.
 </p>
@@ -1082,7 +1082,7 @@ WHERE {GRAPH ?g {?s ?p ?o . }}&quot;;</pre>
 <pre class="input">    queryString = &quot;&quot;&quot;<br>    SELECT ?s ?p ?o ?c<br>    WHERE { GRAPH ?c {?s ?p ?o . } } <br>    &quot;&quot;&quot;<br>    tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)<br>    result = tupleQuery.evaluate(); <br>    print &quot;SPARQL query with GRAPH pattern, no context constraints.&quot;<br>    for bindingSet in result:<br>        print bindingSet.getRow()</pre>
 <p>The output of this loop contains four triples, two from each of the named subgraphs in the store (context1 and context2). The query was not able to find the triples that were in the AllegroGraph default graph. </p>
 <pre class="output">SPARQL query with GRAPH pattern, no context constraints.<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/context1&gt;']<br>['&lt;http://example.org/people/alice&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Alice&quot;', '&lt;http://example.org/people/context1&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;', '&lt;http://example.org/people/Person&gt;', '&lt;http://example.org/people/context2&gt;']<br>['&lt;http://example.org/people/bob&gt;', '&lt;http://example.org/people/name&gt;', '&quot;Bob&quot;', '&lt;http://example.org/people/context2&gt;']</pre>
-<h2 id="Namespaces">Namespaces (example11()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Namespaces">Namespaces (example11) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 A <i>namespace</i> is that portion of a URI that preceeds the last '#',
 '/', or ':' character, inclusive.  The remainder of a URI is called the
@@ -1133,7 +1133,7 @@ SELECT ?s
 WHERE { ?s rdf:type ex:person } 
 </pre>
 
-<h2 id="Free Text Search">Free Text Search (example12()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Free Text Search">Free Text Search (example12) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>
 It is common for users to build RDF applications that combine
 some form of "keyword search" with their queries. For example, a user
@@ -1204,7 +1204,7 @@ query, and also by using the <strong>evalFreeTextSearch()</strong> method of the
 Match 'Carroll' in index2.<br> ['&lt;http://example.org/people/book1&gt;', '&lt;http://example.org/people/author&gt;', '&lt;http://example.org/people/carroll&gt;']
 </pre>
 <p>The text search located the triple that has &quot;Carroll&quot; in the URI in the object position. </p>
-<h2 id="Ask, Describe, and Construct Queries">Select, Ask, Describe, and Construct Queries (example13())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Ask, Describe, and Construct Queries">Select, Ask, Describe, and Construct Queries (example13)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>SPARQL provides alternatives to the standard SELECT query. Example example13() exercises these alternatives to show how AllegroGraph Server handles them. </p>
 <ul>
   <li>    SELECT: Returns variables bound in a query pattern match. </li>
@@ -1234,7 +1234,7 @@ ASK: Is there an Alice? False</pre>
 <pre class="input">    queryString = &quot;&quot;&quot;describe ?s ?o where { ?s kdy:has-grandchild ?o . } limit 1&quot;&quot;&quot;<br>    describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)<br>    result = describeQuery.evaluate(); <br>    print &quot;Describe one grandparent and one grandchild:&quot;<br>    for st in result: print st </pre>
 <p>The output of this loop is lengthy, because the Kennedy resources have many triples. One block of triples looked like this, showing the new has-grandchild triples: </p>
 <pre class="output">(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person20&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person22&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person24&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person25&gt;)<br>(&lt;http://www.franz.com/simple#person1&gt;, &lt;http://www.franz.com/simple#has-grandchild&gt;, &lt;http://www.franz.com/simple#person26&gt;)</pre>
-<h2 id="Parametric Queries">Parametric Queries (example14())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Parametric Queries">Parametric Queries (example14)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
  <p>The Python Sesame API to AllegroGraph Server lets you set up a SPARQL query and then fix the value of one of the query variables prior to matching the triples. This is more efficient than testing for the same value in the body of the query. </p>
  <p>In <strong>example14()</strong> we set up two-triple resources for Bob and Alice, and then use an unconstrained SPARQL query to retrieve the triples. Normally this query would find all four triples, but by binding the subject value ahead of time, we can retrieve the &quot;Bob&quot; triples separately from the &quot;Alice&quot; triples.</p>
  <p>The example begins by borrowing a connection object from example2(). This means there are already Bob and Alice resources in the repository. We do need to recreate the URIs for the two resources, however. </p>
@@ -1255,7 +1255,7 @@ ASK: Is there an Alice? False</pre>
  The output of this loop is:
  <pre class="output">Facts about Bob:<br>{'p': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', 's': 'http://example.org/people/bob', 'o': 'http://example.org/ontology/Person'}
 {'p': 'http://example.org/ontology/name', 's': 'http://example.org/people/bob', 'o': '&quot;Bob&quot;'}</pre>
- <h2 id="Range Matches">Range Matches (example15())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+ <h2 id="Range Matches">Range Matches (example15)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
  <p>Example15() demonstrates how to set up a query that matches a range of values. In this case, we'll retrieve all people between 30 and 50 years old (inclusive). We can accomplish this using the connection object's <strong>createRange()</strong> method. </p>
  <p>This example begins by getting a connection object from example1(), and then clearing the repository of the existing triples. </p>
  <pre class="input">
@@ -1285,7 +1285,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 (&lt;http://example.org/people/carol&gt;, &lt;http://example.org/people/age&gt;, &quot;39&quot;^^&lt;http://www.w3.org/2001/XMLSchema#long&gt;)</pre>
 <p>The range query  has matched 42 and &quot;39&quot;, but not 24. </p>
 
-<h2 id="Federated Repositories">Federated Repositories (example16())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Federated Repositories">Federated Repositories (example16)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph lets you split up your triples among repositories on multiple servers and then search them all in parallel. To do this we query a single &quot;federated&quot; repository that automatically distributes the queries to the secondary repositories and combines the results. From the point of view of your Python code, it looks like you are working with a single repository. </p>
 <p>Example16() begins by defining a small output function that we'll use at the end of the lesson. It prints out responses from different repositories. This example is about red apples and green apples, so the output function talks about apples. </p>
 <pre class="input">def example16():<br>    def pt(kind, rows, expected):<br>        print &quot;\n%s Apples:\t&quot; % kind.capitalize(),<br>        for r in rows: print r[0].getLocalName(),</pre>
@@ -1306,7 +1306,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <p>The output is shown below. The federated response combines the individual responses. </p>
 <pre class="output">Red Apples:   reddelicious mcintosh <br>Green Apples:   pippin <br>Federated Apples:   reddelicious mcintosh pippin</pre>
 <p>It should go without saying that a search for apples does not turn up a frog. </p>
-<h2 id="Prolog Rule Queries">Prolog Rule Queries (example17())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Prolog Rule Queries">Prolog Rule Queries (example17)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph Server lets us load Prolog backward-chaining rules to make query-writing simpler.&nbsp; The Prolog rules let us write the queries in terms of higher-level concepts.&nbsp; When a query refers to one of these concepts, Prolog rules become active in the background to determine if the concept is valid in the current context.&nbsp; </p>
 <p>For instance, in this example the query says that the matching resource must be a &quot;man&quot;.&nbsp; A Prolog rule examines the matching resources to see which of them are persons who are male.&nbsp; The query can proceed for those resources. The rules provide a level of abstraction that makes the queries simpler to express. </p>
 <p>The example17() example begins by borrowing a connection object from example example6(), which contains the Kennedy family tree.&nbsp; Note that example6() creates a <a href="#Transaction Control">dedicated session</a> for the rules to operate in, using the Connection object's <strong>openSession()</strong> method. Python rules cannot be loaded into the AllegroGraph common back end. </p>
@@ -1333,7 +1333,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <pre class="output">Robert Kennedy<br>Alfred Tucker<br>Arnold Schwarzenegger<br>Paul Hill<br>John Kennedy</pre>
 <p>It is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeDedicated()</pre>
-<h2 id="Loading Prolog Rules">Loading Prolog Rules (example18())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Loading Prolog Rules">Loading Prolog Rules (example18)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>Example <strong>example18()</strong> demonstrates how to load a file of Prolog rules into the Python Sesame API of AllegroGraph Server.&nbsp; It also demonstrates how robust a rule-augmented system can become.&nbsp; The domain is the Kennedy family tree again, borrowed from example6().&nbsp; After loading a file of rules (<strong>python-rules.txt</strong>), we'll pose a simple query.&nbsp; The query asks AllegroGraph to list all the uncles in the family tree, along with each of their nieces or nephews.&nbsp; This is the query:</p>
 <pre class="input">(select (?ufirst ?ulast ?cfirst ?clast)<br>        (uncle ?uncle ?child)<br>        (name ?uncle ?ufirst ?ulast)<br>        (name ?child ?cfirst ?clast))</pre>
 <p>The problem is that the triple store contains no information about uncles.&nbsp; The rules will have to deduce this relationship by finding paths across the RDF graph.&nbsp; </p>
@@ -1369,7 +1369,7 @@ def example15():<br>    conn = example1()<br>    conn.clear()</pre>
 <p>As before, it is good form to close the dedicated session when you are finished with it.</p>
 <pre class="input">    conn.closeSession()<br>    conn.close();<br>    myRepository = conn.repository<br>    myRepository.shutDown()</pre>
 
-<h2 id="RDFS++ Inference">RDFS++ Inference (example19())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="RDFS++ Inference">RDFS++ Inference (example19)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The great promise of the semantic web is that we can use RDF metadata to combine information from multiple sources into a single, common model.&nbsp; The great problem of the semantic web is that it is so difficult to recognize when two resource descriptions from different sources actually represent the same thing.&nbsp; This problem arises because there is no uniform or universal way to generate URIs identifying resources.&nbsp; As a result, we may create two resources, Bob and Robert, that actually represent the same person. </p>
 <p>This problem has generated much creativity in the field. One way to approach the problem is through inference.&nbsp; There are certain relationships and circumstances where an inference engine can deduce that two resource descriptions actually represent one thing, and then automatically merge the descriptions.&nbsp; AllegroGraph's <a href="../reasoner-tutorial.html">inference engine</a> can be turned on or off each time you run a query against the triple store.&nbsp; (Note that inference is turned off by default, which is the opposite of standard Sesame behavior.) </p>
 <p>In example example19(), we will create four resources: Bob, with son Bobby, and Robert with daughter Roberta.&nbsp; </p>
@@ -1481,7 +1481,7 @@ Who are the parents?  Inference ON.
 (&lt;http://example.org/people/bobby&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://exmaple.org/ontology/Child&gt;)
 (&lt;http://example.org/people/roberta&gt;, &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#type&gt;, &lt;http://exmaple.org/ontology/Child&gt;)</pre>
 <p>Bobby and Roberta are the children.&nbsp;  </p>
-<h2 id="Geospatial Search">Geospatial Search (example20())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Geospatial Search">Geospatial Search (example20)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph provides the ability to locate resources within a geospatial coordinate system. You can set up either a flat (X,Y Cartesian) or spherical (latitude, longitude) system. The systems are two-dimensional only. (There is no Z or altitude dimension available). </p>
 <p>The purpose of the geospatial representation is to efficiently find all entities that are located within a specific circular, rectangular or polygonal area. </p>
 <h3>Cartesian System </h3>
@@ -1576,7 +1576,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 &quot;+513159.49909-0000459.99970&quot;^^&lt;http://franz.com/ns/allegrograph/3.0/geospatial/spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)</pre>
 <p>AllegroGraph returns the location of London, but not the nearby Amsterdam.</p>
 
-<h2 id="Social Network Analysis">Social Network Analysis  (example21())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Social Network Analysis">Social Network Analysis  (example21)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>AllegroGraph includes sophisticated algorithms for social-network analysis (SNA). It can examine an RDF graph of relationships among people (or similar entities, such as businesses) and discover:</p>
 <ul>
   <li>Cliques of mutually-supporting individuals.</li>
@@ -1868,7 +1868,7 @@ is maximized and then summing the difference between this maximum
 value and the actor-betweenness-centrality of all other actors. 
 This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Valjean's smaller ego group has a group-betweenness-centrality of 0.904. The value for the larger ego group is 0.704. Even by this measure, the larger group is less cohesive. </p>
-<h2 id="Transaction Control">Transaction Control (example22())&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Transaction Control">Transaction Control (example22)&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>Most of the time, multiple AllegroGraph users pool triples in a common session. Their data may be segregated into multiple contexts (subgraphs) for convenience, but in fact any part of this data may be retrieved by any of the users.</p>
 <p>There are situations where a little more security is required. You may open a &quot;dedicated session&quot; and populate it with triples that the other users cannot view. These triples may be searched and manipulated in the usual ways, but do not become visible to other users until you &quot;commit&quot; them to the common session. </p>
 <p>In order to use transaction semantics, the user account must have &quot;start sessions&quot; privileges with AllegroGraph Server. This is an elevated level of privilege. AllegroGraph users are profiled through the <a href="#Creating Users with WebView">WebView interface.</a></p>
@@ -1942,7 +1942,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Remember that when you are done with a session or connection, it is appropriate to close it:</p>
 <pre class="input">    dedicated.closeSession()<br>    dedicated.close()<br>    common.close()</pre>
 <p>This recovers resources that would otherwise remain bound. </p>
-<h2 id="Duplicate Triples">Duplicate Triples (example23()) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<h2 id="Duplicate Triples">Duplicate Triples (example23) &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>Most people find it annoying when a query returns multiple copies of the same information. This can happen in mulitple ways, and there are multiple strategies for reducing or eliminating the problem. There are two broad strategies to pursue:</p>
 <ul>
   <li>Don't create duplicate triples. It is surprisingly easy to fill the triple store with duplicates if you are not careful to generate clean RDF files.</li>
