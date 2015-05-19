@@ -2001,7 +2001,7 @@ def test_analyze_query():
     try:
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
-        result = tupleQuery.analyze(analysisTechnique="static");
+        result = tupleQuery.analyze();
         assert "desired" in result and "actual" in result
         result = tupleQuery.evaluate();
         verify(result.rowCount(), 4, 'len(result)', 3)
