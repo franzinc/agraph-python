@@ -441,6 +441,7 @@ def test12():
     conn.add(book, RDF.TYPE, booktype)    
     conn.add(book, booktitle, wonderland) 
     conn.setNamespace('ex', exns)
+    conn.createFreeTextIndex("index")
     print "Whole-word match for 'Alice'"
     queryString = """
     SELECT ?s ?p ?o

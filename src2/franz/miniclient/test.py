@@ -118,7 +118,6 @@ def testFreeText():
     rep.addStatement("<x>", "<p>", "\"foo bar quux rhubarb\"")
     rep.addStatement("<y>", "<q>", "\"foo bar quux rhubarb\"")
     rep.addStatement("<z>", "<p>", "\"foo bar quux rhubarb\"^^<type1>")
-    eq(len(rep.evalFreeTextSearch("quux")), 0)
     rep.createFreeTextIndex("index", predicates=["<p>"], minimumWordSize=4)
     eq(rep.listFreeTextIndices(), ["index"])
     eq(len(rep.evalFreeTextSearch("foo")), 0)
