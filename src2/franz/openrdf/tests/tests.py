@@ -2136,7 +2136,7 @@ def test_ssl():
             cainfo=os.path.join(CURRENT_DIRECTORY, 'ca.cert'),
             sslcert=os.path.join(CURRENT_DIRECTORY, 'test.cert'),
             # Test files setup for localhost; if running elsewhere don't verify
-            verifyhost=(AG_HOST==LOCALHOST))
+            verifyhost=2 if (AG_HOST==LOCALHOST) else None)
         catalogs = server.listCatalogs()
     else:
         # Convert PEM files to NSS db entry w/ name 'Test Client'
@@ -2147,7 +2147,7 @@ def test_ssl():
         server = AllegroGraphServer(AG_HOST, AG_SSLPORT, 
             sslcert='Test Client',
             # Test files setup for localhost; if running elsewhere don't verify
-            verifyhost=(AG_HOST==LOCALHOST))
+            verifyhost=2 if (AG_HOST==LOCALHOST) else None)
         catalogs = server.listCatalogs()
 
     print "Available catalogs", catalogs
