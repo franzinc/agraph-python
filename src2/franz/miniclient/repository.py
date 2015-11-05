@@ -588,7 +588,9 @@ class Repository(Service):
         nullRequest(self, "PUT", "/tripleCache?" + urlenc(size=size))
 
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
-        if self.sessionAlive: return
+        if self.sessionAlive: 
+            # A session is already active.  Do nothing.
+            return
         self.oldUrl = self.url
         self.url = jsonRequest(self, "POST", "/session?" + urlenc(autoCommit=autocommit,
             lifetime=lifetime, loadInitFile=loadinitfile))
@@ -598,10 +600,18 @@ class Repository(Service):
         alive = self.sessionAlive = threading.Event()
         def pingSession():
             while True:
-                stop = alive.wait(max(lifetime - 60, lifetime) if lifetime else 250)
-                if alive.isSet(): return
+                # Block until closeSession is called, or until
+                # the polling interval has been reached.
+                alive.wait(lifetime / 2 if lifetime else 250)
+                if alive.isSet(): 
+                    # closeSession has been called.  Terminate the loop
+                    # (and therefore the thread)
+                    return
                 try: nullRequest(self, "GET", "/session/ping")
-                except Exception: return
+                except Exception: 
+                    # The ping failed.  Terminate the loop
+                    # (and therefore the thread)
+                    return
         threading.Thread(target=pingSession).start()
 
     def closeSession(self):

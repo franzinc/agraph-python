@@ -47,7 +47,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <h3>Constructor</h3>
 <p>AllegroGraphServer(self, host, port=10035,user=None,password=None)</p>
 <ul>
-  <li><em>host</em> is a string describing the network path to the AllegroGraph server. No default. </li>
+  <li><em>host</em> is a string containing the IP address or hostname of the AllegroGraph server. No default. </li>
   <li><em>port</em> is the AllegroGraph HTTP port on the server. It is an integer that defaults to 10035.</li>
   <li><em>user</em> is an AllegroGraph user name.</li>
   <li><em>password</em> is the user's password.  </li>
@@ -55,7 +55,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 <dl>
   <dt>Example:</dt>
 </dl>
-<pre>    server = AllegroGraphServer(path=&quot;localhost&quot;, port=&quot;8080&quot;, user=&quot;test&quot;, password=&quot;pw&quot;) </pre>
+<pre>    server = AllegroGraphServer(host=&quot;localhost&quot;, port=8080, user=&quot;test&quot;, password=&quot;pw&quot;) </pre>
 <h3>Methods</h3>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;"  >
   <tr>
@@ -146,7 +146,7 @@ implementation)! </p>
 <p>Source: /AllegroGraphDirectory/scr2/franz/openrdf/repository/repository.py.</p>
 <h3>Constructor</h3>
 <p>Invoke the Repository constructor using the <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.getRepository() method.</p>
-<pre>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, accessMode)</pre>
+<pre>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, Repository.ACCESS)</pre>
 <h3>Methods</h3>
 <table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
   <tr>

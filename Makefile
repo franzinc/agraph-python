@@ -26,4 +26,7 @@ prepush: FORCE
 	@echo Using port $(AGRAPH_PORT)
 	cd src2; nosetests
 
+tags: FORCE
+	etags `find . -name '*.py'`
+
 FORCE:

@@ -186,8 +186,8 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         return result
 
 def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json", headers=None):
-    # If there is a _saveFile and _saveAccept, they override the arguments
     callback = None if rowreader is None else rowreader.process
+    # If there is a _saveFile and _saveAccept, they override the arguments
     if hasattr(obj, '_saveFile') and hasattr(obj, '_saveAccept'):
         accept = obj._saveAccept
         callback = obj._saveFile.write
