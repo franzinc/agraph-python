@@ -1321,6 +1321,73 @@ def test22():
             p = bindingSet.getValue("centrality")
             print "Centrality: %s" % (p.toPython())
             
+def testSNA_bug23323():
+    """
+    Social Network Analysis test for bug23323
+    """
+    with connect().session() as conn:
+        print "Starting example testSNA_bug23323()."
+        path1 = os.path.join(CURRENT_DIRECTORY, "lesmis.rdf")
+        print "Load Les Miserables triples."
+        conn.addFile(path1, None, format=RDFFormat.RDFXML)
+        genName = "LesMiserables"
+        lmns = "http://www.franz.com/lesmis#"
+        conn.setNamespace('lm', lmns)
+
+        prologQuery = """
+        (select (?m)
+          (q ?node !lm:barely_knows ?m))
+"""
+        # Register the generator
+        conn.registerSNAGenerator(genName, subjectOf = None, objectOf = None, undirected = None, generator_query = prologQuery)
+
+        valjean = conn.createURI(lmns, "character11")
+
+        # Create the matrix from the generator
+        conn.registerNeighborMatrix("LesMiserablesNM", genName, valjean, max_depth = 2)
+
+        print "\nValjean's ego group in one list depth 2 (using barely_knows neighbor matrix)."
+        queryString = """
+        (select (?group)
+          (ego-group !lm:character11 2 LesMiserablesNM ?group))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("group")
+            group_count_nm = len(p)
+            print "Group has %i member(s)" % group_count_nm
+            print "Found %i members" % len(p)      
+            print "[",
+            for item in p:
+                print "%s ; " %(item),
+            print "]"
+
+        # re-register the generator
+        # there is caching involved so if we don't re-register, we'll get the same count
+        # regardless of whether or not bug23323 is fixed.
+        conn.registerSNAGenerator(genName, subjectOf = None, objectOf = None, undirected = None, generator_query = prologQuery)
+
+        print "\nValjean's ego group in one list depth 2 (using barely_knows)."
+        queryString = """
+        (select (?group)
+          (ego-group !lm:character11 2 LesMiserables ?group))
+          """
+        tupleQuery = conn.prepareTupleQuery(QueryLanguage.PROLOG, queryString)
+        result = tupleQuery.evaluate();
+        for bindingSet in result:
+            p = bindingSet.getValue("group")
+            group_count = len(p)
+            print "Found %i members" % group_count
+            print "[",
+            for item in p:
+                print "%s ; " %(item),
+            print "]"
+
+        print "Make sure we have the same counts"
+        assert group_count == group_count_nm
+
+
 def test_getStatements():
     conn = test6()
     rows = conn.getStatements(None, None, None, tripleIDs=False)
