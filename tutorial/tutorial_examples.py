@@ -718,12 +718,12 @@ def example6(close=True):
     # point to the location of the data files. For AG Free Edition on Windows:
     #os.chdir("C:\Program Files\AllegroGraphFJE32\python")
     print "Current working directory is '%s'" % (os.getcwd())
-    path1 = "./python-vcards.rdf"    
-    path2 = "./python-kennedy.ntriples"                
+    path1 = "./vcards.rdf"    
+    path2 = "./kennedy.ntriples"                
     context = conn.createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read kennedy triples into the null context:
-    print "Load python-kennedy.ntriples."
+    print "Load kennedy.ntriples."
     conn.add(path2, base=None, format=RDFFormat.NTRIPLES, contexts=None)
     ## read vcards triples into the context 'context':
     print "Load vcards triples."
@@ -1514,7 +1514,7 @@ def example21():
     conn = myRepository.getConnection()
     conn.openSession() # SNA requires dedicated session.
 
-    path1 = "./python-lesmis.rdf"
+    path1 = "./lesmis.rdf"
     print "\nLoad Les Miserables triples."
     conn.addFile(path1, None, format=RDFFormat.RDFXML);
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
@@ -1985,11 +1985,11 @@ def example22():
     """
 	Load LesMis into common session, Kennedy into dedicated session.
     """
-    path1 = "./python-kennedy.ntriples"
-    path2 = "./python-lesmis.rdf"                
+    path1 = "./kennedy.ntriples"
+    path2 = "./lesmis.rdf"                
     baseURI = "http://example.org/example/local"
     ## read kennedy triples into the dedicated session:
-    print "Load 1214 python-kennedy.ntriples into dedicated session."
+    print "Load 1214 kennedy.ntriples into dedicated session."
     dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     ## read lesmis triples into the common session:
     print "Load 916 lesmis triples into the common session."
@@ -2072,7 +2072,7 @@ def example22():
 		Look for LesMis in dedicated session, should find it.
     """
     ## read kennedy triples into the dedicated session:
-    print "\nReload 1214 python-kennedy.ntriples into dedicated session."
+    print "\nReload 1214 kennedy.ntriples into dedicated session."
     dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     print "\nCommitting contents of dedicated session."
     dedicated.commit()
@@ -2121,7 +2121,7 @@ def example23():
     """
     Demonstrate Blank Node Behavior
     """
-    path = "./python-blankNodes1.rdf"
+    path = "./blankNodes1.rdf"
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes1.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2133,7 +2133,7 @@ def example23():
     conn.remove(None, None, None)
 
 # --------------------------------------------------------------
-    path = "./python-blankNodes2.rdf"
+    path = "./blankNodes2.rdf"
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes2.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2145,7 +2145,7 @@ def example23():
     conn.remove(None, None, None)
 	
 # Following example is for rfe8610
-#    path = "./python-blankNodes2.rdf"
+#    path = "./blankNodes2.rdf"
 #    baseURI = "http://www.franz.com/simple#"
 #    conn.openSession()
 #    print "\nLoad blankNodes2.rdf"
@@ -2171,7 +2171,7 @@ def example23():
 
 # --------------------------------------------------------------
 
-    path = "./python-blankNodes3.rdf"
+    path = "./blankNodes3.rdf"
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes3.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2182,7 +2182,7 @@ def example23():
         print s
     conn.remove(None, None, None)
 	
-    path = "./python-blankNodes4.rdf"
+    path = "./blankNodes4.rdf"
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes4.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2196,9 +2196,9 @@ def example23():
     """
     Load Kennedy file 
     """
-    path = "./python-kennedy.ntriples"
+    path = "./kennedy.ntriples"
     baseURI = "http://www.franz.com/simple#"
-    print "Load 1214 python-kennedy.ntriples."
+    print "Load 1214 kennedy.ntriples."
     conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     print "\nAfter loading, there are:";
     print "%i kennedy triples in context '%s';" % (conn.size('null'), 'null');
@@ -2262,7 +2262,7 @@ def example23():
         print "%s and %s" % (o1, o2)	
 
     ## load kennedy triples again:
-    print "\nReload 1214 python-kennedy.ntriples."
+    print "\nReload 1214 kennedy.ntriples."
     conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
     print "\nAfter loading, there are:";
     print "%i kennedy triples in context '%s';" % (conn.size('null'), 'null');

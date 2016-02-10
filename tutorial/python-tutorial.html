@@ -936,7 +936,7 @@ an NTriples file, and <strong>addFile()</strong> to load  an RDF/XML file. Both 
 <pre class="input">def example6(close=True):<br>    print &quot;Starting example6().&quot;<br>    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)<br>    catalog = server.openCatalog(AG_CATALOG)  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.clear()<br>    conn.openSession()</pre>
 <p>The dedicated session is not immediately pertinent to the examples in this section, but will become important in later examples that reuse this connection to demonstrate <a href="#Prolog Rule Queries">Prolog Rules</a> and <a href="#Social Network Analysis">Social Network Analysis</a>. </p>
 <p>The variables path1 and path2 are bound to the RDF/XML and NTriples files, respectively. </p>
-<pre class="input">    path1 = &quot;./python-vcards.rdf&quot;    <br>    path2 = &quot;./python-kennedy.ntriples&quot;                </pre>
+<pre class="input">    path1 = &quot;./vcards.rdf&quot;    <br>    path2 = &quot;./kennedy.ntriples&quot;                </pre>
 <p>The NTriples about the vcards will be added to a specific context, so naturally we need a URI to identify that context. </p>
 <pre class="input">    context = conn.createURI(&quot;http://example.org#vcards&quot;)</pre>
 <p>In the next step we use addFile() to load the vcard triples into the #vcards context: </p>
@@ -1605,7 +1605,7 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
   <li>Within a Prolog query, we can open a window into Lisp and reach for the AllegroGraph's Lisp SNA functions. </li>
 </ul>
 <h3 id="Example Network">Example Network</h3>
-<p>The example file for this exercise is <strong>python-lesmis.rdf</strong>. It contains resources representing 80 characters from Victor Hugo's <em>Les Miserables</em>, a novel about Jean Valjean's search for redemption in 17th-century Paris. </p>
+<p>The example file for this exercise is <strong>lesmis.rdf</strong>. It contains resources representing 80 characters from Victor Hugo's <em>Les Miserables</em>, a novel about Jean Valjean's search for redemption in 17th-century Paris. </p>
 <p>The raw data behind the model measured the strength of relationships by counting the number of book chapters where two characters were both present. The five-volume novel has 365 chapters, so it was possible to create a relationship network that had some interesting features. This is a partial display of the graph in <a href="http://www.franz.com/agraph/gruff/index.lhtml">Franz's Gruff graphical browser</a>. </p>
 <p><img src="lesmismap.jpg" width="768" height="426"> </p>
 <p>There are four possible relationships between any two characters. </p>
@@ -1619,8 +1619,8 @@ spherical/degrees/-180.0/180.0/-90.0/90.0/5.0&gt;)
 <h3 id="Setting Up the Example">Setting Up the Example</h3>
 <p>The SNA examples are in function <strong>example21() </strong>in <strong>tutorial_examples.py</strong>. This exercise begins by creating a <a href="#Transaction Control">dedicated session</a> for the SNA Prolog queries to operation within. These are the same initializing steps we have used in previous examples, plus <strong>conn.openSession()</strong> to create a dedicated connection. </p>
 <pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)<br>    catalog = server.openCatalog(AG_CATALOG)  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    conn = myRepository.getConnection()<br>    conn.openSession() # SNA requires dedicated session.</pre>
-<p>The next step is to load the python-lesmis.rdf file.</p>
-<pre class="input">    path1 = "./python-lesmis.rdf"
+<p>The next step is to load the lesmis.rdf file.</p>
+<pre class="input">    path1 = "./lesmis.rdf"
     print "Load Les Miserables triples."
     conn.addFile(path1, None, format=RDFFormat.RDFXML);
 </pre>
@@ -1880,7 +1880,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Example example22() performs some simple data manipulations on a dedicated session to demonstrate the rollback and commit features. It begins by creating a connection to a repository (the common session), and a second connection to a dedicated session. To do that, all you need is a second connection object, and invoke its <strong>openSession()</strong> method. </p>
 <pre class="input">    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')<br>    catalog = server.openCatalog('scratch')  <br>    myRepository = catalog.getRepository(AG_REPOSITORY, Repository.RENEW)<br>    myRepository.initialize()<br>    common = myRepository.getConnection()<br>    dedicated = myRepository.getConnection()<br>    dedicated.openSession()  # open dedicated session </pre>
 <p>We'll reuse the Kennedy and Les Miserables data. The Les Miserables data goes in the common session, and the Kennedy data goes in the dedicated session. </p>
-<pre class="input">    path1 = &quot;./python-kennedy.ntriples&quot;<br>    path2 = &quot;./python-lesmis.rdf&quot;                <br>    baseURI = &quot;http://example.org/example/local&quot;<br>    ## read kennedy triples into the dedicated session:<br>    print &quot;Load 1214 python-kennedy.ntriples into dedicated session.&quot;<br>    dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)<br>    ## read lesmis triples into the common session:<br>    print &quot;Load 916 lesmis triples into the common session.&quot;<br>    common.addFile(path2, baseURI, format=RDFFormat.RDFXML, context=None);</pre>
+<pre class="input">    path1 = &quot;./kennedy.ntriples&quot;<br>    path2 = &quot;./lesmis.rdf&quot;                <br>    baseURI = &quot;http://example.org/example/local&quot;<br>    ## read kennedy triples into the dedicated session:<br>    print &quot;Load 1214 kennedy.ntriples into dedicated session.&quot;<br>    dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)<br>    ## read lesmis triples into the common session:<br>    print &quot;Load 916 lesmis triples into the common session.&quot;<br>    common.addFile(path2, baseURI, format=RDFFormat.RDFXML, context=None);</pre>
 <p>The two sessions should now have independent content. When we look in the common session we should see only Les Miserables triples. The dedicated session could contain only Kennedy triples. We set up a series of simple tests similar to this one:</p>
 <pre class="input">    print &quot;\nUsing getStatements() on common session; should find Valjean:&quot;
     Valjean = common.createLiteral(&quot;Valjean&quot;)
@@ -1924,7 +1924,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
    (&lt;http://www.franz.com/lesmis#character11&gt;, &lt;http://purl.org/dc/elements/1.1/title&gt;, &quot;Valjean&quot;)</pre>
 <p>The rollback has succeeded in deleting the uncommitted triples from the dedicated session. It has also refreshed or resynched the dedicated session with the common session.</p>
 <p>To set up the next test, we have to reload the Kennedy triples. Then we'll perform a commit.  </p>
-<pre class="input">    print &quot;\nReload 1214 python-kennedy.ntriples into dedicated session.&quot;<br>    dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)<br>    dedicated.commit()</pre>
+<pre class="input">    print &quot;\nReload 1214 kennedy.ntriples into dedicated session.&quot;<br>    dedicated.add(path1, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)<br>    dedicated.commit()</pre>
 <p>This should make both types of triples visible in both sessions. Here are the four tests:</p>
 <pre class="output">Using getStatements() on common session; should find Valjean:
    Number of results: 1
@@ -1950,7 +1950,7 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 </ul>
 <h3>Tighten Up Your Queries</h3>
 <p>Triple patterns sometimes act in unexpected ways, resulting in &quot;too many&quot; matches.</p>
-<p><strong>Example23()</strong> revives the Kennedy family tree. It loads the <strong>python-kennedy.ntriples</strong> file, resulting in 1214 triples.</p>
+<p><strong>Example23()</strong> revives the Kennedy family tree. It loads the <strong>kennedy.ntriples</strong> file, resulting in 1214 triples.</p>
 <p>This example focuses on the three children of Ted Kennedy (person17). A simple <strong>getStatements() </strong>query shows us that all three are, in fact, present. They are person72, person74, and person76. </p>
 <pre class="output">Using getStatements() find children of Ted Kennedy: three children.<br>Number of results: 3<br>(&lt;http://www.franz.com/simple#person17&gt;, &lt;http://www.franz.com/simple#has-child&gt;, &lt;http://www.franz.com/simple#person72&gt;)<br>(&lt;http://www.franz.com/simple#person17&gt;, &lt;http://www.franz.com/simple#has-child&gt;, &lt;http://www.franz.com/simple#person74&gt;)<br>(&lt;http://www.franz.com/simple#person17&gt;, &lt;http://www.franz.com/simple#has-child&gt;, &lt;http://www.franz.com/simple#person76&gt;) </pre>
 <p>Let's imagine that for some bureaucratic or legal reason we need to retrieve any two of the senator's three children from the triple store. We might begin with a SPARQL query like this one:</p>
@@ -1999,11 +1999,11 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
 <p>Now we'll consider the situation where we have multiple copies of the same information in the triple store. This is the classic &quot;duplicate triples&quot; situation. </p>
 <p>True duplicate triples do not occur by accident. They occur only when you have loaded the same information into the triple store more than once. </p>
 <p>This is easy to demonstrate. Let's load the Kennedy graph into an empty triple store:</p>
-<pre class="output">Load 1214 python-kennedy.ntriples.
+<pre class="output">Load 1214 kennedy.ntriples.
 After loading, there are:
   1214 kennedy triples in context 'null';</pre>
 <p>Then just load the same file again:</p>
-<pre class="output">Reload 1214 python-kennedy.ntriples.
+<pre class="output">Reload 1214 kennedy.ntriples.
 After loading, there are:
   2428 kennedy triples in context 'null';</pre>
 <p>Now there are two copies of every Kennedy triple. If you add the same triple multiple times, you will get multiple copies of it. </p>
