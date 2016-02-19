@@ -118,17 +118,9 @@ class Literal(Value):
         return self.label
 
     label = property(getLabel, setLabel)
-    
-    def __eq__(self, other):
-        if not isinstance(other, Literal):
-            return NotImplemented
 
-        return (self.label == other.label and 
-                self.datatype == other.datatype and
-                self.language == other.language)
-    
-    def __hash__(self):
-        return hash(self._label)
+    def get_cmp_key(self):
+        return self.label, self.datatype, self.language
     
     def intValue(self):
         """Convert to int"""

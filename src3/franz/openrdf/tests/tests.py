@@ -22,9 +22,9 @@ from ..query.dataset import Dataset
 from ..rio.rdfformat import RDFFormat
 from ..rio.rdfwriter import  NTriplesWriter
 from ..rio.rdfxmlwriter import RDFXMLWriter
-from ..model import Literal, Statement, URI, ValueFactory
+from ..model import BNode, Literal, Statement, URI, ValueFactory
 
-from nose.tools import eq_, assert_raises
+from nose.tools import eq_, assert_raises, raises
 from nose import SkipTest
 
 import pycurl
@@ -2384,3 +2384,75 @@ def test_materializer():
     print("There were", entailed, "entailed triples")
     assert conn.materializeEntailed(_with="all") >= 40
     assert conn.deleteMaterialized() >= 40
+
+
+def test_uri_eq():
+    x = URI("http://www.franz.com/test")
+    y = URI("http://www.franz.com/test")
+    z = URI("http://www.franz.com/test2")
+    assert x == y
+    assert not x != y
+    assert x != z
+    assert not x == z
+
+
+def test_literal_eq():
+    test = Literal("test")
+    test_eq = Literal("test")
+    test_str = Literal("test", datatype=XMLSchema.STRING)
+    test_str_eq = Literal("test", datatype=XMLSchema.STRING)
+    test_en = Literal("test", language="en_US")
+    test_en_eq = Literal("test", language="en_US")
+    not_test = Literal("not_test")
+
+    assert test == test_eq
+    assert not test != test_eq
+    assert test_str == test_str_eq
+    assert not test_str != test_str_eq
+    assert test_en == test_en_eq
+    assert not test_en != test_en_eq
+
+    assert not test == not_test
+    assert test != not_test
+
+    assert not test == test_str
+    assert test != test_str
+    assert not test == test_en
+    assert test != test_en
+    assert not test_en == test_str
+    assert test_en != test_str
+
+
+def test_value_eq_diffrent_types():
+    uri = URI("http://www.franz.com/test")
+    literal = Literal("http://www.franz.com/test")
+    literal2 = Literal("<http://www.franz.com/test>")
+    text = "<http://www.franz.com/test>"
+
+    assert uri != literal
+    assert not uri == literal
+    assert uri != literal2
+    assert not uri == literal2
+    assert uri != text
+    assert not uri == text
+
+    assert literal2 != text
+
+
+def test_bnode_eq():
+    b42 = BNode(42)
+    b42_eq = BNode(42)
+    b44 = BNode(44)
+
+    assert b42 == b42_eq
+    assert not b42 != b42_eq
+
+    assert b42 != b44
+    assert not b42 == b44
+
+
+@raises(TypeError)
+def test_value_ordering():
+    uri = URI("http://www.franz.com/test")
+    literal = Literal("http://www.franz.com/test")
+    uri < literal

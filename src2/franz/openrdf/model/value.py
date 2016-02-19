@@ -23,11 +23,39 @@ class Value(object):
     def __str__(self):
         return self.toNTriples()
 
-    def __eq__(self, other):
-        return NotImplemented
+    def get_cmp_key(self):
+        """
+        Return a key that will be used to compare and hash this object.
+        """
+        raise NotImplementedError()
 
-    # Default to not-hashable
-    __hash__ = None
+    # Comparison methods rely on get_cmp_key.
+    def __eq__(self, other):
+        return type(self) == type(other) and self.get_cmp_key() == other.get_cmp_key()
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self.get_cmp_key())
+
+    def __lt__(self, other):
+        if type(self) == type(other):
+            return self.get_cmp_key() < other.get_cmp_key()
+        else:
+            return type(self) < type(other)
+
+    def __gt__(self, other):
+        if type(self) == type(other):
+            return self.get_cmp_key() > other.get_cmp_key()
+        else:
+            return type(self) > type(other)
+
+    def __le__(self, other):
+        return not self > other
+
+    def __ge__(self, other):
+        return not self < other
 
     def toNTriples(self):
         """
@@ -55,12 +83,9 @@ class URI(Resource):
             uri = namespace + localname
 
         self._uri = uri
-    
-    def __eq__(self, other):
-        return str(self) == str(other)
 
-    def __hash__(self):
-        return hash(self.uri)
+    def get_cmp_key(self):
+        return self.uri
     
     def getURI(self):
         """
@@ -110,11 +135,8 @@ class BNode(Resource):
 
     getValue = getID
     
-    def __eq__(self, other):
-        return isinstance(other, BNode) and self.getId() == other.getId()
-    
-    def __hash__(self):
-        return hash(self.id)
+    def get_cmp_key(self):
+        return self.id
     
     def toNTriples(self):
         return "_:%s" % self.id
