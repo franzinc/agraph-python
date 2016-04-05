@@ -1,34 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-##***** BEGIN LICENSE BLOCK *****
-##Version: MPL 1.1
-##
-##The contents of this file are subject to the Mozilla Public License Version
-##1.1 (the "License"); you may not use this file except in compliance with
-##the License. You may obtain a copy of the License at
-##http:##www.mozilla.org/MPL/
-##
-##Software distributed under the License is distributed on an "AS IS" basis,
-##WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-##for the specific language governing rights and limitations under the
-##License.
-##
-##The Original Code is the AllegroGraph Java Client interface.
-##
-##The Original Code was written by Franz Inc.
-##Copyright (C) 2006 Franz Inc.  All Rights Reserved.
-##
-##***** END LICENSE BLOCK *****
+###############################################################################
+# Copyright (c) 2006-2016 Franz Inc.
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v1.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v10.html
+###############################################################################
 
 """
 Usage: events
 
 An event store stress tests.
 """
+from __future__ import division, print_function, with_statement
+from future import standard_library
+standard_library.install_aliases()
+from builtins import map
+from builtins import range
+from past.utils import old_div
+from builtins import object
 
-from __future__ import with_statement
-from Queue import Empty
+from queue import Empty
 try:
     from multiprocessing import Process, Queue
 except:
@@ -58,7 +52,7 @@ from franz.openrdf.model import Literal, Statement, URI, ValueFactory
 import tipper
 
 
-class Defaults:
+class Defaults(object):
     # The namespace
     NS = 'http://franz.com/events#';
 
@@ -112,10 +106,10 @@ class Defaults:
 
     # Turn on bulk-mode on the server
     BULK_MODE = False
-    
+
     # Register encoded id prefixes
     REG_ENC_ID = False
-    
+
 
 # The program options
 OPT = None
@@ -133,7 +127,7 @@ def nonzero(value):
 def trace(formatter, values=None):
     if values:
         formatter = locale.format_string(formatter, values, grouping=True)
-    print formatter
+    print(formatter)
     sys.stdout.flush()
 
 def connect(access_mode=Repository.OPEN):
@@ -167,8 +161,8 @@ class PredInfo(namedtuple('PredInfo', 'uri generator')):
         if not isinstance(uri, URI):
             uri = URI(namespace=OPT.NS, localname=uri)
         uri = uri.toNTriples()
-        
-        return tuple.__new__(cls, (uri, generator)) 
+
+        return tuple.__new__(cls, (uri, generator))
 
 # Define some generators
 class RandomDate(object):
@@ -271,10 +265,10 @@ def random_uri(prefix, limit):
 def random_customer():
     # Striving for 1000 ids per prefix (e.g. customer) when SIZE is 1 billion,
     # so by default there are SIZE/1000 ids
-    return random_uri('Customer', OPT.SIZE/1000)
+    return random_uri('Customer', old_div(OPT.SIZE,1000))
 
 def random_account():
-    return random_uri('Account', OPT.SIZE/1000)
+    return random_uri('Account', old_div(OPT.SIZE,1000))
 
 def random_action():
     fn = random_action
@@ -286,7 +280,7 @@ def random_handling():
     fn = random_handling
     return Literal(random.choice(fn.handling)).toNTriples()
 
-random_handling.handling = ('Nothing', 'Past Due Notice', 'Collections') 
+random_handling.handling = ('Nothing', 'Past Due Notice', 'Collections')
 
 def type_uri(label):
     return URI(namespace=OPT.NS, localname=label).toNTriples()
@@ -319,7 +313,7 @@ def initialize_events():
         PredInfo(RDF.TYPE, lambda: type_uri('Invoice')),
         PredInfo('EventTimeStamp', random_datetime),
         PredInfo('AccountId', random_account),
-        PredInfo('OriginatingSystem', lambda: '"Invoicing"'), 
+        PredInfo('OriginatingSystem', lambda: '"Invoicing"'),
         PredInfo('DueDate', random_datetime),
         PredInfo('Action', random_action),
         PredInfo('TotalAmountDue', random_money),
@@ -358,7 +352,7 @@ def initialize_events():
         PredInfo('PurchaseDate', random_datetime),
         PredInfo('PurchaseAmount', random_money),
         PredInfo('InvoiceID', random_int),
-        PredInfo('ProductID', lambda: random_uri('Product', OPT.SIZE/1000)), 
+        PredInfo('ProductID', lambda: random_uri('Product', old_div(OPT.SIZE,1000))),
         PredInfo('LegalInvoiceNumber', random_int),
         PredInfo('PreviousBalanceAmount', random_money),
         PredInfo('DeliveredVia', random_delivery),
@@ -379,7 +373,7 @@ def initialize_events():
         assert len(event) == OPT.EVENT_SIZE
         return event
 
-    EVENTS = map(pad_events, [interaction, invoice, payment, purchase])
+    EVENTS = list(map(pad_events, [interaction, invoice, payment, purchase]))
 
 def random_event(conn, storage, index):
     event = random.choice(EVENTS)
@@ -397,11 +391,11 @@ def random_event(conn, storage, index):
     return index
 
 def filter_non_digits(string):
-    return filter(lambda x: x.isdigit(), string)
+    return [x for x in string if x.isdigit()]
 
 def buggy_version():
     """There is a bug in Python versions <= 2.6.2"""
-    return map(int, map(filter_non_digits, sys.version.split()[0].split('.'))) <= [2, 6, 2]
+    return sys.version_info <= (2, 6, 2)
 
 if buggy_version():
     from multiprocessing.queues import JoinableQueue as BadJoinableQueue
@@ -425,9 +419,9 @@ if buggy_version():
 else:
     from multiprocessing import JoinableQueue
 
-class LoadPhase:
+class LoadPhase(object):
     start, baseline, bulk, small_commits, sparqlQuery, prologQuery, delete_one,\
-        delete_two, die = range(9)
+        delete_two, die = list(range(9))
     last = delete_one
 
 class PhaseParameters(object):
@@ -439,11 +433,11 @@ class PhaseParameters(object):
 
     @property
     def commits(self):
-        return int(self.triples / (self.events_in_commit * OPT.EVENT_SIZE))
+        return int(old_div(self.triples, (self.events_in_commit * OPT.EVENT_SIZE)))
 
     @property
     def commits_per_worker(self):
-        return int(self.commits / OPT.LOAD_WORKERS)
+        return int(old_div(self.commits, OPT.LOAD_WORKERS))
 
 @contextmanager
 def profiler(conn, on, phase):
@@ -472,7 +466,7 @@ def load_events(proc_num):
 
     if OPT.SEED:
         random.seed(OPT.SEED+977*proc_num)
-    
+
     def dequeue():
         try:
             return loadq.get()
@@ -480,7 +474,7 @@ def load_events(proc_num):
             return None
 
     def load_phase(phase):
-        with profiler(conn, proc_num == 0, phase): 
+        with profiler(conn, proc_num == 0, phase):
             load_phase_body(phase)
 
     def load_phase_body(phase):
@@ -505,7 +499,7 @@ def load_events(proc_num):
                     'far at %s triples per commit (%f commits/sec, %f triples/'
                     'sec over last %d commits), %d loading errors.', (
                     proc_num, datetime.now(), count, tpc,
-                    status_size/nonzero(end_time - start_time),
+                    old_div(status_size,nonzero(end_time - start_time)),
                     tpc*status_size/nonzero(end_time - start_time),
                     status_size,
                     errors))
@@ -519,7 +513,7 @@ def load_events(proc_num):
                     proc_num, datetime.now()))
                 errors += 1
                 traceback.print_exc()
-            
+
         trace('loader(%d) [%s]: Loading done - %d triples at %s triples '
             'per commit, %d loading errors.', (proc_num, datetime.now(),
             count, OPT.EVENT_SIZE*params.events_in_commit, errors))
@@ -556,7 +550,7 @@ def load_events(proc_num):
 
         trace('loader(%d) [%s]: Found %d events (%d triples) to delete.', (
             proc_num, datetime.now(), events, events * OPT.EVENT_SIZE))
-        
+
         loadq.task_done()
 
     def get_phase(expected):
@@ -574,11 +568,11 @@ def load_events(proc_num):
     with connect().session(True, max(3600, (OPT.QUERY_TIME+1)*60)) as conn:
         phase = get_phase([LoadPhase.start])
         loadq.task_done()
-        
+
         if OPT.PHASE <= LoadPhase.baseline:
             phase = get_phase([LoadPhase.baseline])
             load_phase(phase)
-        
+
         if OPT.PHASE <= LoadPhase.bulk:
             phase = get_phase([LoadPhase.bulk])
             load_phase(phase)
@@ -599,9 +593,9 @@ def load_events(proc_num):
     conn.close()
 
 def query_events(proc_num, resultq, lang):
-    if OPT.SEED:    
+    if OPT.SEED:
         random.seed(OPT.SEED+983*proc_num)
-   
+
     conn = connect()
     conn.openSession(True)
 
@@ -654,7 +648,7 @@ def query_events(proc_num, resultq, lang):
                  GRAPH %s {
                     ?event ?pred ?obj }
                 }""" % (customer, timestamp, end_nt, start_nt, customer)
-    
+
         try:
             # Actually pull the full results to the client, then just count them
             count = len(conn.prepareTupleQuery(language, queryString
@@ -691,7 +685,7 @@ def query_events(proc_num, resultq, lang):
             if OPT.QUERY_SIZE == 0:
                 # timed query. Look for stop task and stop.
                 stop = dequeue()
-            elif queries >= OPT.QUERY_SIZE / OPT.QUERY_WORKERS:
+            elif queries >= old_div(OPT.QUERY_SIZE, OPT.QUERY_WORKERS):
                 # iterative query. After # iterations, pull stop task from queue.
                 stop = dequeue()
 
@@ -702,16 +696,16 @@ def query_events(proc_num, resultq, lang):
                     'returned for %d queries in %f seconds (%f queries/second, '
                     '%f triples per query), %d queries aborted.', (proc_num,
                     datetime.now(), sub_count, status_size,
-                    end_time-start_time, status_size/nonzero(end_time-start_time),
-                    sub_count/status_size, restarts))
+                    end_time-start_time, old_div(status_size,nonzero(end_time-start_time)),
+                    old_div(sub_count,status_size), restarts))
                 start_time = end_time
                 sub_count = count
-                
+
         the_time = nonzero(time.time() - the_time)
         trace('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
             'queries in %f seconds (%f queries/second, %f triples per query), '
             ' %d queries aborted.', (proc_num, datetime.now(), language,
-            count, queries, the_time, queries/the_time, count/queries, restarts))
+            count, queries, the_time, old_div(queries,the_time), old_div(count,queries), restarts))
         resultq.put((queries, count, the_time))
 
     with profiler(conn, proc_num in [0, 1], LoadPhase.sparqlQuery):
@@ -745,13 +739,13 @@ from franz.miniclient.request import nullRequest
 def force_checkpoint(conn):
     trace('%s [%s]: Phase 0 Begin: Forced Checkpoint', (PROG, datetime.now()))
     nullRequest(conn.mini_repository, "POST", "/force-checkpoint")
-    trace('%s [%s]: Phase 0 End: Forced Checkpoint.', (PROG, datetime.now()))    
+    trace('%s [%s]: Phase 0 End: Forced Checkpoint.', (PROG, datetime.now()))
 
 def force_merge(conn):
     trace('%s [%s]: Phase 0 Begin: Forced Merge', (PROG, datetime.now()))
     conn.optimizeIndices(1, True);
     nullRequest(conn.mini_repository, "POST", "/ensure-db-idle")
-    trace('%s [%s]: Phase 0 End: Forced Merge.', (PROG, datetime.now()))    
+    trace('%s [%s]: Phase 0 End: Forced Merge.', (PROG, datetime.now()))
 
 def handle_debug():
     if not OPT.DEBUG:
@@ -765,7 +759,7 @@ def handle_debug():
         try:
             return handle_debug.makeRequest(obj, method, url, body, accept, contentType, callback, errCallback)
         except pycurl.error:
-            print >> sys.stderr, "Process id:", os.getpid(), url
+            print("Process id:", os.getpid(), url, file=sys.stderr)
             traceback.print_exc()
             subprocess.call(['killall', '-STOP', 'agraph', 'python'])
             raise
@@ -789,12 +783,12 @@ def main():
     # Initialize the Phase Parameters
     PHASE_PARAMS = [
         None,
-        PhaseParameters(BaselineRange, 1, OPT.SIZE/10),
-        PhaseParameters(BulkRange, OPT.BULK_EVENTS, (OPT.SIZE*9)/10),
-        PhaseParameters(SmallCommitsRange, 1, OPT.SIZE/10),
+        PhaseParameters(BaselineRange, 1, old_div(OPT.SIZE,10)),
+        PhaseParameters(BulkRange, OPT.BULK_EVENTS, old_div((OPT.SIZE*9),10)),
+        PhaseParameters(SmallCommitsRange, 1, old_div(OPT.SIZE,10)),
         None, None,
-        PhaseParameters(DeleteRangeOne, OPT.BULK_EVENTS, OPT.SIZE/10),
-        PhaseParameters(DeleteRangeTwo, OPT.BULK_EVENTS, OPT.SIZE/10)]
+        PhaseParameters(DeleteRangeOne, OPT.BULK_EVENTS, old_div(OPT.SIZE,10)),
+        PhaseParameters(DeleteRangeTwo, OPT.BULK_EVENTS, old_div(OPT.SIZE,10))]
 
     # Renew/Open the repository
     trace('%s [%s]: Phase 0 Begin: %s %s:%s.', (PROG, datetime.now(),
@@ -811,14 +805,14 @@ def main():
     trace('%s [%s]: Testing with %d loading, %d querying processes. '
         'Repository contains %d triples.', (
         PROG, datetime.now(), OPT.LOAD_WORKERS, OPT.QUERY_WORKERS, triples))
-    
+
     if (OPT.REG_ENC_ID):
         conn.registerEncodedIdPrefixes(
             [(OPT.REG_PREFIX + name, '[0-9]{1,12}')
                 for name in ['Customer', 'Account', 'PaymentTarget',
                     'DepositDesignation', 'BusinessUnit', 'Product',
                     'Pad']])
-    
+
     # Create the work queue
     loadq = JoinableQueue(OPT.LOAD_WORKERS)
 
@@ -849,11 +843,11 @@ def main():
         triples_end = conn.size()
         triples = triples_end - triples_start
         phase_time = nonzero(time.time() - phase_time)
-        commits = abs(triples/(params.events_in_commit*OPT.EVENT_SIZE))
+        commits = abs(old_div(triples,(params.events_in_commit*OPT.EVENT_SIZE)))
         trace('%s [%s]: Phase %d End: %d total triples processed in %f seconds '
             '(%f triples/second, %f commits/second). '
             'Store contains %d triples.', (PROG, datetime.now(), phase,
-                triples, phase_time, triples/phase_time, commits/phase_time,
+                triples, phase_time, old_div(triples,phase_time), old_div(commits,phase_time),
                 triples_end))
 
     def start_query_workers(kind):
@@ -888,8 +882,8 @@ def main():
         trace('%s [%s]: Phase %d End: %d total triples returned over %d queries '
             'in %f seconds (%f triples/second, %f queries/second, '
             '%f triples/query). ', (PROG, datetime.now(), phase, triples,
-            queries, phase_time, triples/phase_time, queries/phase_time,
-            triples/queries))
+            queries, phase_time, old_div(triples,phase_time), old_div(queries,phase_time),
+            old_div(triples,queries)))
 
     phase1_time = 0
     phase2_time = 0
@@ -993,7 +987,7 @@ def main():
             phase6_start = time.time()
             load_phase(LoadPhase.delete_one)
             phase6_time = time.time() - phase6_start
-    
+
     # Display the results
     # We do not want the total_time to include the synchronization
     # times between phases.
@@ -1072,7 +1066,7 @@ def main():
                             OPT.EVENT_SIZE, SmallCommitsRange.start,
                             SmallCommitsRange.end))
                         load_phase(LoadPhase.small_commits)
-                        print "Load_Phase small commits done."
+                        print("Load_Phase small commits done.")
                         trace('%s [%s]: Phase 7: Shrink store by 30 days '
                             '(%s-%s).', (PROG, datetime.now(),
                             DeleteRangeOne.start, DeleteRangeTwo.end))
@@ -1126,7 +1120,7 @@ if __name__ == '__main__':
         TYPE_CHECKER = copy(Option.TYPE_CHECKER)
         TYPE_CHECKER['human_size'] = check_human_size
         TYPE_CHECKER['profiler'] = check_profiler
-    
+
     parser = OptionParser(option_class=EventsOption, usage=usage, version="%prog 1.0")
     parser.add_option('-s', '--size', default=Defaults.SIZE,
         type='human_size', dest='SIZE', metavar='SIZE',

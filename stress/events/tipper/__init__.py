@@ -29,6 +29,8 @@ import sys
 import tempfile
 import time
 
+from future.utils import iteritems
+
 try:
     import threading
 except ImportError:
@@ -116,7 +118,7 @@ Process ID: %s
 
             with open(os.path.join(tempfile.gettempdir(), fn), 'w') as f:
                 f.write(header)
-                for ident, frame in frames.items():
+                for ident, frame in iteritems(frames):
                     if ident == threadid:
                         frame = frame.f_back
                     f.write('\nTraceback (thread %s):\n\n' % ident)

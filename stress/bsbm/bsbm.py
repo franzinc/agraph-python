@@ -1,7 +1,14 @@
 #!/usr/bin/env python
-import base64, httplib, locale, os, subprocess, sys, urllib
 
-class Defaults:
+from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
+from builtins import object
+import base64, http.client, locale, os, subprocess, sys, urllib.request, urllib.parse, urllib.error
+
+class Defaults(object):
     # Goal store size
     SIZE = (10**8)
 
@@ -31,7 +38,7 @@ PROG = sys.argv[0]
 def trace(formatter, *values):
     if values:
         formatter = formatter % values
-    print formatter
+    print(formatter)
     sys.stdout.flush()
 
 headers = {'Content-type': 'application/x-www-form-urlencoded',
@@ -49,7 +56,7 @@ def cpus():
 
 # Use the administrative user to ensure there is an anonymous user
 def ensure_anonymous(name):
-    conn = httplib.HTTPConnection(AG_HOST, AG_PORT)
+    conn = http.client.HTTPConnection(AG_HOST, AG_PORT)
     conn.request('GET', '/users', headers=headers)
     users = conn.getresponse().read()
 
@@ -92,7 +99,7 @@ WHERE {
 def setup_store(name):
     # Create the store and add the text index
     query6 = QUERY6_ORIG
-    conn = httplib.HTTPConnection(AG_HOST, AG_PORT)
+    conn = http.client.HTTPConnection(AG_HOST, AG_PORT)
     conn.request('PUT', '/repositories/%s' % name, headers=headers)
     trace('Create store: %s', conn.getresponse().read())
 
@@ -132,7 +139,7 @@ def run_cmd(cmd):
             trace("Child was terminated by signal %d", -retcode)
         else:
             trace("Child returned %d", retcode)
-    except OSError, e:
+    except OSError as e:
         trace("Execution failed: %s", e)
 
 def split_file(name, pattern, lines):
@@ -144,7 +151,7 @@ def split_file(name, pattern, lines):
         if line_num == 0:
             output = open(pattern % file_num, 'w')
             file_num += 1
-        print >>output, line,
+        print(line, end=' ', file=output)
         line_num += 1
         if line_num == lines:
             output.close()
@@ -155,8 +162,8 @@ def split_file(name, pattern, lines):
         output.close()
     orig.close()
 
-def store_exists(name): 
-    conn = httplib.HTTPConnection(AG_HOST, AG_PORT)
+def store_exists(name):
+    conn = http.client.HTTPConnection(AG_HOST, AG_PORT)
     conn.request('GET', '/repositories', headers=headers)
     stores = conn.getresponse().read()
     conn.close()
@@ -165,22 +172,22 @@ def store_exists(name):
 
 def create_store(triples, name):
     # -pc == product count (91 ==> 50k triples ? more like 37k)
-    # -fn == filename 
+    # -fn == filename
     # -fc == add extra rdf:type statements
     # -dir == output for test data
 
     # Check to see if store already exists
     if store_exists(name) and OPT.OPEN:
-        print 'Using existing store %s.' % name
+        print('Using existing store %s.' % name)
         return
 
     prod_count = triples_to_product_count(triples)
     source = './dataset-%s.nt' % prod_count
 
     if os.path.exists(source):
-        print 'Using existing dataset file %s.' % source
+        print('Using existing dataset file %s.' % source)
     else:
-        print 'Generating dataset file %s.' % source
+        print('Generating dataset file %s.' % source)
         cmd = ('java -Xms512m -Xmx512m '
 	        '-cp bin:lib/ssj.jar benchmark.generator.Generator '
 	        '-pc %d '
@@ -190,8 +197,8 @@ def create_store(triples, name):
 	        '-dir test-data-%d' % (prod_count, prod_count, prod_count))
         run_cmd(cmd)
 
-    print 'Splitting source file...'
-    split_file(source, 'bsbm-load-%03d.nt', triples/(cpus()-1 or 1))
+    print('Splitting source file...')
+    split_file(source, 'bsbm-load-%03d.nt', old_div(triples,(cpus()-1 or 1)))
     setup_store(name)
     run_cmd('agload -i ntriples --port %d %s bsbm-load-\*' % (AG_PORT, name))
     run_cmd('rm -f bsbm-load-*.nt')
@@ -212,7 +219,7 @@ def run_queries(triples, name, warmups=1, runs=1, clients=1, seed=0, reduced=Fal
 
     ignoreQueries = open('ignoreQueries.txt', 'w')
     if reduced:
-        ignoreQueries.write('5\n6\n') 
+        ignoreQueries.write('5\n6\n')
     ignoreQueries.close()
     run_cmd(cmd)
 
@@ -220,7 +227,7 @@ def main():
     # Open a connection on the shared port
     name = 'bsbm-%s' % ORIG_SIZE_ARG
     size = OPT.SIZE
-    print 'cd ./bsbmtools'
+    print('cd ./bsbmtools')
     os.chdir('./bsbmtools')
     create_store(size, name)
     ensure_anonymous(name)
@@ -267,7 +274,7 @@ if __name__ == '__main__':
         TYPES = Option.TYPES + ('human_size','profiler')
         TYPE_CHECKER = copy(Option.TYPE_CHECKER)
         TYPE_CHECKER['human_size'] = check_human_size
-    
+
     parser = OptionParser(option_class=BSBMOptions, usage=usage, version="%prog 1.0")
     parser.add_option('-s', '--size', default=Defaults.SIZE,
         type='human_size', dest='SIZE', metavar='SIZE',

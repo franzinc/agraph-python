@@ -1,5 +1,9 @@
-src3/.noseids
+.tox/
+env/
+toxenv/
+src/.noseids
 
+*.egg-info
 *.bak
 *.pyc
 /DIST
@@ -9,4 +13,3 @@ build.out
 certs.db/
 
 stress/events/phase*
-stress3/events/phase*
