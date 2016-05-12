@@ -177,7 +177,7 @@ implementation)! </p>
       <td> Checks whether this Repository is writable, i.e. if the data contained in this store can be changed. </td>
   </tr>
   <tr>
-    <td valign="top">registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None)</td>
+    <td valign="top"><a name="registerDatatypeMapping">registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None)</td>
       <td><p>Register an inlined datatype. <em>Predicate</em> is the URI of predicate used in the triple store. <em>Datatype</em> may be one of: XMLSchema.INT, XMLSchema.LONG, XMLSchema.FLOAT, XMLSchema.DATE, and XMLSchema.DATETIME.&nbsp; <em>NativeType</em> may be &quot;int&quot;, &quot;datetime&quot;, or &quot;float&quot;.</p>
               <p> You must supply <em>nativeType</em> and either <em>predicate</em> or <em>datatype</em>. </p>
               <p>If <em>predicate</em>, then object arguments to triples with that predicate will use an inlined encoding of type <em>nativeType</em> in their internal representation. If <em>datatype</em>, then typed literal objects with a datatype matching <em>datatype</em> will use an inlined encoding of type <em>nativeType</em>. (Duplicated in the <a href="#RepositoryConnection Class">RepositoryConnection</a> class for Python user convenience.) </p></td>
