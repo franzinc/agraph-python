@@ -12,8 +12,16 @@ from setuptools import setup
 import sys
 import subprocess
 
-version = subprocess.Popen('../agraph/lisp/build-tools/agversion.sh', 
-                           stdout=subprocess.PIPE).communicate()[0]
+version = None
+try:
+    with open('VERSION', 'rb') as version_file:
+        version = version_file.read().strip()
+except IOError:
+    pass
+
+if version is None:
+    version = subprocess.Popen('../agraph/lisp/build-tools/agversion.sh', 
+                               stdout=subprocess.PIPE).communicate()[0]
 
 install_requires = [
     'future>=0.15.2,<1.0',
