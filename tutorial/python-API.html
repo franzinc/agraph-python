@@ -43,7 +43,7 @@ creating, querying and maintaining RDF data, and for managing the stored triples
 </ul>
 <h2 id="AllegroGraphServer Class">AllegroGraphServer Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>The AllegroGraphServer  object represents a remote AllegroGraph server on the network.&nbsp; It is used to inventory and access the catalogs of that server.</p>
-<p> Source: /AllegroGraphDirectory/src2/franz/openrdf/sail/allegrographserver.py.</p>
+<p> Source: /AllegroGraphDirectory/src/franz/openrdf/sail/allegrographserver.py.</p>
 <h3>Constructor</h3>
 <p>AllegroGraphServer(self, host, port=10035,user=None,password=None)</p>
 <ul>
@@ -100,7 +100,7 @@ to create the spec string.</td>
 </table>
 <h2 id="Catalog Class">Catalog Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>A Catalog object is a container for multiple repositories.&nbsp; </p>
-<p>Source: /AllegroGraphDirectory/src2/franz/openrdf/sail/allegrographserver.py.</p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/sail/allegrographserver.py.</p>
 <h3>Constructor</h3>
 <p>Invoke the Catalog constructor using the <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.openCatalog() method.</p>
 <pre>    catalog = server.openCatalog('scratch') </pre>
@@ -143,7 +143,7 @@ not support multiple concurrent connections.</p>
 and that it should be shut down before it is discarded/garbage collected.
 Forgetting the latter can result in loss of data (depending on the Repository
 implementation)! </p>
-<p>Source: /AllegroGraphDirectory/src2/franz/openrdf/repository/repository.py.</p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/repository/repository.py.</p>
 <h3>Constructor</h3>
 <p>Invoke the Repository constructor using the <a href="#AllegroGraphServer Class">AllegroGraphServer</a>.getRepository() method.</p>
 <pre>    myRepository = catalog.getRepository(&quot;agraph_test&quot;, Repository.ACCESS)</pre>
@@ -192,7 +192,7 @@ implementation)! </p>
 <p>The RepositoryConnection class is the main interface for updating data in and performing queries on a <a href="#Repository Class">Repository</a>. By default, a RespositoryConnection is in autoCommit mode, meaning  that each operation corresponds to a single transaction on the underlying triple store. autoCommit can be switched off, in which case it is up to the user to  handle transaction commit/rollback. Note that care should be taken to always  properly close a RepositoryConnection after one is finished with it, to free  up resources and avoid unnecessary locks.</p>
 <p>Note that concurrent access to the same connection object is explicitly forbidden. The client must perform its own synchronization to ensure non-concurrent access.</p>
 <p>Several methods take a <em>vararg</em> argument that optionally specifies a (set of)  context(s) on which the method should operate. (A context is the URI of a subgraph.) Note that a <em>vararg</em> parameter  is optional, it can be completely left out of the method call, in which case  a method either operates on a provided statement's context (if one of the  method parameters is a statement or collection of statements), or operates on  the repository as a whole, completely ignoring context. A <em>vararg</em> argument may  also be null (cast to Resource) meaning that the method operates on those  statements which have no associated context only.</p>
-<p>Source: /AllegroGraphDirectory/src2/franz/openrdf/repository/repositoryconnection.py.</p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/repository/repositoryconnection.py.</p>
 <h3>Constructor</h3>
 <p>RepositoryConnection(self, repository)</p>
 <p>where <em>repository</em> is the <a href="#Repository Class">Repository</a> object that created this RepositoryConnection. </p>
@@ -602,7 +602,7 @@ non-instantiable. It is an abstract class from which the three query subclasses 
     supported query languages (for example SPARQL). It allows one to 
     predefine bindings in the query to be able to reuse the same query with 
     different bindings. &nbsp; </p>
-<p>Source: /AllegroGraphDirectory/src2/franz/openrdf/query/query.py.</p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/query/query.py.</p>
 <h3>Constructor</h3>
 <p>The best practice is to allow the <a href="#RepositoryConnection Class">RepositoryConnection</a> object to create an instance of one of the Query subclasses (<a href="#Subclass TupleQuery">TupleQuery</a>, <a href="#Subclass GraphQuery">GraphQuery</a>, <a href="#Subclass BooleanQuery">BooleanQuery</a>). There is no reason for the Python application programmer to create a Query object directly.&nbsp; </p>
 <pre>   tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
@@ -706,7 +706,7 @@ or expressions in a 'select' clause (or its equivalent).</td>
   By default, a RepositoryResult is not necessarily a (mathematical) set: it  may contain duplicate objects. Duplicate filtering can be  switched on,  but this should not be used lightly as the filtering mechanism is potentially  memory-intensive.<br>
   <br>
   A RepositoryResult needs to be closed after use to free up  any resources (open connections, read locks, etc.) it has on the underlying  repository.</p>
-<p>Source: /AllegroGraphDirectory/src2/franz/openrdf/repository/repositoryresult.py.</p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/repository/repositoryresult.py.</p>
 <h3>Constructor</h3>
 <p>Best practice is to allow a querySubclass.evaluate() method to create and return the RepositoryResult object. There is no reason for the Python application programmer to create a RepositoryResult object directly.&nbsp; </p>
 <pre>        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
@@ -751,7 +751,7 @@ operation.</td>
 
 
 <p>A Statement is a client-side triple.&nbsp; It encapsulates the subject, predicate, object and context (subgraph) values of a single triple and makes them available. </p>
-<p>Source: /AllegroGraphDirectory/src2/franz/openrdf/model/statement.py.</p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/model/statement.py.</p>
 <h3>Constructor</h3>
 <p>Statement(self, subject, predicate, object, context=None)</p>
 <ul>
@@ -786,7 +786,7 @@ operation.</td>
 <p>&nbsp;</p>
 <h2 id="ValueFactory Class">ValueFactory Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>A ValueFactory is a factory for creating URIs, blank nodes, literals and <a href="#Statement Class">Statement</a>s.&nbsp; In the AllegroGraph Python interface, the ValueFactory class would be regarded as obsolete.&nbsp; Its functions have been subsumed by the expanded capability of the RepositoryConnection class. It is documented here for the convenience of the person who is porting an application from Aduma Sesame. &nbsp; </p>
-<p>Source: /AllegroGraphDirectory/src2/franz/openrdf/model/valuefactory.py.</p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/model/valuefactory.py.</p>
 <h3>Constructor</h3>
 <p>ValueFactory(self, store)</p>
 <ul>

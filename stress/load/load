@@ -46,7 +46,7 @@ from Queue import Empty
 from datetime import datetime
 import locale, os, sys, time, traceback
 
-sys.path.append(os.path.join(os.getcwd(), '../../src2'))
+sys.path.append(os.path.join(os.getcwd(), '../../src'))
 
 from franz.openrdf.sail import AllegroGraphServer
 from franz.openrdf.repository import Repository
