@@ -129,6 +129,10 @@ class RepositoryResult(object):  ## inherits IterationWrapper
     def __len__(self):
         return len(self.string_tuples)
 
+    # Python-future breaks truth testing - length is not checked...
+    def __bool__(self):
+        return len(self) > 0
+    
     def rowCount(self):
         return len(self)
     
