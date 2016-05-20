@@ -5,21 +5,22 @@
 # which accompanies this distribution, and is available at
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
-from __future__ import absolute_import, with_statement
-from __future__ import division
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, unicode_literals, with_statement
 
-from future.utils import python_2_unicode_compatible
+import sys
+
 from past.utils import old_div
 
-from future.standard_library import hooks
-with hooks():
-    import urllib.request, urllib.parse, urllib.error
+if sys.version_info[0] > 2:
+    from urllib.parse import quote
+else:
+    from urllib import quote
 
 import math, threading
 
 from contextlib import contextmanager
 from .request import *
+from franz.openrdf.util.strings import to_native_string
 
 class Service(object):
     def __init__(self, url, user=None, password=None, cainfo=None, sslcert=None,
@@ -49,17 +50,17 @@ class Catalog(Service):
 
     def createRepository(self, name, indices=None):
         """Ask the server to create a new repository."""
-        nullRequest(self, "PUT", "/repositories/" + urllib.parse.quote(name) + "?" +
+        nullRequest(self, "PUT", "/repositories/" + quote(name) + "?" +
             urlenc(index=indices))
         return self.getRepository(name)
 
     def deleteRepository(self, name):
         """Delete a repository in this catalog."""
-        nullRequest(self, "DELETE", "/repositories/" + urllib.parse.quote(name))
+        nullRequest(self, "DELETE", "/repositories/" + quote(name))
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
-        return self._instanceFromUrl(Repository, self.url + "/repositories/" + urllib.parse.quote(name))
+        return self._instanceFromUrl(Repository, to_native_string(self.url) + "/repositories/" + quote(name))
 
 
 class Client(Catalog):
@@ -76,9 +77,11 @@ class Client(Catalog):
             return self.openCatalogByName(uriOrName)
 
     def openCatalogByName(self, name=None):
-        url = self.url
-        if name and name != "~":
-            url += "/catalogs/" + urllib.parse.quote(name)
+        url = to_native_string(self.url)
+        if name:
+            name = to_native_string(name)
+            if name != "~":
+                url += "/catalogs/" + quote(name)
         return self.openCatalog(url)
 
     def getInitfile(self):
@@ -97,14 +100,14 @@ class Client(Catalog):
         return jsonRequest(self, "GET", "/scripts")
 
     def addScript(self, module, code):
-        nullRequest(self, "PUT", "/scripts/" + module,
+        nullRequest(self, "PUT", "/scripts/" + to_native_string(module),
             body=code)
 
     def getScript(self, module):
-        return jsonRequest(self, "GET", "/scripts/" + module)
+        return jsonRequest(self, "GET", "/scripts/" + to_native_string(module))
 
     def deleteScript(self, module):
-        nullRequest(self, "DELETE", "/scripts/" + module)
+        nullRequest(self, "DELETE", "/scripts/" + to_native_string(module))
 
     def openSession(self, spec, autocommit=False, lifetime=None, loadinitfile=False):
         url = jsonRequest(self, "POST", "/session?" +
@@ -119,99 +122,99 @@ class Client(Catalog):
 
     def addUser(self, name, password=None):
         assert password is not None or name == "anonymous"
-        nullRequest(self, "PUT", "/users/" + urllib.parse.quote(name) + "?" + urlenc(password=password))
+        nullRequest(self, "PUT", "/users/" + quote(name) + "?" + urlenc(password=password))
 
     def deleteUser(self, name):
-        nullRequest(self, "DELETE", "/users/" + urllib.parse.quote(name))
+        nullRequest(self, "DELETE", "/users/" + quote(name))
 
     def changeUserPassword(self, name, password):
-        nullRequest(self, "POST", "/users/" + urllib.parse.quote(name) + "/password", password)
+        nullRequest(self, "POST", "/users/" + quote(name) + "/password", password)
 
     def listUserAccess(self, name):
-        return jsonRequest(self, "GET", "/users/" + urllib.parse.quote(name) + "/access")
+        return jsonRequest(self, "GET", "/users/" + quote(name) + "/access")
 
     def addUserAccess(self, name, read, write, catalog, repository):
-        nullRequest(self, "PUT", "/users/" + urllib.parse.quote(name) + "/access?" +
+        nullRequest(self, "PUT", "/users/" + quote(name) + "/access?" +
             urlenc(read=read, write=write, catalog=catalog, repository=repository))
 
     def deleteUserAccess(self, name, read, write, catalog, repository):
-        nullRequest(self, "DELETE", "/users/" + urllib.parse.quote(name) + "/access?" +
+        nullRequest(self, "DELETE", "/users/" + quote(name) + "/access?" +
             urlenc(read=read, write=write, catalog=catalog, repository=repository))
 
     def listUserEffectiveAccess(self, name):
-        return jsonRequest(self, "GET", "/users/" + urllib.parse.quote(name) + "/effectiveAccess")
+        return jsonRequest(self, "GET", "/users/" + quote(name) + "/effectiveAccess")
 
 
     def listUserPermissions(self, name):
-        return jsonRequest(self, "GET", "/users/" + urllib.parse.quote(name) + "/permissions")
+        return jsonRequest(self, "GET", "/users/" + quote(name) + "/permissions")
 
     def listUserEffectivePermissions(self, name):
-        return jsonRequest(self, "GET", "/users/" + urllib.parse.quote(name) + "/effectivePermissions")
+        return jsonRequest(self, "GET", "/users/" + quote(name) + "/effectivePermissions")
 
     def addUserPermission(self, name, _type):
-        nullRequest(self, "PUT", "/users/" + urllib.parse.quote(name) + "/permissions/" + _type)
+        nullRequest(self, "PUT", "/users/" + quote(name) + "/permissions/" + _type)
 
     def deleteUserPermission(self, name, _type):
-        nullRequest(self, "DELETE", "/users/" + urllib.parse.quote(name) + "/permissions/" + _type)
+        nullRequest(self, "DELETE", "/users/" + quote(name) + "/permissions/" + _type)
 
     def listRoles(self):
         return jsonRequest(self, "GET", "/roles")
 
     def addRole(self, role):
-        nullRequest(self, "PUT", "/roles/" + urllib.parse.quote(role))
+        nullRequest(self, "PUT", "/roles/" + quote(role))
 
     def deleteRole(self, role):
-        nullRequest(self, "DELETE", "/roles/" + urllib.parse.quote(role))
+        nullRequest(self, "DELETE", "/roles/" + quote(role))
 
     def listRolePermissions(self, role):
-        return jsonRequest(self, "GET", "/roles/" + urllib.parse.quote(role) + "/permissions")
+        return jsonRequest(self, "GET", "/roles/" + quote(role) + "/permissions")
 
     def addRolePermission(self, role, _type):
-        nullRequest(self, "PUT", "/roles/" + urllib.parse.quote(role) + "/permissions/" + _type)
+        nullRequest(self, "PUT", "/roles/" + quote(role) + "/permissions/" + _type)
 
     def deleteRolePermission(self, role, _type):
-        nullRequest(self, "DELETE", "/roles/" + urllib.parse.quote(role) + "/permissions/" + _type)
+        nullRequest(self, "DELETE", "/roles/" + quote(role) + "/permissions/" + _type)
 
     def listRoleAccess(self, role):
-        return jsonRequest(self, "GET", "/roles/" + urllib.parse.quote(role) + "/access")
+        return jsonRequest(self, "GET", "/roles/" + quote(role) + "/access")
 
     def addRoleAccess(self, role, read, write, catalog, repository):
-        nullRequest(self, "PUT", "/roles/" + urllib.parse.quote(role) + "/access?" +
+        nullRequest(self, "PUT", "/roles/" + quote(role) + "/access?" +
             urlenc(read=read, write=write, catalog=catalog, repository=repository))
 
     def deleteRoleAccess(self, role, read, write, catalog, repository):
-        nullRequest(self, "DELETE", "/roles/" + urllib.parse.quote(role) + "/access?" +
+        nullRequest(self, "DELETE", "/roles/" + quote(role) + "/access?" +
             urlenc(read=read, write=write, catalog=catalog, repository=repository))
 
     def listUserRoles(self, name):
-        return jsonRequest(self, "GET", "/users/" + urllib.parse.quote(name) + "/roles")
+        return jsonRequest(self, "GET", "/users/" + quote(name) + "/roles")
 
     def addUserRole(self, name, role):
-        nullRequest(self, "PUT", "/users/" + urllib.parse.quote(name) + "/roles/" + urllib.parse.quote(role))
+        nullRequest(self, "PUT", "/users/" + quote(name) + "/roles/" + quote(role))
 
     def deleteUserRole(self, name, role):
-        nullRequest(self, "DELETE", "/users/" + urllib.parse.quote(name) + "/roles/" + urllib.parse.quote(role))
+        nullRequest(self, "DELETE", "/users/" + quote(name) + "/roles/" + quote(role))
 
     def listUserSecurityFilters(self, name, _type):
-        return jsonRequest(self, "GET", "/users/" + urllib.parse.quote(name) + '/security-filters/' + _type)
+        return jsonRequest(self, "GET", "/users/" + quote(name) + '/security-filters/' + to_native_string(_type))
 
     def addUserSecurityFilter(self, name, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "POST", "/users/" + urllib.parse.quote(name) + "/security-filters/" + _type + "?" +
+        nullRequest(self, "POST", "/users/" + quote(name) + "/security-filters/" + to_native_string(_type) + "?" +
             urlenc(s=s, p=p, o=o, g=g))
 
     def deleteUserSecurityFilter(self, name, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "DELETE", "/users/" + urllib.parse.quote(name) + "/security-filters/" + _type + "?" +
+        nullRequest(self, "DELETE", "/users/" + quote(name) + "/security-filters/" + to_native_string(_type) + "?" +
             urlenc(s=s, p=p, o=o, g=g))
 
     def listRoleSecurityFilters(self, role, _type):
-        return jsonRequest(self, "GET", "/roles/" + urllib.parse.quote(role) + '/security-filters/' + _type)
+        return jsonRequest(self, "GET", "/roles/" + quote(role) + '/security-filters/' + to_native_string(_type))
 
     def addRoleSecurityFilter(self, role, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "POST", "/roles/" + urllib.parse.quote(role) + "/security-filters/" + _type + "?" +
+        nullRequest(self, "POST", "/roles/" + quote(role) + "/security-filters/" + to_native_string(_type) + "?" +
             urlenc(s=s, p=p, o=o, g=g))
 
     def deleteRoleSecurityFilter(self, role, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "DELETE", "/roles/" + urllib.parse.quote(role) + "/security-filters/" + _type + "?" +
+        nullRequest(self, "DELETE", "/roles/" + quote(role) + "/security-filters/" + to_native_string(_type) + "?" +
             urlenc(s=s, p=p, o=o, g=g))
 
 
@@ -241,7 +244,7 @@ class Repository(Service):
         if analyze:
             accept="text/plain"
         if bindings is not None:
-            bindings = "".join(["&$" + urllib.parse.quote(a) + "=" + urllib.parse.quote(b.encode("utf-8")) for a, b in list(bindings.items())])
+            bindings = "".join(["&$" + quote(a) + "=" + quote(b.encode("utf-8")) for a, b in list(bindings.items())])
         return jsonRequest(self, "POST" if update else "GET", self.url,
                    urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
                        planner=planner, checkVariables=checkVariables,
@@ -344,7 +347,7 @@ class Repository(Service):
 
     def loadData(self, data, format, baseURI=None, context=None, commitEvery=None):
         nullRequest(self, "POST", "/statements?" + urlenc(context=context, baseURI=baseURI, commit=commitEvery),
-                    data.encode("utf-8"), contentType=self.checkFormat(format))
+                    data, contentType=self.checkFormat(format))
 
     def loadFile(self, file, format, baseURI=None, context=None, serverSide=False, commitEvery=None):
         mime = self.checkFormat(format)
@@ -382,7 +385,7 @@ class Repository(Service):
         """Returns a dictionary with fields \"predicates\",
         \"indexLiterals\", \"indexResources\", \"indexFields\",
         \"minimumWordSize\", \"stopWords\", and \"wordFilters\"."""
-        return jsonRequest(self, "GET", "/freetext/indices/" + urllib.parse.quote(index))
+        return jsonRequest(self, "GET", "/freetext/indices/" + quote(index))
 
     def createFreeTextIndex(self, index, predicates=None, indexLiterals=None, indexResources=None,
                             indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
@@ -405,7 +408,7 @@ class Repository(Service):
         # value.
         if stopWords == []: stopWords = ""
         if indexFields == []: indexFields = ""
-        nullRequest(self, "PUT", "/freetext/indices/" + urllib.parse.quote(index),
+        nullRequest(self, "PUT", "/freetext/indices/" + quote(index),
                     urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
                            indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
                            indexResources=indexResources, indexField=indexFields,
@@ -425,7 +428,7 @@ class Repository(Service):
         if predicates == []: predicates = ""
         if indexFields == []: indexFields = ""
         if wordFilters == []: wordFilters = ""
-        nullRequest(self, "POST", "/freetext/indices/" + urllib.parse.quote(index),
+        nullRequest(self, "POST", "/freetext/indices/" + quote(index),
                     urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
                            indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
                            indexResources=indexResources, indexField=indexFields,
@@ -435,7 +438,7 @@ class Repository(Service):
 
     def deleteFreeTextIndex(self, index):
         """Delete the named free-text index."""
-        nullRequest(self, "DELETE", "/freetext/indices/" + urllib.parse.quote(index))
+        nullRequest(self, "DELETE", "/freetext/indices/" + quote(index))
 
     def listFreeTextPredicates(self):
         """List the predicates that are used for free-text indexing."""
@@ -454,17 +457,17 @@ class Repository(Service):
         nullRequest(self, "DELETE", "/namespaces?" + urlenc(reset=reset))
 
     def addNamespace(self, prefix, uri):
-        nullRequest(self, "PUT", "/namespaces/" + urllib.parse.quote(prefix),
+        nullRequest(self, "PUT", "/namespaces/" + quote(prefix),
                     uri, contentType="text/plain")
 
     def deleteNamespace(self, prefix):
-        nullRequest(self, "DELETE", "/namespaces/" + urllib.parse.quote(prefix))
+        nullRequest(self, "DELETE", "/namespaces/" + quote(prefix))
 
     def listNamespaces(self):
         return jsonRequest(self, "GET", "/namespaces")
 
     def getNamespace(self, prefix):
-        return jsonRequest(self, "GET", "/namespaces/" + urllib.parse.quote(prefix))
+        return jsonRequest(self, "GET", "/namespaces/" + quote(prefix))
 
     def listMappedTypes(self):
         return jsonRequest(self, "GET", "/mapping/type")
@@ -492,10 +495,10 @@ class Repository(Service):
         return jsonRequest(self, "GET", "/indices?listValid=true")
 
     def addIndex(self, _type):
-        nullRequest(self, "PUT", "/indices/" + urllib.parse.quote(_type))
+        nullRequest(self, "PUT", "/indices/" + quote(_type))
 
     def dropIndex(self, _type):
-        nullRequest(self, "DELETE", "/indices/" + urllib.parse.quote(_type))
+        nullRequest(self, "DELETE", "/indices/" + quote(_type))
 
     def optimizeIndices(self, level=None, wait=None):
         nullRequest(self, "POST", "/indices/optimize?" + urlenc(
@@ -582,12 +585,12 @@ class Repository(Service):
         query in the form (select ?x (q- ?node !<mypredicate> ?x)),
         where ?node always returns to the argument passed to the
         generator."""
-        nullRequest(self, "PUT", "/snaGenerators/" + urllib.parse.quote(name) + "?" +
+        nullRequest(self, "PUT", "/snaGenerators/" + quote(name) + "?" +
                     urlenc(subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, query=query))
 
     def registerNeighborMatrix(self, name, group, generator, depth):
         """group is a list of nodes, generator the name of an SNA generator."""
-        nullRequest(self, "PUT", "/neighborMatrices/" + urllib.parse.quote(name) + "?" +
+        nullRequest(self, "PUT", "/neighborMatrices/" + quote(name) + "?" +
                     urlenc(group=group, depth=depth, generator=generator))
 
     def getTripleCacheSize(self):
@@ -692,7 +695,7 @@ class Repository(Service):
         Gets the string of the function for the given uri.
          uri - Spin function identifier
         """
-        return jsonRequest(self, "GET", "/spin/function/" + urllib.parse.quote(uri, ''))
+        return jsonRequest(self, "GET", "/spin/function/" + quote(uri, ''))
 
     def putSpinFunction(self, uri, sparqlQuery, arguments):
         """
@@ -701,14 +704,14 @@ class Repository(Service):
          sparqlQuery - Spin function query text
          arguments - names of arguments in the sparqlQuery
         """
-        nullRequest(self, "PUT", "/spin/function/" + urllib.parse.quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
+        nullRequest(self, "PUT", "/spin/function/" + quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
 
     def deleteSpinFunction(self, uri):
         """
         Deletes the Spin function at the given uri.
          uri - Spin function identifier
         """
-        nullRequest(self, "DELETE", "/spin/function/" + urllib.parse.quote(uri, ''))
+        nullRequest(self, "DELETE", "/spin/function/" + quote(uri, ''))
 
     def listSpinFunctions(self):
         """
@@ -723,14 +726,14 @@ class Repository(Service):
          sparqlQuery
          arguments - names of arguments to the sparqlQuery - must contain the leading question mark
         """
-        nullRequest(self, "PUT", "/spin/magicproperty/" + urllib.parse.quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
+        nullRequest(self, "PUT", "/spin/magicproperty/" + quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
 
     def getSpinMagicProperty(self, uri):
         """
         Get the spin magic property for the uri
          uri - spin magic property identifier
         """
-        return jsonRequest(self, "GET", "/spin/magicproperty/" + urllib.parse.quote(uri, ''))
+        return jsonRequest(self, "GET", "/spin/magicproperty/" + quote(uri, ''))
 
     def listSpinMagicProperties(self):
         """
@@ -743,7 +746,7 @@ class Repository(Service):
         Deletes the Spin magic property at the given uri.
          uri - Spin magic property identifier
         """
-        nullRequest(self, "DELETE", "/spin/magicproperty/" + urllib.parse.quote(uri, ''))
+        nullRequest(self, "DELETE", "/spin/magicproperty/" + quote(uri, ''))
 
     def materializeEntailed(self, _with=None, without=None, useTypeSubproperty=False, commit=100000):
         """

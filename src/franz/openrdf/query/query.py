@@ -12,14 +12,14 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import object
+from future.builtins import object
+from past.builtins import basestring
 
 from future.utils import iteritems, python_2_unicode_compatible
 
 from ..exceptions import IllegalOptionException, QueryMissingFeatureException
 from .dataset import ALL_CONTEXTS, Dataset
 from .queryresult import GraphQueryResult, TupleQueryResult
-import datetime
 
 
 @python_2_unicode_compatible
@@ -86,7 +86,7 @@ class Query(object):
         Binds the specified variable to the supplied value. Any value that was
         previously bound to the specified value will be overwritten.
         """
-        if isinstance(value, str):
+        if isinstance(value, basestring):
             value = self._get_connection().createLiteral(value)
         self.bindings[name] = value
         
@@ -128,7 +128,7 @@ class Query(object):
         if not contexts: return
         ds = Dataset()
         for cxt in contexts:
-            if isinstance(cxt, str): cxt = self._get_connection().createURI(cxt)
+            if isinstance(cxt, basestring): cxt = self._get_connection().createURI(cxt)
             ds.addNamedGraph(cxt)
         self.setDataset(ds)
      

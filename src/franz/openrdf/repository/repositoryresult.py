@@ -12,9 +12,8 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import str
-from builtins import next
-from builtins import object
+from future.builtins import next, object
+from past.builtins import unicode
 
 from ..model import Statement, Value
 
@@ -139,7 +138,7 @@ class RepositoryResult(object):  ## inherits IterationWrapper
     @staticmethod
     def normalize_quint(stringTuple):
         st = stringTuple
-        return (st[1], st[2], st[3], None if len(st) == 4 else st[4], str(st[0]))
+        return (st[1], st[2], st[3], None if len(st) == 4 else st[4], unicode(st[0]))
 
     @staticmethod
     def normalize_quad(stringTuple):

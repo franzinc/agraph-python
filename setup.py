@@ -12,16 +12,17 @@ from setuptools import setup
 import sys
 import subprocess
 
-version = None
-try:
-    with open('VERSION', 'rb') as version_file:
-        version = version_file.read().strip()
-except IOError:
-    pass
+# Necessary when running from sources...
+sys.path.append('./src')
+import franz
 
-if version is None:
-    version = subprocess.Popen('../agraph/lisp/build-tools/agversion.sh', 
-                               stdout=subprocess.PIPE).communicate()[0]
+version = franz.__version__
+
+with open('src/franz/VERSION', 'wb') as f:
+    f.write(version.encode('ascii'))
+
+with open('README.rst', 'rb') as f:
+    long_description = f.read().decode('utf-8')
 
 install_requires = [
     'future>=0.15.2,<1.0',
@@ -29,8 +30,6 @@ install_requires = [
 
 if sys.version_info[0] == 2:  # Python 2
     install_requires += ['python-cjson>=1.1.0,<2.0']
-else:  # Python 3
-    version = version.decode()
 
 setup_requires = ['nose>=1.3.7,<2.0']
 
@@ -39,11 +38,30 @@ tests_require = ['unittest2>=1.1.0,<2.0']
 
 setup(name='agraph-python',
       version=version,
-      description='AllegroGraph python client',
+      description='AllegroGraph Python client',
+      long_description=long_description,
       author='Franz Inc.',
-      url='http://http://franz.com/agraph/support/documentation/current/python-tutorial/python-API.html',
+      url='http://franz.com/agraph/support/documentation/current/python-tutorial/python-API.html',
+      license='EPL',
       packages=['franz'],
       package_dir={'': 'src'},
+      package_data={'franz': ['VERSION']},
       install_requires=install_requires,
       setup_requires=setup_requires,
-      tests_require=tests_require)
+      tests_require=tests_require,
+      classifiers=[
+          'Development Status :: 5 - Production/Stable',
+          'Intended Audience :: Developers',
+          'License :: OSI Approved',
+          'Operating System :: OS Independent',
+          'Programming Language :: Python',
+          'Programming Language :: Python :: 2.6',
+          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.3',
+          'Programming Language :: Python :: 3.4',
+          'Programming Language :: Python :: 3.5',
+          'Topic :: Database',
+          'Topic :: Software Development :: Libraries',
+          'Topic :: Software Development :: Libraries :: Python Modules',
+      ])

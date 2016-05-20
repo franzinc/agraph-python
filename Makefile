@@ -3,7 +3,7 @@ DISTDIR = agraph-$(VERSION)-client-python
 
 TARNAME = $(DISTDIR).tar.gz
 
-FILES = LICENSE MANIFEST.in requirements.txt requirements2.txt setup.py src stress tutorial windows-support
+FILES = LICENSE MANIFEST.in README.rst requirements.txt requirements2.txt setup.py src stress tutorial windows-support
 
 PATH := /usr/local/python26/bin:/opt/rh/rh-python34/root/usr/bin:$(PATH)
 
@@ -35,7 +35,7 @@ endif
 	mkdir -p DIST/$(DISTDIR)
 	for f in $(FILES); do cp -r $$f DIST/$(DISTDIR); done
 	echo $(VERSION) > DIST/VERSION
-	echo $(VERSION) > DIST/$(DISTDIR)/VERSION
+	echo $(VERSION) > DIST/$(DISTDIR)/src/franz/VERSION
 	tar -c -h -z --owner=root --group=root -f DIST/$(TARNAME) -C DIST $(DISTDIR)
 ifdef DESTDIR
 	cp -p DIST/$(TARNAME) $(DESTDIR)

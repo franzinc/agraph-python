@@ -23,6 +23,7 @@ from ..repository.repository import Repository, RepositoryConnection
 from ...miniclient import repository as miniserver
 import re, urllib.request, urllib.parse, urllib.error
 from . import spec
+from past.builtins import basestring
 
 READ_ONLY = 'READ_ONLY'
 
@@ -137,7 +138,7 @@ class AllegroGraphServer(object):
         URL of a store), or (storename, catalogname) tuples.
         """
         def asRepoString(x):
-            if isinstance(x, str): return spec.local(x)
+            if isinstance(x, basestring): return spec.local(x)
             elif isinstance(x, tuple): return spec.local(x[0], x[1])
             elif isinstance(x, Repository): return x.getSpec()
             elif isinstance(x, RepositoryConnection): return x.getSpec()

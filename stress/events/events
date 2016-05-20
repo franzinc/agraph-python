@@ -14,23 +14,39 @@ Usage: events
 
 An event store stress tests.
 """
-from __future__ import division, print_function, with_statement
+from __future__ import division, print_function, with_statement, unicode_literals
 from future import standard_library
 standard_library.install_aliases()
-from builtins import map
-from builtins import range
+from future.builtins import map, object, range
 from past.utils import old_div
-from builtins import object
 
-from queue import Empty
-try:
-    from multiprocessing import Process, Queue
-except:
-    assert False, \
-        "Use Python 2.6 or install http://pypi.python.org/pypi/multiprocessing/"
+from queue import Empty, Full
+
+from multiprocessing import Process, Queue
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 import locale, os, pycurl, random, subprocess, sys, time, traceback
+import cProfile
+from functools import wraps
+import inspect
+
+def profile(output):
+    def decorator(func):
+        argnames, varargs_name, kwargs_name, defaults = inspect.getargspec(func)
+
+        def run(*args, **kwargs):
+            _arg_dict = {}
+            if defaults:
+                for name, value in zip(argnames[::-1], defaults[::-1]):
+                    _arg_dict[name] = value
+            _arg_dict.update(kwargs)
+            _arg_dict.update(zip(argnames, args))
+            _f = func
+            _o = output.format(**_arg_dict)
+            cProfile.runctx('_f(*args, **kwargs)', globals(), locals(), _o)
+
+        return wraps(func)(run)
+    return decorator
 
 sys.path.append(os.path.join(os.getcwd(), '../../src'))
 
@@ -109,6 +125,15 @@ class Defaults(object):
 
     # Register encoded id prefixes
     REG_ENC_ID = False
+
+    # Directory path for loader profiling results, empty to disable.
+    # Profiling data for N-th loader process will be saved in loadedN.prof.
+    PROFILE_LOADER = ''
+
+    # Directory path for query profiling results, empty to disable.
+    # Profiling data for N-th query process will be saved in files
+    # named query-LANG-N.prof (LANG is the query language).
+    PROFILE_QUERY = ''
 
 
 # The program options
@@ -592,6 +617,7 @@ def load_events(proc_num):
 
     conn.close()
 
+
 def query_events(proc_num, resultq, lang):
     if OPT.SEED:
         random.seed(OPT.SEED+983*proc_num)
@@ -853,7 +879,12 @@ def main():
     def start_query_workers(kind):
         # Start the query processes of a certain kind
         for proc_num in range(OPT.QUERY_WORKERS):
-            p = Process(target=query_events, args=(proc_num, resultq, kind))
+            if OPT.PROFILE_QUERY:
+                query_func = profile(os.path.join(
+                    OPT.PROFILE_QUERY, 'query-%s-%d.prof' % (kind, proc_num)))(query_events)
+            else:
+                query_func = query_events
+            p = Process(target=query_func, args=(proc_num, resultq, kind))
             p.start()
             queryq.put('Start')
         queryq.join()
@@ -896,7 +927,12 @@ def main():
         PROG, datetime.now()))
     # Start the loading processes
     for proc_num in range(OPT.LOAD_WORKERS):
-        p = Process(target=load_events, args=(proc_num,))
+        if OPT.PROFILE_LOADER:
+            func = profile(os.path.join(
+                OPT.PROFILE_LOADER, 'loader%d.prof' % proc_num))(load_events)
+        else:
+            func = load_events
+        p = Process(target=func, args=(proc_num,))
         p.start()
         loadq.put(LoadPhase.start)
     phase_time = time.time()
@@ -1185,6 +1221,17 @@ if __name__ == '__main__':
     parser.add_option('-x', '--reg-enc-id-prefix', default=Defaults.REG_ENC_ID,
         dest='REG_ENC_ID', metavar='REG_ENC_ID', action="store_true",
         help='Register encoded id prefixes [default=%default]')
+    parser.add_option('--profile-loader', default=Defaults.PROFILE_LOADER,
+                      dest='PROFILE_LOADER', metavar='DIR',
+                      help='If given, run loader threads in a profiles and store the results'
+                           'in directory DIR. Result files will be named loaderN.prof, where N'
+                           'is the number of the loader process that generated the file.')
+    parser.add_option('--profile-query', default=Defaults.PROFILE_QUERY,
+                      dest='PROFILE_QUERY', metavar='DIR',
+                      help='If given, run query threads in a profiles and store the results'
+                           'in directory DIR. Result files will be named query-LANG-N.prof, '
+                           'where N is the number of the query process that generated the file'
+                           'and LANG is the query language.')
 
     options, args = parser.parse_args()
     OPT = options

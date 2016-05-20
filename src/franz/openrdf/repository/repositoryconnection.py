@@ -13,8 +13,8 @@
 from __future__ import absolute_import
 from __future__ import with_statement
 from __future__ import unicode_literals
-from builtins import map, object, str
-from past.builtins import basestring
+from future.builtins import object
+from past.builtins import map, unicode, basestring
 
 from .repositoryresult import RepositoryResult
 
@@ -380,7 +380,7 @@ class RepositoryConnection(object):
         a string; assume its in ntriples format, and just pass it through.
         """
         if not term: return term
-        elif isinstance(term, str):
+        elif isinstance(term, basestring):
             return term
         else: return term.toNTriples();
 
@@ -1137,7 +1137,7 @@ class GeoType(object):
     def setConnection(self, connection): self.connection = connection
 
     def _getMiniGeoType(self):
-        def stringify(term): return str(term) if term is not None else None
+        def stringify(term): return unicode(term) if term is not None else None
         if not self.miniGeoType:
             if self.system == GeoType.Cartesian:
                 self.miniGeoType = self.connection._get_mini_repository().getCartesianGeoType(stringify(self.scale), stringify(self.xMin), stringify(self.xMax),

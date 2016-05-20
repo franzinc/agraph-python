@@ -13,6 +13,7 @@ from builtins import object
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
 from future.utils import python_2_unicode_compatible
+from past.builtins import unicode
 
 ALL_CONTEXTS = 'ALL_CONTEXTS'
 MINI_NULL_CONTEXT = 'null'
@@ -74,7 +75,7 @@ class Dataset(object):
         try:
             uriString = uri.uri
         except AttributeError:
-            uriString = str(uri)
+            uriString = unicode(uri)
 
         if len(uriString) > 50:
             sb.append("<" + uriString[:19] + "..")

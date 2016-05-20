@@ -12,8 +12,8 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import str
-from builtins import object
+from future.builtins import object
+from past.builtins import unicode
 
 from future.utils import iteritems
 
@@ -49,7 +49,7 @@ class RDFS(object):
 
 for name, uri in iteritems(RDFS.__dict__):
     if name.upper() == name:
-        RDFS.uristr2obj[str(uri)] = uri
+        RDFS.uristr2obj[unicode(uri)] = uri
 
 del RDFS.uristr2obj[NS]
 

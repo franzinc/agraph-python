@@ -12,7 +12,10 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import chr, str
+from future.builtins import chr
+from future.utils import native_str
+from past.builtins import unicode
+import sys
 
 """
 A strings utility module for helper functions.
@@ -21,93 +24,104 @@ A strings utility module for helper functions.
 import re
 
 ###############################################################################
-## NTriples 7-bit ASCII Encoding
+## Canonical NTriples encoding
 ###############################################################################
 
-
-def hex2int(hex):
-    return int(hex, 16)
-
-
-def int2hex(n):
-    return "%X" % n
-
-
-def ord2HHHH(n):
-    digits = int2hex(n)
-    length = min(len(digits), 8)
-    return ord2HHHH.prefixes[length] + digits
-
-ord2HHHH.prefixes = ['\\U', '\\u000', '\\u00', '\\u0', '\\u', '\\U000', '\\U00', '\\U0', '\\U']
 
 def encode_ntriple_string(string):
     """
     Return a unicode string encoded in 7-bit ASCII containing the
     NTRIPLES escape sequences for non-ascii and other characters.
     """
+    if not isinstance(string, unicode):
+        string = unicode(string, 'utf-8')
 
-    # Access these at local variable speeds since they are in a loop
-    HEX_MAP = encode_ntriple_string.HEX_MAP
-    LOWER_ASCII = encode_ntriple_string.LOWER_ASCII
-    QUOTE = encode_ntriple_string.QUOTE
-    UPPER_ASCII = encode_ntriple_string.UPPER_ASCII
-
-    bytes = []
-    if not isinstance(string, str):
-        string = str(string)
-
-    for c in string:
-        ordl = ord(c)
-        if ordl >= LOWER_ASCII and ordl <= UPPER_ASCII and not ordl == QUOTE:
-            bytes.append(c)
-        else:
-            bytes.append(HEX_MAP.get(ordl) or ord2HHHH(ordl))
-    return ''.join(bytes)
+    for char, replacement in ESCAPES:
+        string = string.replace(char, replacement)
+    return string
 
 
-encode_ntriple_string.HEX_MAP = {
-    0x08: r'\b',
-    0x09: r'\t',
-    0x0A: r'\n',
-    0x0D: r'\r',
-    0x0C: r'\f',
-    0x20: chr(0x20),  # blank
-    0x21: chr(0x21),  # !
-    0x22: r'\"',
-    0x27: r'\'',
-    0x5C: r'\\',
-}
+ESCAPES = [
+    (chr(0x5C), r'\\'),  # This must come first...
+    (chr(0x0A), r'\n'),
+    (chr(0x0D), r'\r'),
+    (chr(0x22), r'\"'),
+]
 
-encode_ntriple_string.LOWER_ASCII = 0x23
-encode_ntriple_string.QUOTE = 0x5C
-encode_ntriple_string.UPPER_ASCII = 0x7E
 
 def uriref(string):
-  uri = None
-  if string[0] == '<':
+    """
+    If `string` is a valid NTriples URI reference, extract and return the URI.
+    Otherwise return `None`.
+    """
     match = uriref.pattern.match(string)
-    assert match, "%s is not a valid URI." % string
-    uri = match.group(1)
-  return uri
+    if not match:
+        return None
+    return match.group(1)
 
 uri_pattern = r'<([^:]+:[^\s"<>]+)>'
 uriref.pattern = re.compile(uri_pattern + '$')
 
+
 def nodeid(string):
-  bnode = None
-  if string[0] == '_':
-     bnode = nodeid.pattern.match(string).group(1)
-  return bnode
+    """
+    If `string` is a valid NTriples BNode reference, extract and return the node id.
+    Otherwise return `None`.
+    """
+    match = nodeid.pattern.match(string)
+    if not match:
+        return None
+    return match.group(1)
 
 nodeid.pattern = re.compile(r'_:([A-Za-z][A-Za-z0-9]*)$')
 
+
 def literal(string):
-  lit = None
-  if string[0] == '"':
-     label, lang, dtype = literal.pattern.match(string).groups()
-     lit = (label, dtype, lang)
-  return lit
+    """
+    If `string` is a valid literal in NTriples syntax, return its value, lang tag and type.
+    Use `None` if there is no language tag or no datatype.
+    If `string` is not a valid literal return `None`.
+    """
+    match = literal.pattern.match(string)
+    if not match:
+        return None
+    label, lang, dtype = match.groups()
+    return label, dtype, lang
 
 litvalue = r'"([^"\\]*(?:\\.[^"\\]*)*)"'
 litinfo = r'(?:@([a-z]+(?:-[a-z0-9]+)*)|\^\^' + uri_pattern + r')?'
 literal.pattern = re.compile(litvalue + litinfo + '$')
+
+
+def to_bytes(text):
+    """
+    If TEXT is a Unicode string, return a byte string in utf-8.
+    Otherwise simply return TEXT.
+
+    :param text: Text to be converted.
+    :type text: str|bytes|unicode
+    :rtype bytes
+    """
+    if isinstance(text, unicode):
+        return text.encode('utf-8')
+    return text
+
+if sys.version_info[0] > 2:
+    def to_native_string(text):
+        """
+        Converts text to the native string type of the Python version used.
+        ASCII encoding is used if the text needs to be encoded or decoded.
+
+        :param text: Text to be converted (either Unicode or bytes).
+        :type text: str|bytes|unicode
+        :rtype str
+        """
+        if isinstance(text, bytes):
+            return str(text, 'ascii')
+        return text
+else:
+    def to_native_string(text):
+        # Note: this includes 'newbytes'...
+        if isinstance(text, native_str):
+            return text
+        return str(text)

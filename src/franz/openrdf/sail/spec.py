@@ -7,8 +7,7 @@
 ###############################################################################
 
 from __future__ import unicode_literals
-from builtins import str
-from builtins import map
+from past.builtins import map, unicode
 from future import standard_library
 standard_library.install_aliases()
 
@@ -34,5 +33,5 @@ def reason(store, reasoner="rdfs++"):
 def graphFilter(store, graphs):
   def asGraph(x):
     if x is None: return "null"
-    else: return str(x)
+    else: return unicode(x)
   return "%s{%s}" % (store, " ".join(map(asGraph, graphs)))

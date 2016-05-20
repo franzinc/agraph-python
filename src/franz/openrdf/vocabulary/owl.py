@@ -12,8 +12,8 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import str
-from builtins import object
+from future.builtins import object
+from past.builtins import unicode
 
 from future.utils import iteritems
 
@@ -74,6 +74,6 @@ class OWL(object):
 
 for name, uri in iteritems(OWL.__dict__):
     if name.upper() == name:
-        OWL.uristr2obj[str(uri)] = uri
+        OWL.uristr2obj[unicode(uri)] = uri
 
 del OWL.uristr2obj[NS]

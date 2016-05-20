@@ -14,11 +14,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import math
 from future.utils import python_2_unicode_compatible
 from past.utils import old_div
 
-from past.builtins import long
-from builtins import str
+from past.builtins import long, unicode
 from .value import Value, URI
 from ..exceptions import IllegalArgumentException
 from ..vocabulary.xmlschema import XMLSchema
@@ -33,21 +33,24 @@ def datatype_from_python(value, datatype):
     If 'value' is not a string, convert it into one, and infer its
     datatype, unless 'datatype' is set (i.e., overrides it).
     """
-    if isinstance(value, str):
+    if isinstance(value, unicode):
         return value, datatype
+
+    if isinstance(value, bytes):
+        return unicode(value, "utf-8"), datatype
 
     ## careful: test for 'bool' must precede test for 'int':
     if isinstance(value, bool):
-        return str(value).lower(), datatype or XMLSchema.BOOLEAN
+        return unicode(value).lower(), datatype or XMLSchema.BOOLEAN
 
     if isinstance(value, int):
-        return str(value), datatype or XMLSchema.INTEGER
+        return unicode(value), datatype or XMLSchema.INTEGER
 
     if isinstance(value, long):
-        return str(value), datatype or XMLSchema.LONG
+        return unicode(value), datatype or XMLSchema.LONG
 
     if isinstance(value, float):
-        return str(value), datatype or XMLSchema.DOUBLE
+        return unicode(value), datatype or XMLSchema.DOUBLE
 
     if isinstance(value, datetime.datetime):
         if value.utcoffset() is not None:
@@ -66,7 +69,7 @@ def datatype_from_python(value, datatype):
     if isinstance(value, datetime.date):
         return value.isoformat(), datatype or XMLSchema.DATE
 
-    return str(value), datatype
+    return unicode(value), datatype
 
 
 class Literal(Value):
@@ -87,7 +90,9 @@ class Literal(Value):
     
     def setDatatype(self, datatype):
         """Sets the datatype of the value"""
-        if isinstance(datatype, str):
+        if isinstance(datatype, bytes):
+            datatype = unicode(datatype, "utf-8")
+        if isinstance(datatype, unicode):
             if datatype[0] == '<':
                 datatype = datatype[1:-1]
             datatype = XMLSchema.uristr2obj.get(datatype, None) or URI(datatype)
@@ -414,12 +419,12 @@ def _parse_iso(timestamp):
     if frac != None:
         # ok, fractions of hour?
         if min == None:
-           frac, min = _math.modf(frac * 60.0)
+           frac, min = math.modf(frac * 60.0)
            min = int(min)
 
         # fractions of second?
         if s == None:
-           frac, s = _math.modf(frac * 60.0)
+           frac, s = math.modf(frac * 60.0)
            s = int(s)
 
         # and extract microseconds...

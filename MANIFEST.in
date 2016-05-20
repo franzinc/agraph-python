@@ -1,5 +1,7 @@
 # List of files to be included when building a package.
 # Note that Python files do not have to be listed here.
+include LICENSE
 include requirements.txt
 include requirements2.txt
+include VERSION
 recursive-include src/franz/openrdf/tests *

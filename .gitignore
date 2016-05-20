@@ -1,11 +1,16 @@
 .tox/
+dist/
+build/
+src/franz/VERSION
 env/
 toxenv/
 src/.noseids
-
+\#*#
+*.egg
 *.egg-info
 *.bak
 *.pyc
+*.prof
 /DIST
 /TAGS
 build.out

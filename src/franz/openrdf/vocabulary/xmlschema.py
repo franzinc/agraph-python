@@ -12,8 +12,8 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import str
-from builtins import object
+from future.builtins import object
+from past.builtins import unicode
 
 from future.utils import iteritems
 
@@ -78,6 +78,6 @@ class XMLSchema(object):
     
 for name, uri in iteritems(XMLSchema.__dict__):
     if name.upper() == name:
-        XMLSchema.uristr2obj[str(uri)] = uri
+        XMLSchema.uristr2obj[unicode(uri)] = uri
 
 del XMLSchema.uristr2obj[NS]

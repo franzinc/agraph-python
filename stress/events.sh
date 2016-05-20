@@ -13,7 +13,7 @@ STRESS_DIR=$(absdir $0)
 ENV_DIR=${STRESS_DIR}/env
 BASE_DIR=${STRESS_DIR}/..
 
-if [ ! -d env ]
+if [ ! -d "${ENV_DIR}" ]
 then
     virtualenv --no-site-packages ${ENV_DIR}
     source ${ENV_DIR}/bin/activate

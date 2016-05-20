@@ -6,25 +6,31 @@
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
 from __future__ import print_function
-from __future__ import unicode_literals
-from builtins import chr
-from builtins import str
-from builtins import next
-from builtins import range
-from past.builtins import basestring
-from builtins import object
 
-from future.standard_library import hooks
-with hooks():
-    import urllib.request, urllib.parse, urllib.error
+from itertools import islice
 
-from future.utils import iteritems, python_2_unicode_compatible
+from future.builtins import bytes, next, object, range
+
+from future.utils import iteritems, python_2_unicode_compatible, bchr
+from past.builtins import unicode
+from past.builtins import str as old_str
+from future.utils import native_str
 import io, errno, pycurl, locale, re, os, sys, time
 from threading import Lock
+
+from franz.openrdf.util.strings import to_native_string
+
+if sys.version_info[0] > 2:
+    from urllib.parse import quote
+    from io import StringIO
+else:
+    from urllib import quote
+    from cStringIO import StringIO
 
 
 class JsonDecodeError(Exception):
     pass
+
 
 if sys.version_info[0] == 2:
     import cjson
@@ -39,6 +45,18 @@ if sys.version_info[0] == 2:
             return cjson.decode(text, True)
         except cjson.DecodeError:
             raise JsonDecodeError()
+
+    # Workaround for a bug in python-future
+    def ibytes(x):
+        """
+        Construct a bytes object from a sequence or iterator over integers.
+        In Python 3, bytes() can do that, but python-future does not have
+        that capability.
+        """
+        if not hasattr(x, '__len__'):
+            return bytes(list(x))
+        return bytes(x)
+
 else:
     import json
 
@@ -50,6 +68,14 @@ else:
             return json.loads(text)
         except ValueError:
             raise JsonDecodeError
+
+    ibytes = bytes
+
+
+def mk_unicode(text):
+    if not isinstance(text, unicode):
+        return unicode(text, 'utf-8')
+    return text
 
 curlPool = None
 
@@ -117,24 +143,33 @@ class RequestError(Exception):
     def __str__(self):
         return "Server returned %s: %s" % (self.status, self.message)
 
+
 def urlenc(**args):
-    buf = []
+    buf = StringIO()
+
     def enc(name, val):
-        buf.append(urllib.parse.quote(name) + "=" + urllib.parse.quote(val))
+        if buf.tell():
+            buf.write('&')
+        buf.write(to_native_string(quote(name)))
+        buf.write("=")
+        buf.write(to_native_string(quote(val)))
+
     def encval(name, val):
         if val is None: pass
         elif isinstance(val, bool): enc(name, (val and "true") or "false")
-        elif isinstance(val, int): enc(name, "%d" % val)
-        elif isinstance(val, float): enc(name, "%g" % val)
+        elif isinstance(val, int): encval(name, "%d" % val)
+        elif isinstance(val, float): encval(name, "%g" % val)
         elif isinstance(val, list) or isinstance(val, tuple):
             for elt in val: encval(name, elt)
-        elif isinstance(val, basestring):
-            enc(name, val.encode("utf-8"))
+        elif isinstance(val, native_str):
+            enc(name, val)
+        elif isinstance(val, (old_str, unicode)):
+            enc(name, to_native_string(val))
         else:
-            enc(name, str(val).encode("utf-8"))
-    for name, val in iteritems(args):
-        encval(name, val)
-    return "&".join(buf)
+            enc(name, to_native_string(str(val)))
+    for arg_name, value in iteritems(args):
+        encval(arg_name, value)
+    return buf.getvalue()
 
 def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None, headers=None):
     curl = Pool.instance().get()
@@ -149,12 +184,13 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     #curl.setopt(pycurl.TIMEOUT, 45)
 
     # Use a proxy:
-    # curl.setopt(pycurl.PROXY, '127.0.0.1')
-    # curl.setopt(pycurl.PROXYPORT, 3128)
-    # curl.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_SOCKS5)
+    #curl.setopt(pycurl.PROXY, '127.0.0.1')
+    #curl.setopt(pycurl.PROXYPORT, 8888)
+    #curl.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_HTTP)
 
     if obj.user is not None and obj.password is not None:
-        curl.setopt(pycurl.USERPWD, "%s:%s" % (obj.user, obj.password))
+        curl.setopt(pycurl.USERPWD, "%s:%s" % (to_native_string(obj.user),
+                                               to_native_string(obj.password)))
         curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
     else:
         curl.unsetopt(pycurl.USERPWD)
@@ -167,15 +203,18 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     if obj.verifypeer is not None:
         curl.setopt(pycurl.SSL_VERIFYPEER, obj.verifypeer)
 
-    if not url.startswith("http:") and not url.startswith("https:"): url = obj.url + url
+    url = to_native_string(url)
+    if not url.startswith("http:") and not url.startswith("https:"):
+        url = to_native_string(obj.url) + to_native_string(to_native_string(url))
 
-    postbody = method == "POST" or method == "PUT"
+    method = to_native_string(method)
+    postbody = method in ("POST", "PUT")
     curl.setopt(pycurl.POSTFIELDS, "")
     if body:
         if postbody:
-            curl.setopt(pycurl.POSTFIELDS, body)
+            curl.setopt(pycurl.POSTFIELDS, to_native_string(body))
         else:
-            url = url + "?" + body
+            url = url + "?" + to_native_string(body)
 
     curl.setopt(pycurl.POST, (postbody and 1) or 0)
     curl.setopt(pycurl.CUSTOMREQUEST, method)
@@ -186,12 +225,14 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     # bodies.
     if headers is None:
         headers = []
-    headers.extend(["Connection: keep-alive", "Accept: " + accept, "Expect:"])
+    for i in range(len(headers)):
+        headers[i] = to_native_string(headers[i])
+    headers.extend(["Connection: keep-alive", "Accept: " + to_native_string(accept), "Expect:"])
     if callback: headers.append("Connection: close")
-    if contentType and postbody: headers.append("Content-Type: " + contentType)
-    if obj.runAsName: headers.append("x-masquerade-as-user: " + obj.runAsName)
+    if contentType and postbody: headers.append("Content-Type: " + to_native_string(contentType))
+    if obj.runAsName: headers.append("x-masquerade-as-user: " + to_native_string(obj.runAsName))
     curl.setopt(pycurl.HTTPHEADER, headers)
-    curl.setopt(pycurl.ENCODING, "") # which means 'any encoding that curl supports'
+    curl.setopt(pycurl.ENCODING, "")  # which means 'any encoding that curl supports'
 
     def retrying_perform():
         retry = 0.1
@@ -214,11 +255,11 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         error = []
         def headerfunc(string):
             if status[0] is None:
-                status[0] = locale.atoi(string.decode('utf-8').split(" ")[1])
+                status[0] = locale.atoi(unicode(string, 'utf-8').split(" ")[1])
             return len(string)
         def writefunc(string):
-            if status[0] == 200: callback(string.decode('utf-8'))
-            else: error.append(string.decode("utf-8"))
+            if status[0] == 200: callback(unicode(string, 'utf-8'))
+            else: error.append(unicode(string, 'utf-8'))
         curl.setopt(pycurl.WRITEFUNCTION, writefunc)
         curl.setopt(pycurl.HEADERFUNCTION, headerfunc)
         retrying_perform()
@@ -228,7 +269,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         buf = io.BytesIO()
         curl.setopt(pycurl.WRITEFUNCTION, buf.write)
         retrying_perform()
-        response = buf.getvalue().decode("utf-8")
+        response = unicode(buf.getvalue(), "utf-8")
         buf.close()
         result = (curl.getinfo(pycurl.RESPONSE_CODE), response)
         Pool.instance().put(curl)
@@ -311,14 +352,14 @@ class RowReader(object):
             return pos[0]
 
 class SerialConstants(object):
-    SO_VECTOR = '\x01'
-    SO_STRING = '\x05'
-    SO_NULL = '\x07'
-    SO_LIST = '\x08'
-    SO_POS_INTEGER = '\x09'
-    SO_END_OF_ITEMS = '\x0a'
-    SO_NEG_INTEGER = '\x0b'
-    SO_BYTEVECTOR = '\x0f'
+    SO_VECTOR = 1
+    SO_STRING = 5
+    SO_NULL = 7
+    SO_LIST = 8
+    SO_POS_INTEGER = 9
+    SO_END_OF_ITEMS = 10
+    SO_NEG_INTEGER = 11
+    SO_BYTEVECTOR = 15
 
 def serialize(obj):
     def serialize_int(i):
@@ -332,39 +373,36 @@ def serialize(obj):
                 yield lower | (0x80 if rest else 0)
                 i = rest
 
-        return ''.join([chr(val) for val in int_bytes(i)])
-
-    def convert_str(string):
-        return ''.join([chr(ord(l) & 0xff) for l in string])
+        return ibytes(int_bytes(i))
 
     if obj is None:
-        return SerialConstants.SO_NULL
+        return bchr(SerialConstants.SO_NULL)
 
-    if isinstance(obj, basestring):
-        return ''.join([SerialConstants.SO_STRING, serialize_int(len(obj)),
-            convert_str(obj)])
+    if isinstance(obj, unicode):
+        return b''.join([bchr(SerialConstants.SO_STRING), serialize_int(len(obj)),
+            bytes(obj, 'utf-8')])
 
     if isinstance(obj, int):
-        return ''.join([SerialConstants.SO_POS_INTEGER if obj >= 0 else 
-            SerialConstants.SO_NEG_INTEGER, serialize_int(obj)])
+        return b''.join([bchr(SerialConstants.SO_POS_INTEGER) if obj >= 0 else
+            bchr(SerialConstants.SO_NEG_INTEGER), serialize_int(obj)])
 
     try:
         # Byte vector
-        if obj.typecode == 'b':
-            return ''.join([SerialConstants.SO_BYTEVECTOR, 
+        if obj.typecode == b'b':
+            return b''.join([bchr(SerialConstants.SO_BYTEVECTOR),
                 serialize_int(len(obj)), obj.tostring()])
     except:
         pass
             
     try:
         iobj = iter(obj)
-        return ''.join([SerialConstants.SO_VECTOR,
+        return b''.join([bchr(SerialConstants.SO_VECTOR),
             serialize_int(len(obj)),
-            ''.join([serialize(elem) for elem in iobj])])
+            b''.join([serialize(elem) for elem in iobj])])
     except:
         pass
 
-    raise TypeError("cannot serialize object of type " + type(obj))
+    raise TypeError("cannot serialize object of type %s" % type(obj))
 
 def deserialize(string):
     def posInteger(chars):
@@ -373,19 +411,21 @@ def deserialize(string):
         # Set value to get into the loop the first time
         value = 0x80
         while value & 0x80:
-            value = ord(next(chars))
+            value = next(chars)
             result += ((value & 0x7f) << shift)
             shift += 7
     
         return result
 
+    if isinstance(string, old_str):
+        string = bytes(string)
     chars = iter(string)
     value = next(chars)
     
     if value == SerialConstants.SO_BYTEVECTOR:
         length = posInteger(chars)
         import array
-        return array.array('b', [ord(next(chars)) for i in range(length)])
+        return array.array(b'b', [ord(next(chars)) for i in range(length)])
     
     if (value == SerialConstants.SO_VECTOR or
         value == SerialConstants.SO_LIST):
@@ -394,7 +434,7 @@ def deserialize(string):
     
     if value == SerialConstants.SO_STRING:
         length = posInteger(chars)
-        return ''.join([next(chars) for i in range(length)]) 
+        return unicode(ibytes(islice(chars, 0, length)), 'utf-8')
 
     if value == SerialConstants.SO_POS_INTEGER:
         return posInteger(chars)
@@ -415,8 +455,7 @@ def encode(string):
         codes = encode.codes
         state = rem = 0
 
-        for byte in string:
-            byte = ord(byte)
+        for byte in bytes(string):
             if state == 0:
                 yield codes[byte & 0x3f]
                 rem = (byte >> 6) & 0x3
@@ -433,34 +472,41 @@ def encode(string):
         if state:
             yield codes[rem]
 
-    return ''.join(convert(string))
+    return ibytes(convert(string))
 
-encode.codes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*+"
+
+encode.codes = bytes(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*+")
+
 
 def decode(string):
     def convert(string):
         codes = decode.codes
         state = rem = 0
 
+        if isinstance(string, unicode):
+            string = bytes(string, 'utf-8')
+        else:
+            string = bytes(string)
+
         for byte in string:
-            byte = codes[ord(byte)]
+            byte = codes[byte]
 
             if state == 0:
                 rem = byte
                 state = 1
             elif state == 1:
-                yield chr(rem | ((byte & 0x3) << 6))
+                yield rem | ((byte & 0x3) << 6)
                 rem = byte >> 2
                 state = 2
             elif state == 2:
-                yield chr(rem | ((byte & 0xf) << 4))
+                yield rem | ((byte & 0xf) << 4)
                 rem = byte >> 4
                 state = 3
             else:
-                yield chr(rem | (byte << 2))
+                yield rem | (byte << 2)
                 state = 0
 
-    return ''.join(convert(string))
+    return ibytes(convert(string))
 
 decode.codes = [
      0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 

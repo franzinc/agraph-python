@@ -14,7 +14,7 @@ from future import standard_library
 standard_library.install_aliases()
 
 from past.builtins import long
-from builtins import range, next, object, str
+from future.builtins import range, next, object, str
 
 from future.utils import iteritems, iterkeys
 

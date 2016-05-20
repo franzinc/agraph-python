@@ -12,7 +12,7 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import str
+from past.builtins import unicode
 
 from ..exceptions import IllegalArgumentException
 
@@ -52,6 +52,6 @@ def getLocalNameIndex(uri):
     return idx + 1
 
 def asURIString(value):
-    value = str(value)
+    value = unicode(value)
     if value.startswith('<'): return value
     else: return "<%s>" % value

@@ -15,8 +15,8 @@ from builtins import object
 ###############################################################################
 
 
-#from franz.openrdf.exceptions import
 from future.utils import python_2_unicode_compatible
+from past.builtins import unicode
 
 from ..model import Statement
 from ..repository.repositoryresult import RepositoryResult
@@ -144,7 +144,7 @@ class ListBindingSet(object):
             return self._get_ith_value(self.variable_names.index(key))
         except ValueError:
             raise KeyError(("Illegal key '%s' passed to binding set." +
-                            "\n   Legal keys are %s") % (key, str(self.variable_names)))
+                            "\n   Legal keys are %s") % (key, unicode(self.variable_names)))
 
  
     def iterator(self):
@@ -207,12 +207,12 @@ class ListBindingSet(object):
         d = {}
         for i in range(len(self.variable_names)):
             v = self[i]
-            if strings_dict: v = str(v)
+            if strings_dict: v = unicode(v)
             d[self.variable_names[i]] = v
         return d
         
     def __str__(self):
-        return str(self._toDict(strings_dict=True))
+        return unicode(self._toDict(strings_dict=True))
     
 
 #############################################################################
