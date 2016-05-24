@@ -50,23 +50,28 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Social Network Analysis">Social Network Analysis</a> </li>
       <li><a href="#Transaction Control">Transaction Control</a></li>
       <li><a href="#Duplicate Triples">Duplicate Triples</a></li>
-    <p>&nbsp;</p></td>
+    </ul><p>&nbsp;</p></td>
   </tr>
 </table>
 <p>&nbsp;</p>
 <h2 id="Overview">Overview&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The Python client tutorial rests on a simple architecture involving AllegroGraph, disk-based data files, Python, and a file of Python examples called tutorial_examples.py.</p>
-<table width="944" border="0">
-  <tr>
-    <td width="309"><p>AllegroGraph Server contains the Python API, which is part of the AllegroGraph installation. </p>
-    <p>Python communicates with AllegroGraph through HTTP port 8080 in this example. Python and AllegroGraph may be installed on the same computer, but in practice one server is shared by multiple clients. </p>
-    <p>Load tutorial_examples.py into Python to view the tutorial examples. </p></td>
-    <td width="625"><img src="allegrographdiagram.jpg" width="617" height="412"></td>
-  </tr>
-</table>
-<p>Each lesson in <strong>tutorial_examples.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 21 (or more). The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
+<p>The Python client tutorial rests on a simple architecture consisting of the following components:</p>
+<ul>
+    <li>An AllegroGraph server</li>
+    <li>A Python interpreter</li>
+    <li>The AllegroGraph Python API package which allows Python to communicate with an AllegroGraph server over HTTP or HTTPS.</li>
+    <li><strong>tutorial_examples.py</strong> - a Python file implementing all examples presented in this tutorial.</li>
+</ul>
+<p>Each lesson in <strong>tutorial_examples.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 24. The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
 <h2 id="PrerequisitesLinux">Prerequisites (Linux) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.5 have been installed and configured using the procedure posted on <a href="http://www.franz.com/agraph/support/documentation/current/server-installation.html">this webpage</a>. </p>
+<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.6 or 2.7 have been installed and configured using the procedure posted on <a href="../server-installation.html#python-client">this webpage</a>. </p>
+<p>Note that the tutorial examples cannot be run in Python 3, even though the API itself can work with Python 3.3 and above.</p>
+<h2 id="PrerequisitesOther">Prerequisites (Other systems) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>The tutorial code can also be executed on other operating systems. The AllegroGraph server, however, will then have to reside on a different machine. In that scenario, the following extra steps need to be taken</p>
+    <ul>
+        <li>The <code>AG_HOST</code> environment variable must be set to the address of the machine on which AllegroGraph resides. <code>AG_PORT</code> can also be set if the server uses a port other than the default 10035.</li>
+        <li>Appropriate ports on the AllegroGraph machine must be accessible. See <a href="../server-installation.html#jena-client">this page</a> for a description of what those ports are.</li>
+    </ul>
 <h2 id="Terminology">Terminology&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>We need to clarify some terminology before proceeding. </p>
 <ul>
@@ -151,12 +156,13 @@ this diagram:</p>
 
 <p>The example first connects to an AllegroGraph Server by providing the endpoint (host IP address and port number) of an already-launched AllegroGraph server. This creates a client-side server object, which can access the AllegroGraph server's list of available catalogs through the <strong>listCatalogs()</strong> method:. </p>
 <pre class="input">def example1(accessMode=Repository.RENEW):
+    print &quot;Defining connnection to AllegroGraph server -- host:'%s' port:%s&quot; % (AG_HOST, AG_PORT)
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'user', 'password')
     print &quot;Available catalogs&quot;, server.listCatalogs()
 </pre>
 <p>This is the output so far:</p>
 <pre class="output">&gt;&gt;&gt; example1()
-Defining connnection to AllegroGraph server -- host:'localhost' port:8080
+Defining connnection to AllegroGraph server -- host:'localhost' port:10035
 Available catalogs ['/', 'scratch']</pre>
 <p>This output says that the server has two catalogs, the default <strong>rootCatalog, '/'</strong>, and a named catalog 'scratch' that someone has created for some experimentation.</p>
 <p>In the next line of example1(), we use the <strong>server.openCatalog()</strong> method to create a client-side catalog object. In this example we will connect to the default rootCatalog by calling openCatalog() with no arguments. When we look inside the root catalog, we can see which repositories are available:</p>
@@ -1811,7 +1817,7 @@ Found 1 query results
 </pre>
 <p>Note that we asked <strong>ego-group()</strong> to explore to a depth of two links, and then fed its result (<strong>?group</strong>) to <strong>actor-degree-centrality()</strong>. This is the output:</p>
 <pre class="output">Valjean's centrality to his ego group at depth 2 (using associates).
-"7.0e-1"^^<http://www.w3.org/2001/XMLSchema#double>
+"7.0e-1"^^&lt;http://www.w3.org/2001/XMLSchema#double&gt;
 0.7</pre>
 <p>This confirms our expectation that Valjean's actor-degree-centrality should be 0.70 in this circumstance.</p>
 <p>We can also measure actor centrality by calculating the average path length from a given node to the other nodes of the subgraph. This is called <strong>actor-closeness-centrality</strong>. For instance, we can calculate the average path length from Valjean to the ten nodes of his ego group (using associates and depth 2). Then we take the inverse of the average, so that bigger values will be &quot;more central.&quot; </p>

@@ -57,6 +57,7 @@ def example1(accessMode=Repository.RENEW):
     Tests getting the repository up.  Is called by the other examples to do the startup.
     """
     print "Starting example1()."
+    print "Defining connnection to AllegroGraph server -- host:'%s' port:%s" % (AG_HOST, AG_PORT)
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     print "Available catalogs", server.listCatalogs()
