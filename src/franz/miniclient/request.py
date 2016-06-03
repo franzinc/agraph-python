@@ -150,9 +150,9 @@ def urlenc(**args):
     def enc(name, val):
         if buf.tell():
             buf.write('&')
-        buf.write(to_native_string(quote(name)))
+        buf.write(quote(to_native_string(name)))
         buf.write("=")
-        buf.write(to_native_string(quote(val)))
+        buf.write(quote(to_native_string(val)))
 
     def encval(name, val):
         if val is None: pass

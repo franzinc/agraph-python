@@ -13,6 +13,7 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 from future.builtins import chr
+from future.types import newbytes
 from future.utils import native_str
 from past.builtins import unicode
 import sys
@@ -121,7 +122,8 @@ if sys.version_info[0] > 2:
         return text
 else:
     def to_native_string(text):
-        # Note: this includes 'newbytes'...
+        if isinstance(text, newbytes):
+            return bytes.__str__(text)
         if isinstance(text, native_str):
             return text
         return str(text)

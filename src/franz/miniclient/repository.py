@@ -5,7 +5,7 @@
 # which accompanies this distribution, and is available at
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
-from __future__ import absolute_import, division, unicode_literals, with_statement
+from __future__ import absolute_import, division, with_statement
 
 import sys
 
