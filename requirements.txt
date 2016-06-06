@@ -3,7 +3,4 @@ linecache2==1.0.0
 nose==1.3.7
 six==1.10.0
 traceback2==1.4.0
-unittest2==1.1.0
-# -- global-option seems to apply to ALL entries below this one.
-# So pycurl must be at the end, or it will break other stuff.
-pycurl==7.21.5 --global-option="--with-nss"
+pycurl==7.21.5

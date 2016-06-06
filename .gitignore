@@ -3,7 +3,9 @@ dist/
 build/
 src/franz/VERSION
 env/
+env3/
 toxenv/
+wheelhouse/
 src/.noseids
 \#*#
 *.egg

@@ -7,22 +7,31 @@ FILES = LICENSE MANIFEST.in README.rst requirements.txt requirements2.txt setup.
 
 PATH := /usr/local/python26/bin:/opt/rh/rh-python34/root/usr/bin:$(PATH)
 
+# Important for building pycurl
+export PYCURL_SSL_LIBRARY=nss
+
+# Prebuilt wheels location
+WHEELHOUSE ?= file:///net/san1/disk1/wheelhouse/
+
+# Use prebuilt packages ONLY by default
+export AG_PIP_OPTS = --use-wheel --find-links=$(WHEELHOUSE)
+
+ifndef USE_PYPI
+AG_PIP_OPTS += --no-index
+endif
+
 # TOXENV will have current tox installed.
 TOXENVDIR := toxenv
-# Testdir is used by external tests and benchmarks
+# This dir is used by external tests and benchmarks
 ENVDIR := env
+ENVDIR3 := env3
 
 TOX := $(TOXENVDIR)/bin/tox
 
 # Some hosts have only 2.6, some only 2.7...
-PYTHON2_PATH := $(shell { command -v python2.7 || command -v python2.6; } 2>/dev/null)
-PYTHON2 := $(shell basename "$(PYTHON2_PATH)")
-
-ifeq ($(PYTHON2),python2.7)
-    PY2 := py27
-else
-    PY2 := py26
-endif
+VERSION_SCRIPT := import sys; print('py%d%d' % (sys.version_info[0], sys.version_info[1]))
+PY2 := $(shell python2 -c "$(VERSION_SCRIPT)")
+PY3 := $(shell python3 -c "$(VERSION_SCRIPT)")
 
 default: dist
 
@@ -55,7 +64,14 @@ $(TOXENVDIR):
 $(ENVDIR): $(TOXENVDIR)
 	$(TOX) -e $(PY2)-env
 
+$(ENVDIR3): $(TOXENVDIR)
+	$(TOX) -e $(PY3)-env
+
 test-env: $(ENVDIR)
+
+wheelhouse: $(ENVDIR) $(ENVDIR2)
+	$(ENVDIR)/bin/pip wheel -rrequirements.txt -rrequirements2.txt -w wheelhouse
+	$(ENVDIR3)/bin/pip wheel -rrequirements.txt -w wheelhouse
 
 prepush: prepush2 prepush3
 
