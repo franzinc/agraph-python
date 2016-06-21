@@ -1,3 +1,4 @@
+# coding=utf-8
 ###############################################################################
 # Copyright (c) 2006-2016 Franz Inc.
 # All rights reserved. This program and the accompanying materials
@@ -7,10 +8,12 @@
 ###############################################################################
 
 from __future__ import absolute_import
-from __future__ import with_statement
 from __future__ import print_function
 from __future__ import unicode_literals
+from __future__ import with_statement
+
 from future import standard_library
+
 standard_library.install_aliases()
 
 from past.builtins import long
@@ -319,7 +322,6 @@ def test7():
         print(bindingSet[0], bindingSet[1])
     conn.close()
 
-import urllib.parse
 
 def test8():
     conn = test6()
@@ -2470,6 +2472,21 @@ def test_materializer():
     print("There were", entailed, "entailed triples")
     assert conn.materializeEntailed(_with="all") >= 40
     assert conn.deleteMaterialized() >= 40
+
+
+def test_escaping():
+    conn = connect()
+    s = conn.createURI(u'http://franz.com/ex#"Zażółć gęślą jaźń"')
+    p = conn.createURI(
+        u'http://franz.com/ex#<langle{lcurl|or^caret\"dblquote\\bslash}rcurl>rangle')
+    t = conn.createURI(u'http://franz.com/ex#"quoted"')
+    o = conn.createLiteral(u'"Zażółć gęślą jaźń"', t)
+    conn.addTriple(s, p, o)
+    results = list(conn.getStatements(None, None, None))
+    assert len(results) == 1
+    assert results[0].getSubject() == s
+    assert results[0].getPredicate() == p
+    assert results[0].getObject() == o
 
 
 def test_uri_eq():

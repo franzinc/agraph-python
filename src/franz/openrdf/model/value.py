@@ -126,7 +126,7 @@ class URI(Resource):
         Return an NTriples representation of a resource, in this case, wrap
         it in angle brackets.
         """
-        return "<%s>" % strings.encode_ntriple_string(self.uri)
+        return strings.encode_ntriple_uri(self.uri)
 
 
 class BNode(Resource):
