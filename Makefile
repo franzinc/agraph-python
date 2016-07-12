@@ -59,7 +59,7 @@ endif
 
 $(TOXENVDIR):
 	virtualenv --no-site-packages $(TOXENVDIR)
-	. ./$(TOXENVDIR)/bin/activate && python -m pip install -U setuptools wheel pip tox
+	. ./$(TOXENVDIR)/bin/activate && python -m pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox
 
 $(ENVDIR): $(TOXENVDIR)
 	$(TOX) -e $(PY2)-env
