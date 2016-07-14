@@ -3,10 +3,10 @@
 set -e
 
 # Prebuilt wheels location
-WHEELHOUSE ?= file:///net/san1/disk1/wheelhouse/
+export WHEELHOUSE="file:///net/san1/disk1/wheelhouse/"
 
 # Use prebuilt packages ONLY by default
-export AG_PIP_OPTS = --use-wheel --find-links=$(WHEELHOUSE) --no-index
+export AG_PIP_OPTS="--use-wheel --find-links=${WHEELHOUSE} --no-index"
 
 function absdir () {
    pushd $(dirname $1) > /dev/null
