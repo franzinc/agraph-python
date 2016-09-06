@@ -28,6 +28,10 @@ ENVDIR3 := env3
 
 TOX := $(TOXENVDIR)/bin/tox
 
+# List of virtual environments created during build (not including .tox ones).
+# stress/env is created by the events test.
+ENVS := $(ENVDIR) $(ENVDIR3) $(TOXENVDIR) stress/env
+
 # Some hosts have only 2.6, some only 2.7...
 VERSION_SCRIPT := import sys; print('py%d%d' % (sys.version_info[0], sys.version_info[1]))
 PY2 := $(shell python2 -c "$(VERSION_SCRIPT)")
@@ -69,7 +73,7 @@ $(ENVDIR3): $(TOXENVDIR)
 
 test-env: $(ENVDIR)
 
-wheelhouse: $(ENVDIR) $(ENVDIR2)
+wheelhouse: $(ENVDIR) $(ENVDIR3)
 	$(ENVDIR)/bin/pip wheel -rrequirements.txt -rrequirements2.txt -w wheelhouse
 	$(ENVDIR3)/bin/pip wheel -rrequirements.txt -w wheelhouse
 
@@ -89,5 +93,8 @@ events3: checkPort $(TOXENVDIR)
 
 tags: FORCE
 	etags `find . -name '*.py'`
+
+clean-envs:
+	rm -rf .tox $(ENVS)
 
 FORCE:
