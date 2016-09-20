@@ -6,8 +6,12 @@ env/
 env3/
 toxenv/
 wheelhouse/
+/report.xml
+.cache/
+.idea/
 src/.noseids
 \#*#
+*.iml
 *.egg
 *.egg-info
 *.bak

@@ -31,7 +31,7 @@ install_requires = [
 if sys.version_info[0] == 2:  # Python 2
     install_requires += ['python-cjson>=1.1.0,<2.0']
 
-setup_requires = ['nose>=1.3.7,<2.0']
+setup_requires = ['nose>=1.3.7,<2.0', 'pytest>=3.0,<4.0', 'pytest-timeout>=1.0,<2.0']
 
 tests_require = ['unittest2>=1.1.0,<2.0']
 

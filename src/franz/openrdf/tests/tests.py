@@ -59,7 +59,7 @@ AG_ONSERVER = AG_HOST == LOCALHOST
 CATALOG = 'tests'
 STORE = 'agraph_test'
 
-def teardown():
+def teardown_module():
     """Module level teardown function."""
     server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
     catalog = server.openCatalog(CATALOG)  

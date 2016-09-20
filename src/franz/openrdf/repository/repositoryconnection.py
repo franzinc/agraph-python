@@ -79,11 +79,12 @@ class RepositoryConnection(object):
     def getAddCommitSize(self):
         return self._add_commit_size
 
-    add_commit_size = property(getAddCommitSize, setAddCommitSize,
-        "The threshold for commit size during triple add operations.\n"
-        "Set to 0 (zero) or None to clear size-based autocommit behavior.\n"
-        "When set to an integer triple_count > 0, loads and adds commit each\n"
-        "triple_count triples added and at the end of the triples being added.\n")
+    add_commit_size = property(
+        getAddCommitSize, setAddCommitSize,
+        doc="""The threshold for commit size during triple add operations.
+               Set to 0 (zero) or None to clear size-based autocommit behavior.
+               When set to an integer triple_count > 0, a commit will occur every
+               triple_count triples added and at the end of the triples being added.""")
 
     def prepareQuery(self, queryLanguage, queryString, baseURI=None):
         """
