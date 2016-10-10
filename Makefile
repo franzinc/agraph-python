@@ -42,7 +42,7 @@ default: dist
 dist: FORCE
 ifndef VERSION
 	@echo VERSION is not set.
-	@echo 1
+	@exit 1
 endif
 	rm -fr DIST
 	mkdir -p DIST/$(DISTDIR)
