@@ -16,6 +16,9 @@ import os, urllib, datetime, time, sys
 
 CURRENT_DIRECTORY = os.getcwd() 
 
+# Directory containing the data files
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_CATALOG = os.environ.get('AGRAPH_CATALOG', 'python-catalog')
@@ -719,8 +722,8 @@ def example6(close=True):
     # point to the location of the data files. For AG Free Edition on Windows:
     #os.chdir("C:\Program Files\AllegroGraphFJE32\python")
     print "Current working directory is '%s'" % (os.getcwd())
-    path1 = "./vcards.rdf"    
-    path2 = "./kennedy.ntriples"                
+    path1 = os.path.join(BASE_DIR, "vcards.rdf")    
+    path2 = os.path.join(BASE_DIR, "kennedy.ntriples" )               
     context = conn.createURI("http://example.org#vcards")
     conn.setNamespace("vcd", "http://www.w3.org/2001/vcard-rdf/3.0#");
     ## read kennedy triples into the null context:
@@ -1309,7 +1312,7 @@ def example18():
     conn = example6(False)  # loads data and return dedicated session
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     conn.setNamespace("rltv", "http://www.franz.com/simple#")  
-    path = "./python-rules.txt"
+    path = os.path.join(BASE_DIR, "python-rules.txt")
     conn.loadRules(path)
     queryString = """(select (?ufirst ?ulast ?cfirst ?clast)
                              (uncle ?uncle ?child)
@@ -1515,7 +1518,7 @@ def example21():
     conn = myRepository.getConnection()
     conn.openSession() # SNA requires dedicated session.
 
-    path1 = "./lesmis.rdf"
+    path1 = os.path.join(BASE_DIR, "lesmis.rdf")
     print "\nLoad Les Miserables triples."
     conn.addFile(path1, None, format=RDFFormat.RDFXML);
     print "After loading, repository contains %i Les Miserables triples in context '%s'." % (
@@ -1986,8 +1989,8 @@ def example22():
     """
 	Load LesMis into common session, Kennedy into dedicated session.
     """
-    path1 = "./kennedy.ntriples"
-    path2 = "./lesmis.rdf"                
+    path1 = os.path.join(BASE_DIR, "kennedy.ntriples")
+    path2 = os.path.join(BASE_DIR, "lesmis.rdf")                
     baseURI = "http://example.org/example/local"
     ## read kennedy triples into the dedicated session:
     print "Load 1214 kennedy.ntriples into dedicated session."
@@ -2122,7 +2125,7 @@ def example23():
     """
     Demonstrate Blank Node Behavior
     """
-    path = "./blankNodes1.rdf"
+    path = os.path.join(BASE_DIR, "blankNodes1.rdf")
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes1.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2134,7 +2137,7 @@ def example23():
     conn.remove(None, None, None)
 
 # --------------------------------------------------------------
-    path = "./blankNodes2.rdf"
+    path = os.path.join(BASE_DIR, "blankNodes2.rdf")
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes2.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2146,7 +2149,7 @@ def example23():
     conn.remove(None, None, None)
 	
 # Following example is for rfe8610
-#    path = "./blankNodes2.rdf"
+#    path = os.path.join(BASE_DIR, "blankNodes2.rdf")
 #    baseURI = "http://www.franz.com/simple#"
 #    conn.openSession()
 #    print "\nLoad blankNodes2.rdf"
@@ -2172,7 +2175,7 @@ def example23():
 
 # --------------------------------------------------------------
 
-    path = "./blankNodes3.rdf"
+    path = os.path.join(BASE_DIR, "blankNodes3.rdf")
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes3.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2183,7 +2186,7 @@ def example23():
         print s
     conn.remove(None, None, None)
 	
-    path = "./blankNodes4.rdf"
+    path = os.path.join(BASE_DIR, "blankNodes4.rdf")
     baseURI = "http://www.franz.com/simple#"
     print "\nLoad blankNodes4.rdf"
     conn.add(path, base=baseURI, format=RDFFormat.RDFXML, contexts=None)
@@ -2197,7 +2200,7 @@ def example23():
     """
     Load Kennedy file 
     """
-    path = "./kennedy.ntriples"
+    path = os.path.join(BASE_DIR, "kennedy.ntriples")
     baseURI = "http://www.franz.com/simple#"
     print "Load 1214 kennedy.ntriples."
     conn.add(path, base=baseURI, format=RDFFormat.NTRIPLES, contexts=None)
