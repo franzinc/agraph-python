@@ -1,4 +1,3 @@
-
 DISTDIR = agraph-$(VERSION)-client-python
 
 TARNAME = $(DISTDIR).tar.gz
@@ -26,6 +25,8 @@ TOXENVDIR := toxenv
 ENVDIR := env
 ENVDIR3 := env3
 
+# Do not recreate virtualenvs unless necessary
+TOX_RECREATE :=
 TOX := $(TOXENVDIR)/bin/tox
 
 # List of virtual environments created during build (not including .tox ones).
@@ -65,11 +66,11 @@ $(TOXENVDIR):
 	virtualenv --no-site-packages $(TOXENVDIR)
 	. ./$(TOXENVDIR)/bin/activate && python -m pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox
 
-$(ENVDIR): $(TOXENVDIR)
-	$(TOX) -e $(PY2)-env
+$(ENVDIR): $(TOXENVDIR) .venv
+	$(TOX) $(TOX_RECREATE) -e $(PY2)-env
 
-$(ENVDIR3): $(TOXENVDIR)
-	$(TOX) -e $(PY3)-env
+$(ENVDIR3): $(TOXENVDIR) .venv
+	$(TOX) $(TOX_RECREATE) -e $(PY3)-env
 
 test-env: $(ENVDIR)
 
@@ -79,22 +80,27 @@ wheelhouse: $(ENVDIR) $(ENVDIR3)
 
 prepush: prepush2 prepush3
 
-prepush2: checkPort $(TOXENVDIR)
-	$(TOX) -e $(PY2)-test
+prepush2: checkPort $(TOXENVDIR) .venv
+	$(TOX) $(TOX_RECREATE) -e $(PY2)-test
 
-prepush3: checkPort $(TOXENVDIR)
-	$(TOX) -e py34-test
+prepush3: checkPort $(TOXENVDIR) .venv
+	$(TOX) $(TOX_RECREATE) -e $(PY3)-test
 
-events: checkPort $(TOXENVDIR)
-	$(TOX) -e $(PY2)-events
+events: checkPort $(TOXENVDIR) .venv
+	$(TOX) $(TOX_RECREATE) -e $(PY2)-events
 
-events3: checkPort $(TOXENVDIR)
-	$(TOX) -e py34-events
+events3: checkPort $(TOXENVDIR) .venv
+	$(TOX) $(TOX_RECREATE) -e $(PY3)-events
 
 tags: FORCE
 	etags `find . -name '*.py'`
 
 clean-envs:
 	rm -rf .tox $(ENVS)
+
+# If any of these files change rebuild the virtual environments.
+.venv: setup.py requirements.txt requirements2.txt tox.ini
+	$(eval TOX_RECREATE := --recreate)
+	touch .venv
 
 FORCE:

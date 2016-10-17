@@ -36,11 +36,16 @@ if __version__ is None:
 # Otherwise assume we're inside agraph sources
 if __version__ is None:
     agraph_root = os.path.normpath(os.path.join(franz_dir, '../../../agraph/lisp'))
-    __version__ = subprocess.Popen(
-        os.path.normpath(os.path.join(agraph_root, 
-                                      'build-tools/agversion.sh')),
-        cwd=agraph_root,
-        stdout=subprocess.PIPE).communicate()[0].decode('ascii')
+    try:
+        __version__ = subprocess.Popen(
+            os.path.normpath(os.path.join(agraph_root, 
+                                          'build-tools/agversion.sh')),
+            cwd=agraph_root,
+            stdout=subprocess.PIPE).communicate()[0].decode('ascii')
+    except:
+        # Use a default, print a warning
+        print("WARNING: Unable to determine version, using 0.0.0")
+        __version__ = '0.0.0'
 
 __version__ = __version__.strip()
 
