@@ -23,7 +23,8 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <tr>
     <td width="249"><ul>
       <li><a href="#Overview">Overview</a></li>
-      <li><a href="#PrerequisitesLinux">Prerequisites (Linux)</a></li>
+      <li><a href="#PrerequisitesLinux">Prerequisites</a></li>
+      <li><a href="#PrerequisitesEnv">Setting the environment for the tutorial</a></li>
       <li><a href="#Terminology">Terminology</a></li>
 	  <li><a href="#Creating Users with WebView">Creating Users with WebView</a></li>
       <li><a href="#Running Python">Running Python Tutorial Examples</a></li>
@@ -34,10 +35,10 @@ creating, querying and maintaining RDF data, and for managing the stored triples
       <li><a href="#Literal Values">Literal Values</a></li>
       <li><a href="#Importing Triples">Importing Triples</a></li>
 	  <li><a href="#Exporting Triples">Exporting Triples</a></li>      
-      <li><a href="#Datasets and Contexts">Searching Multiple Graphs </a></li>
     </ul></td>
     <td width="295"><ul>
-      <li><a href="#Namespaces">Namespaces</a></li>
+     <li><a href="#Datasets and Contexts">Searching Multiple Graphs </a></li>
+       <li><a href="#Namespaces">Namespaces</a></li>
       <li><a href="#Free Text Search">Free Text Search</a></li>
       <li><a href="#Ask, Describe, and Construct Queries">Select, Ask, Describe, and Construct Queries</a></li>
       <li><a href="#Parametric Queries">Parametric Queries</a></li>
@@ -62,16 +63,122 @@ creating, querying and maintaining RDF data, and for managing the stored triples
     <li>The AllegroGraph Python API package which allows Python to communicate with an AllegroGraph server over HTTP or HTTPS.</li>
     <li><strong>tutorial_examples.py</strong> - a Python file implementing all examples presented in this tutorial.</li>
 </ul>
-<p>Each lesson in <strong>tutorial_examples.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 24. The function names are referenced in the title of each section to make it easier to compare the tutorial text and the living code of the examples file. </p>
-<h2 id="PrerequisitesLinux">Prerequisites (Linux) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The tutorial examples can be run on a Linux system, running AllegroGraph and the examples on the same computer (&quot;localhost&quot;). The tutorial assumes that AllegroGraph and Python 2.6 or 2.7 have been installed and configured using the procedure posted on <a href="../server-installation.html#python-client">this webpage</a>. </p>
-<p>Note that the tutorial examples cannot be run in Python 3, even though the API itself can work with Python 3.3 and above.</p>
-<h2 id="PrerequisitesOther">Prerequisites (Other systems) &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>The tutorial code can also be executed on other operating systems. The AllegroGraph server, however, will then have to reside on a different machine. In that scenario, the following extra steps need to be taken</p>
-    <ul>
-        <li>The <code>AG_HOST</code> environment variable must be set to the address of the machine on which AllegroGraph resides. <code>AG_PORT</code> can also be set if the server uses a port other than the default 10035.</li>
-        <li>Appropriate ports on the AllegroGraph machine must be accessible. See <a href="../server-installation.html#jena-client">this page</a> for a description of what those ports are.</li>
-    </ul>
+<p>Each lesson in <strong>tutorial_examples.py</strong> is encapsulated in a Python function, named exampleN(), where N ranges from 0 to 24. The function names are referenced in the title of each section to make it easier to compare the tutorial text and the code of the examples file. </p>
+
+
+<h2 id="PrerequisitesLinux">Prerequisites &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>
+The tutorial examples can be run on any system which supports Python
+2.6 or 2.7. The tutorial assumes that AllegroGraph and Python 2.6 or
+2.7 have been installed and configured using the procedure posted
+on <a href="../server-installation.html#python-client">this
+page</a>.
+</p>
+
+<h2 id="PrerequisitesEnv">Setting the environment for the tutorial &nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>
+You should set the following environment variables when running
+the Python tutorial. 
+</p>
+<p>
+The environment variables are:
+</p>
+<ul>
+<li>
+<code>AGRAPH_HOST</code>: Specifies the IP address or hostname of the
+agraph server. If unset, defaults to <code>localhost</code>.
+</li>
+<li>
+<code>AGRAPH_PORT</code>: Specifies the port of the agraph server at
+AGRAPH_HOST. If unset, defaults to 10035. The port used by the
+server is specified in the agraph.cfg file.
+</li>
+<li>
+<code>AGRAPH_CATALOG</code>: Specifies the catalog to use for the
+tutorial. Set to blank to use the root catalog. If unset, defaults to
+the blank string (meaning the root catalog).  If you wish to use a
+catalog other than the root catalog, it must be defined in the
+agraph.cfg file. See
+the <a href="../server-installation.html">Server Installation</a>
+document. The Python tutorial examples create up to three repositories within
+<code>AGRAPH_CATALOG</code>: <code>pythontutorial</code>, used by most
+examples; <code>redthings</code> and <code>greenthings</code>, used by
+example16.
+</li>
+<li>
+<code>AGRAPH_USER</code>: Specifies the username for authentication.
+For best results, this should name an agraph with superuser
+privileges. If a non-superuser is specified, that user must
+have <b>Start Session</b> privileges to run example6 and examples
+dependent on that example, and <b>Evaluate Arbitrary Code</b>
+privileges to run example 17. If unset, defaults to <code>test</code>,
+the default superuser name.
+</li>
+<li>
+<code>AGRAPH_PASSWORD</code>: Specifies the password for
+authentication of AGRAPH_USER. If unset, defaults
+to <code>xyzzy</code>, the default superuser password.
+</li>
+</ul>
+<p>
+Here is an example of passing environment variables to the tutorial:
+</p>
+<pre>
+# connect to agraph.my-domain.com:10443
+env AGRAPH_HOST=agraph.my-domain.com AGRAPH_PORT=10443 python tutorial/tutorial_examples.py all
+</pre>
+<p>
+The command window will fill with output from the example
+functions. The examples run for about 2.5 minutes and touch most of
+AllegroGraph's features.  To run a specific example, enter its number
+after the file name, that is (for example 13):
+</p>
+<pre>
+env AGRAPH_HOST=agraph.my-domain.com AGRAPH_PORT=10443 python tutorial/tutorial_examples.py 13
+</pre>
+
+<p>
+The <b>agraph.cfg</b> (see
+the <a href="../server-installation.html">Server Installation</a>
+document) specifies values like the port used by the server and the
+catalogs defined. Refer to that file if necessary (or ask your system
+administrator if you do not have access to the file).
+</p>
+
+
+<h4>Troubleshooting</h4>
+
+<p>
+If the tutorial examples throw a connection error in example6(), see the
+discussion
+of <a href="../server-installation.html#sessionport">Session Port
+Setup</a> in the <a href="../server-installation.html">Server
+Installation</a> document.
+</p>
+<p>
+If you see an error similar to the following
+</p>
+<pre>
+ImportError: pycurl: libcurl link-time ssl backend (nss) is
+different from compile-time ssl backend (none/other)
+</pre>
+<p>
+Perform this procedure (replacing {agraph-version} with the actual version):
+</p>
+<pre>
+# Uninstall pycurl from the virtual environment:
+pip uninstall pycurl
+
+# Set the required compile-time option for pycurl
+export PYCURL_SSL_LIBRARY=nss
+
+# Reinstall, but ignore cached packages (force recompile)
+pip install --no-cache-dir -e /yourPathway/agraph-{agraph-version}-client-python
+</pre>
+
+
+
+
 <h2 id="Terminology">Terminology&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
 <p>We need to clarify some terminology before proceeding. </p>
 <ul>
@@ -102,11 +209,12 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <h2 id="Creating Users with WebView">Creating Users with WebView &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
   <p>Each connection to an AllegroGraph server runs under the credentials of a registered AllegroGraph user account. </p>
   <h3>Initial Superuser Account </h3>
-  <p>The installation instructions for AllegroGraph advise you to create a default <strong>superuser</strong> called &quot;test&quot;, with password &quot;xyzzy&quot;. This is the user (and password) expected by the tutorial examples. If you created this account as directed, you can proceed to the <a href="#Creating a Repository">next section</a> and return to this topic at a later time when you need to create non-superuser accounts. </p>
-  <p>If you created a different superuser account you'll have to edit the <strong>tutorial_examples.py</strong> file before proceeding. Modify these entries near the top of the file:</p>
-  <pre class="input">AG_USER = 'test'<br>AG_PASSWORD = 'xyzzy' </pre>
-  
-  <p>Otherwise you'll get an authentication failure when you attempt to connect to the server. </p>
+  <p>The installation instructions for AllegroGraph advise you to
+  create a  <strong>superuser</strong> called &quot;test&quot;,
+  with password &quot;xyzzy&quot;. This is the user (and password)
+  which are used by the Python tutorial if the environment variables
+  AGRAPH_USER and AGRAPH_PASSWORD are not set.</p>
+
   <h3>Users, Permissions, Access Rules, and Roles</h3>
   <p>AllegroGraph user accounts may be given any combination of the following three permissions:</p>
   <ul>
@@ -115,6 +223,8 @@ creating, querying and maintaining RDF data, and for managing the stored triples
     <li>Evaluate Arbritray Code</li>
   </ul>
   <p>In addition, a user account may be given read, write or read/write access to individual repositories. </p>
+  <p>It is easiest to run the Python tutorial as a Superuser. That way you do not have to worry about permissions.</p>
+ <p>If you run as a non-Superuser, you need <b>Start Session</b> permission for example 6 and other examples that depend on 6. You need <b>Evaluate Arbritray Code</b> permission for example17. You also need read/write access on the appropriate catalogs and repositories.</p>
   <p>You can also define a <strong>role</strong> (such as &quot;librarian&quot;) and give the role a set of permissions and access rules. Then you can assign several users to a shared role. This lets you manage their permissions and access by editing the role instead of the individual user accounts. </p>
   <p>A <strong>superuser</strong> automatically has all possible permissions and unlimited access. A superuser can also create, manage and delete other user accounts. Non-superusers cannot view or edit account settings. </p>
   <p>A user with the <strong>Start Sessions</strong> permission can use the AllegroGraph features that require spawning a dedicated session, such as <a href="#Transaction Control">Transactions </a> and <a href="#Social Network Analysis">Social Network Analysis</a>. If you try to use these features without the appropriate permission, you'll encounter authentication errors. </p>
