@@ -22,13 +22,9 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_CATALOG = os.environ.get('AGRAPH_CATALOG', 'python-catalog')
-# AG_CATALOG = ''
-AG_REPOSITORY = 'pythontutorial'
-AG_USER = 'test'
-AG_PASSWORD = 'xyzzy'
-# AG_USER = 'anonymous'
-# AG_PASSWORD = ''
-# Updated July 23, 2010 AG 4.1 BDC
+AG_REPOSITORY = os.environ.get('AGRAPH_REPOSITORY', 'pythontutorial')
+AG_USER = os.environ.get('AGRAPH_USER', 'test')
+AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
@@ -64,8 +60,7 @@ def example1(accessMode=Repository.RENEW):
     print "Default working directory is '%s'" % (CURRENT_DIRECTORY)
     server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     print "Available catalogs", server.listCatalogs()
-##    catalog = server.openCatalog(AG_CATALOG)  ## named catalog
-    catalog = server.openCatalog()             ## default rootCatalog
+    catalog = server.openCatalog(AG_CATALOG)  ## named catalog
     print "Available repositories in catalog '%s':  %s" % (catalog.getName(), catalog.listRepositories())    
     myRepository = catalog.getRepository(AG_REPOSITORY, accessMode)
     myRepository.initialize()
@@ -1235,7 +1230,7 @@ def example16():
         print "\n%s Apples:  " % kind.capitalize(),
         for r in rows: print r[0].getLocalName(),
     
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    server = AllegroGraphServer(AG_HOST, AG_PORT, AG_USER, AG_PASSWORD)
     catalog = server.openCatalog(AG_CATALOG)
     ## create two ordinary stores, and one federated store: 
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
