@@ -22,7 +22,9 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_CATALOG = os.environ.get('AGRAPH_CATALOG', '')
-AG_REPOSITORY = os.environ.get('AGRAPH_REPOSITORY', 'pythontutorial')
+# Every example uses this repository except example16(),
+# which creates 2 repos: redthings and greenthings, 
+AG_REPOSITORY = 'pythontutorial'
 AG_USER = os.environ.get('AGRAPH_USER', 'test')
 AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
 
