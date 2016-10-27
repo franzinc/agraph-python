@@ -614,9 +614,13 @@ class Repository(Service):
     def _enableSession(self, lifetime):
         alive = self.sessionAlive = threading.Event()
         def pingSession():
+            # Mark this thread as a daemon thread.  This will prevent it from
+            # keeping Python alive on shutdown.
+            threading.currentThread().daemon = True
             while True:
                 # Block until closeSession is called, or until
                 # the polling interval has been reached.
+                # NOTE: wait timeout is specified in seconds.
                 alive.wait(old_div(lifetime, 2) if lifetime else 250)
                 if alive.isSet():
                     # closeSession has been called.  Terminate the loop
@@ -631,6 +635,7 @@ class Repository(Service):
 
     def closeSession(self):
         if not self.sessionAlive: return
+        # Notify pingSession() of session close
         self.sessionAlive.set()
         self.sessionAlive = None
         try: nullRequest(self, "POST", "/session/close")
