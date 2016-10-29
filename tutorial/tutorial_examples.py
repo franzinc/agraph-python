@@ -2383,7 +2383,7 @@ def example24():
     conn.deleteFreeTextIndex("index2")
 
 if __name__ == '__main__':
-    starttime = time.clock()
+    starttime = time.time()
     module = sys.modules[__name__]
     
     if len(sys.argv) == 1 or sys.argv[1] == "all":
@@ -2393,11 +2393,10 @@ if __name__ == '__main__':
     for choice in choices:
         choice = int(choice)
         print "\n==========================================================================="
-        print "Example Run Number ", choice, "\n"
+        print "Example Run Number %d\n" % choice
 
         if hasattr(module, "example" + str(choice)):
             getattr(module, "example" + str(choice))()
         else:
             print "This example is not available in the current release."
-    print("\nElapsed time: %s seconds." % (time.clock() - starttime))
-
+    print "\nElapsed time: %.3f seconds." % (time.time() - starttime)
