@@ -613,10 +613,8 @@ class Repository(Service):
 
     def _enableSession(self, lifetime):
         alive = self.sessionAlive = threading.Event()
+
         def pingSession():
-            # Mark this thread as a daemon thread.  This will prevent it from
-            # keeping Python alive on shutdown.
-            threading.currentThread().daemon = True
             while True:
                 # Block until closeSession is called, or until
                 # the polling interval has been reached.
@@ -631,7 +629,13 @@ class Repository(Service):
                     # The ping failed.  Terminate the loop
                     # (and therefore the thread)
                     return
-        threading.Thread(target=pingSession).start()
+
+        pinger = threading.Thread(target=pingSession)
+        # Mark the pingSession thread as a daemon thread.  This will
+        # prevent it from keeping Python alive on shutdown.  This flag
+        # must be set before the thread is started.
+        pinger.daemon = True
+        pinger.start()
 
     def closeSession(self):
         if not self.sessionAlive: return
