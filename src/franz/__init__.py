@@ -10,7 +10,7 @@ import subprocess
 
 # Increment this whenever releasing a new Python Client
 # for the same AG version, reset to 0 when new AG is released.
-post_release = 6
+post_release = 0
 
 __version__ = None
 
