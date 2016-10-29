@@ -30,6 +30,9 @@ AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
 
 RAISE_EXCEPTION_ON_VERIFY_FAILURE = False
 
+# Update this when adding new examples
+NUMBER_OF_EXAMPLES = 24
+
 def verify(expressionValue, targetValue, quotedExpression, testNum):
     """
     Verify that 'expressionValue' equals 'targetValue'.  If not,
@@ -2384,7 +2387,7 @@ if __name__ == '__main__':
     module = sys.modules[__name__]
     
     if len(sys.argv) == 1 or sys.argv[1] == "all":
-        choices = range(1,24)
+        choices = range(1, 1 + NUMBER_OF_EXAMPLES)
     else:
         choices = sys.argv[1:]   
     for choice in choices:
