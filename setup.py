@@ -18,9 +18,6 @@ import franz
 
 version = franz.__version__
 
-with open('src/franz/VERSION', 'wb') as f:
-    f.write(version.encode('ascii'))
-
 with open('README.rst', 'rb') as f:
     long_description = f.read().decode('utf-8')
 

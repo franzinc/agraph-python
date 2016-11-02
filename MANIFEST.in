@@ -3,5 +3,4 @@
 include LICENSE
 include requirements.txt
 include requirements2.txt
-include VERSION
 recursive-include src/franz/openrdf/tests *
