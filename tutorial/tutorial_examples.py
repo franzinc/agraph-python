@@ -2384,14 +2384,14 @@ def example24():
     conn.deleteFreeTextIndex("index1")
     conn.deleteFreeTextIndex("index2")
 
-if __name__ == '__main__':
+def main(*args):
     starttime = time.time()
     module = sys.modules[__name__]
     
-    if len(sys.argv) == 1 or sys.argv[1] == "all":
+    if not args or args[0] == "all":
         choices = range(1, 1 + NUMBER_OF_EXAMPLES)
     else:
-        choices = sys.argv[1:]   
+        choices = args   
     for choice in choices:
         choice = int(choice)
         print "\n==========================================================================="
@@ -2402,3 +2402,6 @@ if __name__ == '__main__':
         else:
             print "This example is not available in the current release."
     print "\nElapsed time: %.3f seconds." % (time.time() - starttime)
+
+if __name__ == '__main__':
+    main(*sys.argv[1:])

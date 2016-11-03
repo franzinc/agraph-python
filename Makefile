@@ -91,6 +91,9 @@ events: checkPort $(TOXENVDIR) .venv
 events3: checkPort $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY3)-events
 
+tutorial: checkPort $(ENVDIR)
+	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../$(ENVDIR)/bin/python runner.py
+
 tags: FORCE
 	etags `find . -name '*.py'`
 
