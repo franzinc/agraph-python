@@ -335,30 +335,40 @@ class Repository(Service):
         nullRequest(self, "POST", "/statements?" + urlenc(commit=commitEvery),
             encode_json(quads), contentType="application/json")
 
-    @python_2_unicode_compatible
-    class UnsupportedFormatError(Exception):
-        def __init__(self, format): self.format = format
-        def __str__(self): return "'%s' file format not supported (try 'ntriples' or 'rdf/xml')." % self.format
+    def mime_type_for_format(self, rdf_format):
+        """
+        Get the preferred MIME type for an RDF format.
+         Raise an error if the format is `None`
 
-    def checkFormat(self, format):
-        if format == "ntriples": return "text/plain"
-        elif format == "rdf/xml": return "application/rdf+xml"
-        else: raise Repository.UnsupportedFormatError(format)
+        :param rdf_format: the format to get the MIME type for.
+        :type rdf_format: franz.openrdf.rio.rdfformat.RDFFormat
+        :return: A MIME type.
+        :rtype: string
+        """
+        if rdf_format is None:
+            raise Exception('Unable to determine file format.')
+        return rdf_format.mime_types[0]
 
-    def loadData(self, data, format, baseURI=None, context=None, commitEvery=None):
-        nullRequest(self, "POST", "/statements?" + urlenc(context=context, baseURI=baseURI, commit=commitEvery),
-                    data, contentType=self.checkFormat(format))
+    def loadData(self, data, rdf_format, base_uri=None, context=None, commit_every=None, content_encoding=None):
+        nullRequest(self, "POST",
+                    "/statements?" + urlenc(context=context,
+                                            baseURI=base_uri,
+                                            commit=commit_every),
+                    data,
+                    contentType=self.mime_type_for_format(rdf_format),
+                    content_encoding=content_encoding)
 
-    def loadFile(self, file, format, baseURI=None, context=None, serverSide=False, commitEvery=None):
-        mime = self.checkFormat(format)
+    def loadFile(self, file, rdf_format, baseURI=None, context=None, serverSide=False, commitEvery=None, content_encoding=None):
+        mime = self.mime_type_for_format(rdf_format)
         body = ""
         if not serverSide:
-            f = open(file)
+            # This is completely insane (bug24322).
+            f = open(file, 'rb')
             body = f.read()
             f.close()
             file = None
         params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery)
-        nullRequest(self, "POST", "/statements?" + params, body, contentType=mime)
+        nullRequest(self, "POST", "/statements?" + params, body, contentType=mime, content_encoding=content_encoding)
 
     def getBlankNodes(self, amount=1):
         return jsonRequest(self, "POST", "/blankNodes", urlenc(amount=amount))
@@ -660,9 +670,9 @@ class Repository(Service):
     def __del__(self):
         self.closeSession()
 
-    def registerEncodedIdPrefix(self, prefix, format):
+    def registerEncodedIdPrefix(self, prefix, uri_format):
         return nullRequest(self, "POST", "/encodedIds/prefixes?" +
-            urlenc(prefix=prefix, format=format))
+                           urlenc(prefix=prefix, format=uri_format))
 
     def registerEncodedIdPrefixes(self, registrations):
         body = []

@@ -307,6 +307,7 @@ class RepositoryConnection(object):
         else: pass ## can't happen
         return RepositoryResult(stringTuples, subjectFilter=subject)
 
+    # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
         """
         Calls addTriple, addStatement, or addFile.  If 'contexts' is not
@@ -332,11 +333,17 @@ class RepositoryConnection(object):
         else:
             raise IllegalArgumentException("Illegal first argument to 'add'.  Expected a Value, Statement, File, or string.")
 
-    def addFile(self, filePath, base=None, format=None, context=None, serverSide=False):
+    # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
+    def addFile(self, filePath, base=None, format=None, context=None, serverSide=False, content_encoding=None):
         """
-        Load the file or file path 'filePath' into the store.  'base' optionally defines a base URI,
-        'format' is RDFFormat.NTRIPLES or RDFFormat.RDFXML, and 'context' optionally specifies
-        which context the triples will be loaded into.
+        Load the file or file path 'filePath' into the store. 
+        'base' optionally defines a base URI,
+        'format' is an RDFFormat (e.g. RDFFormat.NTRIPLES) or None 
+        (will be guessed from the extension of filePath), and 'context'
+        optionally specifies which context the triples will be loaded into.
+        GZIP-compressed files can be loaded by passing 'gzip' as the value
+        of 'content_encoding'. This is only required if the file extension
+        is not '.gz'.
         """
         if isinstance(context, (list, tuple)):
             if len(context) > 1:
@@ -354,15 +361,29 @@ class RepositoryConnection(object):
                 testPath = os.path.abspath(os.path.expanduser(filePath))
                 if os.path.exists(testPath):
                     filePath = testPath
-        fileExt = os.path.splitext(filePath)[1].lower()
-        if format == RDFFormat.NTRIPLES or fileExt in ['.nt', '.ntriples']:
-            self._get_mini_repository().loadFile(filePath, 'ntriples', context=contextString, serverSide=serverSide,
-                commitEvery=self.add_commit_size)
-        elif format == RDFFormat.RDFXML or fileExt in ['.rdf', '.owl']:
-            self._get_mini_repository().loadFile(filePath, 'rdf/xml', context=contextString, baseURI=base,
-                serverSide=serverSide, commitEvery=self.add_commit_size)
-        else:
-            raise Exception("Failed to specify a format for the file '%s'." % filePath)
+        fmt, ce = RDFFormat.rdf_format_for_file_name(filePath)
+        format = format or fmt
+        content_encoding = content_encoding or ce
+    
+        self._get_mini_repository().loadFile(
+            filePath, format, context=contextString, serverSide=serverSide,
+            commitEvery=self.add_commit_size, baseURI=base,
+            content_encoding=content_encoding)
+
+    def addData(self, data, rdf_format=RDFFormat.TURTLE, base_uri=None, context=None):
+        """
+        Adds data from a string to the repository.
+
+        :param data: Data to be added.
+        :param rdf_format: Data format.
+        :type rdf_format: RDFFormat
+        :param base_uri: Base for resolving relative URIs.
+                         If None (default), the URI will be chosen by the server.
+        :param context: Graph to add the data to.
+                        If None (default) the default graph will be used..
+        """
+        self._get_mini_repository().loadData(
+            data, rdf_format, base_uri=base_uri, context=context)
 
     def addTriple(self, subject, predicate, object, contexts=None):
         """
@@ -959,6 +980,7 @@ class RepositoryConnection(object):
         """
         return self._get_mini_repository().evalJavaScript(code)
 
+    # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
     def registerEncodedIdPrefix(self, prefix, format):
         """
         Registers a single encoded prefix.

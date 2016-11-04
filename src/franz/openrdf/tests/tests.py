@@ -2469,7 +2469,7 @@ def test_materializer():
         <http://www.franz.com/simple#owned-by> <http://www.w3.org/2002/07/owl#inverseOf> <http://www.franz.com/simple#owns> .
         <http://www.franz.com/simple#jans> <http://www.franz.com/simple#has-pet> <http://www.franz.com/simple#birra> .
         """
-    conn.mini_repository.loadData(data, 'ntriples')
+    conn.mini_repository.loadData(data, RDFFormat.NTRIPLES)
 
     entailed = conn.materializeEntailed(_with='all')
     print("There were", entailed, "entailed triples")
@@ -2571,3 +2571,30 @@ else:
         values.sort()
 
         assert values == literals + uris or values == uris + literals
+
+
+def test_turtle_import():
+    conn = connect()
+    path = os.path.join(CURRENT_DIRECTORY, "kennedy.ttl")
+    base_uri = "http://example.org/example/local"
+    conn.addFile(path, base_uri, format=RDFFormat.TURTLE)
+    assert conn.size() == 1214
+
+
+def test_turtle_import_compressed():
+    conn = connect()
+    path = os.path.join(CURRENT_DIRECTORY, "kennedy.ttl.gz")
+    base_uri = "http://example.org/example/local"
+    conn.addFile(path, base_uri, format=RDFFormat.TURTLE)
+    assert conn.size() == 1214
+
+
+def test_turtle_import_from_string():
+    conn = connect()
+    base_uri = "http://example.org/example/local"
+    data = """
+        <jans> <age> 58 ; <livesIn> <place100> .
+        <place100> <name> 'Moraga'; <population> 16000 .
+    """
+    conn.addData(data, RDFFormat.TURTLE, base_uri=base_uri)
+    assert conn.size() == 4
