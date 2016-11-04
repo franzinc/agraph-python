@@ -19,8 +19,7 @@ CURRENT_DIRECTORY = os.getcwd()
 # Directory containing the data files.
 # Use the location of the script file or the current working
 # directory if that location is not known.
-BASE_DIR = os.path.dirname(os.path.realpath(
-    __file__ if __name__ != '__main__' else os.getcwd()))
+BASE_DIR = os.path.dirname(os.path.realpath(__file__)) if '__file__' in globals() else os.getcwd()
 
 AG_HOST = os.environ.get('AGRAPH_HOST', 'localhost')
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
