@@ -25,10 +25,7 @@ install_requires = [
     'future>=0.15.2,<1.0',
     'pycurl>=7.21.5,<8.0']
 
-if sys.version_info[0] == 2:  # Python 2
-    install_requires += ['python-cjson>=1.1.0,<2.0']
-
-setup_requires = ['nose>=1.3.4,<2.0', 'pytest>=3.0,<4.0', 'pytest-timeout>=1.0,<2.0']
+setup_requires = ['nose>=1.3.7,<2.0', 'pytest>=3.0,<4.0', 'pytest-timeout>=1.0,<2.0']
 
 tests_require = ['unittest2>=1.1.0,<2.0']
 
@@ -46,6 +43,10 @@ setup(name='agraph-python',
       install_requires=install_requires,
       setup_requires=setup_requires,
       tests_require=tests_require,
+      # To use these, install like this: pip install agraph-python[simplejson]
+      extras_require={
+          'simplejson': ['simplejson>=2.0.9']
+      },
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Developers',
