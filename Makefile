@@ -31,7 +31,7 @@ TOX := $(TOXENVDIR)/bin/tox
 
 # List of virtual environments created during build (not including .tox ones).
 # stress/env is created by the events test.
-ENVS := $(ENVDIR) $(ENVDIR3) $(TOXENVDIR) stress/env
+ENVS := $(ENVDIR) $(ENVDIR3) $(TOXENVDIR) stress/env disttest
 
 # Some hosts have only 2.6, some only 2.7...
 VERSION_SCRIPT := import sys; print('py%d%d' % (sys.version_info[0], sys.version_info[1]))
@@ -63,7 +63,7 @@ endif
 
 $(TOXENVDIR):
 	virtualenv --no-site-packages $(TOXENVDIR)
-	. ./$(TOXENVDIR)/bin/activate && python -m pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox
+	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox virtualenv
 
 $(ENVDIR): $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY2)-env
@@ -91,8 +91,21 @@ events: checkPort $(TOXENVDIR) .venv
 events3: checkPort $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY3)-events
 
-tutorial: checkPort $(ENVDIR)
-	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../$(ENVDIR)/bin/python runner.py
+# This does not use Tox, since the idea is to check if 'pip install'
+# will work correctly at the target machine.
+disttest: dist FORCE
+	# Always recreate the environment from scratch
+	rm -rf disttest
+	# Use toxenv's virtualenv so we get a recent enough pip
+	$(TOXENVDIR)/bin/virtualenv -p python2 --no-site-packages disttest
+	# Update to the very latest
+	disttest/bin/pip install -U ${AG_PIP_OPTS} setuptools wheel pip
+	# Install from the release tarball
+	# Make sure pycurl compiles
+	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) DIST/$(TARNAME)
+
+tutorial: checkPort disttest
+	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/python runner.py
 
 tags: FORCE
 	etags `find . -name '*.py'`
