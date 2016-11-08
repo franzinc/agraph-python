@@ -6,3 +6,4 @@ traceback2==1.4.0
 pycurl==7.21.5
 pytest==3.0.2
 pytest-timeout==1.0.0
+requests==2.11.1

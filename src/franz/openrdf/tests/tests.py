@@ -37,7 +37,13 @@ from ..model import BNode, Literal, Statement, URI, ValueFactory
 
 from nose.tools import eq_, assert_raises, raises
 
-import os, datetime, locale, io, sys, warnings
+from franz.miniclient.request import backend
+use_curl = backend.__name__ == 'curl'
+
+if use_curl:
+    import pycurl
+
+import os, datetime, locale, io, subprocess, sys, warnings
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -2253,7 +2259,7 @@ def test_save_response():
     Tests saving the response object.
     """
     conn = test2()
-    buf = io.StringIO()
+    buf = io.BytesIO()
     queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
     tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
     with conn.saveResponse(buf, 'application/sparql-results+xml'):
@@ -2262,7 +2268,7 @@ def test_save_response():
     print(buf.getvalue())
     assert len(buf.getvalue()) > 0
 
-    buf = io.StringIO()
+    buf = io.BytesIO()
     with conn.saveResponse(buf, 'application/rdf+xml', True):
         try:
             conn.getStatements()
@@ -2273,7 +2279,7 @@ def test_save_response():
 
     assert len(buf.getvalue()) == 0
 
-    buf = io.StringIO()
+    buf = io.BytesIO()
     with conn.saveResponse(buf, 'application/rdf+xml'):
         conn.getStatements(subject=None, predicate=None, object=None)
 

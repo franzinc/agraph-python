@@ -11,14 +11,27 @@ from itertools import islice
 from future.builtins import bytes, next, object, range
 
 from future.utils import iteritems, python_2_unicode_compatible, bchr
-from past.builtins import unicode, basestring
+from past.builtins import unicode
 from past.builtins import str as old_str
 from future.utils import native_str
-import io, errno, pycurl, locale, re, os, sys, time
-from threading import Lock
+import os, re, sys
 
-from franz.openrdf.util.strings import to_native_string, to_bytes
-from franz.miniclient.agjson import decode_json, encode_json, JsonDecodeError
+from franz.miniclient.agjson import JsonDecodeError, decode_json
+from franz.openrdf.util.strings import to_native_string
+
+# Select the backend (curl or requests).
+if os.environ.get('AG_FORCE_REQUESTS_BACKEND'):
+    import franz.miniclient.backends.requests as backend
+else:
+    try:
+        import franz.miniclient.backends.curl as backend
+    except ImportError:
+        import franz.miniclient.backends.requests as backend
+
+makeRequest = backend.makeRequest
+
+from franz.openrdf.util.strings import to_native_string
+from franz.miniclient.agjson import decode_json, JsonDecodeError
 
 if sys.version_info[0] > 2:
     from urllib.parse import quote
@@ -26,6 +39,82 @@ if sys.version_info[0] > 2:
 else:
     from urllib import quote
     from cStringIO import StringIO
+
+
+def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json", headers=None):
+    """
+    Create a request that expects a JSON response.
+
+    The response can optionally be saved to a file-like object if
+    the connection object has the _saveFile and _saveAccept attributes.
+
+    Instead of being returned the response might be passed to a RowReader object.
+
+    Raise an exception if the returned status is not in the 2XX range.
+
+    :param obj: Service object with connection information (e.g. credentials).
+    :type obj: franz.openrdf.miniclient.repository.Service
+    :param method: Request method (``"GET"``, ``"POST"``, ...).
+    :type method: string
+    :param url: Target address
+    :type url: string
+    :param body: Request body (for PUT/POST requests) or query string, optional.
+    :type body: basestring|file
+    :param accept: Value of the accept header (default: ``"application/json"``)
+    :type accept: string
+    :param contentType: MIME type of the request body, optional.
+    :type contentType: string
+    :param headers: Either a dictionary mapping headers to values or
+                    a list of strings that will be included in the request's headers.
+    :type headers: Iterable[string] | dict[string, string] | None
+    :return: Status code and response body, unless callback is specified (in that case None is returned).
+    :param rowreader: A RowReader object that will process the response.
+    :type rowreader: RowReader
+
+    :return: A parsed JSON response or ``None`` if the response was saved to a file or processed by a RowReader.
+    :rtype: dict|string|int|float|None
+    """
+    callback = None if rowreader is None else rowreader.process
+    # If there is a _saveFile and _saveAccept, they override the arguments
+    if hasattr(obj, '_saveFile') and hasattr(obj, '_saveAccept'):
+        accept = obj._saveAccept
+        callback = obj._saveFile.write
+
+    if callback is None:
+        status, body = makeRequest(obj, method, url, body, accept, contentType, headers=headers)
+        if (status == 200):
+            if accept in ('application/json', 'text/integer', "application/x-quints+json"):
+                body = decode_json(body)
+            return body
+        else: raise RequestError(status, body)
+    else:
+        def raiseErr(status, message): raise RequestError(status, message)
+        makeRequest(obj, method, url, body, accept, contentType, callback=callback, errCallback=raiseErr, headers=headers)
+
+
+def nullRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", content_encoding=None):
+    """
+    Create a request that expects an empty response body.
+
+    Raise an exception if the returned status is not in the 2XX range.
+
+    :param obj: Service object with connection information (e.g. credentials).
+    :type obj: franz.openrdf.miniclient.repository.Service
+    :param method: Request method (``"GET"``, ``"POST"``, ...).
+    :type method: string
+    :param url: Target address
+    :type url: string
+    :param body: Request body (for PUT/POST requests) or query string, optional.
+    :type body: basestring|file
+    :param contentType: MIME type of the request body, optional.
+    :type contentType: string
+    """
+    headers = []
+    if content_encoding is not None:
+        headers.append('Content-Encoding: ' + content_encoding)
+    status, body = makeRequest(obj, method, url, body, "application/json", contentType, headers=headers)
+    if (status < 200 or status > 204): raise RequestError(status, body)
+
 
 if sys.version_info[0] == 2:
     # Workaround for a bug in python-future
@@ -48,60 +137,16 @@ def mk_unicode(text):
         return unicode(text, 'utf-8')
     return text
 
-curlPool = None
-
-class Pool(object):
-    @staticmethod
-    def instance():
-        global curlPool
-        pid = os.getpid()
-
-        # There might be a race to create the pool, but
-        # it probably isn't worth a lock. If two are created
-        # the first one assigned to curlPool will just
-        # lose a reference and be deleted - not a big deal.
-        if curlPool is None or curlPool.pid != pid:
-            curlPool = Pool(pycurl.Curl, pid)
-
-        return curlPool
-
-    def __init__(self, create, pid):
-        self.create = create
-        self.pid = pid
-        self.lock = Lock()
-        self.pool = []
-
-    def get(self):
-        self.lock.acquire()
-        try:
-            value = self.pool.pop()
-        except IndexError:
-            value = None
-        finally:
-            self.lock.release()
-
-        # Create new ones outside the lock
-        return value or self.create()
-
-    def put(self, value):
-        # We could call value.reset() here before returning the curl object
-        # to the pool for pycurl version >= 7.19.0 if the C code for reset
-        # actually incremented the reference on the returned None object.
-        # As the C code is now, if called, the refcount on None eventually
-        # goes to zero after enough requests and the Python interpretor
-        # dies a quick death.
-        self.lock.acquire()
-        try:
-            self.pool.append(value)
-        finally:
-            self.lock.release()
-
 
 @python_2_unicode_compatible
 class RequestError(Exception):
     code = None
 
     def __init__(self, status, message):
+        # Why the [----] did anynone think it's ok for a client
+        # library to just happily write stuff to stdout?!?!
+        # I can't fix it now, because our Lisp query cancelling test
+        # depends on this nonsensical behavior.
         print(status, message)
         self.status = status
         if status == 400:
@@ -142,163 +187,6 @@ def urlenc(**args):
         encval(arg_name, value)
     return buf.getvalue()
 
-
-# Maps proxy type names to curl constants
-_proxy_types = {
-    'http': pycurl.PROXYTYPE_HTTP,
-    'socks': pycurl.PROXYTYPE_SOCKS5_HOSTNAME,
-    'socks4': pycurl.PROXYTYPE_SOCKS4A,
-    'socks5': pycurl.PROXYTYPE_SOCKS5_HOSTNAME,
-}
-
-
-def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None, headers=None):
-    curl = Pool.instance().get()
-
-    # Uncomment these 5 lines to see pycurl debug output
-    # def report(debug_type, debug_msg):
-    #     if debug_type != 3:
-    #         print("debug(%d): %s" % (debug_type, debug_msg))
-    # curl.setopt(pycurl.VERBOSE, 1)
-    # curl.setopt(pycurl.DEBUGFUNCTION, report)
-
-    #curl.setopt(pycurl.TIMEOUT, 45)
-
-    # Proxy support
-    if obj.proxy is not None:
-        curl.setopt(pycurl.PROXY, obj.proxy_host)
-        curl.setopt(pycurl.PROXYPORT, obj.proxy_port)
-        curl.setopt(pycurl.PROXYTYPE, _proxy_types[obj.proxy_type])
-    else:
-        # Unsetopt doesn't work. As usual.
-        curl.setopt(pycurl.PROXY, '')
-
-    if obj.user is not None and obj.password is not None:
-        curl.setopt(pycurl.USERPWD, "%s:%s" % (to_native_string(obj.user),
-                                               to_native_string(obj.password)))
-        curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
-    else:
-        curl.unsetopt(pycurl.USERPWD)
-    if obj.cainfo is not None:
-        curl.setopt(pycurl.CAINFO, obj.cainfo)
-    if obj.sslcert is not None:
-        curl.setopt(pycurl.SSLCERT, obj.sslcert)
-    if obj.verifyhost is not None:
-        curl.setopt(pycurl.SSL_VERIFYHOST, obj.verifyhost)
-    if obj.verifypeer is not None:
-        curl.setopt(pycurl.SSL_VERIFYPEER, obj.verifypeer)
-
-    url = to_native_string(url)
-    if not url.startswith("http:") and not url.startswith("https:"):
-        url = to_native_string(obj.url) + to_native_string(to_native_string(url))
-
-    method = to_native_string(method)
-
-    # Usually POST and UPLOAD correspond to POST and PUT requests respectively.
-    # In our case we will override the method using CUSTOMREQUEST and the
-    # settings here will tell us if we're uploading using a READFUNCTION
-    # or posting a string with POSTFIELDS.
-    curl.setopt(pycurl.POST, 0)
-    curl.setopt(pycurl.UPLOAD, 0)
-    if body:
-        if method in ("POST", "PUT"):
-            if isinstance(body, basestring):
-                # String
-                body = to_bytes(body)
-                curl.setopt(pycurl.POSTFIELDS, body)
-                curl.setopt(pycurl.POST, 1)
-            else:
-                # File - can be passed as READDATA, but not as POSTFIELDS.
-                curl.setopt(pycurl.READDATA, body)
-                curl.setopt(pycurl.UPLOAD, 1)
-        else:
-            contentType = None
-            url = url + "?" + to_native_string(body)
-    else:
-        contentType = None
-
-    curl.setopt(pycurl.CUSTOMREQUEST, method)
-    curl.setopt(pycurl.URL, url)
-
-    # The "Expect:" is there to suppress "Expect: 100-continue"
-    # behaviour that is the default in libcurl when posting large
-    # bodies.
-    if headers is None:
-        headers = []
-    for i in range(len(headers)):
-        headers[i] = to_native_string(headers[i])
-    headers.extend(["Connection: keep-alive", "Accept: " + to_native_string(accept), "Expect:"])
-    if callback: headers.append("Connection: close")
-    if contentType: headers.append("Content-Type: " + to_native_string(contentType))
-    if obj.runAsName: headers.append("x-masquerade-as-user: " + to_native_string(obj.runAsName))
-    curl.setopt(pycurl.HTTPHEADER, headers)
-    curl.setopt(pycurl.ENCODING, "")  # which means 'any encoding that curl supports'
-
-    def retrying_perform():
-        retry = 0.1
-        while retry < 2.0:
-            try:
-                curl.perform()
-                break
-            except pycurl.error as error:
-                if (error.args[0] == 7 and
-                    curl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET):
-                    # Retry
-                    time.sleep(retry)
-                    retry *= 2
-                    continue
-
-                raise
-
-    if callback:
-        status = [None]
-        error = []
-        def headerfunc(string):
-            if status[0] is None:
-                status[0] = locale.atoi(unicode(string, 'utf-8').split(" ")[1])
-            return len(string)
-        def writefunc(string):
-            if status[0] == 200: callback(unicode(string, 'utf-8'))
-            else: error.append(unicode(string, 'utf-8'))
-        curl.setopt(pycurl.WRITEFUNCTION, writefunc)
-        curl.setopt(pycurl.HEADERFUNCTION, headerfunc)
-        retrying_perform()
-        if status[0] != 200:
-            errCallback(curl.getinfo(pycurl.RESPONSE_CODE), "".join(error))
-    else:
-        buf = io.BytesIO()
-        curl.setopt(pycurl.WRITEFUNCTION, buf.write)
-        retrying_perform()
-        response = unicode(buf.getvalue(), "utf-8")
-        buf.close()
-        result = (curl.getinfo(pycurl.RESPONSE_CODE), response)
-        Pool.instance().put(curl)
-        return result
-
-def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json", headers=None):
-    callback = None if rowreader is None else rowreader.process
-    # If there is a _saveFile and _saveAccept, they override the arguments
-    if hasattr(obj, '_saveFile') and hasattr(obj, '_saveAccept'):
-        accept = obj._saveAccept
-        callback = obj._saveFile.write
-
-    if callback is None:
-        status, body = makeRequest(obj, method, url, body, accept, contentType, headers=headers)
-        if (status == 200):
-            if accept in ('application/json', 'text/integer', "application/x-quints+json"):
-                body = decode_json(body)
-            return body
-        else: raise RequestError(status, body)
-    else:
-        def raiseErr(status, message): raise RequestError(status, message)
-        makeRequest(obj, method, url, body, accept, contentType, callback=callback, errCallback=raiseErr, headers=headers)
-
-def nullRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", content_encoding=None):
-    headers = []
-    if content_encoding is not None:
-        headers.append('Content-Encoding: ' + content_encoding)
-    status, body = makeRequest(obj, method, url, body, "application/json", contentType, headers=headers)
-    if (status < 200 or status > 204): raise RequestError(status, body)
 
 class RowReader(object):
     def __init__(self, callback):

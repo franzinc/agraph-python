@@ -9,6 +9,9 @@ from __future__ import absolute_import, division, with_statement
 import sys
 
 from past.utils import old_div
+from past.builtins import basestring
+
+from franz.miniclient.agjson import encode_json
 
 if sys.version_info[0] > 2:
     from urllib.parse import quote, urlparse
@@ -43,7 +46,7 @@ def _split_proxy(proxy):
 
 class Service(object):
     def __init__(self, url, user=None, password=None, cainfo=None, sslcert=None,
-            verifyhost=None, verifypeer=None, proxy=None):
+                 verifyhost=None, verifypeer=None, proxy=None, session=None):
         # Note: it is important to save the arguments into fields with identical names.
         # This makes the weird cloning mechanism used by subclasses work.
         self.url = url
@@ -55,7 +58,8 @@ class Service(object):
         self.verifyhost = verifyhost
         self.verifypeer = verifypeer
         self.proxy = proxy
-        self.proxy_type,  self.proxy_host, self.proxy_port = _split_proxy(proxy)
+        self.proxy_type, self.proxy_host, self.proxy_port = _split_proxy(proxy)
+        self.session = session
 
     def _instance_from_url(self, subclass, url):
         """
@@ -73,7 +77,6 @@ class Service(object):
                 kwargs[arg_name] = getattr(self, arg_name)
         # Override URL
         kwargs['url'] = url
-
         return subclass(**kwargs)
 
 

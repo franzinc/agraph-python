@@ -147,14 +147,14 @@ if sys.version_info[0] > 2:
     def to_native_string(text):
         """
         Converts text to the native string type of the Python version used.
-        ASCII encoding is used if the text needs to be encoded or decoded.
+        UTF-8 encoding is used if the text needs to be encoded or decoded.
 
         :param text: Text to be converted (either Unicode or bytes).
         :type text: str|bytes|unicode
         :rtype str
         """
         if isinstance(text, bytes):
-            return str(text, 'ascii')
+            return str(text, 'utf-8')
         return text
 else:
     def to_native_string(text):

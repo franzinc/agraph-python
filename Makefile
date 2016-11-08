@@ -160,9 +160,11 @@ prepush: prepush2 prepush3
 
 prepush2: checkPort $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY2)-test
+	AG_FORCE_REQUESTS_BACKEND=y $(TOX) -e $(PY2)-test
 
 prepush3: checkPort $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY3)-test
+	AG_FORCE_REQUESTS_BACKEND=y $(TOX) -e $(PY3)-test
 
 events: checkPort $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY2)-events
