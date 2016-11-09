@@ -55,9 +55,12 @@ AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_SSLPORT = int(os.environ.get('AGRAPH_SSL_PORT', '10036'))
 AG_ONSERVER = AG_HOST == LOCALHOST
+USER = 'test'
+PASSWORD = 'xyzzy'
 
 CATALOG = 'tests'
 STORE = 'agraph_test'
+
 
 def teardown_module():
     """Module level teardown function."""
@@ -91,7 +94,7 @@ def connect(accessMode=Repository.RENEW):
     Connect is called by the other tests to startup the connection to the test database.
     """
     print("Default working directory is '%s'" % (CURRENT_DIRECTORY))
-    server = AllegroGraphServer(AG_HOST, AG_PORT, 'test', 'xyzzy')
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
     print("Available catalogs", server.listCatalogs())
     catalog = server.openCatalog(CATALOG)
     stores = catalog.listRepositories()
