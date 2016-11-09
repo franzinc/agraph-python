@@ -8,7 +8,7 @@
 BASE_DIR=$(dirname "$0")
 
 AG_VERSION=$1
-PY_VERSION=$(python -c "execfile('${BASE_DIR}/src/franz/__init__.py'); print(__version__)")
+PY_VERSION=$(python2 -c "execfile('${BASE_DIR}/src/franz/__init__.py'); print(__version__)")
 
 function err() { echo "$@" 1>&2; }
 
@@ -16,4 +16,5 @@ if [[ ! "${PY_VERSION}" == "${AG_VERSION}"* ]]; then
     err "ERROR: Version number mismatch!"
     err "  Client version (in src/franz/__init__.py): ${PY_VERSION}"
     err "  AG version: ${AG_VERSION}"
+    exit 1
 fi
