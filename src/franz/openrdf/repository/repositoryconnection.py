@@ -860,6 +860,14 @@ class RepositoryConnection(object):
         miniRep = self._get_mini_repository()
         return miniRep.closeSession()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        del args
+        self.closeSession()
+        self.close()
+
     @contextmanager
     def session(self,  autocommit=False, lifetime=None, loadinitfile=False):
         """
