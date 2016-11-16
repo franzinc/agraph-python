@@ -31,12 +31,19 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <li><a href="#Catalog Class">Catalog Class</a></li>
   <li><a href="#Repository Class">Repository Class</a></li>
   <li><a href="#RepositoryConnection Class">RepositoryConnection Class</a></li>
-  <li><a href="#Query Class">Query Class</a></li>
-  <ul>
-  <li><a href="#Subclass TupleQuery">Subclass TupleQuery</a></li>
-  <li><a href="#Subclass GraphQuery">Subclass GraphQuery</a></li>
-  <li><a href="#Subclass BooleanQuery">Subclass BooleanQuery</a></li>
-  </ul>
+  <li><a href="#Query Class">Query Class</a>
+    <ul>
+      <li><a href="#Subclass TupleQuery">Subclass TupleQuery</a></li>
+      <li><a href="#Subclass GraphQuery">Subclass GraphQuery</a></li>
+      <li><a href="#Subclass BooleanQuery">Subclass BooleanQuery</a></li>
+    </ul>
+  </li>
+  <li><a href="#QueryResult Class">QueryResult Class</a>
+    <ul>
+      <li><a href="#Subclass TupleQueryResult">Subclass TupleQueryResult</a></li>
+      <li><a href="#Subclass GraphQueryResult">Subclass GraphQueryResult</a></li>
+    </ul>
+  </li>
   <li><a href="#RepositoryResult Class">RepositoryResult Class</a> </li>
   <li><a href="#Statement Class">Statement Class</a>  </li>
   <li><a href="#ValueFactory Class">ValueFactory Class</a></li>
@@ -611,7 +618,7 @@ non-instantiable. It is an abstract class from which the three query subclasses 
 <table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
       <td valign="top">evaluate_generic_query(self, count=False, accept=None)</td>
-      <td>Evaluate a SPARQL or PROLOG query. If SPARQL, it may be a 'select', 'construct', 'describe' or 'ask' query. Return a RepositoryResult object, unless the <em>accept</em> parameter is set to 
+      <td>Evaluate a SPARQL or PROLOG query. If SPARQL, it may be a 'select', 'construct', 'describe' or 'ask' query. Return a <a href="#QueryResult Class">QueryResult</a> object, unless the <em>accept</em> parameter is set to
 
 
  'application/sparql-results+xml'
@@ -667,7 +674,7 @@ to return the results as a string in xml or json format. (Best practice is to us
   </tr>
 </table>
 <h3 id="Subclass TupleQuery">Subclass TupleQuery&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a> </h3>
-<p>This subclass is used with SELECT queries.&nbsp; Use the <a href="#RepositoryConnection Class">RepositoryConnection</a> object's <strong>prepareTupleQuery()</strong> method to create a TupleQuery object. The results of the query are returned in a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that yields a sequence of bindingSets.</p>
+<p>This subclass is used with SELECT queries.&nbsp; Use the <a href="#RepositoryConnection Class">RepositoryConnection</a> object's <strong>prepareTupleQuery()</strong> method to create a TupleQuery object. The results of the query are returned in a <a href="#RepositoryResult Class">QueryResult</a> iterator that yields a sequence of bindingSets.</p>
 <p><strong>Methods</strong></p>
 <p>TupleQuery uses all the methods of the <a href="#Query Class">Query</a> class, plus one more: </p>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
@@ -700,33 +707,69 @@ or expressions in a 'select' clause (or its equivalent).</td>
     </tr>
 </table>
 
+<h2 id="QueryResult Class">QueryResult Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/query/queryresult.py.</p>
+<p>A QueryResult object is simply an iterator that also has a close() method that must be called to free resources.
+Such objects are returned as a result of SPARQL and PROLOG query evaluation and should not be constructed directly. The recommended usage looks like this:</p>
+<pre>        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
+        with contextlib.closing(tupleQuery.evaluate()) as results:
+		    for result in results:
+		        print result
+</pre>
+
+<h3>Methods</h3>
+<table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+  <tr>
+    <td width="168" valign="top">close(self)</td>
+    <td width="591">Shut down the iterator to be sure the resources are freed up. It is safe to call this method multiple times.</td>
+  </tr>
+  <tr>
+    <td valign="top">next(self)</td>
+    <td>Return the next <a href="#Statement Class">Statement</a> in the answer, if there is one. Otherwise raise a StopIteration exception.</td>
+  </tr>
+</table>
+
+<h3 id="Subclass TupleQueryResult">Subclass TupleQueryResult &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h3>
+<p>A QueryResult subclass used for queries that return tuples.</p>
+
+<h4>Methods</h4>
+<table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+  <tr>
+    <td width="168" valign="top">getBindingNames(self)</td>
+    <td width="591">Get the names of the bindings (a list of strings), in order of projection.</td>
+  </tr>
+</table>
+
+<h3 id="Subclass GraphQueryResult">Subclass GraphQueryResult &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h3>
+<p>A QueryResult subclass used for queries that return statements. Objects of this class are also <a href="#RepositoryResult Class">RepositoryResult</a> instances.</p>
+
 <h2 id="RepositoryResult Class">RepositoryResult Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
-<p>A RepositoryResult object is a result collection of objects (for example, <a href="#Statement Class">Statement</a> objects) that can be iterated over. It  keeps an open connection to the backend for lazy retrieval of individual  results. Additionally it has some utility methods to fetch all results and  add them to a collection.<br>
+<p>A RepositoryResult object is a result collection of <a href="#Statement Class">Statement</a> that can be iterated over. It  keeps an open connection to the backend for lazy retrieval of individual  results. Additionally it has some utility methods to fetch all results and  add them to a collection.<br>
   <br>
   By default, a RepositoryResult is not necessarily a (mathematical) set: it  may contain duplicate objects. Duplicate filtering can be  switched on,  but this should not be used lightly as the filtering mechanism is potentially  memory-intensive.<br>
   <br>
-  A RepositoryResult needs to be closed after use to free up  any resources (open connections, read locks, etc.) it has on the underlying  repository.</p>
+  A RepositoryResult must be closed after use to free up  any resources (open connections, read locks, etc.) it has on the underlying  repository.</p>
 <p>Source: /AllegroGraphDirectory/src/franz/openrdf/repository/repositoryresult.py.</p>
 <h3>Constructor</h3>
 <p>Best practice is to allow a querySubclass.evaluate() method to create and return the RepositoryResult object. There is no reason for the Python application programmer to create a RepositoryResult object directly.&nbsp; </p>
-<pre>        tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString)
-        results = tupleQuery.evaluate()
-		 for result in results:
-		     print result
+<pre>        graphQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString)
+        with contextlib.closing(graphQuery.evaluate()) as results:
+		    for result in results:
+		        print result
 </pre>
 <h3>Methods</h3>
 <table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
       <td width="168" valign="top">close(self)</td>
-        <td width="591">Shut down the iterator to be sure the resources are freed up. </td>
+        <td width="591">Shut down the iterator to be sure the resources are freed up. It is safe to call this method multiple times.</td>
     </tr>
     <tr>
-      <td valign="top">next(next)</td>
-        <td>Return the next <a href="#Statement Class">Statement</a> in the answer, if there is one.</td>
+      <td valign="top">next(self)</td>
+        <td>Return the next <a href="#Statement Class">Statement</a> in the answer, if there is one. Otherwise raise a StopIteration exception.</td>
     </tr>
     <tr>
       <td valign="top">enableDuplicateFilter(self)</td>
-        <td> Switches on duplicate filtering while iterating over objects. The  RepositoryResult will keep track of the previously returned objects in a  java.util.Set and on calling next() will ignore any  objects that already occur in this Set.<br>            <br>
+        <td> Switches on duplicate filtering while iterating over objects. The  RepositoryResult will keep track of the previously returned objects in a set and on calling next() will ignore any  objects that already occur in this set.<br>            <br>
          Caution: use of this filtering mechanism is potentially memory-intensive.</td>
     </tr>
     <tr>
