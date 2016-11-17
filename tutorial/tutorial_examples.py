@@ -1,3 +1,5 @@
+import tempfile
+
 from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 from franz.openrdf.repository.repository import Repository
 from franz.miniclient import repository
@@ -758,20 +760,21 @@ def example7():
     myRepository = conn.repository
     myRepository.shutDown()
 
-import urlparse
 
 def example8():
     conn = example6(False)
     print "Starting example8()."
     context = conn.createURI("http://example.org#vcards")
-    outputFile = "/tmp/temp.nt"
-    #outputFile = None
+    f, outputFile = tempfile.mkstemp('.nt')
+    os.close(f)
+    # outputFile = None
     if outputFile == None:
         print "Writing RDF to Standard Out instead of to a file"
     ntriplesWriter = NTriplesWriter(outputFile)
-    conn.export(ntriplesWriter, context);  # Export vcards to .nt file.
-    outputFile2 = "/tmp/temp.rdf"
-    #outputFile2 = None
+    conn.export(ntriplesWriter, context)   # Export vcards to .nt file.
+    f, outputFile2 = tempfile.mkstemp('.rdf')
+    os.close(f)
+    # outputFile2 = None
     if outputFile2 == None:
         print "Writing NTriples to Standard Out instead of to a file"
     rdfxmlfWriter = RDFXMLWriter(outputFile2)    
@@ -780,9 +783,11 @@ def example8():
     familyName = conn.createURI("http://www.w3.org/2001/vcard-rdf/3.0#FN")
     conn.exportStatements(None, familyName, None, False, RDFXMLWriter(None), context)
     conn.closeSession()
-    conn.close();
+    conn.close()
     myRepository = conn.repository
     myRepository.shutDown()
+    os.remove(outputFile)
+    os.remove(outputFile2)
 
 def example9():
     print "Starting example9()."
