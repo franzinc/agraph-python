@@ -136,7 +136,7 @@ def to_bytes(text):
 
     :param text: Text to be converted.
     :type text: str|bytes|unicode
-    :rtype bytes
+    :rtype: bytes
     """
     if isinstance(text, unicode):
         return text.encode('utf-8')
@@ -151,7 +151,7 @@ if sys.version_info[0] > 2:
 
         :param text: Text to be converted (either Unicode or bytes).
         :type text: str|bytes|unicode
-        :rtype str
+        :rtype: str
         """
         if isinstance(text, bytes):
             return str(text, 'utf-8')

@@ -42,15 +42,6 @@ class RDFS(object):
     SEEALSO = URI(namespace=NS, localname="seeAlso")
     CONTAINERMEMBERSHIPPROPERTY = URI(namespace=NS,
 	localname="ContainerMembershipProperty")
-       
-    ## map of uri strings to URI objects:
-    uristr2obj = {}
-
-for name, uri in iteritems(RDFS.__dict__):
-    if name.upper() == name:
-        RDFS.uristr2obj[unicode(uri)] = uri
-
-del RDFS.uristr2obj[NS]
 
 
 

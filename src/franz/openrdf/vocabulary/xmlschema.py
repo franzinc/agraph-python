@@ -72,11 +72,3 @@ class XMLSchema(object):
     UNSIGNED_SHORT = URI(namespace=NS, localname="unsignedShort")
     UNSIGNED_BYTE = URI(namespace=NS, localname="unsignedByte")        
 
-    ## map of uri strings to URI objects:
-    uristr2obj = {}
-    
-for name, uri in iteritems(XMLSchema.__dict__):
-    if name.upper() == name:
-        XMLSchema.uristr2obj[unicode(uri)] = uri
-
-del XMLSchema.uristr2obj[NS]

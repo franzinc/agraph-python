@@ -10,6 +10,7 @@ Utilities related to context managers.
 """
 from contextlib import contextmanager
 import os
+import sys
 
 from past.builtins import basestring
 
@@ -45,8 +46,16 @@ def output_to(target):
         # TODO: consider replacing with an object with empty methods
         target = os.devnull
 
-    # Note that True is also an int (specifically 1 - i.e. stdout).
-    if isinstance(target, int):
+    # Note that True is also an int (and it equals 1 = stdout),
+    # but we give it a special treatment because our doctests
+    # are not smart enough to capture things written to an fd.
+    if target is True:
+        # Make sure that the thing we return supports binary I/O
+        if sys.version_info >= (3, 0):
+            yield sys.stdout.buffer
+        else:
+            yield sys.stdout
+    elif isinstance(target, int):
         with os.fdopen(target, 'wb') as out:
             yield out
     elif isinstance(target, basestring):

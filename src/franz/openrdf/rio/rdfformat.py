@@ -13,16 +13,17 @@ from franz.openrdf.rio.formats import Format
 class RDFFormat(Format):
     """
     Represents the concept of an RDF data serialization format. RDF formats are
-    identified by a {@link #getName() name} and can have one or more associated
+    identified by a name and can have one or more associated
     MIME types, zero or more associated file extensions and can specify a
     default character encoding. Some formats are able to encode context
     information while others are not; this is indicated by the value of
     supports_contexts field. Similaraly, formats for which the
-    supports_attributes flag is True are capable of encoding triple attributes.
+    supports_attributes flag is `True` are capable of encoding triple 
+    attributes.
     """
     # A global dictionary mapping extensions to formats
     # Used by Format.format_for_file_name
-    ext_map = {}
+    _ext_map = {}
 
     def __init__(self, name, mime_types=None, charset="UTF-8",
                  file_extensions=None, supports_namespaces=False,
@@ -53,7 +54,7 @@ class RDFFormat(Format):
         self.supports_attributes = supports_attributes
 
     # These will be automatically converted to RDFFormat instances
-
+        
     RDFXML = dict(
         name="RDF/XML",
         mime_types=["application/rdf+xml", "application/xml"],
@@ -100,13 +101,9 @@ class RDFFormat(Format):
         supports_namespaces=True,
         supports_contexts=True)
 
-
-# Convert static dicts inside RDFFormat to instances
-def create_default_formats():
-    for name in vars(RDFFormat):
-        value = getattr(RDFFormat, name)
-        if name.isupper() and isinstance(value, dict):
-            setattr(RDFFormat, name, RDFFormat(**value))
-
-
-create_default_formats()
+    TABLE = dict(
+        name="Table",
+        mime_types=["text/table"],
+        file_extensions=[],
+        supports_namespaces=False,
+        supports_contexts=True)

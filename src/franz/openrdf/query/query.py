@@ -36,7 +36,10 @@ class QueryLanguage(object):
 
     def __str__(self):
         return self.name
-    
+
+    def __repr__(self):
+        return 'QueryLanguage.' + self.name
+
     def getName(self):
         return self.name
 
@@ -64,9 +67,25 @@ class Query(object):
     predefine bindings in the query to be able to reuse the same query with
     different bindings.
     """
-    def __init__(self, queryLanguage, queryString, baseURI=None):
+    def __init__(self, queryLanguage=QueryLanguage.SPARQL,
+                 query=None, baseURI=None, queryString=None):
+        """
+        Initialize a query object.
+
+        :param queryLanguage: Query syntax - the default is SPARQL.
+        :type queryLanguage: QueryLanguage
+        :param query: Query text
+        :type query: string
+        :param baseURI: Prefix used to relsove relative URIs.
+                        Default: chosen by the server.
+        :type baseURI: URI
+        :param queryString: Legacy name of the 'query' parameter.
+        :type queryString: string
+        """
+        if query is None:
+            raise TypeError('query argument is missing.')
         self.queryLanguage = Query._check_language(queryLanguage)
-        self.queryString = queryString
+        self.queryString = query or queryString
         self.baseURI = baseURI
         self.dataset = None
         self.includeInferred = False
@@ -78,21 +97,28 @@ class Query(object):
         self.actual_execution_language = None
         self.subject_comes_first = False
 
-    @staticmethod
-    def set_trace_query(setting):
-        global TRACE_QUERY
-        TRACE_QUERY = setting
-
     def setBinding(self, name, value):
         """
         Binds the specified variable to the supplied value. Any value that was
         previously bound to the specified value will be overwritten.
+
+        :param name: Variable name.
+        :type name: string
+        :param value: New value for the variable. If a string is passed it will
+                      be converted to a literal.
+        :type value: Value|basestring
         """
         if isinstance(value, basestring):
             value = self._get_connection().createLiteral(value)
         self.bindings[name] = value
         
     def setBindings(self, dict):
+        """
+        Set multiple variable bindings.
+
+        :param dict: A dictionary of bindings.
+        :type dict: dict[string, Value]
+        """
         if not dict: return
         for key, value in iteritems(dict):
             self.setBinding(key, value)
@@ -101,31 +127,46 @@ class Query(object):
         """ 
         Removes a previously set binding on the supplied variable. Calling this
         method with an unbound variable name has no effect.
+
+        :param name: Variable name.
+        :type name: string
         """
-        self.bindings.popitem(name, None)
+        self.bindings.pop(name)
 
     def getBindings(self):
         """
-        Retrieves the bindings that have been set on this query. 
+        Retrieve the bindings that have been set on this query.
+
+        :return: A dictionary of bindings.
+        :rtype: dict[string, Value]
         """ 
         return self.bindings
 
     def setDataset(self, dataset):
         """
-        Specifies the dataset against which to evaluate a query, overriding any
-        dataset that is specified in the query itself. 
+        Select the dataset against which to evaluate this query, overriding any
+        dataset that is specified in the query itself.
+
+        :param dataset: A dataset object.
+        :type dataset: Dataset
         """ 
         self.dataset = dataset
      
     def getDataset(self):
         """
-        Gets the dataset that has been set.
+        Get the dataset against which this query will operate.
+
+        :return: Dataset.
+        :rtype: Dataset
         """ 
         return self.dataset
     
     def setContexts(self, contexts):
         """
         Assert a set of contexts (named graphs) that filter all triples.
+
+        :param contexts: List of graph URIs.
+        :type contexts: list[URI|string]
         """
         if not contexts: return
         ds = Dataset()
@@ -137,22 +178,30 @@ class Query(object):
     def setIncludeInferred(self, includeInferred):
         """
         Determine whether evaluation results of this query should include inferred
-        statements (if any inferred statements are present in the repository). The
-        default setting is 'true'. 
-        """ 
+        statements.
+
+        The default setting is ``True``.
+
+        :param includeInferred: If ``True`` include inferred triples in query results.
+        :type includeInferred: bool
+        """
         self.includeInferred = includeInferred
 
     def getIncludeInferred(self):
         """
-        Returns whether or not this query will return inferred statements (if any
-        are present in the repository). 
+        Check whether this query will return inferred statements.
+        :return: ``True`` if inferred triples are included, ``False`` otherwise.
+        :rtype: bool
         """ 
         return self.includeInferred
     
     def setCheckVariables(self, setting):
         """
-        If true, the presence of variables in the select clause not referenced in a triple
-        are flagged.
+        Determine whether the presence of variables in the select clause not referenced
+        in a triple is flagged.
+
+        :param setting: ``True`` if variables should be checked, ``False`` otherwise.
+        :type setting: bool
         """
         self.checkVariables = setting
     
@@ -170,15 +219,31 @@ class Query(object):
                                update=False):
         """
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
-        or 'ask' query (in the SPARQL case).  Return an appropriate response.
+        or 'ask' query (in the SPARQL case). Return an appropriate response.
 
-        If analysis is True it will perform query analysis for SPARQL queries.
-        analysisTechnique defaults to "executed", which executes the query to perform dynamic analysis.
-            "static" analysis is the other option.
-        For analysisTimeout, pass a float of the number of seconds to run the query if executed.
+        :param count: If ``True`` return only the count of the query results.
+        :type count: bool
+        :param accept: Set to ``'application/sparql-results+xml'`` or ``'application/sparql-results+json'``
+                       to retrieve the result as a string in the specified format.
+                       The default is to return a :class:`QueryResult` object.
+        :type accept: string
+        :param analyze: If ``True`` perform query analysis for SPARQL queries.
+        :type analyze: bool
+        :param analysisTechnique: Control the method of analysis. Can be either `"executed"` (default).
+                                  meaning that the query will be executed to perform dynamic analysis,
+                                  or ``"static"``.
+        :type analysisTechnique: string
+        :param analysisTimeout: Number of second to run the query if executed for analysis.
+        :type analysisTimeout: float
+        :param update: If ``True`` this is an update query and the result will be a boolean.
+        :type update: bool
+        :return: The result can be either:
+                    - A boolean (for update queries).
+                    - A dictionary containing the results.
+                    - A string (if ``accept`` was passed).
+                    - An integer (if ``count=True``).
+        :rtype: dict|string|int|bool
         """
-        ##if self.dataset and self.dataset.getDefaultGraphs() and not self.dataset.getDefaultGraphs() == ALL_CONTEXTS:
-        ##    raise UnimplementedMethodException("Query datasets not yet implemented for default graphs.")
         conn = self._get_connection()
         namedContexts = conn._contexts_to_ntriple_contexts(
                         self.dataset.getNamedGraphs() if self.dataset else None)
@@ -225,12 +290,32 @@ class Query(object):
        
   
 class TupleQuery(Query):
-    def evaluate(self, count=False, output=None, output_format=TupleFormat.CSV):
-        """
-        Execute the embedded query against the RDF store.  Return
-        an iterator that produces for each step a tuple of values
-        (resources and literals) corresponding to the variables
-        or expressions in a 'select' clause (or its equivalent).
+    """
+    A query that returns tuples (i.e. sets of variable bindings).
+    """
+    def evaluate(self, count=False, output=None,
+                 output_format=TupleFormat.TABLE):
+        """Execute the embedded query against the RDF store.
+
+        Return an iterator that produces for each step a tuple of values
+        (resources and literals) corresponding to the variables or
+        expressions in a 'select' clause (or its equivalent).
+
+        :param count: If ``True`` return the number of result rows
+                      instead of the usual iterator.
+        :type count: bool
+        :param output: A file name, file descriptor or a file-like
+                       object to save the results to
+                       (optional). ``True`` can be used as a synonym
+                       for stdout.
+        :type output: str|file|int|bool
+        :param output_format: Serialization format for ``output``.
+                              The default is TABLE.
+        :type output_format: RDFFormat
+        :return: Either an iterator over results, 
+                 an integer (the number of results, if ``count`` is used) 
+                 or ``None`` (if ``output`` is used).
+        :rtype: TupleQueryResult|int
         """
 
         with output_to(output) as out:
@@ -249,30 +334,55 @@ class TupleQuery(Query):
 
     def analyze(self, analysisTechnique=None, analysisTimeout=None):
         """
+        Analyze the query.
+
         Analysis is only available for SPARQL queries.
 
-        analysisTechnique defaults to the string "executed", which executes the query to perform dynamic analysis.
-            "static" analysis is the other option.
-        For analysisTimeout, pass a float of the number of seconds to run the query if executed.
+        :param analysisTechnique: Control the method of analysis. Can be either `"executed"` (default).
+                                  meaning that the query will be executed to perform dynamic analysis,
+                                  or ``"static"``.
+        :type analysisTechnique: string
+        :param analysisTimeout: Number of second to run the query if executed for analysis.
+        :type analysisTimeout: float
+        :return: Analysis result as a dictionary.
+        :rtype: dict
         """
         response = self.evaluate_generic_query(analyze=True, analysisTechnique=analysisTechnique,
             analysisTimeout=analysisTimeout)
         return response
 
+
 class UpdateQuery(Query):
+    """
+    An update query.
+    """
     def evaluate(self):
         """
-        Execute the embedded update against the RDF store.  Returns
-        True or False.
+        Execute the embedded update against the RDF store.
+
+        :return: ``True`` if the query changed the store, ``False`` otherwise.
+        :rtype: bool
         """
         return self.evaluate_generic_query(update=True)
 
 class GraphQuery(Query):
-    
-    def evaluate(self, output=None, output_format=RDFFormat.NQUADS):
+    """
+    A query that returns statements (see :class:`Statement`).
+    """
+    def evaluate(self, output=None, output_format=RDFFormat.TABLE):
         """
-        Execute the embedded query against the RDF store.  Return
-        a graph.
+        Execute the embedded query against the RDF store.
+
+        :param output: A file name, file descriptor or a file-like
+                       object to save the results to
+                       (optional). ``True`` can be used as a synonym
+                       for stdout.
+        :type output: str|file|int|bool
+        :param output_format: Serialization format for ``output``.
+                              The default is TABLE.
+        :type output_format: RDFFormat
+        :return: An iterator over statements or None (if ``output`` is used)..
+        :rtype: GraphQueryResult
         """
         with output_to(output) as out:
             callback = None if output is None else out.write
@@ -285,12 +395,14 @@ class GraphQuery(Query):
 
 
 class BooleanQuery(Query):
-    
+    """
+    A query that returns a boolean.
+    """
     def evaluate(self):
         """
-        Execute the embedded query against the RDF store.  Return
-        True or False
+        Execute the embedded query against the RDF store.
+
+        :return: A boolean.
+        :rtype: bool
         """
         return self.evaluate_generic_query()
-
-

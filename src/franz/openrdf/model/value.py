@@ -29,6 +29,9 @@ class Value(object):
     def __str__(self):
         return self.toNTriples()
 
+    def __repr__(self):
+        return self.toNTriples()
+
     def get_cmp_key(self):
         """
         Return a key that will be used to compare and hash this object.
@@ -130,6 +133,7 @@ class URI(Resource):
 
 class BNode(Resource):
     """
+    A blank node.
     """
     def __init__(self, id=None):
         self.id = id
@@ -175,6 +179,6 @@ class Namespace(object):
     
     def __str__(self):
         """
-        Return an odd name (that's what the Sesame code does).
+        Return an odd name (that's what the RDF4J code does).
         """
         return self.prefix + " :: " + self.name

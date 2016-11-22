@@ -32,4 +32,9 @@ certs.db/
 /miniconda3
 # Python interpreters
 /pythons
+
 stress/events/phase*
+
+# Docs - output and generated files
+/docs/build
+/docs/source/_gen

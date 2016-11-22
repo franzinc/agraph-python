@@ -42,12 +42,3 @@ class RDF(object):
     FIRST = URI(namespace=NS, localname="first")
     REST = URI(namespace=NS, localname="rest")
     NIL = URI(namespace=NS, localname="nil")
-    
-    ## map of uri strings to URI objects:
-    uristr2obj = {}
-
-for name, uri in iteritems(RDF.__dict__):
-    if name.upper() == name:
-        RDF.uristr2obj[unicode(uri)] = uri
-
-del RDF.uristr2obj[NS]

@@ -67,12 +67,4 @@ class OWL(object):
     DISJOINTWITH = URI(namespace=NS, localname="disjointWith")
     UNIONOF = URI(namespace=NS, localname="unionOf")
     COMPLEMENTOF = URI(namespace=NS, localname="complementOf")
-        
-    ## map of uri strings to URI objects:
-    uristr2obj = {}
 
-for name, uri in iteritems(OWL.__dict__):
-    if name.upper() == name:
-        OWL.uristr2obj[unicode(uri)] = uri
-
-del OWL.uristr2obj[NS]

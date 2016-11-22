@@ -1,0 +1,48 @@
+div.sphinxsidebarwrapper h1.logo {
+  font-size: 1em;
+  text-align: center;
+  margin-top: 1em;
+}
+
+div.sphinxsidebarwrapper h1.logo a {
+  border-bottom: 0;
+}
+
+div.nav-links {
+    width: 100%;
+    text-align: right;
+}
+
+div.nav-links-header {
+    top: -1em;
+    position: relative;
+}
+
+div.nav-links-footer {
+    bottom: -1em;
+    position: relative;
+}
+
+div.nav-links a {
+    display: inline-block;
+    /*max-width: 40%;*/
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+    vertical-align: middle;
+    border-left: 2px solid black;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+}
+
+div.nav-links a:first-child {
+    border-left: 0;    
+}
+
+/* Disable underline for links pointing to images.
+   Would be nicer to disable it for links that
+   ARE images, but that's not so simple. */
+a.reference[href^="../_images/"] {
+   border-bottom: 0px
+}

@@ -86,7 +86,13 @@ class Statement(object):
     def setQuad(self, string_tuple):
         self.string_tuple = string_tuple
 
-    def getSubject(self):         
+    def getSubject(self):
+        """
+        Get the subject (the first element of the statement).
+
+        :return: Subject.
+        :rtype: Value
+        """
         if not self.subject:
             self.subject = Statement.stringTermToTerm(self.string_tuple[0])
         return self.subject
@@ -95,6 +101,12 @@ class Statement(object):
         self.subject = subject
     
     def getPredicate(self):
+        """
+        Get the predicate (the second element of the statement).
+
+        :return: Predicate.
+        :rtype: URI
+        """
         if not self.predicate:
             self.predicate = Statement.stringTermToTerm(self.string_tuple[1])
         return self.predicate
@@ -102,13 +114,25 @@ class Statement(object):
     def setPredicate(self, predicate):self.predicate = predicate
     
     def getObject(self):
+        """
+        Get the object (the third element of the statement).
+
+        :return: Object.
+        :rtype: Value
+        """
         if not self.object:
             self.object = Statement.stringTermToTerm(self.string_tuple[2])
         return self.object
     
     def setObject(self, object): self.object = object
     
-    def getContext(self): 
+    def getContext(self):
+        """
+        Get the graph (the fourth, optional element of the statement).
+
+        :return: Graph URI.
+        :rtype: URI
+        """
         if not self.context:
             if len(self.string_tuple) == 3: return None
             self.context = Statement.stringTermToTerm(self.string_tuple[3])
@@ -117,6 +141,15 @@ class Statement(object):
     def setContext(self, context): self.context = context
 
     def getTripleID(self):
+        """
+        Get the statement id.
+
+        Note that this field might not present, depending on the way in which
+        the statement has been created.
+
+        :return: A numerical id.
+        :rtype: int
+        """
         if len(self.string_tuple) == 5:
             id = int(self.string_tuple[4])
         else:

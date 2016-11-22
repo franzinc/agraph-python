@@ -47,7 +47,7 @@ def ag_connect(repo, catalog=None,
     :type session: bool
     :param autocommit: When opening a session: if ``True``, commits are done on each
                        request, otherwise you will need to call :meth:`.commit` or
-                       :meth:`.rollback`as appropriate for your application.
+                       :meth:`.rollback` as appropriate for your application.
                        The default value is ``False``.
     :type autocommit: bool
     :param lifetime: Time (in seconds) before the session expires when idle.
@@ -64,10 +64,11 @@ def ag_connect(repo, catalog=None,
                  (e.g. ``https://localhost:10036``).
     :type host: string
     :param protocol: Either ``"http"`` or ``"https"``.
+                     The default is ``"http"``.
                      Overrides the protocol specified in ``host``.
     :type protocol: string
-    :param port: AllegroGraph server port (default: `10035` for http and 10036 for https).
-                 Overrides the port number provided in ``host``.
+    :param port: AllegroGraph server port (default: `10035` for http and `10036`
+                 for https). Overrides the port number provided in ``host``.
     :type port: int
     :param user: Username for authentication.
     :type user: string
@@ -91,7 +92,7 @@ def ag_connect(repo, catalog=None,
                   The default value is taken from the AGRAPH_PROXY environment
                   variable.
     :type proxy: string
-    :return: A RepositoryConnection object.
+    :return: A :class:`.RepositoryConnection` object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
     """
     server = AllegroGraphServer(host=host, port=port, protcol=protocol,

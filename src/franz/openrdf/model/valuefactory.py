@@ -16,7 +16,6 @@ from builtins import object
 from .value import Value, BNode, URI
 from .literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
 from .statement import Statement
-from ..vocabulary.xmlschema import XMLSchema
 
 class ValueFactory(object):
     """
@@ -35,7 +34,7 @@ class ValueFactory(object):
 
     def createBNode(self, nodeID=None):
         """
-        Creates a new blank node with the given node identifier.
+        See :meth:`.RepositoryConnection.createBNode`.
         """
         if not nodeID:
             nodeID = self.getUnusedBNodeId()
@@ -43,8 +42,7 @@ class ValueFactory(object):
     
     def createLiteral(self, value, datatype=None, language=None):
         """
-        Create a new literal with value 'value'.  'datatype' if supplied,
-        should be a URI, in which case 'value' should be a string.
+        See :meth:`.RepositoryConnection.createLiteral`.
         """
         if isinstance(value, (tuple, list)) and len(value) == 2:
             return self.createRange(value[0], value[1])
@@ -54,16 +52,13 @@ class ValueFactory(object):
 
     def createStatement(self, subject, predicate, _object, context=None):
         """
-        Create a new statement with the supplied subject, predicate and object
-        and associated context.  Arguments have type Resource, URI, Value, and Resource.
+        See :meth:`.RepositoryConnection.createStatement`.
         """
         return Statement(subject, predicate, _object, context=context)
     
     def createURI(self, uri=None, namespace=None, localname=None):
         """
-        Creates a new URI from the supplied string-representation(s).
-        If two non-keyword arguments are passed, assumes they represent a
-        namespace/localname pair.
+        See :meth:`.RepositoryConnection.createURI`.
         """
         if namespace and not localname:
             return URI(namespace=uri, localname=namespace)
@@ -72,7 +67,7 @@ class ValueFactory(object):
     
 
 #############################################################################
-## Extension to Sesame API
+## Extension to RDF4J API
 #############################################################################
 
     def validateRangeConstant(self, term, predicate):

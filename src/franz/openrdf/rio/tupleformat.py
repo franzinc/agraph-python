@@ -4,10 +4,10 @@ from franz.openrdf.rio.formats import Format
 class TupleFormat(Format):
     """
     Serialization formats for tuples returned by queries.
-    See :cls:`Format`.
+    See :class:`.Format`.
     """
     # Map from extensions to formats, used by Format.format_for_file_name
-    ext_map = {}
+    _ext_map = {}
 
     # These will be automatically converted to TupleFormat instances
 
@@ -30,3 +30,8 @@ class TupleFormat(Format):
         name="SPARQL TSV",
         mime_types=["text/tab-separated-values"],
         file_extensions=["tsv"])
+
+    TABLE = dict(
+        name="Table",
+        mime_types=["text/table"],
+        file_extensions=[])

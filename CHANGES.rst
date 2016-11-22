@@ -5,6 +5,24 @@ AllegroGraph Python client release history
 Release 100.0.2
 ===============
 
+New query methods
+-----------------
+
+Four new methods have been added to the RepositoryConnection class:
+
+   - executeTupleQuery()
+   - executeGraphQuery()
+   - executeBooleanQuery()
+   - executeUpdate()
+
+These can be used to prepare and evaluate a SPARQL query in a single
+call.
+
+New tutorial
+------------
+
+The tutorial has been updated and restyled using Sphinx.
+
 Various fixes related to data export
 ------------------------------------
 
@@ -36,9 +54,9 @@ It is now possible to set and query the duplicate suppression policy of
 a repository from Python, using three new methods of the connection
 object:
 
-    - getDuplicateSuppressionPolicy()
-    - setDuplicateSuppressionPolicy()
-    - disableDuplicateSuppression()
+   - getDuplicateSuppressionPolicy()
+   - setDuplicateSuppressionPolicy()
+   - disableDuplicateSuppression()
 
 New export methods
 ------------------

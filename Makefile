@@ -218,13 +218,21 @@ disttest: wheel $(TOXENVDIR) FORCE
         # Use toxenv's virtualenv so we get a recent enough pip
 	$(TOXENVDIR)/bin/virtualenv -p python2 --no-site-packages disttest
         # Update pip and setuptools
-	disttest/bin/pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
+	disttest/bin/pip install -U $(AG_PIP_OPTS) -r toxenv-requirements.txt
         # Install from the release tarball
         # Make sure pycurl compiles
 	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) DIST/$(SDIST)
+        # We need sphinx to run the doctests
+	disttest/bin/pip install $(AG_PIP_OPTS) -rdocs-requirements.txt
 
+# runs the examples from the tutorial and compares the actual output
+# to whatever the tutorial claims should be printed.
+# To run just a single example do 'EXAMPLE=example7 make tutorial'.
 tutorial: checkPort disttest
-	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/python runner.py
+	cd docs && AGRAPH_PASSWORD=xyzzy AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/sphinx-build -b doctest source build/doctest
+
+docs: $(TOXENVDIR) .venv FORCE
+	$(TOX) $(TOX_RECREATE) -e doc
 
 wheel: $(ENVDIR)
 	mkdir -p DIST
@@ -280,7 +288,8 @@ fix-copyrights: FORCE
 
 clean: clean-envs
 	rm -rf DIST pythons miniconda2 miniconda3 report.xml build .venv \
-            src/agraph_python.egg-info/
+            src/agraph_python.egg-info/ docs/build docs/source/_gen/ \
+            .cache/
 	find . -name \*.pyc -delete
 	find . -path '*/__pycache__*' -delete
 

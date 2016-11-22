@@ -32,7 +32,9 @@ LEGAL_OPTION_TYPES = {READ_ONLY: bool,}
 
 class AllegroGraphServer(object):
     """
-    Connects to an AllegroGraph HTTP Server
+    The AllegroGraphServer object represents a remote AllegroGraph server on
+    the network. It is used to inventory and access the catalogs of that
+    server.
     """
     def __init__(self, host=None, port=None, user=None, password=None,
                  cainfo=None, sslcert=None, verifyhost=None, verifypeer=None,
@@ -136,12 +138,26 @@ class AllegroGraphServer(object):
         return self._client.getVersion()
 
     def listCatalogs(self):
+        """
+        Get the list of catalogs on this server.
+
+        A value of ``None`` will be included in this list to
+        represent the root catalog.
+
+        :return: A list of catalog names.
+        :rtype: list[string]
+        """
         catalogs = self._client.listCatalogs()
         return catalogs
 
     def openCatalog(self, name=None):
         """
         Open a catalog by name. Pass None to open the root catalog.
+
+        :param name: One of the catalog names from :meth:`listCatalogs`
+                     or ``None`` to open the root catalog.
+        :return: A catalog object.
+        :rtype: Catalog
         """
         # Allow for None and '' (or anything else that evaluates to False) to
         # mean the root catalog.
@@ -161,41 +177,86 @@ class AllegroGraphServer(object):
 
         The initialization file is a collection of Common Lisp code
         that is executed in every back-end as it is created.
+        :return: Init file content.
+        :rtype: string
         """
         return self._client.getInitfile()
 
     def setInitfile(self, content=None, restart=True):
         """
         Replace the current initialization file contents with the
-        'content' string or remove if None. `restart`, which defaults
-        to true, specifies whether any running shared back-ends should
-        be shut down, so that subsequent requests will be handled by
-        back-ends that include the new code.
+        ``content`` string or remove if None.
+
+        :param content: New init file conent.
+        :type content: string
+        :param restart: specifies whether any running shared back-ends should
+                        be shut down, so that subsequent requests will be handled by
+                        back-ends that include the new code. Default is ``True``.
         """
         return self._client.setInitfile(content, restart)
 
     def openSession(self, spec, autocommit=False, lifetime=None, loadinitfile=False):
         """
         Open a session on a federated, reasoning, or filtered store.
-        Use the helper functions in the franz.openrdf.sail.spec module
+
+        Use the helper functions in the :mod:`franz.openrdf.sail.spec` module
         to create the spec string.
+
+        :param spec: Session :mod:`specification string <franz.openrdf.sail.spec>`.
+        :type spec: string
+        :param autocommit: Autocommit mode (default: ``False`` = start a transaction).
+        :type autocommit: bool
+        :param lifetime: The number of seconds a session can be idle before being terminated.
+                         The default value is 300 (5 minutes). The maximum acceptable value
+                         is 21600 (6 hours).
+        :param loadinitfile: If ``True`` the init file will be loaded into the new session.
+                             The default is False.
+        :type loadinitfile: bool
+        :return: A connection to the new session.
+        :rtype: RepositoryConnection
         """
         minirep = self._client.openSession(spec, autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile)
         return RepositoryConnection(Repository(None, None, minirep))
 
     def listScripts(self):
         """
-        List the registered scripts.
+        Return the list of Sitescripts currently on the server.
+
+        When a user creates a session, they can choose to load one or more
+        of these scripts into the session.
+
+        :return: A list of script names.
+        :rtype: list[string]
         """
         return self._client.listScripts()
 
     def addScript(self, module, code):
+        """
+        Create or replace a sitescript.
+
+        :param module: Script name.
+        :type module: string
+        :param code: Script content.
+        :type code: string
+        """
         return self._client.addScript(module, code)
 
     def deleteScript(self, module):
+        """
+        Delete a sitescript.
+        :param module: Script name.
+        :type module: string
+        """
         return self._client.deleteScript(module)
 
     def getScript(self, module):
+        """
+        Get the body of a sitescript.
+        :param module: Script name.
+        :type module: string
+        :return: Script content.
+        :rtype: string
+        """
         return self._client.getScript(module)
 
     def openFederated(self, repositories, autocommit=False, lifetime=None, loadinitfile=False):
@@ -205,6 +266,19 @@ class AllegroGraphServer(object):
         designators, which can be Repository or RepositoryConnection
         objects, strings (naming a store in the root catalog, or the
         URL of a store), or (storename, catalogname) tuples.
+
+        :param repositories: List of repositories to federate.
+        :type repositories: list[string|(string, string)|Repository|RepositoryConnection]
+        :param autocommit: Autocommit mode (default: ``False`` = start a transaction).
+        :type autocommit: bool
+        :param lifetime: The number of seconds a session can be idle before being terminated.
+                         The default value is 300 (5 minutes). The maximum acceptable value
+                         is 21600 (6 hours).
+        :param loadinitfile: If ``True`` the init file will be loaded into the new session.
+                             The default is False.
+        :type loadinitfile: bool
+        :return: A connection to the new session.
+        :rtype: RepositoryConnection
         """
         def asRepoString(x):
             if isinstance(x, basestring): return spec.local(x)
@@ -254,19 +328,19 @@ class AllegroGraphServer(object):
 
     def addUserAccess(self, name, read, write, catalog='*', repository='*'):
         """
-        This is used to grant read/write access to a user. It takes four parameters:
+        Grant read/write access to a user.
 
-        read
-                Whether to grant read access. A boolean, defaults to false.
-        write
-                Whether to grant write access. Boolean, defaults to false.
-        catalog
-                Which catalog to grant the access on. Leave off or pass * to grant
-                access on all catalogs. Again, use / for the root catalog.
-        repository
-                Specifies the repository that access is granted on. Passing *,
-                or leaving the parameter off, means all repositories in the
-                given catalog.
+        :param read: Whether to grant read access. Defaults to ``False``.
+        :type read: bool
+        :param write: Whether to grant write access. Defaults to ``False``.
+        :type write: bool
+        :param catalog: Which catalog to grant the access on. Leave off or pass ``"*"`` to grant
+                        access on all catalogs. Use ``"/"`` for the root catalog.
+        :type catalog: string
+        :param repository: Specifies the repository that access is granted on. Passing ``"*"``,
+                           or leaving the parameter off, means all repositories in the
+                           given catalog.
+        :type repository: string
         """
         self._client.addUserAccess(name, read, write, catalog, repository)
 
@@ -473,11 +547,32 @@ class Catalog(object):
         return self.mini_catalog.listRepositories()
 
     def deleteRepository(self, name):
+        """
+        Delete a repository.
+        :param name: Repository name.
+        :type name: string
+        """
         return self.mini_catalog.deleteRepository(name)
 
     def getRepository(self, name, access_verb):
         """
-        Create a mini-repository and execute a RENEW, OPEN, CREATE, or ACCESS.
+        Creates or opens a repository.
+        
+        :param name: Repository name.
+        :type name: string
+        :param access_verb: Determines mode of operation. Possible values are:
+
+                                - **Repository.RENEW** clears the contents of an existing
+                                   repository before opening. If the indicated repository does not
+                                   exist, it creates one.
+                                -  **Repository.OPEN** opens an existing repository, or throws an
+                                   exception if the repository is not found.
+                                -  **Repository.ACCESS** opens an existing repository, or creates a
+                                   new one if the repository is not found.
+                                -  **Repository.CREATE** creates a new repository, or throws an
+                                   exception if one by that name already exists.
+        :return: A repository object.
+        :rtype: Repository
         """
         access_verb = access_verb.upper()
         name = urllib.parse.quote_plus(name)
@@ -509,13 +604,14 @@ class Catalog(object):
 
     def createRepository(self, name, indices=None):
         """
-        createsRepository - makes a new repository with the given name.
+        Creates a new repository with the given name.
 
-        indices - if provided, creates a store with the given indices
-        deleteDuplicates - sets behavior for duplicate removal. See
-            http protocol documentation for description. None will
-            result in using the server's default behavior.
+        :param name: Repository name.
+        :type name: string
+        :param indices: If provided, creates a store with the given indices.
+                        (e.g. ``["spogi, "gspoi", ...]``)
+        :type indices: list[string]
+        :return: A repository object.
+        :rtype: Repository
         """
         return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices))
-
-

@@ -1,0 +1,24 @@
+{% extends '!page.html' %}
+
+{% block body %}
+    <div class="nav-links nav-links-header">
+      {%- if prev %}
+        &laquo;<a href="{{ prev.link|e }}" title="{{ _('previous chapter') }}">{{ prev.title }}</a>
+    {%- endif %}
+    {%- if next %}
+      <a href="{{ next.link|e }}" title="{{ _('next chapter') }}">{{ next.title }}</a> 
+      &raquo;
+    {%- endif %}
+    </div>
+    {{ super() }}
+
+    <div class="nav-links nav-links-footer">
+      {%- if prev %}
+        &laquo;<a href="{{ prev.link|e }}" title="{{ _('previous chapter') }}">{{ prev.title }}</a>
+    {%- endif %}
+    {%- if next %}
+      <a href="{{ next.link|e }}" title="{{ _('next chapter') }}">{{ next.title }}</a> 
+      &raquo;
+    {%- endif %}
+    </div>
+{% endblock %}

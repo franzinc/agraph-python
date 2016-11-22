@@ -10,7 +10,6 @@ from builtins import object
 from past.builtins import basestring
 import os
 
-
 # A metaclass that converts static dicts inside a Format to instances
 from six import add_metaclass
 
@@ -34,36 +33,41 @@ class Format(object):
     This is a base class used by format subclasses for specific types of data,
     such as triples and tuples
 
-    When a sublcass of this class is declared all upper case static fields
+    When a subclass of this class is declared all upper case static fields
     that are dictionaries are converted to class instances. Data in the
     dictionary is passed as arguments to the constructor.
     """
 
     # A global dictionary mapping extensions to formats.
     # Subclasses should override this.
-    ext_map = {}
+    _ext_map = {}
 
     @classmethod
     def register(cls, fmt):
         """ Register a format object."""
         for ext in fmt.file_extensions:
-            cls.ext_map['.' + ext.lower()] = fmt
+            cls._ext_map['.' + ext.lower()] = fmt
 
     @classmethod
     def format_for_file_name(cls, filename):
-        """
-        Try to guess appropriate format from a file name.
+        """ 
+        Try to guess appropriate RDF format from a file name.
         Return a pair (format, compression) where format is
-        a format object or None (if no matching format was found)
+        an RDF format or None (if no matching format was found)
         and compression is a supported compression method
         (currently either None or "gzip").
+
+        :param filename: File path.
+        :type filename: string
+        :return: Format (or ``None``) and compression type.
+        :rtype: (RDFFormat|None, string|None)
         """
         compression = None
         root, ext = os.path.splitext(filename)
         if ext.lower() == ".gz":
             compression = "gzip"
             _, ext = os.path.splitext(root)
-        fmt = cls.ext_map.get(ext.lower())
+        fmt = cls._ext_map.get(ext.lower())
         return fmt, compression
 
     @staticmethod
@@ -104,3 +108,16 @@ class Format(object):
         self.file_extensions = file_extensions
         if register:
             self.register(self)
+
+    # This is used by Sphinx when rendering default values,
+    # so it should display something readable.
+    def __repr__(self):
+        cls = self.__class__
+        for name in dir(cls):
+            if getattr(cls, name) is self:
+                # We could use inspect.mro to find
+                # where the thing is really defined,
+                # but it's not worth the effort.
+                return '{cls}.{name}: {display_name}'.format(
+                    cls=cls.__name__, name=name, display_name=self.name)
+        return '<Format: {name}>'.format(name=self.name)

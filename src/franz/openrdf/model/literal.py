@@ -21,6 +21,8 @@ from future.utils import python_2_unicode_compatible
 from past.utils import old_div
 
 from past.builtins import long, unicode
+
+from franz.openrdf.vocabulary import canonical_uri_object
 from .value import Value, URI
 from ..exceptions import IllegalArgumentException
 from ..vocabulary.xmlschema import XMLSchema
@@ -110,7 +112,7 @@ class Literal(Value):
         if isinstance(datatype, unicode):
             if datatype[0] == '<':
                 datatype = datatype[1:-1]
-            datatype = XMLSchema.uristr2obj.get(datatype, None) or URI(datatype)
+            datatype = canonical_uri_object(datatype) or URI(datatype)
         elif datatype is not None:
             if not isinstance(datatype, URI):
                 datatype = URI(datatype)
@@ -240,7 +242,7 @@ XSDToPython = defaultdict(lambda: Literal.getValue, [
 
 
 ###############################################################################
-# Extension to Sesame API
+# Extension to RDF4J API
 ###############################################################################
 
 class CompoundLiteral(Literal):

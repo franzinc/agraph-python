@@ -27,10 +27,7 @@ from ..query.query import Query, TupleQuery, UpdateQuery, GraphQuery, BooleanQue
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
 
-try:
-    from collections import namedtuple
-except ImportError:
-    from ..util.namedtuple import namedtuple
+from collections import namedtuple
 
 class PrefixFormat(namedtuple('EncodedIdPrefix', 'prefix format')):
     __slots__ = ()
@@ -43,16 +40,32 @@ if sys.version_info[0] > 2:
     import io
     file = io.IOBase
 
-# RepositoryConnection is the main interface for updating data in and performing
-# queries on a repository.
-#
-# See http://www.franz.com/agraph/support/documentation/v5/python-tutorial/python-API.html
-# or your local installation's tutorial/python-API.html for the API documentation.
-#
-# See http://www.franz.com/agraph/support/documentation/v5/python-tutorial/python-tutorial.html
-# or your local installation's tutorial/python-tutorial.html for the tutorial.
-
 class RepositoryConnection(object):
+    """
+    The RepositoryConnection class is the main interface for updating data
+    in and performing queries on a
+    :class:`~franz.openrdf.repository.repository.Repository`. By default, a
+    RespositoryConnection is in autoCommit mode, meaning that each
+    operation corresponds to a single transaction on the underlying triple
+    store. autoCommit can be switched off, in which case it is up to the
+    user to handle transaction commit/rollback. Note that care should be
+    taken to always properly close a RepositoryConnection after one is
+    finished with it, to free up resources and avoid unnecessary locks.
+
+    Note that concurrent access to the same connection object is explicitly
+    forbidden. The client must perform its own synchronization to ensure
+    non-concurrent access.
+
+    Several methods take a *vararg* argument that optionally specifies a
+    set of contexts on which the method should operate. (A context is
+    the URI of a subgraph.) Note that a *vararg* parameter is optional, it
+    can be completely left out of the method call, in which case a method
+    either operates on a provided statement's context (if one of the method
+    parameters is a statement or collection of statements), or operates on
+    the repository as a whole, completely ignoring context. A *vararg*
+    argument may also be ``None``, meaning that the method operates on
+    those statements which have no associated context only.
+    """
     def __init__(self, repository, close_repo=False):
         """
         Call through :meth:`~franz.openrdf.repository.repository.Repository.getConnection`.
@@ -71,12 +84,27 @@ class RepositoryConnection(object):
         self.is_session_active = False
 
     def getSpec(self):
+        """
+        Get the session specification string for this repository.
+
+        :return: Spec string suitable for use with
+                 :meth:`~franz.openrdf.sail.allegrographserver.AllegroGraphServer.openSession`.
+        """
         return self.repository.getSpec()
 
     def _get_mini_repository(self):
         return self.mini_repository
 
     def getValueFactory(self):
+        """
+        Get the :class:`.ValueFactory` associated with this repository.
+
+        Note that it is recommended to use methods defined in :class:`RepositoryConnection`
+        instead of a value factory. The latter is only provided for RDF4J compatibility.
+
+        :return: A value factory.
+        :rtype: ValueFactory
+        """
         return self.repository.getValueFactory()
 
     def close(self):
@@ -94,12 +122,20 @@ class RepositoryConnection(object):
                 self.repository.shutDown()
 
     def setAddCommitSize(self, triple_count):
+        """
+        Set the value of :attr:`.add_commit_size`.
+        :param triple_count: Value of :attr:`.add_commit_size`.
+        """
         if not triple_count or triple_count < 0:
             self._add_commit_size = None
         else:
             self._add_commit_size = int(triple_count)
 
     def getAddCommitSize(self):
+        """
+        Get the current value of :attr:`.add_commit_size`.
+        :return: Value of :attr:`.add_commit_size`.
+        """
         return self._add_commit_size
 
     add_commit_size = property(
@@ -118,53 +154,103 @@ class RepositoryConnection(object):
         query.setConnection(self)
         return query
 
-    def prepareTupleQuery(self, queryLanguage, queryString, baseURI=None):
+    def prepareTupleQuery(self, queryLanguage=QueryLanguage.SPARQL,
+                          query=None, baseURI=None, queryString=None):
         """
-        Embed 'queryString' into a query object which can be
-        executed against the RDF storage.  'queryString' must be a SELECT
-        query.  The result of query execution is an iterator of tuples.
+        Parse ``query`` into a tuple query object which can be
+        executed against the triple stroe.
+
+        :param queryLanguage: Either ``QueryLanguage.SPARQL`` or ``QueryLanguage.PROLOG``.
+        :type queryLanguage: QueryLanguage
+        :param query: The query string (must contain a ``SELECT`` query).
+        :type query: string
+        :param baseURI: An optional base used to resolve relative URIs in the query.
+        :type baseURI: string|URI
+        :param queryString: Legacy name of the ``query`` parameter.
+        :type queryString: string
+
+        :return: A query object.
+        :rtype: TupleQuery
         """
-        query = TupleQuery(queryLanguage, queryString, baseURI=baseURI)
+        query = TupleQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
 
-    def prepareUpdate(self, queryLanguage, queryString, baseURI=None):
+    def prepareUpdate(self, queryLanguage=QueryLanguage.SPARQL,
+                      query=None, baseURI=None, queryString=None):
         """
-        Embed 'queryString' into a query object which can be
-        executed against the RDF storage.  'queryString' can be a
-	SPARQL 1.1 Update command such as INSERT DATA or DELETE DATA.
-        The returned result of execution either True or False.
-	"""
-        query = UpdateQuery(queryLanguage, queryString, baseURI=baseURI)
+        Parse ``query`` into an update query object which can be
+        executed against the triple store.
+
+        :param queryLanguage: Either ``QueryLanguage.SPARQL`` or ``QueryLanguage.PROLOG``.
+        :type queryLanguage: QueryLanguage
+        :param query: The query string (must contain an ``UPDATE`` query).
+        :type query: string
+        :param baseURI: An optional base used to resolve relative URIs in the query.
+        :type baseURI: string|URI
+        :param queryString: Legacy name of the ``query`` parameter.
+        :type queryString: string
+
+        :return: A query object.
+        :rtype: UpdateQuery
+        """
+        query = UpdateQuery(queryLanguage, query or queryString,
+                            baseURI=baseURI)
         query.setConnection(self)
         return query
 
-    def prepareGraphQuery(self, queryLanguage, queryString, baseURI=None):
+    def prepareGraphQuery(self, queryLanguage=QueryLanguage.SPARQL,
+                          query=None, baseURI=None, queryString=None):
         """
-        Parse 'queryString' into a query object which can be
-        executed against the RDF storage.  'queryString' must be a CONSTRUCT
-        or DESCRIBE query.  The result of query execution is an iterator of
-        statements/quads.
+        Parse ``query`` into a graph query object which can be
+        executed against the triple store.
+
+        :param queryLanguage: Either ``QueryLanguage.SPARQL`` or ``QueryLanguage.PROLOG``.
+        :type queryLanguage: QueryLanguage
+        :param query: The query string (must be a``CONSTRUCT`` or ``DESCRIBE`` query).
+        :type query: string
+        :param baseURI: An optional base used to resolve relative URIs in the query.
+        :type baseURI: string|URI
+        :param queryString: Legacy name of the ``query`` parameter.
+        :type queryString: string
+
+        :return: A query object.
+        :rtype: GraphQuery
         """
-        query = GraphQuery(queryLanguage, queryString, baseURI=baseURI)
+        query = GraphQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
 
-    def prepareBooleanQuery(self, queryLanguage, queryString, baseURI=None):
+    def prepareBooleanQuery(self, queryLanguage=QueryLanguage.SPARQL,
+                            query=None, baseURI=None, queryString=None):
         """
-        Parse 'queryString' into a query object which can be
-        executed against the RDF storage.  'queryString' must be an ASK
-        query.  The result is true or false.
+        Parse ``query`` into a boolean query object which can be
+        executed against the triple store.
+
+        :param queryLanguage: Either ``QueryLanguage.SPARQL`` or ``QueryLanguage.PROLOG``.
+        :type queryLanguage: QueryLanguage
+        :param query: The query string (must contain an ``ASK`` query).
+        :type query: string
+        :param baseURI: An optional base used to resolve relative URIs in the query.
+        :type baseURI: string|URI
+        :param queryString: Legacy name of the ``query`` parameter.
+        :type queryString: string
+
+        :return: A query object.
+        :rtype: BooleanQuery
         """
-        query = BooleanQuery(queryLanguage, queryString, baseURI=baseURI)
+        query = BooleanQuery(queryLanguage, query or queryString,
+                             baseURI=baseURI)
         query.setConnection(self)
         return query
 
     def getContextIDs(self):
         """
-        Return a list of context resources, one for each context referenced bya quad in
-        the triple store.  Omit the default context, since no one had the intelligence to
-        make it a first-class object.
+        Return a list of context resources, one for each context referenced by a quad in
+        the triple store. Note that the default context will not be included in the result.
+
+        :return: A list of contexts (as :class:`URI` objects).
+        :rtype: list[URI]
         """
         contexts = []
         for cxt in self._get_mini_repository().listContexts():
@@ -175,6 +261,10 @@ class RepositoryConnection(object):
         """
         Returns the number of (explicit) statements that are in the specified
         contexts in this repository.
+
+        :param contexts: List of contexts (graph URIs) to count the statements in.
+                         By default statements in all graphs will be counted.
+        :type contexts: Iterable[string|URI]
         """
         cxts = self._contexts_to_ntriple_contexts(contexts, False)
         if cxts == ALL_CONTEXTS or not cxts:
@@ -189,8 +279,7 @@ class RepositoryConnection(object):
 
     def isEmpty(self):
         """
-        Returns <tt>true</tt> if this repository does not contain any (explicit)
-        statements.
+        Return ``True`` if this repository does not contain any (explicit) statements.
         """
         return self.size() == 0
 
@@ -279,14 +368,46 @@ class RepositoryConnection(object):
     def getStatements(self, subject=None, predicate=None,  object=None, contexts=ALL_CONTEXTS, includeInferred=False,
                        limit=None, offset=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX):
         """
-        Gets all statements with a specific subject, predicate and/or object from
-        the repository. The result is optionally restricted to the specified set
-        of named contexts.  Returns a RepositoryResult that produces a 'Statement'
-        each time that 'next' is called.  Alternatively the output can be written
-        to a file or a file-like object passed in the output parameter. In that case
-        None is returned. Set output_format to an RDFormat to control the serialization
-        format.
+        Get all statements with a specific subject, predicate and/or
+        object from the repository. The result is optionally
+        restricted to the specified set of named contexts (graphs).
+
+        Return a :class:`RepositoryResult` object that can be used to
+        iterate over the resulting statements and filter out
+        duplicates if desired. Alternatively one can write the 
+        results to a file or stream using the ``output`` parameter.
+
+        :param subject: Subject value or ``None`` (no subject filtering).
+        :type subject: Value
+        :param predicate: Predicate value or ``None`` (no predicatefiltering).
+        :type predicate: URI
+        :param object: Object value or ``None`` (no object filtering).
+        :type object: Value
+        :param contexts: An optional list of graphs to retrieve the 
+                         statements from.
+                         By default statements are taken from all graphs.
+        :type contexts: URI|string|Iterable[URI|string]
+        :param includeInferred: If ``True``, include triples inferred through 
+                                RDFS++ reasoning.
+                                The default is ``False``.
+        :type includeInferred: bool
+        :param limit: Max number of statements to retrieve (optional).
+        :type limit: int
+        :param offset: Used in conjunction with ``limit`` to return results 
+                       starting from the nth statement.
+        :type offset: int
+        :param tripleIDs: If ``True`` the id field will be filled 
+                          in the returned statements.
+        :param output: File path or a file-like object to write
+                       the result to.
+        :type output: str|file
+        :param output_format: Serialization format for ``output``.
+        :type output_format: RDFFormat
+        :return: An iterator over the resulting statements 
+                 or ``None`` (if ``output`` is used).
+        :rtype: RepositoryResult
         """
+        # note: so with tripleIDs we'll get triples that are quads consisting of five elements.
         with output_to(output) as out_file:
             callback = None if output is None else out_file.write
             accept = None if output is None else RDFFormat.mime_type_for_format(output_format)
@@ -314,6 +435,17 @@ class RepositoryConnection(object):
     def getStatementsById(self, ids, output=None, output_format=RDFFormat.NQX):
         """
         Return all statements whose triple ID matches an ID in the list 'ids'.
+
+        :param ids: List of statement ids.
+        :type ids: Iterable[int]
+        :param output: File path or a file-like object to write
+                       the result to.
+        :type output: str|file
+        :param output_format: Serialization format for ``output``.
+        :type output_format: RDFFormat
+        :return: An iterator over requested statements
+                 or ``None`` (if ``output`` is used).
+        :rtype: RepositoryResult
         """
         with output_to(output) as out_file:
             callback = None if output is None else out_file.write
@@ -371,8 +503,31 @@ class RepositoryConnection(object):
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
         """
-        Calls addTriple, addStatement, or addFile.  If 'contexts' is not
-        specified, adds to the null context.
+        Calls :meth:`.addTriple`, :meth:`.addStatement`, or :meth:`.addFile`.
+
+        Best practice is to avoid ``add()`` and use :meth:`addTriple`, :meth:`addStatement`
+        or :meth:`addFile` instead.
+
+        :param arg0: May be a Statement or a filepath. If so, arg1 and arg2 default to None.
+                     May also be the subject of a triple (in that case arg1 and arg2 must be
+                     the predicate and the object respectively).
+        :type arg0: Statement|string|Value
+        :param arg1: Predicate of the new triple.
+        :type arg1: string|Value
+        :param arg2: Object of the new triple.
+        :type arg2: string|Value
+        :param contexts: Optional list of contexts (subgraph URIs), defaulting to None.
+                         A context is the URI of a subgraph. If None, the triple(s) will
+                         be added to the null context (the default or background graph).
+        :type contexts: Iterable[URI|string]
+        :param base: The baseURI to associate with loading a file.  Defaults to ``None``.
+                     If ``None`` the baseURI will be chosen by the server.
+        :type base: string
+        :param format: Either ``RDFFormat.NTRIPLES`` or ``RDFFormat.RDFXML``. Defaults to ``None``.
+        :type format: RDFFormat
+        :param serverSide: Indicates whether the filepath refers to a file on the client computer
+                           or on the server.  Defaults to ``False`` (i.e. client-side).
+        :type serverSide: bool
         """
         if contexts and not isinstance(contexts, list):
             contexts = [contexts]
@@ -397,14 +552,22 @@ class RepositoryConnection(object):
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
     def addFile(self, filePath, base=None, format=None, context=None, serverSide=False, content_encoding=None):
         """
-        Load the file or file path 'filePath' into the store. 
-        'base' optionally defines a base URI,
-        'format' is an RDFFormat (e.g. RDFFormat.NTRIPLES) or None 
-        (will be guessed from the extension of filePath), and 'context'
-        optionally specifies which context the triples will be loaded into.
-        GZIP-compressed files can be loaded by passing 'gzip' as the value
-        of 'content_encoding'. This is only required if the file extension
-        is not '.gz'.
+        Loads a file into the triple store. Note that a file can be loaded into only one context.
+
+        :param filepath: Identifies the file to load.
+        :type filePath: string
+        :param context: An optional context URI (subgraph URI), defaulting to ``None``.
+                        If ``None``, the triple(s) will be added to the null context
+                        (the default or background graph).
+        :type context: URI|string|list[URI|string]
+        :param base: The baseURI to associate with loading a file.  Defaults to ``None``.
+                     If ``None`` the baseURI will be chosen by the server.
+        :type base: string
+        :param format: Either ``RDFFormat.NTRIPLES`` or ``RDFFormat.RDFXML``. Defaults to ``None``.
+        :type format: RDFFormat
+        :param serverSide: Indicates whether the filepath refers to a file on the client computer
+                           or on the server.  Defaults to ``False`` (i.e. client-side).
+        :type serverSide: bool
         """
         if isinstance(context, (list, tuple)):
             if len(context) > 1:
@@ -426,20 +589,34 @@ class RepositoryConnection(object):
         Adds data from a string to the repository.
 
         :param data: Data to be added.
+        :type data: string
         :param rdf_format: Data format - either a RDFFormat or a MIME type (string).
         :type rdf_format: RDFFormat|str
         :param base_uri: Base for resolving relative URIs.
                          If None (default), the URI will be chosen by the server.
+        :type base_uri: string
         :param context: Graph to add the data to.
-                        If None (default) the default graph will be used..
+                        If None (default) the default graph will be used.
+        :type context: URI|string
         """
+        ctx = self._context_to_ntriples(context, none_is_mini_null=True)
         self._get_mini_repository().loadData(
-            data, rdf_format, base_uri=base_uri, context=context)
+            data, rdf_format, base_uri=base_uri, context=ctx)
 
     def addTriple(self, subject, predicate, object, contexts=None):
         """
-        Add the supplied triple of values to this repository, optionally to
-        one or more named contexts.
+        Add a single triple to the repository.
+
+        :param subject: Subject of the new triple.
+        :type subject: Value
+        :param predicate: Predicate of the new triple.
+        :type predicate: Value
+        :param object: Object of the new triple.
+        :type object: Value
+        :param contexts: List of contexts (graph URIs) to add the triple to.
+                         Defaults to ``None``, which adds the statement to the
+                         null context (the default or background graph).
+        :type contexts: Iterable[string|URI]
         """
         obj = self.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         cxts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
@@ -463,11 +640,18 @@ class RepositoryConnection(object):
 
     def addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False):
         """
-        Add the supplied triples or quads to this repository.  Each triple can
-        be a list or a tuple of Values.   If 'context' is set, then
-        the context is substituted in for each triple.  If 'ntriples' is True,
-        then the triples or quads are assumed to contain valid ntriples strings,
-        and they are passed to the server with no conversion.
+        Add the supplied triples or quads to this repository.
+
+        :param triples_or_quads: List of triples or quads. Each element can be
+                                 either a statement or a list or tuple of :class:`Value` objects
+                                 or strings.
+        :type triples_or_quads: Iterable[list[string|Value]|tuple[string|Value]]
+        :param context: Context (graph) to add the triples to. Default to null (the default graph).
+        :type context: string
+        :param ntriples: If ``True``, parts of the triples are assumed to be strings
+                         in N-Triples format and are sent to the server without any
+                         conversion.
+        :type ntriples: bool
         """
         ntripleContexts = self._contexts_to_ntriple_contexts(context, none_is_mini_null=True)
         quads = []
@@ -499,14 +683,39 @@ class RepositoryConnection(object):
     def addStatement(self, statement, contexts=None):
         """
         Add the supplied statement to the specified contexts in the repository.
+
+        :param statement: The statement to be added. Note that the ``context`` field is
+                          ignored (use the ``contexts`` parameters instead).
+        :type statement: Statement
+        :param contexts: List of contexts (graph URIs) to add the statement to.
+                         Defaults to ``None``, which adds the statement to the
+                         null context (the default or background graph).
+        :type contexts: Iterable[string|URI]
         """
         self.addTriple(statement.getSubject(), statement.getPredicate(), statement.getObject(),
                        contexts=contexts)
 
     def remove(self, arg0, arg1=None, arg2=None, contexts=None):
         """
-        Remove the supplied triple of values from this repository, optionally to
-        one or more named contexts.
+        Call :meth:`removeTriples` or :meth:`removeStatement`.
+
+        Best practice is to avoid :meth:`remove` and use :meth:`removeTriples`
+        or :meth:`removeStatement` directly.
+
+        Note that ``context`` fields of statements passed to this method are ignored.
+
+        ``arg0`` may be a :class:`Statement`.  If so, then ``arg1`` and ``arg2`` default to None.
+
+        ``arg0``, ``arg1``, and ``arg2`` may be the subject, predicate and object of a triple.
+
+        :param arg0: Either a :class:`Statement`, a list of statements or the subject of a triple.
+        :type arg0: Statement|Value|Iterable[Statement]
+        :param arg1: Predicate of a triple.
+        :type arg1: URI
+        :param arg2: Object of a triple.
+        :type arg2: Value
+        :param contexts: An optional list of graphs to remove triples from.
+        :type contexts: Iterable[URI|string]
         """
         if contexts and not isinstance(contexts, list):
             contexts = [contexts]
@@ -520,8 +729,17 @@ class RepositoryConnection(object):
 
     def removeTriples(self, subject, predicate, object, contexts=ALL_CONTEXTS):
         """
-        Removes the statement(s) with the specified subject, predicate and object
+        Remove the statement(s) with the specified subject, predicate and object
         from the repository, optionally restricted to the specified contexts.
+
+        :param subject: Subject of the triples to be removed.
+        :type subject: Value
+        :param predicate: Predicate of the triples to be removed.
+        :type predicate: URI
+        :param object: Object of the triples to be removed.
+        :type object: Value
+        :param contexts: An optional list of graphs to remove triples from.
+        :type contexts: Iterable[URI|string]
         """
         subj = self._to_ntriples(subject)
         pred = self._to_ntriples(predicate)
@@ -536,9 +754,16 @@ class RepositoryConnection(object):
     def removeQuads(self, quads, ntriples=False):
         """
         Remove enumerated quads from this repository.  Each quad can
-        be a list or a tuple of Values.   If 'ntriples' is True,
-        then the  quads are assumed to contain valid ntriples strings,
-        and they are passed to the server with no conversion.
+        be a list or a tuple of :class:`Value` objects.
+
+        :param quads: List of quads. Each element can be
+                      either a statement or a list or tuple of :class:`Value` objects
+                      or strings.
+        :type quads: Iterable[list[string|Value]|tuple[string|Value]]
+        :param ntriples: If ``True``, parts of the quads are assumed to be strings
+                         in N-Triples format and are sent to the server without any
+                         conversion.
+        :type ntriples: bool
         """
         removeQuads = []
         for q in quads:
@@ -567,42 +792,70 @@ class RepositoryConnection(object):
 
     def removeQuadsByID(self, tids):
         """
-        'tids' contains a list of triple/tuple IDs (integers).
         Remove all quads with matching IDs.
+
+        :param tids: List of IDs to be removed.
+        :type tids: list[int]
         """
         self._get_mini_repository().deleteStatementsById(tids)
 
     def removeStatement(self, statement, contexts=None):
         """
-        Removes the supplied statement(s) from the specified contexts in the repository.
+        Remove the supplied statement from the specified contexts in the repository.
+
+        :param statement: Statement to be removed. Note that the ``context`` field of this object
+                          will be ignored.
+        :type statement: Statement
+        :param contexts: An optional list of graphs to remove the statement from.
+        :type contexts: Iterable[URI|string]
         """
         self.removeTriples(statement.getSubject(), statement.getPredicate(), statement.getObject(), contexts=contexts)
 
     def clear(self, contexts=ALL_CONTEXTS):
         """
         Removes all statements from designated contexts in the repository.  If
-        'contexts' is ALL_CONTEXTS, clears the repository of all statements.
+        ``contexts`` is ALL_CONTEXTS, clears the repository of all statements.
+
+        :param contexts: A context or list of contexts.
+        :type contexts: Iterable[string|URI]|string|URI
         """
         self.removeTriples(None, None, None, contexts=contexts)
 
     def export(self, handler, contexts=ALL_CONTEXTS):
         """
-        Exports all explicit statements in the specified contexts to the supplied
-        RDFHandler.
+        Export all explicit statements in the specified contexts to a file.
 
-        .. deprecated:: 4.6
-           Use getStatements(output=...) instead.
+        .. deprecated:: 4.14.1
+           Use :meth:`saveResponse` instead.
+        
+        :param handler: An RDFWriter instance describing the target file and data format.
+        :type handler: RDFWriter
+        :param contexts: A context or list of contexts (default: all contexts).
+        :type contexts: Iterable[string|URI]|string|URI
         """
-        warnings.warn("export is deprecated. Use getStatements(output=...) instead.", DeprecationWarning, stacklevel=2)
+        warnings.warn("export is deprecated. Use saveResponse instead.", DeprecationWarning, stacklevel=2)
         self.exportStatements(None, None, None, False, handler, contexts=contexts)
 
     def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS):
         """
-        Exports all statements with a specific subject, predicate and/or object
-        from the repository, optionally from the specified contexts.
+        Export statements to a file.
 
-        .. deprecated:: 4.6
-           Use getStatements(output=...) instead.
+        .. deprecated:: 4.14.1
+           Use :meth:`saveResponse` instead.
+
+        :param subj: Subject or ``None`` (i.e. no filtering on subject).
+        :type subj: Value
+        :param pred: Predicate or ``None`` (i.e. no filtering on predicate).
+        :type pred: URI
+        :param obj: Object or ``None`` (i.e. no filtering on object).
+        :type obj: Value
+        :param includeInferred: If ``True`` inferred triples will be included
+                                in the output. The default is ``False``.
+        :type includeInferred: bool
+        :param handler: An RDFWriter instance describing the target file and data format.
+        :type handler: RDFWriter
+        :param contexts: A context or list of contexts (default: all contexts).
+        :type contexts: Iterable[string|URI]|string|URI
         """
         warnings.warn("exportStatements is deprecated. Use getStatements(output=...) instead.",
                       DeprecationWarning, stacklevel=2)
@@ -614,48 +867,83 @@ class RepositoryConnection(object):
     def getSubjectTriplesCacheSize(self):
         """
         Return the current size of the subject triples cache.
+
+        .. seealso::
+
+           :meth:`.enablerSubjectTriplesCache`
         """
         return self._get_mini_repository().getTripleCacheSize()
 
     def disableSubjectTriplesCache(self):
         """
-        Disable the subject triples cache (see 'enableSubjectTriplesCache').
+        Disable the subject triples cache (see :meth:`.enableSubjectTriplesCache`).
         """
         self._get_mini_repository().disableTripleCache()
 
     def enableSubjectTriplesCache(self, size=None):
         """
-        Maintain a cache of size 'size' that caches, for each accessed
+        Maintain a cache of size ``size`` that caches, for each accessed
         resource, quads where the resource appears in subject position.
+
         This can accelerate the performance of certain types of queries.
-        The size is the maximum number of subjects whose triples will be cached.
-        Default is 100,000.
+
+        :param size: The maximum number of subjects whose triples will be cached.
+                     Default is 100,000.
+        :type size: int
         """
         self._get_mini_repository().enableTripleCache(size=size)
 
     ## Indexing control methods
 
     def listIndices(self):
+        """
+        Return the list of the current set of triple indices.
+
+        Index names are strings such as ``"gospi"``, ``"spogi"`` etc.
+        Use :meth:`.listValidIndices` to get the list of index names
+        supported by the server.
+
+        :return: List of index names (see :meth:`.listValidIndices`).
+        :rtype: list[string]
+        """
         return self._get_mini_repository().listIndices()
 
     def listValidIndices(self):
+        """
+        Return the list of valid index names.
+
+        :return: List of index names.
+        :rtype: list[string]
+        """
         return self._get_mini_repository().listValidIndices()
 
     def addIndex(self, _type):
+        """
+        Add a specific type of index to the current set of triple indices.
+
+        :param _type: Index name (see :meth:`.listIndices`).
+        :type _type: string
+        """
         return self._get_mini_repository().addIndex(_type)
 
     def dropIndex(self, _type):
+        """
+        Removes a specific type of index to the current set of triple indices.
+
+        :param _type: Index name (see :meth:`.listIndices`).
+        :type _type: string
+        """
         return self._get_mini_repository().dropIndex(_type)
 
     def optimizeIndices(self, level=None, wait=None):
         """
-        Optimize indices
+        Optimize indices.
 
-        Please see documenation for argument values and meanings:
+        Please see documentation for argument values and meanings:
 
-        http://www.franz.com/agraph/support/documentation/v5/triple-index.html#optimize
+        https://franz.com/agraph/support/documentation/current/triple-index.html#optimize
         """
-        return self._get_mini_repository().optimizeIndices(level, wait);
+        return self._get_mini_repository().optimizeIndices(level, wait)
 
     #############################################################################################
     ## ValueFactory methods
@@ -664,12 +952,26 @@ class RepositoryConnection(object):
     #############################################################################################
 
     def registerDatatypeMapping(self, predicate=None, datatype=None, nativeType=None):
+        """
+        Register an inlined datatype.
+
+        See :meth:`.Repository.registerDatatypeMapping`.
+        """
         return self.repository.registerDatatypeMapping(predicate=predicate, datatype=datatype, nativeType=nativeType)
 
     def createLiteral(self, value, datatype=None, language=None):
         """
-        Create a new literal with value 'value'.  'datatype' if supplied,
-        should be a URI, in which case 'value' should be a string.
+        Create a new literal with value ``value``.  ``datatype``, if supplied,
+        should be a URI (it can be a string or an :class:`.URI` instance, in which
+        case ``value`` must be a string.
+
+        :param value: Literal value - can be a string, a number or a datetime object.
+        :type value: int|long|float|string|datetime.datetime|datetime.date|datetime.time
+        :param datatype: Optional literal type. Note that if ``value`` is not a string
+                         the type will be guessed automatically.
+        :type datatype: string|URI
+        :param language: Optional language tag.
+        :type language: string
         """
         return self.getValueFactory().createLiteral(value, datatype=datatype, language=language)
 
@@ -678,43 +980,94 @@ class RepositoryConnection(object):
         Creates a new URI from the supplied string-representation(s).
         If two non-keyword arguments are passed, assumes they represent a
         namespace/localname pair.
+
+        :param uri: URI text, unless namespace is passed and localname is not,
+                    in which case this becomes the namespace.
+        :type uri: string
+        :param namespace: Namespace part of the URI if ``localname`` is passed,
+                          otherwise this becomes the local name.
+        :type namespace: string|URI
+        :param localname: Local part of the URI. Should only be used as a
+                          keyword argument and together with ``namespace``.
+        :return: An URI object.
+        :rtype: URI
         """
         return self.getValueFactory().createURI(uri=uri, namespace=namespace, localname=localname)
 
     def createBNode(self, nodeID=None):
+        """
+        Create a new blank node.
+
+        :param nodeID: Optional node identifier, if not given a fresh one will be generated.
+        :type nodeID: string
+        :return: A BNode value.
+        :rtype: BNode
+        """
         return self.getValueFactory().createBNode(nodeID=nodeID)
 
     def createStatement(self, subject, predicate, object, context=None):
         """
-        Create a new statement with the supplied subject, predicate and object
-        and associated context.  Arguments have type Resource, URI, Value, and Resource.
+        Create a new Statement object.
+
+        Note that this does *not* cause the statement to be added to the repository.
+
+        :param subject: Subject of the new statement.
+        :type subject: Resource
+        :param predicate: Predicate of the new statement.
+        :type predicate: URI
+        :param object: Object of the new statement.
+        :type object: Value
+        :param context: Graph of the new statement (optional).
+        :type context: URI
+        :return: A new statement.
+        :rtype: Statement
         """
         return self.getValueFactory().createStatement(subject, predicate, object, context=context)
 
     def createRange(self, lowerBound, upperBound):
+        """
+        Create a compound literal representing a range from lowerBound to upperBound.
+
+        :param lowerBound: Lower bound of the range.
+        :type lowerBound: int
+        :param upperBound: Upper bound of the range.
+        :type upperBound: int
+        :return: A new literal object.
+        :rtype: RangeLiteral
+        """
         return self.getValueFactory().createRange(lowerBound=lowerBound, upperBound=upperBound)
 
     def addRules(self, rules, language=QueryLanguage.PROLOG):
         """
-        Add a sequence of one or more rules (in ASCII format) to the current environment.
-        If the language is Prolog, rule declarations start with '<-' or '<--'.  The
-        former appends a new rule; the latter overwrites any rule with the same predicate.
+        Add Prolog functors to the current session.
 
-        For use with an open session.
+        Note that this only works with a dedicated session (See :meth:`.session`.
+
+        .. seealso::
+
+           http://franz.com/agraph/support/documentation/current/prolog-tutorial.html
+              Tutorial describing the syntax of Prolog rules (functors).
+
+        :param rules: A string containing Prolog rule definitions. The definitions
+                      are S-expressions using the ``<-`` and ``<--`` operators
+                      (to append and overwrite rules respectively).
+        :type rules: string
+        :param language: Ignored.
         """
-        if language == QueryLanguage.PROLOG:
-            self._get_mini_repository().definePrologFunctors(rules)
-        else:
-            raise Exception("Cannot add a rule because the rule language has not been set.")
+        del language
+        if not self._get_mini_repository().sessionAlive:
+            raise Exception('Prolog rules can only be added in a dedicated session.')
+        self._get_mini_repository().definePrologFunctors(rules)
 
     def loadRules(self, filename, language=QueryLanguage.PROLOG):
         """
-        Load a file of rules into the current environment.
-        'file' is assumed to reside on the client machine.
-        If the language is Prolog, rule declarations start with '<-' or '<--'.  The
-        former appends a new rule; the latter overwrites any rule with the same predicate.
+        Add Prolog rules from file to the current session.
 
-        For use with an open session.
+        Note that this only works with a dedicated session.
+
+        :param filename: Path to the file containing Prolog rules.
+        :type filename: string
+        :param language: Ignored.
         """
         with open(filename) as _file:
             body = _file.read()
@@ -726,7 +1079,12 @@ class RepositoryConnection(object):
 
     def getNamespaces(self):
         """
-        Get all declared prefix/namespace pairs
+        Get all declared prefix/namespace pairs.
+
+        The result is a dictionary mapping prefixes to namespace URIs.
+
+        :return: A dictionary of namespaces.
+        :rtype: dict[string,string]
         """
         namespaces = {}
         for pair in self._get_mini_repository().listNamespaces():
@@ -735,28 +1093,42 @@ class RepositoryConnection(object):
 
     def getNamespace(self, prefix):
         """
-        Gets the namespace that is associated with the specified prefix, if any.
+        Get the namespace that is associated with the specified prefix, if any.
+
+        :param prefix: Namespace prefix.
+        :return: Namespace URI.
+        :raises RequestError: if there is no namespace with given prefix.
         """
         return self._get_mini_repository().getNamespace(prefix)
 
     def setNamespace(self, prefix, name):
         """
-        Sets the prefix for a namespace.
+        Define or redefine a namespace mapping in the repository.
+
+        :param prefix: Namespace prefix.
+        :type prefix: string
+        :param name: Namespace URI.
+        :type name: string
         """
         self._get_mini_repository().addNamespace(prefix, name)
 
     def removeNamespace(self, prefix):
         """
-        Removes a namespace declaration by removing the association between a
+        Remove a namespace declaration by removing the association between a
         prefix and a namespace name.
+
+        :param prefix: Namespace prefix.
+        :type prefix: string
         """
         self._get_mini_repository().deleteNamespace(prefix)
 
     def clearNamespaces(self, reset=True):
         """
-        Deletes all namespaces in this repository for the current user. If a
-        `reset` argument of `True` is passed, the user's namespaces are reset
-        to the default set of namespaces, otherwise all namespaces are cleared.
+        Delete all namespaces in this repository for the current user.
+
+        :param reset: If ``True`` (default) the user's namespaces are reset
+                      to the default set of namespaces, otherwise all namespaces
+                      are cleared.
         """
         self._get_mini_repository().clearNamespaces(reset)
 
@@ -765,48 +1137,135 @@ class RepositoryConnection(object):
     #############################################################################################
 
     def createRectangularSystem(self, scale=1, unit=None, xMin=0, xMax=None, yMin=0, yMax=None):
+        """
+        Create a Cartesian coordinate system and use it as the current coordinate system.
+
+        :param scale: Estimate of the Y size of a typical search region.
+        :type scale: float|int
+        :param unit: Must be ``None`` (the default).
+        :param xMin: Left edge of the rectangle.
+        :type xMin: float|int
+        :param xMax: Right edge of the rectangle.
+        :type xMax: float|int
+        :param yMin: Bottom edge of the rectangle.
+        :type yMin: float|int
+        :param yMax: Top edge of the rectangle.
+        :type yMax: float|int
+        :return: The new coordinate system.
+        """
         self.geoType = GeoType(GeoType.Cartesian, scale=scale, unit=unit, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
                                ##,latMin=None, latMax=None, longMin=None, longMax=None)
         self.geoType.setConnection(self)
         return self.geoType
 
     def createLatLongSystem(self, unit='degree', scale=None, latMin=None, latMax=None, longMin=None, longMax=None):
+        """
+        Create a spherical coordinate system and use it as the current coordinate system.
+
+        :param scale: Estimate of the size of a typical search region in the latitudinal direction.
+        :type scale: float|int
+        :param unit: One of: ``'degree'``, ``'mile'``, ``'radian'``, ``'km'``.
+                     The default is ``'degree'``.
+        :type unit: string
+        :param longMin: Left side of the coordinate system.
+        :type longMin: float|int
+        :param longMax: Right side of the coordinate system.
+        :type longMax: float|int
+        :param latMin: Bottom border of the coordinate system.
+        :type latMin: float|int
+        :param latMax: Top border of the coordinate system.
+        :type latMax: float|int
+        :return: The new coordinate system.
+        """
         self.geoType = GeoType(GeoType.Spherical, unit=unit, scale=scale, latMin=latMin, latMax=latMax, longMin=longMin, longMax=longMax)
         self.geoType.setConnection(self)
         return self.geoType
 
     def getGeoType(self):
+        """
+        Get the current geospatial coordinate system.
+
+        :return: A coordinate system.
+        :rtype: GeoType
+        """
         return self.geoType
 
     def setGeoType(self, geoType):
+        """
+        Set the current geospatial coordinate system.
+
+        :param geoType: The new coordinate system.
+        :type geoType: GeoType
+        """
         self.geoType = geoType
         geoType.setConnection(self)
 
     def createCoordinate(self, x=None, y=None, latitude=None, longitude=None):
         """
-        Create an x, y  or lat, long  coordinate in the current coordinate system.
+        Create an x, y or latitude, longitude  coordinate in the current coordinate system.
+
+        Either ``x``, ``y`` or ``latitude``, ``longitude`` must be given.
+
+        :param x: X coordinate of the created point.
+        :param y: Y coordinate of the created point.
+        :param latitude: Latitude of the created point.
+        :param longitude: Longitude of the created point.
+        :return: A literal representing the created point.
+        :rtype: Literal
         """
         return self.geoType.createCoordinate(x=x, y=y, latitude=latitude, longitude=longitude)
 
     def createBox(self, xMin=None, xMax=None, yMin=None, yMax=None):
         """
-        Define a rectangular region for the current coordinate system.
+        Create a rectangular search region (a box) for geospatial search.
+        This method works for both Cartesian and spherical coordinate systems.
+
+        :param xMin: Minimum latitude.
+        :type xMin: float|int
+        :param xMax: Maximum latitude.
+        :type xMax: float|int
+        :param yMin: Minimum longitude.
+        :type yMin: float|int
+        :param yMax: Maximum longitude.
+        :type yMax: float|int
+        :return: A geospatial literal corresponding to the specified search region.
+        :rtype: Literal
         """
         return self.geoType.createBox(xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
 
     def createCircle(self, x, y, radius, unit=None):
         """
-        Define a circular region with vertex x,y and radius "radius".
-        The distance unit for the radius is either 'unit' or the unit specified
-        for the current system.
+        Create a circular search region for geospatial search.
+
+        This method works for both Cartesian and spherical coordinate systems.
+
+        :param x: Latitude of the center.
+        :type x: float|int
+        :param y: Longitude of the center.
+        :type y: float|int
+        :param radius: The radius of the circle expressed in the designated ``unit``.
+        :type radius: float|int
+        :param unit: Unit in which the ``radius`` is expressed.
+                     Defaults to the unit assigned to the coordinate system.
+                     Legal values are ``"degree"``, ``"radian"``, ``"km"`` and ``"mile"``.
+        :type unit: string
         """
         return self.geoType.createCircle(x, y, radius, unit=unit)
 
     def createPolygon(self, vertices, uri=None, geoType=None):
         """
-        Define a polygonal region with the specified vertices.  'vertices'
-        is a list of x,y pairs.  The 'uri' is optional.
+        Define a polygonal region with the specified vertices.
+
+        :param vertices: List of x, y pairs.
+        :type vertices: list[(float, float)]
+        :param uri: URI under which the polygon will be stored in the repository.
+                    If not given a blank node will be used.
+        :type uri: URI
+        :param geoType: unused
+        :return: An object representing the newly created polygon.
+        :rtype: GeoPolygon
         """
+        del geoType
         return self.geoType.createPolygon(vertices, uri=uri)
 
     #############################################################################################
@@ -815,14 +1274,27 @@ class RepositoryConnection(object):
 
     def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, generator_query=None):
         """
-        Create (and remember) a generator named 'name'.
-        If one already exists with the same name; redefine it.
-        'subjectOf', 'objectOf' and 'undirected' expect a list of predicate URIs, expressed as
-        fullURIs or qnames, that define the edges traversed by the generator.
-        Alternatively, instead of an adjacency map, one may provide a 'generator_query',
-        that defines the edges.
+        Create a new SNA generator named ``name``.
+        If one already exists with the same name - redefine it.
 
-        For use with an open session.
+        The edges traversed by the new generator can be defined in one of two ways:
+
+           - Using three lists of predicates to define edges between subjects and
+             objects of triples (``subjectOf``, ``objectOf``, ``undirected``).
+           - Using a Prolog query (``generator_query``).
+
+        Requires a dedicated session.
+
+        :param name: Name of the new/modified generator.
+        :type name: string
+        :param subjectOf: Create object to subject edges for these predicates.
+        :type subjectOf: list[URI|string]
+        :param objectOf: Create subject to object edges for these predicates.
+        :type objectOf: list[URI|string]
+        :param undirected: Create edges in both directions for these predicates.
+        :type undirected: list[URI|string]
+        :param generator_query: A Prolog query that generates neighbors given
+                                a start node ``?node``.
         """
         miniRep = self._get_mini_repository()
         miniRep.registerSNAGenerator(name, subjectOf=subjectOf, objectOf=objectOf, undirected=undirected,
@@ -830,16 +1302,33 @@ class RepositoryConnection(object):
 
     def registerNeighborMatrix(self, name, generator, group_uris, max_depth=2):
         """
-        Construct a neighbor matrix named name.  The generator named 'generator' is applied
-        to each URI in 'group_uris' (a collection of fullURIs or qnames (strings)),
-        computing edges to max depth 'max_depth'.
+        Construct a neighbor matrix named ``name``.
 
-        For use with an open session.
+        The generator named ``generator`` is applied to each URI in ``group_uris``,
+        computing edges to max depth ``max_depth``.
+
+        Requires a dedicated session.
+
+        :param name: Name that will be used to identify the matrix.
+        :type name: string
+        :param generator: Name of the SNA generator used to compute the edges.
+                          See :meth:`.registerSNAGenerator`.
+        :type generator: string
+        :param group_uris: Initial list of vertices from which the graph will be created.
+        :type group_uris: list[URI|string]
+        :param max_depth: Max distance from the initial vertices.
+        :type max_depth: int
         """
         miniRep = self._get_mini_repository()
         miniRep.registerNeighborMatrix(name, group_uris, generator, max_depth)
 
     def listFreeTextIndices(self):
+        """
+        Get the names of currently defined free-text indices.
+
+        :return: List of index names.
+        :rtype: list[string]
+        """
         return self.mini_repository.listFreeTextIndices()
 
     def createFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
@@ -847,29 +1336,62 @@ class RepositoryConnection(object):
                             innerChars=None, borderChars=None, tokenizer=None):
         """
         Create a free-text index with the given parameters.
-        If no predicates are given, triples are indexed regardless of
-        predicate.
-        indexLiterals determines which literals to index. It can be
-        True (the default), False, or a list of resources, indicating
-        the literal types that should be indexed.
-        indexResources determines which resources are indexed. It can
-        be True, False (the default), or \"short\", to index only the
-        part of resources after the last slash or hash character.
-        indexFields can be a list containing any combination of the
-        elements \"subject\", \"predicate\", \"object\", and
-        \"graph\". The default is [\"object\"].
-        minimumWordSize, an integer, and determines the minimum size a
-        word must have to be indexed. The default is 3.
-        stopWords should hold a list of words that should not be
-        indexed. When not given, a list of common English words is
-        used.
-        wordFilters can be used to apply some normalizing filters to
-        words as they are indexed or queried. Can be a list of filter
-        names. Currently, only \"drop-accents\" and \"stem.english\"
-        are supported.
-        innerChars and borderChars can be lists. tokenizer is a string.
 
-        See  http://www.franz.com/agraph/support/documentation/v5/http-protocol.html#put-freetext-index
+        .. seealso::
+
+           http://franz.com/agraph/support/documentation/current/http-protocol.html#put-freetext-index
+              Documentation of the HTTP endpoint used by this method.
+
+           http://franz.com/agraph/support/documentation/current/text-index.html
+              General information about text indexing in AllegroGraph.
+
+        :param name: Name for the new index.
+        :type name: string
+        :param predicates: A list of predicates to be indexed. If not given all
+                           triples will be indexed regardless of predicate.
+        :type predicates: list[string|URI]
+        :param indexLiterals: Determines which literals to index. It can be``True``
+                              (the default), ``False``, or a list of resources,
+                              indicating the literal types that should be indexed.
+        :type indexLiterals: bool|list[URI]
+        :param indexResources: Determines which resources are indexed. It can be
+                               ``True``, ``False`` (the default), or ``"short"``,
+                               to index only the part of resources after the last
+                               slash or hash character.
+        :type indexResources: bool|string
+        :param indexFields: List of triples fields to index. Can be any combination
+                            of ``"subject"``, ``"predicate"``, ``"object"``, and
+                            ``"graph"``. The default is ``["object"]``.
+        :type indexFields: list[string]
+        :param minimumWordSize: Determines the minimum size a word must have to be
+                                indexed. The default is 3.
+        :type minimumWordSize: int
+        :param stopWords: List of words that should not be indexed.
+                          When not given, a list of common English words is used.
+        :type stopWords: list[string]
+        :param wordFilters: List of normalizing filters used to process words
+                            before indexing. The list if supported filters can
+                            be found here:
+                            http://franz.com/agraph/support/documentation/current/text-index.html
+        :type wordFilters: list[string]
+        :param innerChars: The character set to be used as the constituent characters of a word.
+                           Should be a list of character classes. Valid classes are:
+
+                               - `"alpha"``: All (unicode) alphabetic characters.
+                               - ``"digit"``: All base-10 digits.
+                               - ``"alphanumeric"``: All digits and alphabetic characters.
+                               - a single character
+                               - a range of characters: A single character, followed by a dash (-)
+                                 character, followed by another single character.
+        :type innerChars: list[string]
+        :param borderChars: The character set to be used as the border characters of indexed words.
+                            Uses the same syntax as ``innerChars``.
+        :type borderChars: list[string]
+        :param tokenizer: Controls the way in which the text is plit into tokens.
+                          Can be either ``"default"`` or ``"japaense"``.
+                          Note that the ``japaense`` tokenizer ignores ``innerChars``
+                          and ``borderChars``.
+        :type tokenizer: string
         """
         if predicates: predicates = list(map(uris.asURIString, predicates))
         if isinstance(indexLiterals, list): indexLiterals = list(map(uris.asURIString, indexLiterals))
@@ -882,6 +1404,57 @@ class RepositoryConnection(object):
     def modifyFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
                             indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
                             reIndex=None, innerChars=None, borderChars=None, tokenizer=None):
+        """
+        Modify parameters of a free-text index.
+
+        :param name: Name of the index to be modified.
+        :type name: string
+        :param predicates: A list of predicates to be indexed. If not given all
+                           triples will be indexed regardless of predicate.
+        :type predicates: list[string|URI]
+        :param indexLiterals: Determines which literals to index. It can be``True``
+                              (the default), ``False``, or a list of resources,
+                              indicating the literal types that should be indexed.
+        :type indexLiterals: bool|list[URI]
+        :param indexResources: Determines which resources are indexed. It can be
+                               ``True``, ``False`` (the default), or ``"short"``,
+                               to index only the part of resources after the last
+                               slash or hash character.
+        :type indexResources: bool|string
+        :param indexFields: List of triples fields to index. Can be any combination
+                            of ``"subject"``, ``"predicate"``, ``"object"``, and
+                            ``"graph"``. The default is ``["object"]``.
+        :type indexFields: list[string]
+        :param minimumWordSize: Determines the minimum size a word must have to be
+                                indexed. The default is 3.
+        :type minimumWordSize: int
+        :param stopWords: List of words that should not be indexed.
+                          When not given, a list of common English words is used.
+        :type stopWords: list[string]
+        :param wordFilters: List of normalizing filters used to process words
+                            before indexing. The list if supported filters can
+                            be found here:
+                            http://franz.com/agraph/support/documentation/current/text-index.html
+        :type wordFilters: list[string]
+        :param innerChars: The character set to be used as the constituent characters of a word.
+                           Should be a list of character classes. Valid classes are:
+
+                               - `"alpha"``: All (unicode) alphabetic characters.
+                               - ``"digit"``: All base-10 digits.
+                               - ``"alphanumeric"``: All digits and alphabetic characters.
+                               - a single character
+                               - a range of characters: A single character, followed by a dash (-)
+                                 character, followed by another single character.
+        :type innerChars: list[string]
+        :param borderChars: The character set to be used as the border characters of indexed words.
+                            Uses the same syntax as ``innerChars``.
+        :type borderChars: list[string]
+        :param tokenizer: Controls the way in which the text is plit into tokens.
+                          Can be either ``"default"`` or ``"japaense"``.
+                          Note that the ``japaense`` tokenizer ignores ``innerChars``
+                          and ``borderChars``.
+        :type tokenizer: string
+        """
         if predicates: predicates = list(map(uris.asURIString, predicates))
         if isinstance(indexLiterals, list): indexLiterals = list(map(uris.asURIString, indexLiterals))
         self.mini_repository.modifyFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
@@ -891,9 +1464,27 @@ class RepositoryConnection(object):
                                                  borderChars=borderChars, tokenizer=tokenizer)
 
     def deleteFreeTextIndex(self, name):
+        """
+        Delete a free-text index from the server.
+
+        :param name: Index name.
+        :type name: string
+        """
         self.mini_repository.deleteFreeTextIndex(name)
 
     def getFreeTextIndexConfiguration(self, name):
+        """
+        Get the current settings of a free-text index.
+
+        The result will be a dictionary where keys are parameter names
+        as used in :meth:`.createFreeTextIndex`.
+
+        :param name: Index name.
+        :type name: string
+        :return: A dictionary with configuration data, keys are argument
+                 names from :meth:`.createFreeTextIndex`.
+        :rtype: dict
+        """
         value = self.mini_repository.getFreeTextIndexConfiguration(name)
         value["predicates"] = list(map(URI, value["predicates"]))
         if isinstance(value["indexLiterals"], list):
@@ -902,7 +1493,16 @@ class RepositoryConnection(object):
 
     def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None, offset=None, index=None):
         """
-        Return an array of statements for the given free-text pattern search.
+        Return a list of statements for the given free-text pattern search.
+
+        If no index is provided, all indices will be used.
+
+        :param pattern: Search pattern, see
+                        http://franz.com/agraph/support/documentation/current/http-protocol.html#get-post-freetext
+                        for details.
+        :type pattern: string
+        :param index: List of indices to query. If not given - query all indices.
+        :type index: string|list[string]
         """
         miniRep = self._get_mini_repository()
         return miniRep.evalFreeTextSearch(pattern, index, infer, wrap_callback(callback), limit, offset=offset)
@@ -961,34 +1561,38 @@ class RepositoryConnection(object):
 
     def __exit__(self, *args):
         del args
-        self.closeSession()
         self.close()
 
     @contextmanager
     def session(self,  autocommit=False, lifetime=None, loadinitfile=False):
         """
-        A session context manager for use with the 'with' statement:
+        A session context manager for use with the ``with`` statement:
 
-        with conn.session():
-            # Automatically calls openSession at block start
-            # Do work
-            # Automatically calls closeSession at block end
+        .. code:: python
+
+            with conn.session():
+                # Automatically calls openSession at block start
+                # Do work
+                # Automatically calls closeSession at block end
+                # or in case of an exception.
 
 
-        If autocommit is True, commits are done on each request, otherwise
-        you will need to call commit() or rollback() as appropriate for your
-        application.
-
-        lifetime is an integer specifying the time to live in seconds of
-        the session.
-
-        If loadinitfile is True, then the current initfile will be loaded
-        for you when the session starts.
+        :param autocommit: if ``True``, commits are done on each request, otherwise
+                           you will need to call :meth:`.commit` or :meth:`.rollback`
+                           as appropriate for your application.
+                           The default value is ``False``.
+        :type autocommit: bool
+        :param lifetime: Time (in seconds) before the session expires when idle.
+                         Note that the client maintains a thread that ping the
+                         session before this happens.
+        :type lifetime: int
+        :param loadinitfile: if ``True`` then the current initfile will be loaded
+                             for you when the session starts. The default is ``False``.
+        :type loadinitfile: bool
         """
         self.openSession(autocommit, lifetime, loadinitfile)
         yield self
         self.closeSession()
-
 
     def runAsUser(self, username=None):
         """
@@ -999,6 +1603,8 @@ class RepositoryConnection(object):
         None - the default - clears the setting.
         """
         return self._get_mini_repository().runAsUser(username)
+
+    # This is completely insane. Are we really suggesting that to the users!?
 
     @contextmanager
     def saveResponse(self, fileobj, accept, raiseAll=False):
@@ -1031,13 +1637,13 @@ class RepositoryConnection(object):
 
     def commit(self):
         """
-        Commits changes on an open session.
+        Commit changes on an open session.
         """
         return self._get_mini_repository().commit()
 
     def rollback(self):
         """
-        Rolls back changes on open session.
+        Roll back changes on open session.
         """
         return self._get_mini_repository().rollback()
 
@@ -1063,7 +1669,7 @@ class RepositoryConnection(object):
         """
         Registers a single encoded prefix.
 
-        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
+        See: https://franz.com/agraph/support/documentation/current/encoded-ids.html
         """
         return self._get_mini_repository().registerEncodedIdPrefix(prefix, format)
 
@@ -1074,7 +1680,7 @@ class RepositoryConnection(object):
         at index 0 and the format at index 1 will do (e.g. a list of tuples).
         Using PrefixFormat instances also works well.
 
-        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
+        See: https://franz.com/agraph/support/documentation/current/encoded-ids.html
         """
         return self._get_mini_repository().registerEncodedIdPrefixes(registrations)
 
@@ -1082,7 +1688,7 @@ class RepositoryConnection(object):
         """
         Lists all encoded id prefixes.
 
-        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
+        See: https://franz.com/agraph/support/documentation/current/encoded-ids.html
         """
         regs = []
 
@@ -1096,7 +1702,7 @@ class RepositoryConnection(object):
         """
         Unregisters the specified encoded id prefix.
 
-        See: http://franz.com/agraph/support/documentation/v5/encoded-ids.html
+        See: https://franz.com/agraph/support/documentation/current/encoded-ids.html
         """
         return self._get_mini_repository().unregisterEncodedIdPrefix(prefix)
 
@@ -1108,31 +1714,35 @@ class RepositoryConnection(object):
 
         See notes on next-encoded-upi-for-prefix in:
 
-        http://franz.com/agraph/support/documentation/v5/encoded-ids.html
+        https://franz.com/agraph/support/documentation/current/encoded-ids.html
         """
         return self._get_mini_repository().allocateEncodedIds(prefix, amount)
 
     def deleteDuplicates(self, mode):
         """
-        Delete all duplicates in the store. Must commit.
+        Delete duplicate triples from the store.
 
-        mode - "spog" or "spo"
+        :param mode: can be `"spo"` (triples are duplicates if they have the same subject,
+                    predicate, and object, regardless of the graph) or `"spog"` (triples
+                    are duplicates if they have the same subject, predicate, object, and
+                    graph).
 
-        For details see:
+        .. seealso::
 
-    http://www.franz.com/agraph/support/documentation/current/http-protocol.html#delete-statements-duplicates
+           Method :meth:`getDuplicateStatements`.
         """
         self._get_mini_repository().deleteDuplicates(mode)
 
     def getDuplicateStatements(self, mode):
         """
-        Return all duplicates in the store. Must commit.
+        Return all duplicates in the store.
 
-        mode - "spog" or "spo", specifies how duplicates are determined
-
-        For details see:
-
-    http://www.franz.com/agraph/support/documentation/current/http-protocol.html#delete-statements-duplicates
+        :param mode: can be `"spo"` (triples are duplicates if they have the same subject,
+            predicate, and object, regardless of the graph) or `"spog"` (triples
+            are duplicates if they have the same subject, predicate, object, and
+            graph).
+        :return: An iterator over duplicate statements.
+        :rtype: RepositoryResult
         """
         stringTuples = self._get_mini_repository().getDuplicateStatements(mode)
         return RepositoryResult(stringTuples)
@@ -1247,7 +1857,80 @@ class RepositoryConnection(object):
         """
         return self._get_mini_repository().deleteMaterialized()
 
+    def executeTupleQuery(self, query, language=QueryLanguage.SPARQL,
+                          output=None, output_format=RDFFormat.TABLE):
+        """
+        Prepare and immediately evaluate a query that returns tuples.
 
+        :param query: Query text.
+        :type query: str
+        :param language: Query language, the default is SPARQL.
+        :type language: QueryLanguage
+        :param output: File path or a file-like object to write
+                       the result to.
+        :type output: str|file
+        :param output_format: Serialization format for ``output``.
+        :type output_format: RDFFormat
+
+        :return: Query result, or ``None`` if ``output`` is used.
+        :rtype: TupleQueryResult
+        """
+        q = self.prepareTupleQuery(language, query)
+        return q.evaluate(output=output, output_format=output_format)
+
+
+    def executeGraphQuery(self, query, language=QueryLanguage.SPARQL,
+                          output=None, output_format=RDFFormat.NQX):
+        """
+        Prepare and immediately evaluate a query that returns RDF.
+
+        :param query: Query text.
+        :type query: str
+        :param language: Query language, the default is SPARQL.
+        :type language: QueryLanguage
+        :param output: File path or a file-like object to write
+                       the result to.
+        :type output: str|file
+        :param output_format: Serialization format for ``output``.
+        :type output_format: RDFFormat
+
+        :return: Query result, or ``None`` if ``output`` is used.
+        :rtype: RepositoryResult|None
+        """
+        q = self.prepareGraphQuery(language, query)
+        return q.evaluate(output=output, output_format=output_format)
+
+
+    def executeBooleanQuery(self, query, language=QueryLanguage.SPARQL):
+        """
+        Prepare and immediately evaluate a query that returns
+        a boolean.
+
+        :param query: Query text.
+        :type query: str
+        :param language: Query language, the default is SPARQL.
+        :type language: QueryLanguage
+
+        :return: Query result.
+        :rtype: bool
+        """
+        q = self.prepareBooleanQuery(language, query)
+        return q.evaluate()
+
+    def executeUpdate(self, query):
+        """
+        Prepare and immediately evaluate a SPARQL update query.
+
+        :param query: Query text.
+        :type query: str
+
+        :return: Query result (true iff the store has been modified).
+        :rtype: bool
+        """
+        q = self.prepareUpdate(QueryLanguage.SPARQL, query)
+        return q.evaluate()
+
+    
 class GeoType(object):
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'
