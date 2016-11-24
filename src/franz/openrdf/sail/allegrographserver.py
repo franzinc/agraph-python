@@ -33,28 +33,86 @@ class AllegroGraphServer(object):
     """
     Connects to an AllegroGraph HTTP Server
     """
-    def __init__(self, host, port=10035, user=None, password=None, cainfo=None, sslcert=None, verifyhost=None, verifypeer=None, **options):
+    def __init__(self, host=None, port=None, user=None, password=None,
+                 cainfo=None, sslcert=None, verifyhost=None, verifypeer=None,
+                 protocol=None, **options):
         """
-        Defines the connection to the AllegroGraph HTTP server.
+        Define the connection to the AllegroGraph HTTP server.
 
-        Pass either user & password for Basic Authentication or
-        cainfo, sslcert values for client x.509 certificate
-        authentication. You can optionally set verifyhost/verifypeer
-        to True or False. Default behavior is True.
+        Pass either ``user`` and ``password`` for Basic Authentication or
+        ``cainfo``, ``sslcert`` values for client X.509 certificate
+        authentication.
 
-        See pycurl documentation for the meanings of cainfo, sslcert,
-        verifyhost, verifypeer as those values are just passed 
-        through to the Curl object's setopt function.
+        :param host: Address of the AllegroGraph server to connect to.
+                     This can also include protocol and port
+                     (e.g. http://localhost:10035).
+                     The default value is ``'localhost'```.
+        :type host: string
+        :param port: Port on which the server is listening.
+                     The default is 10035 if ``protocol`` is ``'http'``
+                     and 10036 if it is ``'https'``.
+                     If passed explicitly this parameter overrides any value
+                     that might have been specified as a part of the ``host`` string.
+        :type port: int
+        :param protocol: Connection protocol, either ``'http'`` or ``'https'``.
+                         The default is ``'http'`` if no SSL parameters are set
+                         and `'https'`` otherwise.
+                         If passed explicitly this parameter overrides any value
+                         that might have been specified as a part of the ``host`` string.
+        :type protocol: string
+        :param user: Username (when using Basic authentication).
+        :type user: string
+        :param password: Password (when using Basic authentication).
+        :type password: string
+        :param cainfo: Path to a file or directory containing CA certificates that
+                       will be used to validate the server's certificate.
+        :type cainfo: string
+        :param sslcert: Client certificate path (when using SSL authentication).
+        :type sslcert: string
+        :param verifyhost: If set to ``0`` it will not be an error if the server's
+                           SSL certificate does not match the server's address.
+                           The default value is ``2``, meaning that the host name will
+                           be validated against the certificate.
+
+                           ..seealso:: https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYHOST.html
+        :type verifyhost: int
+        :param verifypeer: If set to ``1`` (the default) the validity of the server's
+                           SSL certificate will be checked. Set to ``0`` to disable
+                           the validation.
+
+                           ..seealso:: https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYPEER.html
+        :type verifypeer: int
+        :param options: Ignored.
         """
-        
-        if re.match('^https?://', host):
-            uri = host + ':%d'
-        elif sslcert != None:
-            uri = 'https://%s:%d'
+        # Not sure why we accept these, but don't want to change the API at this point.
+        del options
+
+        host = host or 'localhost'
+
+        # Check if other arguments were passed as a part of host
+        match = re.match(r'^(?:(?P<protocol>https?)://)?'
+                         r'(?P<host>[^:]*)(?::(?P<port>[0-9]*))?(?P<tail>.*)$',
+                         host)
+        if match:
+            if protocol is None:
+                protocol = match.group('protocol')
+            if port is None and match.group('port') is not None:
+                port = int(match.group('port'))
+            host = match.group('host')
+            tail = match.group('tail')
         else:
-            uri = 'http://%s:%d'
-        
-        self._client = miniserver.Client(uri % (host, port), user, password, cainfo, sslcert, verifyhost, verifypeer)
+            tail = ''
+
+        has_https_params = cainfo or sslcert or verifyhost is not None or verifypeer is not None
+        if protocol is None:
+            protocol = 'https' if has_https_params else 'http'
+
+        if port is None:
+            port = 10035 if protocol == 'http' else 10036
+
+        uri = '{protocol}://{host}:{port}{tail}'.format(protocol=protocol, host=host, port=port, tail=tail)
+
+        self._client = miniserver.Client(uri, user, password, cainfo, sslcert, verifyhost, verifypeer)
 
     @property
     def url(self):

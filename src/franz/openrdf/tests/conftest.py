@@ -47,11 +47,15 @@ def conn():
 
 # noinspection PyShadowingNames
 @pytest.fixture
-def clean_repo(conn):
+def repo_name(conn):
     """
-    Just make sure that the repo is clean.
+    Make sure that a repository exists and is empty.
+
+    Return the name of that repository.
     """
+    name = conn.repository.database_name
     conn.close()
+    return name
 
 
 @pytest.fixture
