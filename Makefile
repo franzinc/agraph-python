@@ -12,12 +12,12 @@ export PYCURL_SSL_LIBRARY=nss
 # Prebuilt wheels location
 WHEELHOUSE ?= file:///net/san1/disk1/wheelhouse/
 
-# Use prebuilt packages ONLY by default
-export AG_PIP_OPTS = --use-wheel --find-links=$(WHEELHOUSE)
+# Used to download packages, the default is https://pypi.python.org/simple
+PIP_INDEX ?= http://san1.franz.com:8081/repository/pypi-group/simple
+# If the index is not available over HTTPS users need to pass --trusted-host
+PIP_EXTRA_OPTS ?= 
 
-ifndef USE_PYPI
-AG_PIP_OPTS += --no-index
-endif
+export AG_PIP_OPTS = --use-wheel --index-url=$(PIP_INDEX) --trusted-host san1.franz.com $(PIP_EXTRA_OPTS)
 
 # TOXENV will have current tox installed.
 TOXENVDIR := toxenv
@@ -61,9 +61,15 @@ ifndef AGRAPH_PORT
 endif
 	@echo Using port $(AGRAPH_PORT)
 
-$(TOXENVDIR):
+# This environment might initially get an ancient version of pip
+# that does not support --trusted-host. So we use a script that 
+# checks if that is the case and filters the arguments if necessary.
+# Note that pip will be updated and all other environments will get
+# a more reasonable version.
+$(TOXENVDIR): Makefile
+	rm -rf $(TOXENVDIR)
 	virtualenv --no-site-packages $(TOXENVDIR)
-	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox virtualenv
+	. ./$(TOXENVDIR)/bin/activate && pip install -U $$(python pip-hack.py ${AG_PIP_OPTS}) setuptools wheel pip tox twine
 
 $(ENVDIR): $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY2)-env
