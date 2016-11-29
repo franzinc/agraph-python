@@ -14,8 +14,10 @@ from franz.openrdf.repository import Repository
 from franz.openrdf.sail import AllegroGraphServer
 
 
+# Note that the default values come from AllegroGraphServer.__init__
 def ag_connect(repo, catalog=None, create=True, fail_if_exists=False, clear=False,
-               host='localhost', port=10035, user=None, password=None, cainfo=None, sslcert=None,
+               host=None, port=None, protocol=None,
+               user=None, password=None, cainfo=None, sslcert=None,
                verifyhost=None, verifypeer=None, indices=None):
     """
     Create a connection to an AllegroGraph repository.
@@ -29,7 +31,13 @@ def ag_connect(repo, catalog=None, create=True, fail_if_exists=False, clear=Fals
     :param clear: if `True` delete all data after creating the connection.
                   The default is `False`.
     :param host: AllegroGraph server host (default: `"localhost"`).
-    :param port: AllegroGraph server port (default: `10035`).
+                 Can also be used to supply protocol and port number
+                 (e.g. ``https://localhost:10036``).
+    :param protocol: Either ``"http"`` or ``"https"``.
+                     Overrides the protocol specified in ``host``.
+    :type protocol: string
+    :param port: AllegroGraph server port (default: `10035` for http and 10036 for https).
+                 Overrides the port number provided in ``host``.
     :param user: Username for authentication.
     :param password:  Password for authentication.
     :param cainfo: Path to file or directory with CA certificates.
@@ -41,8 +49,9 @@ def ag_connect(repo, catalog=None, create=True, fail_if_exists=False, clear=Fals
     :return: A RepositoryConnection object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
     """
-    server = AllegroGraphServer(host, port, user, password, cainfo=cainfo, sslcert=sslcert,
-                                verifyhost=verifyhost, verifypeer=verifypeer)
+    server = AllegroGraphServer(host=host, port=port, protcol=protocol,
+                                user=user, password=password, sslcert=sslcert,
+                                cainfo=cainfo, verifyhost=verifyhost, verifypeer=verifypeer)
     cat_handle = server.openCatalog(catalog)
     repo_exists = repo in cat_handle.listRepositories()
     if not repo_exists:
