@@ -11,41 +11,78 @@ Helper function for opening connections.
 """
 
 from franz.openrdf.repository import Repository
+from franz.openrdf.repository.repositoryconnection import RepositoryConnection
 from franz.openrdf.sail import AllegroGraphServer
 
 
 # Note that the default values come from AllegroGraphServer.__init__
-def ag_connect(repo, catalog=None, create=True, fail_if_exists=False, clear=False,
+def ag_connect(repo, catalog=None,
+               create=True, fail_if_exists=False, clear=False,
+               session=False, autocommit=False, lifetime=None, loadinitfile=False,
                host=None, port=None, protocol=None,
                user=None, password=None, cainfo=None, sslcert=None,
                verifyhost=None, verifypeer=None, indices=None):
     """
     Create a connection to an AllegroGraph repository.
 
+    When closed the connection will take care of releasing all intermediate resources
+    that were created in order to open it.
+
     :param repo: Repository name.
+    :type repo: string
     :param catalog: Catalog name (optional, root catalog is the default).
+    :type catalog: string
     :param create: if `True` (default) create the repository if it does not exist.
+    :type create: bool
     :param fail_if_exists: if `True` and the repository exists raise an exception.
                            This applies only if `create` is `True`.
                            The default value is `False`.
+    :type fail_if_exists: bool
     :param clear: if `True` delete all data after creating the connection.
                   The default is `False`.
+    :type clear: bool
+    :param session: If ``True`` start a session after creating the connection.
+                    The default is ``False``.
+    :type session: bool
+    :param autocommit: When opening a session: if ``True``, commits are done on each
+                       request, otherwise you will need to call :meth:`.commit` or
+                       :meth:`.rollback`as appropriate for your application.
+                       The default value is ``False``.
+    :type autocommit: bool
+    :param lifetime: Time (in seconds) before the session expires when idle.
+                     Note that the client maintains a thread that ping the
+                     session before this happens.
+                     Ignored if not starting a session.
+    :type lifetime: int
+    :param loadinitfile: if ``True`` then the current initfile will be loaded
+                         for you when the session starts. The default is ``False``.
+                         Ignored if not starting a session.
+    :type loadinitfile: bool
     :param host: AllegroGraph server host (default: `"localhost"`).
                  Can also be used to supply protocol and port number
                  (e.g. ``https://localhost:10036``).
+    :type host: string
     :param protocol: Either ``"http"`` or ``"https"``.
                      Overrides the protocol specified in ``host``.
     :type protocol: string
     :param port: AllegroGraph server port (default: `10035` for http and 10036 for https).
                  Overrides the port number provided in ``host``.
+    :type port: int
     :param user: Username for authentication.
+    :type user: string
     :param password:  Password for authentication.
+    :type password: string
     :param cainfo: Path to file or directory with CA certificates.
+    :type cainfo: string
     :param sslcert: Path to a client certificate to use for
                     authentication instead of username and password.
+    :type sslcert: string
     :param verifyhost: See https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYHOST.html
+    :type verifyhost: int
     :param verifypeer: See https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYPEER.html
+    :type verifypeer: int
     :param indices: List of indices to create if creating a new repository.
+    :type indices: list[string]
     :return: A RepositoryConnection object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
     """
@@ -64,4 +101,8 @@ def ag_connect(repo, catalog=None, create=True, fail_if_exists=False, clear=Fals
             raise Exception('Store %s already exists.' % repo)
         mode = Repository.RENEW if clear else Repository.OPEN
         repo_handle = cat_handle.getRepository(repo, mode)
-    return repo_handle.getConnection()
+    conn = RepositoryConnection(repo_handle, close_repo=True)
+    if session:
+        # conn.close will close it if necessary
+        conn.openSession(autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile)
+    return conn

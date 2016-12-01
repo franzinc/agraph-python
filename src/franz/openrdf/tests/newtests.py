@@ -50,6 +50,11 @@ def test_ag_connect_fail_if_exists_but_not_create(repo_name):
         assert conn.size() == 0
 
 
+def test_ag_connect_session(repo_name):
+    with ag_connect(repo_name, create=False, session=True, **common_args) as conn:
+        assert conn.is_session_active
+
+
 def test_server_all_data_in_host():
     server = AllegroGraphServer('https://somehost:4321/and/then/some')
     assert server.url == 'https://somehost:4321/and/then/some'
