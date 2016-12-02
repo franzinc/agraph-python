@@ -212,7 +212,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     curl.setopt(pycurl.POSTFIELDS, "")
     if body:
         if postbody:
-            curl.setopt(pycurl.POSTFIELDS, to_native_string(body))
+            curl.setopt(pycurl.POSTFIELDS, body)
         else:
             url = url + "?" + to_native_string(body)
 
@@ -293,8 +293,11 @@ def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form
         def raiseErr(status, message): raise RequestError(status, message)
         makeRequest(obj, method, url, body, accept, contentType, callback=callback, errCallback=raiseErr, headers=headers)
 
-def nullRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded"):
-    status, body = makeRequest(obj, method, url, body, "application/json", contentType)
+def nullRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", content_encoding=None):
+    headers = []
+    if content_encoding is not None:
+        headers.append('Content-Encoding: ' + content_encoding)
+    status, body = makeRequest(obj, method, url, body, "application/json", contentType, headers=headers)
     if (status < 200 or status > 204): raise RequestError(status, body)
 
 class RowReader(object):

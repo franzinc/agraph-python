@@ -215,7 +215,7 @@ implementation)! </p>
               <p><em>arg0, arg1</em>, and <em>arg2</em> may be the subject, predicate and object of a single triple. </p>
               <p><em>contexts</em> is an optional list of contexts (subgraph URIs), defaulting to None.&nbsp;A context is the URI of a subgraph. If None, the triple(s) will be added to the null context (the default or background graph).</p>
               <p><em>base</em> is the baseURI to associate with loading a file.&nbsp; Defaults to None. </p>
-              <p><em>format</em> is RDFFormat.NTRIPLES or RDFFormat.RDFXML. Defaults to None.</p>
+              <p><em>format</em> is an <a href="#RDFFormat Class">RDFFormat</a> instance. Defaults to None, which means "guess from file extension".</p>
               <p><em>serverSide</em> indicates whether the <em>filepath</em> refers to a file on the client computer or on the server.&nbsp; Defaults to False. </p></td>
   </tr>
   <tr>
@@ -224,8 +224,16 @@ implementation)! </p>
               <p><em>filepath</em> identifies the file to load. </p>
               <p><em>context</em> is an optional context URI (subgraph URI), defaulting to None.&nbsp; If None, the triple(s) will be added to the null context (the default or background graph).</p>
               <p><em>base</em> is the baseURI to associate with loading a file.&nbsp; Defaults to None. </p>
-              <p><em>format</em> is RDFFormat.NTRIPLES or RDFFormat.RDFXML. Defaults to None.</p>
+              <p><em>format</em> is an <a href="#RDFFormat Class">RDFFormat</a> instance. Defaults to None, which means "guess from file extension".</p>
               <p><em>serverSide</em> indicates whether the <em>filepath</em> refers to a file on the client computer or on the server.&nbsp; Defaults to False. </p></td>
+  </tr>
+  <tr>
+    <td valign="top">addData(self, data, rdf_format=RDFFormat.TURTLE, base_uri=None, context=None)</td>
+    <td><p>Loads data from a string into the triple store. Note that the data can be loaded into only one context. </p>
+      <p><em>data</em> is the text to be loaded. </p>
+      <p><em>context</em> is an optional context URI (subgraph URI), defaulting to None.&nbsp; If None, the triple(s) will be added to the null context (the default or background graph).</p>
+      <p><em>base_uri</em> is used to resolve relative URIs in data.</p>
+      <p><em>rdf_format</em> is the data format (an instance of <a href="#RDFFormat Class">RDFFormat</a>). Defaults to RDFFormat.TURTLE.</p>
   </tr>
   <tr>
     <td valign="top">addStatement(self, statement, contexts=None)</td>
@@ -598,6 +606,41 @@ Default is 100,000.</td>
       <td valign="top">getSubjectTriplesCacheSize(self)</td>
       <td>Return the current size of the subject triples cache.</td>
     </tr>
+</table>
+
+<h2 id="RDFFormat Class">RDFFormat Class&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
+<p>The RDFFormat class is an enumeration describing the data formats supported by AllegroGraph when importing RDF data.&nbsp; </p>
+<p>Source: /AllegroGraphDirectory/src/franz/openrdf/rio/rdfformat.py.</p>
+<h3>Static members</h3>
+<table width="969" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
+  <tr>
+    <td valign="top">RDFFormat.RDFXML</td>
+    <td>The <a href="http://www.w3.org/TR/rdf-syntax-grammar/">RDF/XML</a> file format.</td>
+  </tr>
+  <tr>
+    <td valign="top">RDFFormat.NTRIPLES</td>
+    <td>The <a href="http://www.w3.org/TR/n-triples/">N-Triples</a> file format.</td>
+  </tr>
+  <tr>
+    <td valign="top">RDFFormat.NQUADS</td>
+    <td>The <a href="http://www.w3.org/TR/n-quads/">N-Quads</a> file format.</td>
+  </tr>
+  <tr>
+    <td valign="top">RDFFormat.NQX</td>
+    <td>The <a href="http://franz.com/agraph/support/documentation/current/triple-attributes.html#nqx-file">NQX</a> file format - an extension to N-Quads that can encode triple attributes.</td>
+  </tr>
+  <tr>
+    <td valign="top">RDFFormat.TURTLE</td>
+    <td>The <a href="http://www.w3.org/TR/turtle/">Turtle</a> file format.</td>
+  </tr>
+  <tr>
+    <td valign="top">RDFFormat.TRIX</td>
+    <td>The <a href="http://swdev.nokia.com/trix/">TriX</a> file format.</td>
+  </tr>
+  <tr>
+    <td valign="top">RDFFormat.TRIG</td>
+    <td>The <a href="http://www.w3.org/TR/trig/">TriG</a> file format.</td>
+  </tr>
 </table>
 
 <h2 id="Query Class">Query Class&nbsp;(and Subclasses) &nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h2>
