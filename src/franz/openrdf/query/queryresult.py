@@ -1,11 +1,3 @@
-from __future__ import unicode_literals
-from builtins import str
-from builtins import range
-from builtins import object
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# pylint: disable-msg=C0103
-
 ###############################################################################
 # Copyright (c) 2006-2016 Franz Inc.
 # All rights reserved. This program and the accompanying materials
@@ -13,7 +5,9 @@ from builtins import object
 # which accompanies this distribution, and is available at
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
-
+from __future__ import unicode_literals
+from builtins import range
+from builtins import object
 
 from future.utils import python_2_unicode_compatible
 from past.builtins import unicode

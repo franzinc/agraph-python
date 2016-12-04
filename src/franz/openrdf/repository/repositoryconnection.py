@@ -52,11 +52,22 @@ if sys.version_info[0] > 2:
 # or your local installation's tutorial/python-tutorial.html for the tutorial.
 
 class RepositoryConnection(object):
-    def __init__(self, repository):
+    def __init__(self, repository, close_repo=False):
+        """
+        Call through :meth:`~franz.openrdf.repository.repository.Repository.getConnection`.
+
+        :param repository: Repository to connect to.
+        :type repository: Repository
+        :param close_repo: If ``True`` shutdown the repository when this connection is closed.
+                          The default is ``False``.
+        :type close_repo: bool
+        """
         self.repository = repository
         self.mini_repository = repository.mini_repository
         self.is_closed = False
         self._add_commit_size = None
+        self._close_repo = close_repo
+        self.is_session_active = False
 
     def getSpec(self):
         return self.repository.getSpec()
@@ -68,7 +79,18 @@ class RepositoryConnection(object):
         return self.repository.getValueFactory()
 
     def close(self):
-        self.is_closed = True
+        """
+        Close the connection. This also closes the session if it is active.
+
+        It is safe to call this on a connection that has already been closed.
+
+        Note that using ``with`` is the preferred way to manage connections.
+        """
+        if not self.is_closed:
+            self.closeSession()
+            self.is_closed = True
+            if self._close_repo:
+                self.repository.shutDown()
 
     def setAddCommitSize(self, triple_count):
         if not triple_count or triple_count < 0:
@@ -855,31 +877,50 @@ class RepositoryConnection(object):
         """
         Open a session.
 
-        If autocommit is True, commits are done on each request, otherwise
-        you will need to call commit() or rollback() as appropriate for your
-        application.
+        It is not an error to call this when a session is already active on this connection,
+        but no new session will be created (i.e. nested sessions are not supported).
 
-        lifetime is an integer specifying the time to live in seconds of
-        the session.
+        .. seealso::
 
-        If loadinitfile is True, then the current initfile will be loaded
-        for you when the session starts.
+           http://franz.com/agraph/support/documentation/current/http-protocol.html#sessions
+              More detailed explanation of session-related concepts in the HTTP API reference.
+
+        :param autocommit: if ``True``, commits are done on each request, otherwise
+                           you will need to call :meth:`.commit` or :meth:`.rollback`
+                           as appropriate for your application.
+                           The default value is ``False``.
+        :type autocommit: bool
+        :param lifetime: Time (in seconds) before the session expires when idle.
+                         Note that the client maintains a thread that pings the
+                         session before this happens.
+                         The maximum acceptable value is 21600 (6 hours).
+                         When the value is ``None`` (the default) the lifetime
+                         is set to 300 seconds (5 minutes).
+        :type lifetime: int
+        :param loadinitfile: if ``True`` then the current initfile will be loaded
+                             for you when the session starts. The default is ``False``.
+        :type loadinitfile: bool
         """
-        miniRep = self._get_mini_repository()
-        if miniRep == self.repository.mini_repository:
-            # Don't use the shared mini_repository for a session
-            miniRep = self.mini_repository = copy.copy(self.repository.mini_repository)
+        if not self.is_session_active:
+            miniRep = self._get_mini_repository()
+            if miniRep == self.repository.mini_repository:
+                # Don't use the shared mini_repository for a session
+                miniRep = self.mini_repository = copy.copy(self.repository.mini_repository)
 
-        return miniRep.openSession(autocommit, lifetime, loadinitfile)
+            miniRep.openSession(autocommit, lifetime, loadinitfile)
+            self.is_session_active = True
 
     def closeSession(self):
         """
         Close a session.
+
+        It is not an error to call this when no session is active.
         """
-        # Keeping the clone of the mini_repository is fine in case the user
-        # calls openSession again.
-        miniRep = self._get_mini_repository()
-        return miniRep.closeSession()
+        if self.is_session_active:
+            # Not deleting the dedicated mini_repository in case the user
+            # calls openSession again.
+            self._get_mini_repository().closeSession()
+            self.is_session_active = False
 
     def __enter__(self):
         return self
