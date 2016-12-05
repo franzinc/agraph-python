@@ -51,6 +51,44 @@ following these steps (note that root privileges are required):
 
         yum -y install python-virtualenv
 
+Ubuntu
+~~~~~~
+Ubuntu offers three variants of curl, built using different SSL libraries. These variants differ
+in their licensing and SSL related capabilities (see https://curl.haxx.se/docs/ssl-compared.html
+for more details). The list of packages that need to be installed depends on the chosen SSL
+implementation.
+
+The following package is required in all cases to use Python 2::
+
+    # This will bring in Python, dev headers and GCC as dependencies
+    apt-get install python-pip
+
+For Python 3 this becomes::
+
+    apt-get install python3-pip
+
+To use the OpenSSL backend in curl::
+
+    apt-get install libcurl4-openssl-dev libssl-dev
+
+For GnuTLS::
+
+    apt-get install libcurl4-gnutls-dev libgnutls28-dev
+
+For NSS::
+
+    apt-get install libcurl4-nss-dev libnss3-dev
+
+Arch Linux
+~~~~~~~~~~
+On Arch the following packages are needed to use the client with Python 2::
+
+    pacman -S gcc python2 python2-pip libcurl
+
+For Python 3 use::
+
+    pacman -S gcc python python-pip libcurl
+
 Installation
 ------------
 A distribution archive can be obtained from http://franz.com/agraph/downloads/clients
