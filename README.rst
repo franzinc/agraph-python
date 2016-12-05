@@ -65,7 +65,7 @@ Testing
 To validate the installation make sure that you have access to an AllegroGraph server
 and run the following Python script::
 
-    from franz.openrdf import ag_connect
+    from franz.openrdf.connect import ag_connect
     with ag_connect('repo', host='HOST', port='PORT',
                     user='USER', password='PASS') as conn:
         print conn.size()
