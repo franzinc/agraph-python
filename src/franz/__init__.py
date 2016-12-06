@@ -16,4 +16,4 @@
 #
 # The full range of valid version numbers is described here:
 # https://www.python.org/dev/peps/pep-0440/
-__version__ = u'6.1.4'
+__version__ = u'6.1.5rc1'
