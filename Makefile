@@ -1,3 +1,4 @@
+# Project name, must match that provided in setup.py
 DISTDIR = agraph-$(VERSION)-client-python
 
 TARNAME = $(DISTDIR).tar.gz
@@ -9,15 +10,28 @@ PATH := /usr/local/python26/bin:/opt/rh/rh-python34/root/usr/bin:$(PATH)
 # Important for building pycurl
 export PYCURL_SSL_LIBRARY=nss
 
-# Prebuilt wheels location
-WHEELHOUSE ?= file:///net/san1/disk1/wheelhouse/
-
 # Used to download packages, the default is https://pypi.python.org/simple
-PIP_INDEX ?= http://san1.franz.com:8081/repository/pypi-group/simple
+PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
 # If the index is not available over HTTPS users need to pass --trusted-host
-PIP_EXTRA_OPTS ?= 
+PIP_EXTRA_OPTS ?=
 
-export AG_PIP_OPTS = --use-wheel --index-url=$(PIP_INDEX) --trusted-host san1.franz.com $(PIP_EXTRA_OPTS)
+# PyPI server used for uploads.
+PYPI_REPO_URL ?= https://pypi.python.org/pypi
+# GPG key used to sign releases
+PYPI_GPG_KEY ?= support@franz.com
+# User credentials for PyPI
+PYPI_USER ?= franz_inc
+
+# Twine options
+ifdef PYPI_REPO
+    # Use a name defined in .pypirc
+    TWINE_ARGS = -r $(PYPI_REPO)
+else
+    # Use a raw URL.
+    TWINE_ARGS = -r $(PYPI_REPO_URL) --repository-url $(PYPI_REPO_URL) -u $(PYPI_USER)
+endif
+
+export AG_PIP_OPTS = --use-wheel --index-url=$(PIP_INDEX) --cert=$(abspath nexus.ca.crt) $(PIP_EXTRA_OPTS)
 
 # TOXENV will have current tox installed.
 TOXENVDIR := toxenv
@@ -45,7 +59,7 @@ ifndef VERSION
 	@echo VERSION is not set.
 	@exit 1
 endif
-	./check-version.sh "$(VERSION)"
+	python ./check-version.py "$(VERSION)"
 	rm -fr DIST
 	mkdir -p DIST/$(DISTDIR)
 	for f in $(FILES); do cp -r $$f DIST/$(DISTDIR); done
@@ -113,6 +127,32 @@ disttest: dist FORCE
 tutorial: checkPort disttest
 	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/python runner.py
 
+wheel: $(ENVDIR) dist
+	mkdir -p DIST
+	rm -f DIST/*.whl
+	$(ENVDIR)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
+
+register: $(TOXENVDIR) wheel
+	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/*.whl
+
+sign: wheel
+	rm -f DIST/*.asc
+ifdef AG_GPG_PASSPHRASE
+	gpg -u $(PYPI_GPG_KEY) --batch --passphrase "$(AG_GPG_PASSPHRASE)" --detach-sign -a DIST/*.whl
+else ifdef AG_GPG_PASSPHRASE_FILE
+	gpg -u $(PYPI_GPG_KEY) --batch --passphrase-file "$(AG_GPG_PASSPHRASE_FILE)" --detach-sign -a DIST/*.whl
+else
+	echo -n "Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package: " && \
+        stty -echo && \
+        gpg -u $(PYPI_GPG_KEY) --batch --passphrase-fd 0 \
+            --detach-sign -a DIST/*.whl ; \
+        RET=$? ; stty echo ; echo ''; \
+        exit ${RET}
+endif
+
+publish: $(TOXENVDIR) wheel sign
+	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/*.whl DIST/*.asc 
+
 tags: FORCE
 	etags `find . -name '*.py'`
 
@@ -120,7 +160,7 @@ clean-envs:
 	rm -rf .tox $(ENVS)
 
 # If any of these files change rebuild the virtual environments.
-.venv: setup.py requirements.txt requirements2.txt tox.ini
+.venv: setup.py requirements.txt requirements2.txt tox.ini Makefile
 	$(eval TOX_RECREATE := --recreate)
 	touch .venv
 
