@@ -34,7 +34,7 @@ except ImportError:
 class PrefixFormat(namedtuple('EncodedIdPrefix', 'prefix format')):
     __slots__ = ()
 
-import copy, os, sys, warnings
+import copy, sys, warnings
 from contextlib import contextmanager
 
 if sys.version_info[0] > 2:
@@ -373,16 +373,6 @@ class RepositoryConnection(object):
             context = context[0] if context else None
         contextString = self._context_to_ntriples(context, none_is_mini_null=True)
 
-        if isinstance(filePath, file):
-            filePath = os.path.abspath(filePath.name)
-        elif isinstance(filePath, basestring):
-            fileDrive = os.path.splitdrive(filePath)[0]
-            if not filePath.startswith('/') and not fileDrive and not filePath[:5].lower() == "http:":
-                ## looks like its a relative file path; test to see if there is a local file that matches.
-                ## If so, generate an absolute path name to enable AG server to read it:
-                testPath = os.path.abspath(os.path.expanduser(filePath))
-                if os.path.exists(testPath):
-                    filePath = testPath
         fmt, ce = RDFFormat.rdf_format_for_file_name(filePath)
         format = format or fmt
         content_encoding = content_encoding or ce

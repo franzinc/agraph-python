@@ -175,3 +175,26 @@ def test_long_literal():
     #    - Python 3 has no 'long' type.
     literal = Literal(84104105115032109097107101115032110111032115101110115101046)
     assert literal.datatype is XMLSchema.LONG
+
+
+def test_add_data_ascii(conn):
+    base_uri = u'http://franz.com/'
+    expected = conn.createURI(namespace=base_uri, localname='x')
+    conn.addData(u'<x> <x> <x> .', base_uri=base_uri)
+    actual = conn.getStatements(None, None, None, None).asList()
+    assert len(actual) == 1
+    assert actual[0].getSubject() == expected
+    assert actual[0].getPredicate() == expected
+    assert actual[0].getObject() == expected
+
+
+def test_add_data_unicode(conn):
+    """ See bug24405. """
+    base_uri = u'http://franz.com/'
+    expected = conn.createURI(namespace=base_uri, localname=u'दुप')
+    conn.addData(u'<दुप> <दुप> <दुप> .', base_uri=base_uri)
+    actual = conn.getStatements(None, None, None, None).asList()
+    assert len(actual) == 1
+    assert actual[0].getSubject() == expected
+    assert actual[0].getPredicate() == expected
+    assert actual[0].getObject() == expected

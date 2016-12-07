@@ -12,13 +12,13 @@ from itertools import islice
 from future.builtins import bytes, next, object, range
 
 from future.utils import iteritems, python_2_unicode_compatible, bchr
-from past.builtins import unicode
+from past.builtins import unicode, basestring
 from past.builtins import str as old_str
 from future.utils import native_str
 import io, errno, pycurl, locale, re, os, sys, time
 from threading import Lock
 
-from franz.openrdf.util.strings import to_native_string
+from franz.openrdf.util.strings import to_native_string, to_bytes
 
 if sys.version_info[0] > 2:
     from urllib.parse import quote
@@ -171,15 +171,16 @@ def urlenc(**args):
         encval(arg_name, value)
     return buf.getvalue()
 
+
 def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None, headers=None):
     curl = Pool.instance().get()
 
     # Uncomment these 5 lines to see pycurl debug output
-    ## def report(debug_type, debug_msg):
-    ##     if debug_type != 3:
-    ##         print "debug(%d): %s" % (debug_type, debug_msg)
-    ##curl.setopt(pycurl.VERBOSE, 1)
-    ##curl.setopt(pycurl.DEBUGFUNCTION, report)
+    # def report(debug_type, debug_msg):
+    #     if debug_type != 3:
+    #         print("debug(%d): %s" % (debug_type, debug_msg))
+    # curl.setopt(pycurl.VERBOSE, 1)
+    # curl.setopt(pycurl.DEBUGFUNCTION, report)
 
     #curl.setopt(pycurl.TIMEOUT, 45)
 
@@ -208,15 +209,30 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         url = to_native_string(obj.url) + to_native_string(to_native_string(url))
 
     method = to_native_string(method)
-    postbody = method in ("POST", "PUT")
-    curl.setopt(pycurl.POSTFIELDS, "")
-    if body:
-        if postbody:
-            curl.setopt(pycurl.POSTFIELDS, body)
-        else:
-            url = url + "?" + to_native_string(body)
 
-    curl.setopt(pycurl.POST, (postbody and 1) or 0)
+    # Usually POST and UPLOAD correspond to POST and PUT requests respectively.
+    # In our case we will override the method using CUSTOMREQUEST and the
+    # settings here will tell us if we're uploading using a READFUNCTION
+    # or posting a string with POSTFIELDS.
+    curl.setopt(pycurl.POST, 0)
+    curl.setopt(pycurl.UPLOAD, 0)
+    if body:
+        if method in ("POST", "PUT"):
+            if isinstance(body, basestring):
+                # String
+                body = to_bytes(body)
+                curl.setopt(pycurl.POSTFIELDS, body)
+                curl.setopt(pycurl.POST, 1)
+            else:
+                # File - can be passed as READDATA, but not as POSTFIELDS.
+                curl.setopt(pycurl.READDATA, body)
+                curl.setopt(pycurl.UPLOAD, 1)
+        else:
+            contentType = None
+            url = url + "?" + to_native_string(body)
+    else:
+        contentType = None
+
     curl.setopt(pycurl.CUSTOMREQUEST, method)
     curl.setopt(pycurl.URL, url)
 
@@ -229,7 +245,7 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
         headers[i] = to_native_string(headers[i])
     headers.extend(["Connection: keep-alive", "Accept: " + to_native_string(accept), "Expect:"])
     if callback: headers.append("Connection: close")
-    if contentType and postbody: headers.append("Content-Type: " + to_native_string(contentType))
+    if contentType: headers.append("Content-Type: " + to_native_string(contentType))
     if obj.runAsName: headers.append("x-masquerade-as-user: " + to_native_string(obj.runAsName))
     curl.setopt(pycurl.HTTPHEADER, headers)
     curl.setopt(pycurl.ENCODING, "")  # which means 'any encoding that curl supports'

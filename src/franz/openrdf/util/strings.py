@@ -32,8 +32,8 @@ import re
 
 def encode_ntriple_string(string):
     """
-    Return a unicode string encoded in 7-bit ASCII containing the
-    NTRIPLES escape sequences for non-ascii and other characters.
+    Return a unicode string escaped according to N-Triples
+    canonical encoding rules.
     """
     if not isinstance(string, unicode):
         string = unicode(string, 'utf-8')
@@ -142,6 +142,7 @@ def to_bytes(text):
     if isinstance(text, unicode):
         return text.encode('utf-8')
     return text
+
 
 if sys.version_info[0] > 2:
     def to_native_string(text):
