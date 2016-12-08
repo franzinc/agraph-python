@@ -8,6 +8,7 @@
 import pytest
 
 from franz.openrdf.connect import ag_connect
+from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.sail import AllegroGraphServer
 
 from .tests import AG_HOST, AG_PORT, CATALOG, STORE, USER, PASSWORD
@@ -88,3 +89,42 @@ def test_server_override_port():
 def test_server_https_if_cainfo():
     server = AllegroGraphServer('somehost', cainfo='/path/to/ca/bundle')
     assert server.url == 'https://somehost:10036'
+
+
+@pytest.mark.parametrize("filename, expected_format, expected_compression", [
+    ("somefile.rdf", "RDF/XML", None),
+    ("somefile.rdfs", "RDF/XML", None),
+    ("somefile.owl", "RDF/XML", None),
+    ("somefile.xml", "RDF/XML", None),
+    ("somefile.rdf.gz", "RDF/XML", "gzip"),
+    ("somefile.rdfs.gz", "RDF/XML", "gzip"),
+    ("somefile.owl.gz", "RDF/XML", "gzip"),
+    ("somefile.xml.gz", "RDF/XML", "gzip"),
+    ("somefile.nt", "N-Triples", None),
+    ("somefile.ntriples", "N-Triples", None),
+    ("somefile.nt.gz", "N-Triples", "gzip"),
+    ("somefile.ntriples.gz", "N-Triples", "gzip"),
+    ("somefile.nq", "N-Quads", None),
+    ("somefile.nquads", "N-Quads", None),
+    ("somefile.nq.gz", "N-Quads", "gzip"),
+    ("somefile.nquads.gz", "N-Quads", "gzip"),
+    ("somefile.nqx", "Extended N-Quads (with attributes)", None),
+    ("somefile.nqx.gz", "Extended N-Quads (with attributes)", "gzip"),
+    ("somefile.ttl", "Turtle", None),
+    ("somefile.turtle", "Turtle", None),
+    ("somefile.ttl.gz", "Turtle", "gzip"),
+    ("somefile.turtle.gz", "Turtle", "gzip"),
+    ("somefile.trig", "TriG", None),
+    ("somefile.trig.gz", "TriG", "gzip"),
+    ("somefile.trix", "TriX", None),
+    ("somefile.trix.gz", "TriX", "gzip"),
+    ("sOmEfIlE.tRiX.gZ", "TriX", "gzip"),
+    ("somefile.kaboom", None, None),
+])
+def test_format_for_ext(filename, expected_format, expected_compression):
+    actual_format, actual_compression = RDFFormat.rdf_format_for_file_name(filename)
+    if actual_format is None:
+        assert expected_format is None
+    else:
+        assert expected_format == actual_format.name
+    assert expected_compression == actual_compression

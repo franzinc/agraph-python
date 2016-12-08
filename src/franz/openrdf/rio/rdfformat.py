@@ -28,7 +28,7 @@ class RDFFormat(object):
     def register(fmt):
         """ Register a format object."""
         for ext in fmt.file_extensions:
-            RDFFormat.ext_map[ext.lower()] = fmt
+            RDFFormat.ext_map['.' + ext.lower()] = fmt
 
     @staticmethod
     def rdf_format_for_file_name(filename):
@@ -41,7 +41,7 @@ class RDFFormat(object):
         """
         compression = None
         root, ext = os.path.splitext(filename)
-        if ext == ".gz":
+        if ext.lower() == ".gz":
             compression = "gzip"
             _, ext = os.path.splitext(root)
         fmt = RDFFormat.ext_map.get(ext.lower())
@@ -125,7 +125,7 @@ class RDFFormat(object):
     TRIX = dict(
         name="TriX",
         mime_types=["application/trix"],
-        file_extensions=["trix", "xml"],
+        file_extensions=["trix"],
         supports_namespaces=True,
         supports_contexts=True)
 
