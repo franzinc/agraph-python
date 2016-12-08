@@ -135,7 +135,19 @@ class Defaults(object):
     # named query-LANG-N.prof (LANG is the query language).
     PROFILE_QUERY = ''
 
+    # If true, print progress messages during operation.
+    # This can potentially output a lot of text, depending on the
+    # LOADER_PROGRESS and QUERY_PROGESS values.
+    VERBOSE = True
 
+    # How often should loading progress be reported.
+    # See make_progress_report_scheduler.
+    LOADER_PROGRESS = '50%'
+
+    # How often should query progress be reported.
+    # See make_progress_report_scheduler.
+    QUERY_PROGRESS = '10%'
+    
 # The program options
 OPT = None
 
@@ -146,6 +158,91 @@ AG_USER = os.environ.get('AGRAPH_USER', 'test')
 AG_PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
 PROG = sys.argv[0]
 
+class ProgressReportScheduler(object):
+    """
+    Objects used to count iterations during a test phase 
+    and decide if it is the right time to write out a 
+    progress report.
+    """
+    def tick(self):
+        """
+        Called after each iteration.
+        Returns True if the report should be printed, False otherwise.
+        """
+        # The default implementation never prints any reports.
+        return False
+
+
+class TimeBasedProgressReportScheduler(ProgressReportScheduler):
+    """
+    A ProgressReportScheduler that reports progress in regular time
+    intervals.
+    """
+    def __init__(self, delay):
+        """
+        Create a scheduler that reports progress every DELAY seconds.
+        """
+        self.delay = timedelta(seconds=delay)
+        self.prev_time = None
+
+    def tick(self):
+        curr_time = datetime.now()
+        if self.prev_time is not None:
+            if curr_time - self.prev_time >= self.delay:
+                self.prev_time = curr_time
+                return True
+        else:
+            self.prev_time = curr_time
+
+
+class SimpleProgressReportScheduler(ProgressReportScheduler):
+    """
+    A scheduler that reports progress every X ticks.
+    """
+    def __init__(self, period):
+        """
+        Create a scheduler that reports progress every PERIOD ticks.
+        """
+        self.period = period
+        self.ticks = 0
+
+    def tick(self):
+        self.ticks += 1
+        if self.ticks >= self.period:
+            self.ticks = 0
+            return True
+        return False
+
+
+def make_progress_report_scheduler(spec, total_ticks=None, total_seconds=None):
+    """
+    Create a progress report scheduler from a textual specification.
+    SPEC is a string in one of the following formats:
+        - A number = report progress every X ticks.
+        - A number + 's' = report every X seconds
+        - A number + '%' = report every X% of TOTAL_TICKS ticks
+          or every X% of TOTAL_SECONDS seconds if TOTAL_TICKS is None."""
+    spec = ''.join(spec.split())
+    if not spec:
+        # Empty spec = no reports
+        return ProgressReportScheduler()
+    elif spec[-1] == 's':
+        # Time-based scheduler
+        return TimeBasedProgressReportScheduler(int(spec[:-1]))
+    elif spec[-1] == '%':
+        # A fraction of total ticks or total time
+        perc = int(spec[:-1])
+        if total_ticks is not None:
+            return SimpleProgressReportScheduler(old_div(total_ticks * perc, 100))
+        elif total_seconds is not None:
+            return TimeBasedProgressReportScheduler(old_div(total_seconds * perc, 100))
+        else:
+            raise Exception("Either total_time or total_ticks must be known for % to work.")
+    else:
+        # Just an absolute number fo ticks
+        return SimpleProgressReportScheduler(int(spec))
+        
+
 def nonzero(value):
     return max(0.0001, value)
 
@@ -155,6 +252,10 @@ def trace(formatter, values=None):
     print(formatter)
     sys.stdout.flush()
 
+def verbose(formatter, values):
+    if OPT and OPT.VERBOSE:
+        trace(formatter, values)
+    
 def connect(access_mode=Repository.OPEN):
     """
     Connect is called to connect to a store.
@@ -512,15 +613,18 @@ def load_events(proc_num):
 
         count = 0
         errors = 0
+        scheduler = make_progress_report_scheduler(OPT.LOADER_PROGRESS,
+                                                   params.commits_per_worker)
         for commit in range(params.commits_per_worker):
             index = 0
             for event in range(params.events_in_commit):
                 index = random_event(conn, quads, index)
 
-            if commit > 0 and commit % status_size == 0:
+            if scheduler.tick():
                 end_time = time.time()
                 tpc = OPT.EVENT_SIZE*params.events_in_commit
-                trace('loader(%d) [%s]: Loading Status - %d triples loaded so '
+                verbose(
+                    'loader(%d) [%s]: Loading Status - %d triples loaded so '
                     'far at %s triples per commit (%f commits/sec, %f triples/'
                     'sec over last %d commits), %d loading errors.', (
                     proc_num, datetime.now(), count, tpc,
@@ -539,8 +643,8 @@ def load_events(proc_num):
                 errors += 1
                 traceback.print_exc()
 
-        trace('loader(%d) [%s]: Loading done - %d triples at %s triples '
-            'per commit, %d loading errors.', (proc_num, datetime.now(),
+        verbose('loader(%d) [%s]: Loading done - %d triples at %s triples '
+                'per commit, %d loading errors.', (proc_num, datetime.now(),
             count, OPT.EVENT_SIZE*params.events_in_commit, errors))
         sys.stdout.flush()
         loadq.task_done()
@@ -573,7 +677,7 @@ def load_events(proc_num):
                 proc_num, datetime.now(), queryString))
             traceback.print_exc()
 
-        trace('loader(%d) [%s]: Found %d events (%d triples) to delete.', (
+        verbose('loader(%d) [%s]: Found %d events (%d triples) to delete.', (
             proc_num, datetime.now(), events, events * OPT.EVENT_SIZE))
 
         loadq.task_done()
@@ -698,6 +802,17 @@ def query_events(proc_num, resultq, lang):
         count = 0
         restarts = 0
 
+        if OPT.QUERY_SIZE:
+            scheduler = make_progress_report_scheduler(
+                OPT.LOADER_PROGRESS,
+                old_div(OPT.QUERY_SIZE, OPT.QUERY_WORKERS))
+        else:
+            scheduler = make_progress_report_scheduler(
+                OPT.LOADER_PROGRESS,
+                None,
+                # Convert minutes to seconds
+                60 * OPT.QUERY_TIME)
+        
         # Run the query at least once
         stop = None
         while stop is None:
@@ -715,10 +830,11 @@ def query_events(proc_num, resultq, lang):
                 # iterative query. After # iterations, pull stop task from queue.
                 stop = dequeue()
 
-            if queries % status_size == 0:
+            if scheduler.tick():
                 end_time = time.time()
                 sub_count = count - sub_count
-                trace('query(%d) [%s]: Querying status - %d triple results '
+                verbose(
+                    'query(%d) [%s]: Querying status - %d triple results '
                     'returned for %d queries in %f seconds (%f queries/second, '
                     '%f triples per query), %d queries aborted.', (proc_num,
                     datetime.now(), sub_count, status_size,
@@ -728,7 +844,7 @@ def query_events(proc_num, resultq, lang):
                 sub_count = count
 
         the_time = nonzero(time.time() - the_time)
-        trace('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
+        verbose('query(%d) [%s]: %s Querying done - %d triple results returned for %d '
             'queries in %f seconds (%f queries/second, %f triples per query), '
             ' %d queries aborted.', (proc_num, datetime.now(), language,
             count, queries, the_time, old_div(queries,the_time), old_div(count,queries), restarts))
@@ -1221,6 +1337,19 @@ if __name__ == '__main__':
     parser.add_option('-x', '--reg-enc-id-prefix', default=Defaults.REG_ENC_ID,
         dest='REG_ENC_ID', metavar='REG_ENC_ID', action="store_true",
         help='Register encoded id prefixes [default=%default]')
+    parser.add_option('-v', '--verbose', default=Defaults.VERBOSE,
+        dest='VERBOSE', action="store_true",
+        help='Output progress information during loading and querying.')
+    parser.add_option('--quiet', default=Defaults.VERBOSE,
+        dest='VERBOSE', action="store_false",
+        help='Do not output progress information during loading and querying.')
+
+    parser.add_option('--loader-progress', default=Defaults.LOADER_PROGRESS,
+                      dest='LOADER_PROGRESS', metavar='SCHEDULE',
+                      help='Specify how often loader progress should be reported.')
+    parser.add_option('--query-progress', default=Defaults.QUERY_PROGRESS,
+                      dest='QUERY_PROGRESS', metavar='SCHEDULE',
+                      help='Specify how often query progress should be reported.')
     parser.add_option('--profile-loader', default=Defaults.PROFILE_LOADER,
                       dest='PROFILE_LOADER', metavar='DIR',
                       help='If given, run loader threads in a profiles and store the results'

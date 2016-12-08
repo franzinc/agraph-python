@@ -46,8 +46,8 @@ following these steps (note that root privileges are required):
 
          yum -y install python-devel python-pip libcurl-devel gcc
 
-   * Before installing the client make sure that the following environment
-     variable is set::
+   * Before installing the AllegroGraph Python client make sure that the
+     following environment variable is set::
 
          export PYCURL_SSL_LIBRARY=nss
 
@@ -57,31 +57,42 @@ following these steps (note that root privileges are required):
 
 Ubuntu
 ~~~~~~
-Ubuntu offers three variants of curl, built using different SSL libraries. These variants differ
-in their licensing and SSL related capabilities (see https://curl.haxx.se/docs/ssl-compared.html
-for more details). The list of packages that need to be installed depends on the chosen SSL
-implementation.
+The following packages are required to use the client with Python 2::
 
-The following package is required in all cases to use Python 2::
-
-    # This will bring in Python, dev headers and GCC as dependencies
-    apt-get install python-pip
+    apt-get install python-pip libcurl-gnutls libcurl4-gnutls-dev libgnutls28-dev
 
 For Python 3 this becomes::
 
-    apt-get install python3-pip
+   apt-get install python3-pip libcurl-gnutls libcurl4-gnutls-dev libgnutls28-dev
 
-To use the OpenSSL backend in curl::
+.. note:: *Using different SSL backends.*
 
-    apt-get install libcurl4-openssl-dev libssl-dev
+   Ubuntu offers three variants of curl, built using different SSL libraries. These variants differ
+   in their licensing and SSL related capabilities (see https://curl.haxx.se/docs/ssl-compared.html
+   for more details). The instructions above use the GnuTLS version. In most cases this is an
+   acceptable choice, but it is possible to use a different SSL implementation by installing
+   appropriate packages before installing the AllegroGraph Python client.
 
-For GnuTLS::
+   To use the OpenSSL backend in curl::
 
-    apt-get install libcurl4-gnutls-dev libgnutls28-dev
+       apt-get install libcurl4-openssl-dev libssl-dev
 
-For NSS::
+   For GnuTLS::
 
-    apt-get install libcurl4-nss-dev libnss3-dev
+      apt-get install libcurl4-gnutls-dev libgnutls28-dev
+
+   For NSS::
+
+      apt-get install libcurl4-nss-dev libnss3-dev
+
+   Note that if the client has already been installed it is necessary to reinstall the ``pycurl``
+   package in order to switch SSL backends::
+
+      # Uninstall old package
+      pip uninstall pycurl
+
+      # Reinstall, ignoring PIP cache (to force recompilation)
+      pip install --no-cache-dir pycurl
 
 Arch Linux
 ~~~~~~~~~~
@@ -95,12 +106,12 @@ For Python 3 use::
 
 Installation
 ------------
+.. important:: It is highly recommended to perform the install in a `virtualenv`_ environment.
+
 A distribution archive can be obtained from http://franz.com/agraph/downloads/clients
 and installed using `pip`::
 
     pip install agraph-<VERSION>-python-client.tar.gz
-
-It is highly recommended to perform the installation in a `virtualenv`_ environment.
 
 Testing
 -------
