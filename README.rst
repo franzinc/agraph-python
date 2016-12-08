@@ -23,8 +23,12 @@ compilation may succeed. This environment must include:
    * Python development headers
    * libcurl development headers
 
-Below we describe more detailed setup instructions for RHEL-compatible
-systems.
+Below we describe more detailed setup instructions for some of the supported systems.
+
+Windows
+-------
+The required packages are available in binary form for Windows, so it is not
+necessary to install any compilers or headers.
 
 RHEL 6/7 and compatible systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,7 +42,7 @@ following these steps (note that root privileges are required):
 
          yum -y install epel-release
 
-   * Install the required packages:
+   * Install the required packages::
 
          yum -y install python-devel python-pip libcurl-devel gcc
 
