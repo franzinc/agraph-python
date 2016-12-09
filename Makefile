@@ -7,6 +7,13 @@ FILES = LICENSE MANIFEST.in README.rst requirements.txt requirements2.txt setup.
 
 PATH := /usr/local/python26/bin:/opt/rh/rh-python34/root/usr/bin:$(PATH)
 
+YEAR := $(shell date +%Y)
+
+# Sed regex used to locate the line containing copyright year in LICENSE
+COPYRIGHT_REGEX := Copyright (c) 2006-[0-9]* Franz Inc.
+# Expected/correct value of that line.
+COPYRIGHT_NOW := Copyright (c) 2006-$(YEAR) Franz Inc.
+
 # Important for building pycurl
 export PYCURL_SSL_LIBRARY=nss
 
@@ -156,8 +163,12 @@ publish: $(TOXENVDIR) wheel sign
 tags: FORCE
 	etags `find . -name '*.py'`
 
-clean-envs:
+clean-envs: FORCE
 	rm -rf .tox $(ENVS)
+
+fix-copyrights: FORCE
+	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE 
+	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
 # If any of these files change rebuild the virtual environments.
 .venv: setup.py requirements.txt requirements2.txt tox.ini Makefile
