@@ -28,10 +28,7 @@ install_requires = [
 if sys.version_info[0] == 2:  # Python 2
     install_requires += ['python-cjson>=1.1.0,<2.0']
 
-setup_requires = ['nose>=1.3.4,<2.0', 'pytest>=3.0,<4.0', 'pytest-timeout>=1.0,<2.0']
-
-tests_require = ['unittest2>=1.1.0,<2.0']
-
+tests_require = ['nose>=1.3.4,<2.0', 'pytest>=3.0,<4.0', 'pytest-timeout>=1.0,<2.0']
 
 setup(name='agraph-python',
       version=version,
@@ -44,7 +41,6 @@ setup(name='agraph-python',
       package_dir={'': 'src'},
       package_data={'franz': ['VERSION']},
       install_requires=install_requires,
-      setup_requires=setup_requires,
       tests_require=tests_require,
       classifiers=[
           'Development Status :: 5 - Production/Stable',
