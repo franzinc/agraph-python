@@ -1,7 +1,17 @@
-# Project name, must match that provided in setup.py
 DISTDIR = agraph-$(VERSION)-client-python
 
+CLIENT_VERSION = $(shell python2 -c 'execfile("src/franz/__init__.py"); print __version__')
+
+# Names of distribution files under DIST
+
+# Tar file to be uploaded to franz.com
 TARNAME = $(DISTDIR).tar.gz
+
+# Source distribution (for PyPI).
+SDIST = agraph-python-$(CLIENT_VERSION).tar.gz
+
+# Binary distribution (for PyPI).
+WHEEL = agraph_python-$(CLIENT_VERSION)-py2.py3-none-any.whl
 
 FILES = LICENSE MANIFEST.in README.rst requirements.txt requirements2.txt setup.py src stress tutorial
 
@@ -59,14 +69,29 @@ VERSION_SCRIPT := import sys; print('py%d%d' % (sys.version_info[0], sys.version
 PY2 := $(shell python2 -c "$(VERSION_SCRIPT)")
 PY3 := $(shell python3 -c "$(VERSION_SCRIPT)")
 
+# Note: GPG_PASS_OPTS will only be set in the appropriate target,
+# since a prompt might be required to get the passphrase.
+GPG_SIGN=gpg -u $(PYPI_GPG_KEY) --batch $(GPG_PASS_OPTS) --detach-sign -a
+
+# Prompt used when reading the passpharse from stdin:
+GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package: 
+
+# Check if it is safe to use the curses-based gpg-agent prompt
+# Note that the condition is also true if TERM is empty or not defined.
+ifeq ($(TERM),$(filter $(TERM),emacs dumb))
+    AG_NO_GPG_AGENT=y
+endif
+
 default: dist
 
-dist: FORCE
+check-version: FORCE
 ifndef VERSION
 	@echo VERSION is not set.
 	@exit 1
 endif
 	python ./check-version.py "$(VERSION)"
+
+dist: check-version FORCE
 	rm -fr DIST
 	mkdir -p DIST/$(DISTDIR)
 	for f in $(FILES); do cp -r $$f DIST/$(DISTDIR); done
@@ -120,45 +145,53 @@ events3: checkPort $(TOXENVDIR) .venv
 
 # This does not use Tox, since the idea is to check if 'pip install'
 # will work correctly at the target machine.
-disttest: dist FORCE
-	# Always recreate the environment from scratch
+disttest: dist $(TOXENVDIR) FORCE
+        # Always recreate the environment from scratch
 	rm -rf disttest
-	# Use toxenv's virtualenv so we get a recent enough pip
+        # Use toxenv's virtualenv so we get a recent enough pip
 	$(TOXENVDIR)/bin/virtualenv -p python2 --no-site-packages disttest
-	# Update to the very latest
+        # Update to the very latest
 	disttest/bin/pip install -U ${AG_PIP_OPTS} setuptools wheel pip
-	# Install from the release tarball
-	# Make sure pycurl compiles
+        # Install from the release tarball
+        # Make sure pycurl compiles
 	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) DIST/$(TARNAME)
 
 tutorial: checkPort disttest
 	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/python runner.py
 
-wheel: $(ENVDIR) dist
+wheel: check-version $(ENVDIR)
 	mkdir -p DIST
-	rm -f DIST/*.whl
+	rm -f DIST/$(WHEEL) DIST/$(SDIST)
 	$(ENVDIR)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
+        # Also build a source dist
+	$(ENVDIR)/bin/python setup.py sdist -d DIST
 
 register: $(TOXENVDIR) wheel
-	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/*.whl
+	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/$(WHEEL)
 
 sign: wheel
-	rm -f DIST/*.asc
+	 rm -f DIST/$(WHEEL).asc DIST/$(SDIST).asc
 ifdef AG_GPG_PASSPHRASE
-	gpg -u $(PYPI_GPG_KEY) --batch --passphrase "$(AG_GPG_PASSPHRASE)" --detach-sign -a DIST/*.whl
+        # Read passphrase from a variable.
+        # Note that this is insecure since the passphrase will appear
+        # on command line of gpg
+	$(eval GPG_PASS_OPTS := --passphrase "$(AG_GPG_PASSPHRASE)")
 else ifdef AG_GPG_PASSPHRASE_FILE
-	gpg -u $(PYPI_GPG_KEY) --batch --passphrase-file "$(AG_GPG_PASSPHRASE_FILE)" --detach-sign -a DIST/*.whl
+	$(eval GPG_PASS_OPTS := --passphrase-file "$(AG_GPG_PASSPHRASE_FILE)")
+else ifdef AG_NO_GPG_AGENT
+        # Prompt manually to avoid gpg-agent.
+        # This is as insecure as using AG_GPG_PASSPHRASE
+	$(eval PASS=$(shell read -s -r -p '$(GPG_PROMPT)' PASS && echo $${PASS}))
+	$(eval GPG_PASS_OPTS := --passphrase "$(PASS)")
 else
-	echo -n "Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package: " && \
-        stty -echo && \
-        gpg -u $(PYPI_GPG_KEY) --batch --passphrase-fd 0 \
-            --detach-sign -a DIST/*.whl ; \
-        RET=$? ; stty echo ; echo ''; \
-        exit ${RET}
+        # Just rely on gpg-agent
+	$(eval GPG_PASS_OPTS := )
 endif
+	@$(GPG_SIGN) DIST/$(WHEEL)
+	@$(GPG_SIGN) DIST/$(SDIST)
 
 publish: $(TOXENVDIR) wheel sign
-	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/*.whl DIST/*.asc 
+	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc 
 
 tags: FORCE
 	etags `find . -name '*.py'`
