@@ -27,6 +27,12 @@ COPYRIGHT_NOW := Copyright (c) 2006-$(YEAR) Franz Inc.
 # Important for building pycurl
 export PYCURL_SSL_LIBRARY=nss
 
+# SSL tests have to be enabled explicitly. The reason is that people running
+# the test suite without this makefile likely do not have access to AG
+# sources and setting up the server with the right certificate and SSL auth
+# is quite complex.
+export AG_RUN_SSL_TEST=y
+
 # Used to download packages, the default is https://pypi.python.org/simple
 PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
 # If the index is not available over HTTPS users need to pass --trusted-host
@@ -108,7 +114,7 @@ endif
 	@echo Using port $(AGRAPH_PORT)
 
 # This environment might initially get an ancient version of pip
-# that does not support --trusted-host. So we use a script that 
+# that does not support --trusted-host. So we use a script that
 # checks if that is the case and filters the arguments if necessary.
 # Note that pip will be updated and all other environments will get
 # a more reasonable version.
@@ -200,7 +206,7 @@ clean-envs: FORCE
 	rm -rf .tox $(ENVS)
 
 fix-copyrights: FORCE
-	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE 
+	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE
 	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
 # If any of these files change rebuild the virtual environments.
