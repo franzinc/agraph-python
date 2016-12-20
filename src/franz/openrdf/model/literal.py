@@ -15,6 +15,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import math
+from decimal import Decimal
+
 from future.utils import python_2_unicode_compatible
 from past.utils import old_div
 
@@ -26,7 +28,10 @@ from ..util import strings
 
 import datetime
 from collections import defaultdict
-from copy import copy
+
+# Needed to temporarily convert times to datetimes to do arithmetic.
+RANDOM_DAY = datetime.date(1984, 8, 26)
+
 
 def datatype_from_python(value, datatype):
     """
@@ -53,21 +58,28 @@ def datatype_from_python(value, datatype):
         return unicode(value), datatype or XMLSchema.DOUBLE
 
     if isinstance(value, datetime.datetime):
+        # There is an ambiguity for times that occur twice due to
+        # DST switches, but that is a problem with Python's standard
+        # library and there is nothing we can do about it here.
         if value.utcoffset() is not None:
-            value = copy(value)
             value = value.replace(tzinfo=None) - value.utcoffset()
         str_value = value.isoformat() + 'Z'
         return str_value, datatype or XMLSchema.DATETIME
 
     if isinstance(value, datetime.time):
         if value.utcoffset() is not None:
-            value = copy(value)
-            value = value.replace(tzinfo=None) - value.utcoffset()
+            dt = datetime.datetime.combine(RANDOM_DAY, value)
+            dt -= value.utcoffset()
+            # Note: this will strip TZ
+            value = dt.time()
         str_value = value.isoformat() + 'Z'
         return str_value, datatype or XMLSchema.TIME
 
     if isinstance(value, datetime.date):
         return value.isoformat(), datatype or XMLSchema.DATE
+
+    if isinstance(value, Decimal):
+        return unicode(value), datatype or XMLSchema.DECIMAL
 
     return unicode(value), datatype
 
