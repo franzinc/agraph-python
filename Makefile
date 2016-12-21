@@ -36,6 +36,7 @@ export AG_RUN_SSL_TEST=y
 # Used to download packages, the default is https://pypi.python.org/simple
 PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
 # If the index is not available over HTTPS users need to pass --trusted-host
+# --no-cache-dir is another option that can be added here.
 PIP_EXTRA_OPTS ?=
 
 # PyPI server used for uploads.
@@ -80,7 +81,7 @@ PY3 := $(shell python3 -c "$(VERSION_SCRIPT)")
 GPG_SIGN=gpg -u $(PYPI_GPG_KEY) --batch $(GPG_PASS_OPTS) --detach-sign -a
 
 # Prompt used when reading the passpharse from stdin:
-GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package: 
+GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package:
 
 # Check if it is safe to use the curses-based gpg-agent prompt
 # Note that the condition is also true if TERM is empty or not defined.
@@ -121,7 +122,7 @@ endif
 $(TOXENVDIR): Makefile
 	rm -rf $(TOXENVDIR)
 	virtualenv --no-site-packages $(TOXENVDIR)
-	. ./$(TOXENVDIR)/bin/activate && pip install -U $$(python pip-hack.py ${AG_PIP_OPTS}) setuptools wheel pip tox twine
+	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox twine
 
 $(ENVDIR): $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY2)-env
@@ -197,7 +198,7 @@ endif
 	@$(GPG_SIGN) DIST/$(SDIST)
 
 publish: $(TOXENVDIR) wheel sign
-	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc 
+	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 
 tags: FORCE
 	etags `find . -name '*.py'`
