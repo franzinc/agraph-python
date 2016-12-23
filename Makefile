@@ -27,9 +27,16 @@ COPYRIGHT_NOW := Copyright (c) 2006-$(YEAR) Franz Inc.
 # Important for building pycurl
 export PYCURL_SSL_LIBRARY=nss
 
+# SSL tests have to be enabled explicitly. The reason is that people running
+# the test suite without this makefile likely do not have access to AG
+# sources and setting up the server with the right certificate and SSL auth
+# is quite complex.
+export AG_RUN_SSL_TEST=y
+
 # Used to download packages, the default is https://pypi.python.org/simple
 PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
 # If the index is not available over HTTPS users need to pass --trusted-host
+# --no-cache-dir is another option that can be added here.
 PIP_EXTRA_OPTS ?=
 
 # PyPI server used for uploads.
@@ -74,7 +81,7 @@ PY3 := $(shell python3 -c "$(VERSION_SCRIPT)")
 GPG_SIGN=gpg -u $(PYPI_GPG_KEY) --batch $(GPG_PASS_OPTS) --detach-sign -a
 
 # Prompt used when reading the passpharse from stdin:
-GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package: 
+GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package:
 
 # Check if it is safe to use the curses-based gpg-agent prompt
 # Note that the condition is also true if TERM is empty or not defined.
@@ -108,14 +115,14 @@ endif
 	@echo Using port $(AGRAPH_PORT)
 
 # This environment might initially get an ancient version of pip
-# that does not support --trusted-host. So we use a script that 
+# that does not support --trusted-host. So we use a script that
 # checks if that is the case and filters the arguments if necessary.
 # Note that pip will be updated and all other environments will get
 # a more reasonable version.
 $(TOXENVDIR): Makefile
 	rm -rf $(TOXENVDIR)
 	virtualenv --no-site-packages $(TOXENVDIR)
-	. ./$(TOXENVDIR)/bin/activate && pip install -U $$(python pip-hack.py ${AG_PIP_OPTS}) setuptools wheel pip tox twine
+	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox twine
 
 $(ENVDIR): $(TOXENVDIR) .venv
 	$(TOX) $(TOX_RECREATE) -e $(PY2)-env
@@ -191,7 +198,7 @@ endif
 	@$(GPG_SIGN) DIST/$(SDIST)
 
 publish: $(TOXENVDIR) wheel sign
-	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc 
+	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 
 tags: FORCE
 	etags `find . -name '*.py'`
@@ -200,7 +207,7 @@ clean-envs: FORCE
 	rm -rf .tox $(ENVS)
 
 fix-copyrights: FORCE
-	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE 
+	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE
 	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
 # If any of these files change rebuild the virtual environments.

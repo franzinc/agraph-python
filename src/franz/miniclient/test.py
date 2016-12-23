@@ -10,16 +10,16 @@ from __future__ import unicode_literals
 from builtins import range
 
 from franz.miniclient import repository
-from os import environ
+
+from franz.openrdf.tests.tests import AG_PORT, AG_HOST, USER, PASSWORD, CATALOG
 from .request import RequestError, encode, decode, serialize, deserialize
 
 from nose.tools import with_setup, eq_ as eq
 
-url = "http://%s:%d" % (environ.get('AGRAPH_HOST', '127.0.0.1'),
-                        int(environ.get('AGRAPH_PORT', '10035')))
+url = "http://%s:%d" % (AG_HOST, AG_PORT)
 
-client = repository.Client(url, "test", "xyzzy")
-cat = client.openCatalogByName("tests")
+client = repository.Client(url, USER, PASSWORD)
+cat = client.openCatalogByName(CATALOG)
 
 try:
     rep = cat.createRepository('foo')
@@ -27,7 +27,7 @@ except RequestError:
     rep = cat.getRepository('foo')
 
 def testPreconditions():
-  assert 'tests' in client.listCatalogs()
+  assert CATALOG in client.listCatalogs()
   if "foo" in cat.listRepositories():
       cat.deleteRepository("foo")
   cat.createRepository("foo")
@@ -136,4 +136,4 @@ def test_stored_proc_args():
     enc = encode(serial)
     assert serial == decode(enc)
     assert orig == deserialize(serial)
-    
+

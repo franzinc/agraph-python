@@ -126,6 +126,40 @@ and run the following Python script::
 Substitute appropriate values for the HOST/PORT/USER/PASS placeholders. If the script
 runs successfully a new repository named `repo` will be created.
 
+Unit tests
+~~~~~~~~~~
+The Python client includes a suite of unit tests that can be run after installation.
+The tests are executed using the ``pytest`` framework and also use a few utilities
+from ``nose``, so these two packages have to be installed::
+
+    pip install pytest nose
+
+The tests require a running AllegroGraph server instance. The configuration of
+this server is passed to the tests through environment variables::
+
+    # Host and port where the server can be reached. These values are the
+    # default, it is only necessary to define the variables below if your
+    # setup is different
+    export AGRAPH_HOST=localhost
+    export AGRAPH_PORT=10035
+
+    # Tests will create repositories in this catalog.
+    # It must exist on the server. Use "/" for the root catalog.
+    export AGRAPH_CATALOG=tests
+
+    # Login credentials for the AG server.
+    # The user must have superuser privileges.
+    export AGRAPH_USER=test
+
+    # Use a prompt to read the password
+    read -s -r -p "Password for user ${AGRAPH_USER}: " AGRAPH_PASSWORD
+    export AGRAPH_PASSWORD
+
+
+To run the tests, type::
+
+    pytest --pyargs franz
+
 Troubleshooting
 ---------------
 If you see an error similar to the following::
