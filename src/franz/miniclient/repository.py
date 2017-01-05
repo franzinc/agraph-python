@@ -12,20 +12,41 @@ import sys
 from past.utils import old_div
 
 if sys.version_info[0] > 2:
-    from urllib.parse import quote
+    from urllib.parse import quote, urlparse
 else:
     from urllib import quote
+    from urlparse import urlparse
 
-import math, threading
+import inspect, math, threading
 
 from contextlib import contextmanager
 from .request import *
 from ..openrdf.util.contexts import wrap_context
 from ..openrdf.util.strings import to_native_string
 
+
+def _split_proxy(proxy):
+    """
+    Split a proxy definition of the form PROTOCOL://HOST:PORT into components.
+
+    Return 3x None if the argument is None.
+
+    :param proxy: A proxy specification string.
+    :return: scheme, host and port as a triple.
+    :rtype (string, string, int)
+    """
+    if proxy:
+        url = urlparse(proxy)
+        return url.scheme.lower(), url.hostname, url.port
+    else:
+        return None, None, None
+
+
 class Service(object):
     def __init__(self, url, user=None, password=None, cainfo=None, sslcert=None,
-        verifyhost=None, verifypeer=None):
+            verifyhost=None, verifypeer=None, proxy=None):
+        # Note: it is important to save the arguments into fields with identical names.
+        # This makes the weird cloning mechanism used by subclasses work.
         self.url = url
         self.user = user
         self.password = password
@@ -34,13 +55,27 @@ class Service(object):
         self.sslcert = sslcert
         self.verifyhost = verifyhost
         self.verifypeer = verifypeer
+        self.proxy = proxy
+        self.proxy_type,  self.proxy_host, self.proxy_port = _split_proxy(proxy)
 
-    def _instanceFromUrl(self, constructor, url):
-        return constructor(url, self.user, self.password)
+    def _instance_from_url(self, subclass, url):
+        """
+        Create a copy of this service object that will:
+           - be an instance of the ``subclass`` class.
+           - share the values of all attributes except url,
+             which is set to the specified value.
 
-    def toBaseClient(self):
-        url = re.match("^https?://[^/]+", self.url).group(0)
-        return self._instanceFromUrl(Client, url)
+        This is used to create Repository and Catalog objects in the code below.
+        """
+        # Copy authentication and other settings
+        kwargs = {}
+        for arg_name in inspect.getargspec(subclass.__init__).args:
+            if hasattr(self, arg_name):
+                kwargs[arg_name] = getattr(self, arg_name)
+        # Override URL
+        kwargs['url'] = url
+
+        return subclass(**kwargs)
 
 
 class Catalog(Service):
@@ -61,7 +96,7 @@ class Catalog(Service):
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
-        return self._instanceFromUrl(Repository, to_native_string(self.url) + "/repositories/" + quote(name))
+        return self._instance_from_url(Repository, to_native_string(self.url) + "/repositories/" + quote(name))
 
 
 class Client(Catalog):
@@ -73,7 +108,7 @@ class Client(Catalog):
 
     def openCatalog(self, uriOrName):
         if re.match("^https?://", uriOrName):
-            return self._instanceFromUrl(Catalog, uriOrName)
+            return self._instance_from_url(Catalog, uriOrName)
         else:
             return self.openCatalogByName(uriOrName)
 
@@ -114,7 +149,7 @@ class Client(Catalog):
         url = jsonRequest(self, "POST", "/session?" +
                           urlenc(autoCommit=autocommit, lifetime=lifetime,
                                  loadInitFile=loadinitfile, store=spec))
-        rep = self._instanceFromUrl(Repository, url)
+        rep = self._instance_from_url(Repository, url)
         rep._enableSession(lifetime)
         return rep
 

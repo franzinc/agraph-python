@@ -11,14 +11,14 @@ from builtins import range
 
 from franz.miniclient import repository
 
-from franz.openrdf.tests.tests import AG_PORT, AG_HOST, USER, PASSWORD, CATALOG
+from franz.openrdf.tests.tests import AG_PORT, AG_HOST, AG_PROXY, USER, PASSWORD, CATALOG
 from .request import RequestError, encode, decode, serialize, deserialize
 
 from nose.tools import with_setup, eq_ as eq
 
 url = "http://%s:%d" % (AG_HOST, AG_PORT)
 
-client = repository.Client(url, USER, PASSWORD)
+client = repository.Client(url, USER, PASSWORD, proxy=AG_PROXY)
 cat = client.openCatalogByName(CATALOG)
 
 try:
