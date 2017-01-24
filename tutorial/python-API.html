@@ -13,6 +13,11 @@
 </head>
 <body>
 <h1>AllegroGraph Python API Reference</h1>
+
+<p>
+Click <a href="../index.html">here</a> for general AllegroGraph
+documentation.
+</p>
 <p>This is a description of the Python Application Programmer's Interface (API) to
 <a href="http://agraph.franz.com/allegrograph/">Franz Inc.'s</a>
 AllegroGraph RDFStore&#8482;</p>
@@ -573,8 +578,15 @@ For use in a <a href="#Transactions">dedicated session</a>. </td>
     <p> If autocommit is True, commits are done on each request, otherwise 
 you will need to call commit() or rollback() as appropriate for your 
 application.</p>
-    <p> lifetime is an integer specifying the time to live in seconds of <br>
-  the session.</p>
+    <p> lifetime is an integer specifying the idle timeout of 
+        the session, in seconds. If lifetime is not specified, it defaults to the
+        value of the <a href="../daemon-config.html#DefaultSessionTimeout">DefaultSessionTimeout</a> configuration directive. If specified, its value can be
+        no larger than the value of the <a href="../daemon-config.html#MaximumSessionTimeout">MaximumSessionTimeout</a> configuration directive. See the
+        <a href="../daemon-config.html#session-values">Session directives</a> 
+        section in
+        <a href="../daemon-config.html">Server Configuration and Control</a> for
+        more information.
+    </p>
     <p> If loadinitfile is True, then the current initfile will be loaded<br>
   for you when the session starts.</p></td>
   </tr>
