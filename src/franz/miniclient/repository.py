@@ -20,7 +20,8 @@ import math, threading
 
 from contextlib import contextmanager
 from .request import *
-from franz.openrdf.util.strings import to_native_string
+from ..openrdf.util.contexts import wrap_context
+from ..openrdf.util.strings import to_native_string
 
 class Service(object):
     def __init__(self, url, user=None, password=None, cainfo=None, sslcert=None,
@@ -360,15 +361,24 @@ class Repository(Service):
 
     def loadFile(self, file, rdf_format, baseURI=None, context=None, serverSide=False, commitEvery=None, content_encoding=None):
         mime = self.mime_type_for_format(rdf_format)
-        body = ""
-        if not serverSide:
-            # This is completely insane (bug24322).
-            f = open(file, 'rb')
-            body = f.read()
-            f.close()
+
+        if serverSide:
+            # file is a server-side path, body should be empty
+            body_context = wrap_context(None)
+        elif isinstance(file, basestring) and not serverSide:
+            # file is a local path, read it and send as body
+            body_context = open(file, 'rb')
             file = None
-        params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery)
-        nullRequest(self, "POST", "/statements?" + params, body, contentType=mime, content_encoding=content_encoding)
+        else:
+            # We were passed a file-like object that we must not close,
+            # so we'll just pass it as body.
+            body_context = wrap_context(file)
+            file = None
+
+        with body_context as body:
+            params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery)
+            nullRequest(self, "POST", "/statements?" + params, body,
+                        contentType=mime, content_encoding=content_encoding)
 
     def getBlankNodes(self, amount=1):
         return jsonRequest(self, "POST", "/blankNodes", urlenc(amount=amount))
