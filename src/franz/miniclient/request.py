@@ -19,6 +19,7 @@ import io, errno, pycurl, locale, re, os, sys, time
 from threading import Lock
 
 from franz.openrdf.util.strings import to_native_string, to_bytes
+from franz.miniclient.agjson import decode_json, encode_json, JsonDecodeError
 
 if sys.version_info[0] > 2:
     from urllib.parse import quote
@@ -27,25 +28,7 @@ else:
     from urllib import quote
     from cStringIO import StringIO
 
-
-class JsonDecodeError(Exception):
-    pass
-
-
 if sys.version_info[0] == 2:
-    import cjson
-
-    def encode_json(value):
-        return cjson.encode(value)
-
-
-    def decode_json(text):
-        try:
-            # True = Output Unicode instead of bytestrings
-            return cjson.decode(text, True)
-        except cjson.DecodeError:
-            raise JsonDecodeError()
-
     # Workaround for a bug in python-future
     def ibytes(x):
         """
@@ -58,17 +41,6 @@ if sys.version_info[0] == 2:
         return bytes(x)
 
 else:
-    import json
-
-    def encode_json(value):
-        return json.dumps(value)
-
-    def decode_json(text):
-        try:
-            return json.loads(text)
-        except ValueError:
-            raise JsonDecodeError
-
     ibytes = bytes
 
 
