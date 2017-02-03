@@ -113,18 +113,29 @@ and installed using `pip`::
 
     pip install agraph-<VERSION>-python-client.tar.gz
 
+.. warning::
+
+   Python 2.6 users should consider installing the simplejson package::
+
+      pip install simplejson
+
+   since the built-in JSON module in that version of Python offers
+   unsatisfactory performance. The AllegroGraph Python client will
+   detect and use simplejson automatically if it is installed.
+
 Testing
 -------
-To validate the installation make sure that you have access to an AllegroGraph server
-and run the following Python script::
+To validate the installation make sure that you have access to an
+AllegroGraph server and run the following Python script::
 
     from franz.openrdf.connect import ag_connect
     with ag_connect('repo', host='HOST', port='PORT',
                     user='USER', password='PASS') as conn:
         print conn.size()
 
-Substitute appropriate values for the HOST/PORT/USER/PASS placeholders. If the script
-runs successfully a new repository named `repo` will be created.
+Substitute appropriate values for the HOST/PORT/USER/PASS
+placeholders. If the script runs successfully a new repository named
+`repo` will be created.
 
 Unit tests
 ~~~~~~~~~~
