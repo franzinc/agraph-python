@@ -21,7 +21,7 @@ def ag_connect(repo, catalog=None,
                session=False, autocommit=False, lifetime=None, loadinitfile=False,
                host=None, port=None, protocol=None,
                user=None, password=None, cainfo=None, sslcert=None,
-               verifyhost=None, verifypeer=None, indices=None):
+               verifyhost=None, verifypeer=None, indices=None, proxy=None):
     """
     Create a connection to an AllegroGraph repository.
 
@@ -83,12 +83,18 @@ def ag_connect(repo, catalog=None,
     :type verifypeer: int
     :param indices: List of indices to create if creating a new repository.
     :type indices: list[string]
+    :param proxy: Proxy specification string. The format is SCHEME://HOST:PORT.
+                  Supported schemes are 'http', 'socks4' and 'socks5'.
+                  Note that for SOCKS proxies DNS requests are performed by the
+                  proxy server.
+    :type proxy: string
     :return: A RepositoryConnection object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
     """
     server = AllegroGraphServer(host=host, port=port, protcol=protocol,
                                 user=user, password=password, sslcert=sslcert,
-                                cainfo=cainfo, verifyhost=verifyhost, verifypeer=verifypeer)
+                                cainfo=cainfo, verifyhost=verifyhost, verifypeer=verifypeer,
+                                proxy=proxy)
     cat_handle = server.openCatalog(catalog)
     repo_exists = repo in cat_handle.listRepositories()
     if not repo_exists:

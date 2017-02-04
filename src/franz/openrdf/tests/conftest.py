@@ -17,7 +17,7 @@ import pytest
 from franz.openrdf.repository import Repository
 from franz.openrdf.sail import AllegroGraphServer
 
-from .tests import AG_HOST, AG_PORT, STORE, CATALOG, USER, PASSWORD
+from .tests import AG_HOST, AG_PORT, AG_PROXY, STORE, CATALOG, USER, PASSWORD
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def conn():
     Provides a connection to the test repository. The repository is cleared
     before the test, but not after it.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     stores = catalog.listRepositories()
 
@@ -65,7 +65,7 @@ def non_existing_repo():
     and also deletes it after the test.
     The value returned by this fixture is the name of the store.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     store = 'temp-store'
     while store in catalog.listRepositories():
