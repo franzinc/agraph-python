@@ -35,7 +35,7 @@ class AllegroGraphServer(object):
     """
     def __init__(self, host=None, port=None, user=None, password=None,
                  cainfo=None, sslcert=None, verifyhost=None, verifypeer=None,
-                 protocol=None, **options):
+                 protocol=None, proxy=None, **options):
         """
         Define the connection to the AllegroGraph HTTP server.
 
@@ -82,6 +82,11 @@ class AllegroGraphServer(object):
 
                            ..seealso:: https://curl.haxx.se/libcurl/c/CURLOPT_SSL_VERIFYPEER.html
         :type verifypeer: int
+        :param proxy: Proxy specification string. The format is SCHEME://HOST:PORT.
+                      Supported schemes are 'http', 'socks4' and 'socks5'.
+                      Note that for SOCKS proxies DNS requests are performed by the
+                      proxy server.
+        :type proxy: string
         :param options: Ignored.
         """
         # Not sure why we accept these, but don't want to change the API at this point.
@@ -112,7 +117,8 @@ class AllegroGraphServer(object):
 
         uri = '{protocol}://{host}:{port}{tail}'.format(protocol=protocol, host=host, port=port, tail=tail)
 
-        self._client = miniserver.Client(uri, user, password, cainfo, sslcert, verifyhost, verifypeer)
+        self._client = miniserver.Client(uri, user, password, cainfo, sslcert, verifyhost, verifypeer,
+                                         proxy=proxy)
 
     @property
     def url(self):
@@ -127,16 +133,16 @@ class AllegroGraphServer(object):
     def listCatalogs(self):
         catalogs = self._client.listCatalogs()
         return catalogs
-    
+
     def openCatalog(self, name=None):
         """
         Open a catalog by name. Pass None to open the root catalog.
-        """       
+        """
         # Allow for None and '' (or anything else that evaluates to False) to
         # mean the root catalog.
         if not name:
             name = None
-            
+
         cats = self.listCatalogs()
         if not name in cats:
             raise ServerException("There is no catalog named '%s' (found %s)"
@@ -346,7 +352,7 @@ class AllegroGraphServer(object):
         that are expected.
         """
         return self._client.addRoleAccess(role, read, write, catalog, repository)
-        
+
     def deleteRoleAccess(self, role, read, write, catalog='*', repository='*'):
         """
         Revoke read/write access for a role. Accepts the same parameters as above.
@@ -451,7 +457,7 @@ class Catalog(object):
     def getName(self):
         """Return the catalog name."""
         return self._name
-    
+
     name = property(getName)
 
     def listRepositories(self):
@@ -460,10 +466,10 @@ class Catalog(object):
         this catalog.
         """
         return self.mini_catalog.listRepositories()
-    
+
     def deleteRepository(self, name):
         return self.mini_catalog.deleteRepository(name)
-    
+
     def getRepository(self, name, access_verb):
         """
         Create a mini-repository and execute a RENEW, OPEN, CREATE, or ACCESS.

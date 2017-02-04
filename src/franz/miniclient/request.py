@@ -65,7 +65,7 @@ class Pool(object):
             curlPool = Pool(pycurl.Curl, pid)
 
         return curlPool
-        
+
     def __init__(self, create, pid):
         self.create = create
         self.pid = pid
@@ -101,7 +101,7 @@ class Pool(object):
 @python_2_unicode_compatible
 class RequestError(Exception):
     code = None
-    
+
     def __init__(self, status, message):
         print(status, message)
         self.status = status
@@ -111,7 +111,7 @@ class RequestError(Exception):
                 self.code = match.group(1)
                 message = match.group(2)
         self.message = message
-            
+
     def __str__(self):
         return "Server returned %s: %s" % (self.status, self.message)
 
@@ -144,6 +144,15 @@ def urlenc(**args):
     return buf.getvalue()
 
 
+# Maps proxy type names to curl constants
+_proxy_types = {
+    'http': pycurl.PROXYTYPE_HTTP,
+    'socks': pycurl.PROXYTYPE_SOCKS5_HOSTNAME,
+    'socks4': pycurl.PROXYTYPE_SOCKS4A,
+    'socks5': pycurl.PROXYTYPE_SOCKS5_HOSTNAME,
+}
+
+
 def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None, headers=None):
     curl = Pool.instance().get()
 
@@ -156,10 +165,14 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
 
     #curl.setopt(pycurl.TIMEOUT, 45)
 
-    # Use a proxy:
-    #curl.setopt(pycurl.PROXY, '127.0.0.1')
-    #curl.setopt(pycurl.PROXYPORT, 8888)
-    #curl.setopt(pycurl.PROXYTYPE, pycurl.PROXYTYPE_HTTP)
+    # Proxy support
+    if obj.proxy is not None:
+        curl.setopt(pycurl.PROXY, obj.proxy_host)
+        curl.setopt(pycurl.PROXYPORT, obj.proxy_port)
+        curl.setopt(pycurl.PROXYTYPE, _proxy_types[obj.proxy_type])
+    else:
+        # Unsetopt doesn't work. As usual.
+        curl.setopt(pycurl.PROXY, '')
 
     if obj.user is not None and obj.password is not None:
         curl.setopt(pycurl.USERPWD, "%s:%s" % (to_native_string(obj.user),
@@ -230,12 +243,12 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
                 break
             except pycurl.error as error:
                 if (error.args[0] == 7 and
-                    curl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET): 
+                    curl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET):
                     # Retry
                     time.sleep(retry)
                     retry *= 2
                     continue
-   
+
                 raise
 
     if callback:
@@ -384,7 +397,7 @@ def serialize(obj):
                 serialize_int(len(obj)), obj.tostring()])
     except:
         pass
-            
+
     try:
         iobj = iter(obj)
         return b''.join([bchr(SerialConstants.SO_VECTOR),
@@ -398,47 +411,47 @@ def serialize(obj):
 def deserialize(string):
     def posInteger(chars):
         result = shift = 0
-        
+
         # Set value to get into the loop the first time
         value = 0x80
         while value & 0x80:
             value = next(chars)
             result += ((value & 0x7f) << shift)
             shift += 7
-    
+
         return result
 
     if isinstance(string, old_str):
         string = bytes(string)
     chars = iter(string)
     value = next(chars)
-    
+
     if value == SerialConstants.SO_BYTEVECTOR:
         length = posInteger(chars)
         import array
         return array.array(b'b', [ord(next(chars)) for i in range(length)])
-    
+
     if (value == SerialConstants.SO_VECTOR or
         value == SerialConstants.SO_LIST):
         length = posInteger(chars)
         return [deserialize(chars) for i in range(length)]
-    
+
     if value == SerialConstants.SO_STRING:
         length = posInteger(chars)
         return unicode(ibytes(islice(chars, 0, length)), 'utf-8')
 
     if value == SerialConstants.SO_POS_INTEGER:
         return posInteger(chars)
-    
+
     if value == SerialConstants.SO_NEG_INTEGER:
         return - posInteger(chars)
-    
+
     if value == SerialConstants.SO_NULL:
         return None
-        
+
     if value == SerialConstants.SO_END_OF_ITEMS:
         return None
-        
+
     raise ValueError("bad code found by deserializer: %d" % value)
 
 def encode(string):
@@ -500,12 +513,12 @@ def decode(string):
     return ibytes(convert(string))
 
 decode.codes = [
-     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
-     0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 62, 63,  0,  0,  0,  0, 
-    52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  0,  0,  0,  0,  0,  0, 
-     0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  0,  0,  0,  0,  0, 
-     0, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 62, 63,  0,  0,  0,  0,
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  0,  0,  0,  0,  0,  0,
+     0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  0,  0,  0,  0,  0,
+     0, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
 

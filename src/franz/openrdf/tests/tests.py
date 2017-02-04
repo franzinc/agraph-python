@@ -54,6 +54,7 @@ LOCALHOST = 'localhost'
 AG_HOST = os.environ.get('AGRAPH_HOST', LOCALHOST)
 AG_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
 AG_SSLPORT = int(os.environ.get('AGRAPH_SSL_PORT', '10036'))
+AG_PROXY = os.environ.get('AGRAPH_PROXY')
 AG_ONSERVER = AG_HOST == LOCALHOST
 USER = os.environ.get('AGRAPH_USER', 'test')
 PASSWORD = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
@@ -69,7 +70,7 @@ STORE = 'agraph_test'
 
 def teardown_module():
     """Module level teardown function."""
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
 
     for repo in catalog.listRepositories():
@@ -91,15 +92,15 @@ def verify(expressionValue, targetValue, quotedExpression, testNum):
             print("BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP BWEEP \n   ", message)
 
 def test0():
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     print("Available catalogs", server.listCatalogs())
 
 def connect(accessMode=Repository.RENEW):
     """
     Connect is called by the other tests to startup the connection to the test database.
     """
-    print("Default working directory is '%s'" % (CURRENT_DIRECTORY))
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    print("Default working directory is '%s'" % CURRENT_DIRECTORY)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     print("Available catalogs", server.listCatalogs())
     catalog = server.openCatalog(CATALOG)
     stores = catalog.listRepositories()
@@ -596,7 +597,7 @@ def test16():
         for r in rows: print(r[0].getLocalName(), end=' ')
         assert len(rows) == expected
 
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     redConn = catalog.getRepository("redthings", Repository.RENEW).initialize().getConnection()
     greenConn = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
@@ -1431,7 +1432,7 @@ def test_session():
     """
     Test of Session Commit/Rollback
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     myRepository = catalog.getRepository(STORE, Repository.OPEN)
     myRepository.initialize()
@@ -1462,7 +1463,7 @@ def test_temporal():
     """
     Test of temporal range queries.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     myRepository = catalog.getRepository(STORE, Repository.RENEW)
     myRepository.initialize()
@@ -1566,7 +1567,7 @@ def test_delete_repository():
     """
     Test deleting a Repository.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     store = 'for_deletion'
     catalog = server.openCatalog(CATALOG)
     myRepository = catalog.getRepository(store, Repository.RENEW)
@@ -1733,7 +1734,7 @@ def test_session_loadinitfile():
     Test starting a session with loadinitfile True.
     """
     # Basically ripped off from the miniclient tests.
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     conn = connect()
     for x in range(0, 10):
         conn.mini_repository.addStatement("<http:%d>" % x, "<http:before>", "<http:%d>" % (x + 1))
@@ -1897,7 +1898,7 @@ def test_add_commit_size():
     assert conn.size() == 0
 
 def test_script_management():
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     scripts = len(server.listScripts())
 
     server.addScript("script.cl", test_script_management.code)
@@ -2003,7 +2004,7 @@ def test_indices_on_create():
     """
     Test passing indices to createRepository.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     if "optimal" in catalog.listRepositories():
         catalog.deleteRepository("optimal")
@@ -2104,7 +2105,7 @@ def test_users_roles_filters():
     """
     Test user/role/filter management.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD)
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     assert ['test'] == server.listUsers()
     server.addUser('user-test', 'xyzzy')
     assert 'user-test' in server.listUsers()
