@@ -63,6 +63,12 @@ creating, querying and maintaining RDF data, and for managing the stored triples
   <li><em>port</em> is the AllegroGraph HTTP port on the server. It is an integer that defaults to 10035.</li>
   <li><em>user</em> is an AllegroGraph user name.</li>
   <li><em>password</em> is the user's password.  </li>
+  <li><em>proxy</em> Proxy specification string (optional). The format
+    is SCHEME://HOST:PORT.  Supported schemes are 'http', 'socks4' and
+    'socks5'.  'socks' can also be used as a synonym for
+    'socks5'. Note that for SOCKS proxies DNS requests are performed
+    by the proxy server.
+  </li>
 </ul>
 <dl>
   <dt>Example:</dt>
