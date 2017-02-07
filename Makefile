@@ -33,6 +33,9 @@ export PYCURL_SSL_LIBRARY=nss
 # is quite complex.
 export AG_RUN_SSL_TEST=y
 
+# Prevent virtualenv from downloading stuff from PyPI
+export VIRTUALENV_NO_DOWNLOAD=y
+
 # Used to download packages, the default is https://pypi.python.org/simple
 PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
 # If the index is not available over HTTPS users need to pass --trusted-host
