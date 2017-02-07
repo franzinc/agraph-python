@@ -17,7 +17,7 @@ from franz.openrdf.connect import ag_connect
 from franz.openrdf.model import Literal
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.sail import AllegroGraphServer
-from franz.openrdf.tests.tz import TestTimezone
+from franz.openrdf.tests.tz import MockTimezone
 from franz.openrdf.vocabulary import XMLSchema
 
 from .tests import AG_HOST, AG_PORT, CATALOG, STORE, USER, PASSWORD
@@ -146,14 +146,14 @@ def test_format_for_ext(filename, expected_format, expected_compression):
     (Decimal('42.000'), '42.000', XMLSchema.DECIMAL),
     (datetime(1984, 8, 26, 10, 0, 5), '1984-08-26T10:00:05Z', XMLSchema.DATETIME),
     # TODO: Should we really be converting times to UTC?
-    (datetime(1984, 8, 26, 12, 0, 5, tzinfo=TestTimezone('CEST', 2, 1)),
+    (datetime(1984, 8, 26, 12, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)),
      '1984-08-26T10:00:05Z', XMLSchema.DATETIME),
-    (datetime(1984, 8, 27, 1, 0, 5, tzinfo=TestTimezone('CEST', 2, 1)),
+    (datetime(1984, 8, 27, 1, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)),
      '1984-08-26T23:00:05Z', XMLSchema.DATETIME),
     (date(1984, 8, 26), '1984-08-26', XMLSchema.DATE),
     (time(10, 0, 5), '10:00:05Z', XMLSchema.TIME),
-    (time(12, 0, 5, tzinfo=TestTimezone('CEST', 2, 1)), '10:00:05Z', XMLSchema.TIME),
-    (time(1, 0, 5, tzinfo=TestTimezone('CEST', 2, 1)), '23:00:05Z', XMLSchema.TIME),
+    (time(12, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)), '10:00:05Z', XMLSchema.TIME),
+    (time(1, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)), '23:00:05Z', XMLSchema.TIME),
     ([1, 2, 3], "[1, 2, 3]", None)])
 def test_literals_from_python_values(value, expected_text, expected_type):
     literal = Literal(value)
