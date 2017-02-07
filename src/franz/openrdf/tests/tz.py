@@ -8,7 +8,7 @@
 from datetime import timedelta, tzinfo
 
 
-class TestTimezone(tzinfo):
+class MockTimezone(tzinfo):
     """
     A tzinfo implementation suitable for simple tests.
     """
