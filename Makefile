@@ -211,7 +211,7 @@ clean-envs: FORCE
 
 fix-copyrights: FORCE
 	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE
-	find src -name '*.py' -print0 | xargs -0 python fix-header.py
+	find src -name '*.py' -print0 | xargs -0 python2 fix-header.py
 
 # If any of these files change rebuild the virtual environments.
 .venv: setup.py requirements.txt requirements2.txt tox.ini Makefile
