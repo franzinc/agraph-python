@@ -94,6 +94,30 @@ AGRAPH_HOST. If unset, defaults to 10035. The port used by the
 server is specified in the agraph.cfg file.
 </li>
 <li>
+
+<code>AGRAPH_PROXY</code>: Set this if you want to connect
+to <code>AGRAPH_HOST</code> through a proxy server. The value should
+have the format <code>TYPE://HOST:PORT</code>. <ocde>TYPE</code> can
+be either <code>socks4</code>, <code>socks5</code>, <code>socks</code>
+(a synonym for <code>socks5</code>) or <code>http</code>. If a SOCKS
+proxy is used, DNS lookups will be performed by the proxy server.
+
+<code>AGRAPH_PROXY</code> provides a convenient way to access an
+AllegroGraph server that is located on a machine that cannot be
+directly connected to. Examples of such situations include servers
+installed inside protected internal networks or on virtual machines
+that do not expose all ports to the host machine. In these cases a
+SOCKS proxy can be created using SSH and the client can be configured
+to use it:
+
+<pre class="input">
+ssh -D 1080 user@ag-host-or-network-gateway
+export AGRAPH_PROXY=socks5://localhost:1080
+</pre>
+
+If this variable is unset, no proxy will be used.
+</li>
+<li>
 <code>AGRAPH_CATALOG</code>: Specifies the catalog to use for the
 tutorial. Set to blank to use the root catalog. If unset, defaults to
 the blank string (meaning the root catalog).  If you wish to use a

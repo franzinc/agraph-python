@@ -137,6 +137,23 @@ Substitute appropriate values for the HOST/PORT/USER/PASS
 placeholders. If the script runs successfully a new repository named
 `repo` will be created.
 
+Proxy setup
+----------- 
+It is possible to configure the AllegroGraph Python client to use a
+proxy for all its connection to the server. This can be achieved by
+setting the ``AGRAPH_PROXY`` environment variable, as in the following
+example::
+
+    # Create a SOCKS proxy for tunneling to an internal network
+    ssh -fN -D 1080 user@gateway.example.com
+    # Configure agraph-python to use this proxy
+    export AGRAPH_PROXY=socks://localhost:1080
+
+The format of the ``AGRAPH_PROXY`` value is ``TYPE://HOST:PORT``,
+where ``TYPE`` can be either ``http``, ``socks4``, ``socks5`` or
+``socks`` (a synonym for ``socks5``). Note that if a SOCKS proxy is
+used, DNS lookups will be performed by the proxy server.
+
 Unit tests
 ~~~~~~~~~~
 The Python client includes a suite of unit tests that can be run after installation.
