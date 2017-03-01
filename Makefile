@@ -117,11 +117,6 @@ ifndef AGRAPH_PORT
 endif
 	@echo Using port $(AGRAPH_PORT)
 
-# This environment might initially get an ancient version of pip
-# that does not support --trusted-host. So we use a script that
-# checks if that is the case and filters the arguments if necessary.
-# Note that pip will be updated and all other environments will get
-# a more reasonable version.
 $(TOXENVDIR): Makefile
 	rm -rf $(TOXENVDIR)
 	virtualenv --no-site-packages $(TOXENVDIR)
@@ -202,6 +197,7 @@ endif
 
 publish: $(TOXENVDIR) wheel sign
 	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
+	./conda-upload.sh
 
 tags: FORCE
 	etags `find . -name '*.py'`
