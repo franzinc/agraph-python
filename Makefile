@@ -99,15 +99,37 @@ ifndef VERSION
 	@echo VERSION is not set.
 	@exit 1
 endif
-	python ./check-version.py "$(VERSION)"
+	python ./version.py check "$(VERSION)"
 
 dist: check-version FORCE
+# If we're making a (potentially) public release we need
+# to update the version number.
+ifdef AGSCM_BUILD_FOR_RELEASE
+# Strip '.dev' from the version
+	python version.py undev
+# Check again. 
+	python ./version.py check "$(VERSION)"
+# Commit the result
+	git add src/franz/__init__.py
+	git commit -m "Release `python version.py`"
+	git tag -f -m "Release `python version.py`" \
+	  -a "v`python version.py`"
+endif
 	rm -fr DIST
 	mkdir -p DIST/$(DISTDIR)
 	for f in $(FILES); do cp -r $$f DIST/$(DISTDIR); done
-	tar -c -h -z --owner=root --group=root -f DIST/$(TARNAME) -C DIST $(DISTDIR)
+	tar -c -h -z --owner=root --group=root -f DIST/$(TARNAME) \
+	  -C DIST $(DISTDIR)
 ifdef DESTDIR
 	cp -p DIST/$(TARNAME) $(DESTDIR)
+endif
+ifdef AGSCM_BUILD_FOR_RELEASE
+# Increment the version and add '.dev'
+	python version.py next
+# Commit the result
+	git add src/franz/__init__.py
+	git commit -m "Next dev version: `python version.py`"
+	git push origin HEAD
 endif
 
 checkPort: FORCE
