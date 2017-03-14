@@ -86,6 +86,9 @@ GPG_SIGN=gpg -u $(PYPI_GPG_KEY) --batch $(GPG_PASS_OPTS) --detach-sign -a
 # Prompt used when reading the passpharse from stdin:
 GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package:
 
+# Some scripts might still use the old VERSION variable
+export VERSION=$(AGVERSION)
+
 # Check if it is safe to use the curses-based gpg-agent prompt
 # Note that the condition is also true if TERM is empty or not defined.
 ifeq ($(TERM),$(filter $(TERM),emacs dumb))
@@ -94,26 +97,45 @@ endif
 
 default: dist
 
+prepare-release: check-version
+# Make sure we have a dev version.
+	python version.py verify-dev
+# Strip '.dev' from the version
+	python version.py undev
+# Check again.
+	python ./version.py check "$(AGVERSION)"
+# Commit the result
+	git add src/franz/__init__.py
+	git commit -m "Release `python version.py`"
+	git tag -f -m "Release `python version.py`" \
+	  -a "release_v`python version.py`"
+# Push (note that we skip gerrit and push directly to the target repo).
+	git push origin HEAD
+
+post-release:
+# We should be in a release version
+	python version.py verify-not-dev
+# Increment the version and add '.dev'
+	python version.py next
+# Commit the result
+	git add src/franz/__init__.py
+	git commit -m "Next dev version: `python version.py`"
+# Push (directly, skipping gerrit review).
+	git push origin HEAD
+
 check-version: FORCE
-ifndef VERSION
-	@echo VERSION is not set.
+ifndef AGVERSION
+	@echo AGVERSION is not set.
 	@exit 1
 endif
-	python ./version.py check "$(VERSION)"
+	python ./version.py check "$(AGVERSION)"
 
 dist: check-version FORCE
 # If we're making a (potentially) public release we need
 # to update the version number.
 ifdef AGSCM_BUILD_FOR_RELEASE
-# Strip '.dev' from the version
-	python version.py undev
-# Check again. 
-	python ./version.py check "$(VERSION)"
-# Commit the result
-	git add src/franz/__init__.py
-	git commit -m "Release `python version.py`"
-	git tag -f -m "Release `python version.py`" \
-	  -a "v`python version.py`"
+# Make sure we're operating on a release version
+	python version.py verify-not-dev
 endif
 	rm -fr DIST
 	mkdir -p DIST/$(DISTDIR)
@@ -122,14 +144,6 @@ endif
 	  -C DIST $(DISTDIR)
 ifdef DESTDIR
 	cp -p DIST/$(TARNAME) $(DESTDIR)
-endif
-ifdef AGSCM_BUILD_FOR_RELEASE
-# Increment the version and add '.dev'
-	python version.py next
-# Commit the result
-	git add src/franz/__init__.py
-	git commit -m "Next dev version: `python version.py`"
-	git push origin HEAD
 endif
 
 checkPort: FORCE
@@ -220,6 +234,7 @@ endif
 	@$(GPG_SIGN) DIST/$(SDIST)
 
 publish: $(TOXENVDIR) wheel sign
+	python version.py verify-not-dev
 	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 	./conda-upload.sh
 

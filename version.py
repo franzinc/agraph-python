@@ -10,6 +10,10 @@
 #            Checksif the server and client versions
 #            match. If not, print an error message
 #            and exit with a non-zero status.
+#   verify-dev: Exit with non-zero status if the version
+#               does not end in '.dev'.
+#   verify-not-dev: Exit with non-zero status if the 
+#                   version ends in .dev.
 import os.path
 import re
 import sys
@@ -101,6 +105,14 @@ def main(args):
         set_version(remove_dev(get_version()))
     elif cmd == 'check':
         if not check_ag_version(args[2]):
+            sys.exit(1)
+    elif cmd == 'verify-dev':
+        if not get_version().endswith('.dev'):
+            sys.stderr.write('Expected a .dev version number.\n')
+            sys.exit(1)
+    elif cmd == 'verify-not-dev':
+        if get_version().endswith('.dev'):
+            sys.stderr.write('Expected a release (non .dev) version number.\n')
             sys.exit(1)
     else:
         sys.stderr.write('Unknown command: %s\n' % cmd)
