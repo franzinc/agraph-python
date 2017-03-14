@@ -8,6 +8,7 @@
 """
 Helper function for opening connections.
 """
+import os
 
 from franz.openrdf.repository import Repository
 from franz.openrdf.repository.repositoryconnection import RepositoryConnection
@@ -20,7 +21,8 @@ def ag_connect(repo, catalog=None,
                session=False, autocommit=False, lifetime=None, loadinitfile=False,
                host=None, port=None, protocol=None,
                user=None, password=None, cainfo=None, sslcert=None,
-               verifyhost=None, verifypeer=None, indices=None, proxy=None):
+               verifyhost=None, verifypeer=None, indices=None,
+               proxy=os.environ.get('AGRAPH_PROXY')):
     """
     Create a connection to an AllegroGraph repository.
 
@@ -86,6 +88,8 @@ def ag_connect(repo, catalog=None,
                   Supported schemes are 'http', 'socks4' and 'socks5'.
                   Note that for SOCKS proxies DNS requests are performed by the
                   proxy server.
+                  The default value is taken from the AGRAPH_PROXY environment
+                  variable.
     :type proxy: string
     :return: A RepositoryConnection object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection

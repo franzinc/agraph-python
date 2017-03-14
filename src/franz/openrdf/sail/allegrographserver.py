@@ -17,6 +17,8 @@ from builtins import object
 from future import standard_library
 standard_library.install_aliases()
 
+import os
+
 from ..exceptions import ServerException
 from ..repository.repository import Repository, RepositoryConnection
 from ...miniclient import repository as miniserver
@@ -34,7 +36,9 @@ class AllegroGraphServer(object):
     """
     def __init__(self, host=None, port=None, user=None, password=None,
                  cainfo=None, sslcert=None, verifyhost=None, verifypeer=None,
-                 protocol=None, proxy=None, **options):
+                 protocol=None,
+                 proxy=os.environ.get('AGRAPH_PROXY'),
+                 **options):
         """
         Define the connection to the AllegroGraph HTTP server.
 
@@ -85,6 +89,8 @@ class AllegroGraphServer(object):
                       Supported schemes are 'http', 'socks4' and 'socks5'.
                       Note that for SOCKS proxies DNS requests are performed by the
                       proxy server.
+                      The default value is taken from the AGRAPH_PROXY environment
+                      variable.
         :type proxy: string
         :param options: Ignored.
         """

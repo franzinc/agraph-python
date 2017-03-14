@@ -19,10 +19,10 @@ from franz.openrdf.sail import AllegroGraphServer
 from franz.openrdf.tests.tz import MockTimezone
 from franz.openrdf.vocabulary import XMLSchema
 
-from .tests import AG_HOST, AG_PORT, CATALOG, STORE, USER, PASSWORD
+from .tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, STORE, USER, PASSWORD
 
 common_args = dict(
-    host=AG_HOST, port=AG_PORT, catalog=CATALOG, user=USER, password=PASSWORD
+    host=AG_HOST, port=AG_PORT, catalog=CATALOG, user=USER, password=PASSWORD, proxy=AG_PROXY
 )
 
 
