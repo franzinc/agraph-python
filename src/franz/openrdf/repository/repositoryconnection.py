@@ -19,7 +19,7 @@ from .repositoryresult import RepositoryResult
 
 from ..exceptions import IllegalOptionException, IllegalArgumentException
 from ..model import Statement, Value, URI
-from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon
+from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon, Literal
 from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
 from ..query.query import Query, TupleQuery, UpdateQuery, GraphQuery, BooleanQuery, QueryLanguage
 from ..rio.rdfformat import RDFFormat
@@ -409,13 +409,17 @@ class RepositoryConnection(object):
 
     def _to_ntriples(self, term):
         """
-        If 'term' is an OpenRDF term, convert it to a string.  If its already
-        a string; assume its in ntriples format, and just pass it through.
+        If 'term' is an OpenRDF term, convert it to a string.  If it's already
+        a string, assume it's in ntriples format, and just pass it through.
+        If the term is None, return None.
+        Otherwise convert `term` to Literal and make a string from that.
         """
-        if not term: return term
-        elif isinstance(term, basestring):
+        if term is None or isinstance(term, basestring):
             return term
-        else: return term.toNTriples();
+        elif hasattr(term, 'toNTriples'):
+            return term.toNTriples()
+        else:
+            return Literal(term).toNTriples()
 
     def addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False):
         """

@@ -197,3 +197,11 @@ def test_add_data_unicode(conn):
     assert actual[0].getSubject() == expected
     assert actual[0].getPredicate() == expected
     assert actual[0].getObject() == expected
+
+
+def test_get_statements_raw_value(conn):
+    conn.addData('<ex://s1> <ex://p1> true .')
+    conn.addData('<ex://s2> <ex://p2> false .')
+    actual = conn.getStatements(None, None, False, None).asList()
+    assert len(actual) == 1
+    assert actual[0].getSubject() == conn.createURI("ex://s2")
