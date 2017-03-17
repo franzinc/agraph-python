@@ -4,11 +4,16 @@
 
 set -e
 
-# This obviously only works in the internal network.
-CONDA2_DIR=/net/san1/disk1/conda2
+# Install miniconda if required. This will detect if the
+# directories already exist.
+./install-conda.sh 2
+./install-conda.sh 3
+
+# Paths to conda tools. Note that we need absolute paths here.
+CONDA2_DIR="$(pwd)/miniconda2"
 CONDA2="${CONDA2_DIR}/bin/conda"
 PYTHON2="${CONDA2_DIR}/bin/python"
-CONDA3_DIR=/net/san1/disk1/conda3
+CONDA3_DIR="$(pwd)/miniconda3"
 CONDA3="${CONDA3_DIR}/bin/conda"
 PYTHON3="${CONDA3_DIR}/bin/python"
 ANACONDA="${CONDA3_DIR}/bin/anaconda"

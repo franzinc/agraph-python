@@ -25,5 +25,10 @@ build.out
 certs.db/
 # Used to check if venvs need to be recreated
 /.venv
+# Cached miniconda installer files
+/Miniconda*.sh
+# Miniconda installs
+/miniconda2
+/miniconda3
 
 stress/events/phase*
