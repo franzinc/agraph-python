@@ -186,14 +186,21 @@ def retrying_perform(curl):
             # Not ECONNRESET or retry limit exceeded
             raise
 
+# These constants are missing from pycurl <= 7.19.5, 
+# some systems we want to support have only 7.19.0
+# Note that libcurl itself must be at least 7.19.0 
+# for this to work.
+PROXYTYPE_SOCKS5_HOSTNAME = 7
+PROXYTYPE_SOCKS4A = 6
+PROXYTYPE_HTTP = 0
 
 # Maps proxy type names to curl constants
 # TODO: HTTPS proxies (since curl 7.52.0)?
 _proxy_types = {
-    'http': pycurl.PROXYTYPE_HTTP,
-    'socks': pycurl.PROXYTYPE_SOCKS5_HOSTNAME,
-    'socks4': pycurl.PROXYTYPE_SOCKS4A,
-    'socks5': pycurl.PROXYTYPE_SOCKS5_HOSTNAME,
+    'http': PROXYTYPE_HTTP,
+    'socks': PROXYTYPE_SOCKS5_HOSTNAME,
+    'socks4': PROXYTYPE_SOCKS4A,
+    'socks5': PROXYTYPE_SOCKS5_HOSTNAME,
 }
 
 
