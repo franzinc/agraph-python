@@ -205,3 +205,12 @@ def test_get_statements_raw_value(conn):
     actual = conn.getStatements(None, None, False, None).asList()
     assert len(actual) == 1
     assert actual[0].getSubject() == conn.createURI("ex://s2")
+
+
+# See spr43630
+def test_unicode_literal_filter(conn):
+    s = conn.createURI('ex://s')
+    p = conn.createURI('ex://p')
+    o = conn.createLiteral(u'<दुप>')
+    conn.add(s, p, o)
+    conn.getStatements(None, None, o)
