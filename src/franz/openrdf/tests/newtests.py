@@ -176,6 +176,14 @@ def test_long_literal():
     assert literal.datatype is XMLSchema.LONG
 
 
+def test_true_literal():
+    assert Literal(True).booleanValue()
+
+
+def test_false_literal():
+    assert not Literal(False).booleanValue()
+
+
 def test_add_data_ascii(conn):
     base_uri = u'http://franz.com/'
     expected = conn.createURI(namespace=base_uri, localname='x')

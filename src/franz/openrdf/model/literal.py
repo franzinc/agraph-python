@@ -158,7 +158,7 @@ class Literal(Value):
     
     def booleanValue(self):
         """Convert to bool"""
-        return bool(self._label.capitalize())
+        return self._label == 'true'
     
     def dateValue(self):
         """Convert to date"""
