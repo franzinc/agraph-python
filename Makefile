@@ -1,6 +1,6 @@
-DISTDIR = agraph-$(VERSION)-client-python
+VERSION = $(shell python2 -c 'execfile("src/franz/__init__.py"); print __version__')
 
-CLIENT_VERSION = $(shell python2 -c 'execfile("src/franz/__init__.py"); print __version__')
+DISTDIR = agraph-python-$(VERSION)
 
 # Names of distribution files under DIST
 
@@ -8,10 +8,10 @@ CLIENT_VERSION = $(shell python2 -c 'execfile("src/franz/__init__.py"); print __
 TARNAME = $(DISTDIR).tar.gz
 
 # Source distribution (for PyPI).
-SDIST = agraph-python-$(CLIENT_VERSION).tar.gz
+SDIST = agraph-python-$(VERSION).tar.gz
 
 # Binary distribution (for PyPI).
-WHEEL = agraph_python-$(CLIENT_VERSION)-py2.py3-none-any.whl
+WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
 
 FILES = LICENSE MANIFEST.in README.rst requirements.txt requirements2.txt setup.py src stress tutorial
 
@@ -86,9 +86,6 @@ GPG_SIGN=gpg -u $(PYPI_GPG_KEY) --batch $(GPG_PASS_OPTS) --detach-sign -a
 # Prompt used when reading the passpharse from stdin:
 GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package:
 
-# Some scripts might still use the old VERSION variable
-export VERSION=$(AGVERSION)
-
 # Check if it is safe to use the curses-based gpg-agent prompt
 # Note that the condition is also true if TERM is empty or not defined.
 ifeq ($(TERM),$(filter $(TERM),emacs dumb))
@@ -97,22 +94,20 @@ endif
 
 default: dist
 
-prepare-release: check-version
+prepare-release: FORCE
 # Make sure we have a dev version.
 	python version.py verify-dev
 # Strip '.dev' from the version
 	python version.py undev
 # Check again.
-	python ./version.py check "$(AGVERSION)"
+	python version.py verify-not-dev
 # Commit the result
 	git add src/franz/__init__.py
 	git commit -m "Release `python version.py`"
 	git tag -f -m "Release `python version.py`" \
 	  -a "release_v`python version.py`"
-# Push (note that we skip gerrit and push directly to the target repo).
-	git push origin HEAD
 
-post-release:
+post-release: FORCE
 # We should be in a release version
 	python version.py verify-not-dev
 # Increment the version and add '.dev'
@@ -123,28 +118,12 @@ post-release:
 # Push (directly, skipping gerrit review).
 	git push origin HEAD
 
-check-version: FORCE
-ifndef AGVERSION
-	@echo AGVERSION is not set.
-	@exit 1
-endif
-	python ./version.py check "$(AGVERSION)"
-
-dist: check-version FORCE
-# If we're making a (potentially) public release we need
-# to update the version number.
-ifdef AGSCM_BUILD_FOR_RELEASE
-# Make sure we're operating on a release version
-	python version.py verify-not-dev
-endif
+dist: FORCE
 	rm -fr DIST
 	mkdir -p DIST/$(DISTDIR)
 	for f in $(FILES); do cp -r $$f DIST/$(DISTDIR); done
 	tar -c -h -z --owner=root --group=root -f DIST/$(TARNAME) \
 	  -C DIST $(DISTDIR)
-ifdef DESTDIR
-	cp -p DIST/$(TARNAME) $(DESTDIR)
-endif
 
 checkPort: FORCE
 ifndef AGRAPH_PORT
@@ -202,7 +181,7 @@ disttest: dist $(TOXENVDIR) FORCE
 tutorial: checkPort disttest
 	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/python runner.py
 
-wheel: check-version $(ENVDIR)
+wheel: $(ENVDIR)
 	mkdir -p DIST
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)
 	$(ENVDIR)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
@@ -235,6 +214,7 @@ endif
 
 publish: $(TOXENVDIR) wheel sign
 	python version.py verify-not-dev
+	cp DIST/$(TARNAME) /fi/ftp/pub/agraph/python-client/
 	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 	./conda-upload.sh
 
