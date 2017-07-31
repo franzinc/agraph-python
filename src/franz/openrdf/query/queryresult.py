@@ -12,7 +12,7 @@ from future.utils import python_2_unicode_compatible
 from past.builtins import unicode
 
 from ..model import Statement
-from ..repository.repositoryresult import RepositoryResult
+from .repositoryresult import RepositoryResult
 
 try:
     from collections import namedtuple
