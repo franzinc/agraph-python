@@ -536,7 +536,7 @@ class RepositoryConnection(object):
         """
         Removes the supplied statement(s) from the specified contexts in the repository.
         """
-        self.removeTriples(statement.getSubject(), statement.getPredicate(), statement.getContext(), contexts=contexts)
+        self.removeTriples(statement.getSubject(), statement.getPredicate(), statement.getObject(), contexts=contexts)
 
     def clear(self, contexts=ALL_CONTEXTS):
         """
