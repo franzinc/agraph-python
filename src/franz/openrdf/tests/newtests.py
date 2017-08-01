@@ -13,7 +13,7 @@ import pytest
 import sys
 
 from franz.openrdf.connect import ag_connect
-from franz.openrdf.model import Literal
+from franz.openrdf.model import Literal, Statement
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.sail import AllegroGraphServer
 from franz.openrdf.tests.tz import MockTimezone
@@ -222,3 +222,22 @@ def test_unicode_literal_filter(conn):
     o = conn.createLiteral(u'<दुप>')
     conn.add(s, p, o)
     conn.getStatements(None, None, o)
+
+def test_remove_statement(conn):
+    s = conn.createURI('ex://s')
+    p = conn.createURI('ex://p')
+    o = conn.createURI('ex://o')
+    g = conn.createURI('ex://g')
+    x = conn.createURI('ex://x')
+    conn.add(s, p, o, [g])
+    conn.add(x, p, o, [g])
+    conn.add(s, x, o, [g])
+    conn.add(s, p, x, [g])
+    conn.add(s, p, o, [x])
+    stmt = Statement(s, p, o, g)
+    conn.removeStatement(stmt, [g])
+    remaining = conn.getStatements(None, None, None).asList()
+    assert len(remaining) == 4
+    for r in remaining:
+        assert r.getSubject() != s or r.getPredicate() != p \
+               or r.getObject() != o or r.getContext() != g
