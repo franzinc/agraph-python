@@ -5,3 +5,4 @@ include requirements.txt
 include requirements2.txt
 include CHANGES.rst
 recursive-include src/franz/openrdf/tests *
+recursive-include tutorial *

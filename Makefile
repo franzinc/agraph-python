@@ -4,16 +4,11 @@ DISTDIR = agraph-python-$(VERSION)
 
 # Names of distribution files under DIST
 
-# Tar file to be uploaded to franz.com
-TARNAME = $(DISTDIR).tar.gz
-
-# Source distribution (for PyPI).
+# Source distribution (for PyPI and FTP distribution)
 SDIST = agraph-python-$(VERSION).tar.gz
 
 # Binary distribution (for PyPI).
 WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
-
-FILES = LICENSE MANIFEST.in README.rst CHANGES.rst requirements.txt requirements2.txt setup.py src stress tutorial
 
 PATH := /usr/local/python26/bin:/opt/rh/rh-python34/root/usr/bin:$(PATH)
 
@@ -43,7 +38,7 @@ PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
 PIP_EXTRA_OPTS ?=
 
 # PyPI server used for uploads.
-PYPI_REPO_URL ?= https://pypi.python.org/pypi
+PYPI_REPO_URL ?= https://upload.pypi.org/legacy/
 # GPG key used to sign releases
 PYPI_GPG_KEY ?= support@franz.com
 # User credentials for PyPI
@@ -118,13 +113,6 @@ post-release: FORCE
 # Push (directly, skipping gerrit review).
 	git push origin HEAD
 
-dist: FORCE
-	rm -fr DIST
-	mkdir -p DIST/$(DISTDIR)
-	for f in $(FILES); do cp -r $$f DIST/$(DISTDIR); done
-	tar -c -h -z --owner=root --group=root -f DIST/$(TARNAME) \
-	  -C DIST $(DISTDIR)
-
 checkPort: FORCE
 ifndef AGRAPH_PORT
 	echo "AGRAPH_PORT not set"
@@ -167,7 +155,7 @@ events3: checkPort $(TOXENVDIR) .venv
 
 # This does not use Tox, since the idea is to check if 'pip install'
 # will work correctly at the target machine.
-disttest: dist $(TOXENVDIR) FORCE
+disttest: wheel $(TOXENVDIR) FORCE
         # Always recreate the environment from scratch
 	rm -rf disttest
         # Use toxenv's virtualenv so we get a recent enough pip
@@ -176,7 +164,7 @@ disttest: dist $(TOXENVDIR) FORCE
 	disttest/bin/pip install -U ${AG_PIP_OPTS} setuptools wheel pip
         # Install from the release tarball
         # Make sure pycurl compiles
-	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) DIST/$(TARNAME)
+	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) DIST/$(SDIST)
 
 tutorial: checkPort disttest
 	cd tutorial && AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/python runner.py
@@ -186,7 +174,7 @@ wheel: $(ENVDIR)
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)
 	$(ENVDIR)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
         # Also build a source dist
-	$(ENVDIR)/bin/python setup.py sdist -d DIST
+	$(ENVDIR)/bin/python setup.py sdist -d DIST # --owner=root --group=root 
 
 register: $(TOXENVDIR) wheel
 	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/$(WHEEL)
@@ -214,7 +202,7 @@ endif
 
 publish: $(TOXENVDIR) wheel sign
 	python version.py verify-not-dev
-	cp DIST/$(TARNAME) /fi/ftp/pub/agraph/python-client/
+	cp DIST/$(SDIST) CHANGES.rst /fi/ftp/pub/agraph/python-client/
 	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 	./conda-upload.sh
 
