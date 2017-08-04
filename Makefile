@@ -13,7 +13,7 @@ SDIST = agraph-python-$(VERSION).tar.gz
 # Binary distribution (for PyPI).
 WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
 
-FILES = LICENSE MANIFEST.in README.rst requirements.txt requirements2.txt setup.py src stress tutorial
+FILES = LICENSE MANIFEST.in README.rst CHANGES.rst requirements.txt requirements2.txt setup.py src stress tutorial
 
 PATH := /usr/local/python26/bin:/opt/rh/rh-python34/root/usr/bin:$(PATH)
 
