@@ -5,4 +5,4 @@
 # padded with zeros - that is, 123.1 is the same as 123.1.0.0....
 # (and also 123.1.dev = 123.1.0.0.dev).
 
-__version__ = '100.0.0.dev'
+__version__ = '100.0.0'
