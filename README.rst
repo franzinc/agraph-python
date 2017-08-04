@@ -30,9 +30,9 @@ manager::
    pip install agraph-python
                
 Alternatively, a distribution archive can be obtained from
-http://franz.com/agraph/downloads/clients and installed using `pip`::
+ftp://ftp.franz.com/pub/agraph/python-client/ and installed using `pip`::
 
-    pip install agraph-<VERSION>-python-client.tar.gz
+    pip install agraph-python-<VERSION>.tar.gz
 
 .. warning::
 
