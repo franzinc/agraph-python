@@ -4,19 +4,15 @@
 #   get: print the version number to stdout
 #   set V: set the version number to V
 #   next: Increment the fifth version segment,
-#         make sure 'dev' is at the end.
-#   undev: Strip 'dev' from the version number.
+#         make sure 'dev0' is at the end.
+#   undev: Strip 'dev0' from the version number.
 #   verify-dev: Exit with non-zero status if the version
-#               does not end in '.dev'.
+#               does not end in '.dev0'.
 #   verify-not-dev: Exit with non-zero status if the 
-#                   version ends in .dev.
+#                   version ends in .dev0.
 import os.path
 import re
 import sys
-
-# Version numbers consist of the AG version number padded with 0s
-# to this length and a single client-release segment.
-AG_VERSION_LENGTH = 4
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__)) if '__file__' in globals() else os.getcwd()
 
@@ -42,17 +38,18 @@ def set_version(v):
         f.write(text)
 
 def remove_dev(v):
-    "Remove the dev suffix from V if it is there."
-    if v.endswith('.dev'):
-        return v[:-4]
+    "Remove the dev0 suffix from V if it is there."
+    if v.endswith('.dev0'):
+        return v[:-5]
     return v
 
 def inc(v):
-    "Increment the client release segment in V."
+    "Increment the patch level in V."
     segments = [int(s) for s in remove_dev(v).split('.')]
-    segments += [0] * max(0, AG_VERSION_LENGTH - len(segments) + 1)
-    segments[AG_VERSION_LENGTH] += 1
-    return '.'.join(list(map(str, segments)) + ['dev'])
+    # Advance the patch level
+    segments[2] = segments[2] + 1
+    # Construct a new version string in MAJOR.MINOR.PATCH.dev0 format
+    return '.'.join(list(map(str, segments[0:3])) + ['dev0'])
     
 def main(args):
     cmd = args[1] if len(args) > 1 else 'get'
@@ -65,12 +62,12 @@ def main(args):
     elif cmd == 'undev':
         set_version(remove_dev(get_version()))
     elif cmd == 'verify-dev':
-        if not get_version().endswith('.dev'):
-            sys.stderr.write('Expected a .dev version number.\n')
+        if not get_version().endswith('.dev0'):
+            sys.stderr.write('Expected a .dev0 version number.\n')
             sys.exit(1)
     elif cmd == 'verify-not-dev':
-        if get_version().endswith('.dev'):
-            sys.stderr.write('Expected a release (non .dev) version number.\n')
+        if get_version().endswith('.dev0'):
+            sys.stderr.write('Expected a release (non .dev0) version number.\n')
             sys.exit(1)
     else:
         sys.stderr.write('Unknown command: %s\n' % cmd)
