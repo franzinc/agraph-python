@@ -2088,6 +2088,10 @@ This value is then normalized so that it ranges between 0 and 1.  </p>
   <li>Don't create duplicate triples. It is surprisingly easy to fill the triple store with duplicates if you are not careful to generate clean RDF files.</li>
   <li>Filter the duplicate results from the output of your queries. SPARQL in particular has features that reduce or eliminate duplicate results. </li>
 </ul>
+<h3>Enable duplicate suppression</h3>
+<p>AllegroGraph can detect and remove duplicate triples at commit time. While this feature provides a very convenient method of ensuring that a store does not contain any duplicates, it has a non-negligible performance impact.</p>
+<p>Duplicate suppression can operate in one of two modes: "spo" or "spog". In the "spo" mode quads that differ only in their fourth component (graph) will be considered identical.</p>
+<p>To enable duplicate suppression call the <strong>setDuplicateSuppressionPolicy()</strong> method of the connection object, passing in the desired mode as a parameter. Be aware that this setting will affect all other connections to the same repository. To disable suppression, call <strong>disableuplicateSuppression()</strong></p>
 <h3>Tighten Up Your Queries</h3>
 <p>Triple patterns sometimes act in unexpected ways, resulting in &quot;too many&quot; matches.</p>
 <p><strong>Example23()</strong> revives the Kennedy family tree. It loads the <strong>kennedy.ntriples</strong> file, resulting in 1214 triples.</p>
@@ -2147,7 +2151,6 @@ After loading, there are:
 After loading, there are:
   2428 kennedy triples in context 'null';</pre>
 <p>Now there are two copies of every Kennedy triple. If you add the same triple multiple times, you will get multiple copies of it. </p>
-<h3></h3>
 <h3>Filter Out Duplicate Results </h3>
 <p>In practice, our advice &quot;don't create duplicate triples&quot; may be difficult to follow. Some data feeds contain duplicated information and there is no convenient or efficient way to filter it out. So now you have duplicated data in the system. How much trouble might that cause?</p>
 <p>This simple query should return three matches, one for each of Ted Kennedy's three children: </p>

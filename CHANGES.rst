@@ -2,6 +2,19 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.0.1
+===============
+
+rfe15005: duplicate suppression control API
+-------------------------------------------
+
+It is now possible to set and query the duplicate suppression policy of
+a repository from Python, using three new methods of the connection
+object:
+    - getDuplicateSuppressionPolicy()
+    - setDuplicateSuppressionPolicy()
+    - disableDuplicateSuppression()
+
 Release 100.0.0
 ===============
 

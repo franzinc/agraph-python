@@ -750,6 +750,15 @@ class Repository(Service):
         accept = "application/json"
         return jsonRequest(self, "GET", "/statements/duplicates?" + urlenc(mode=mode), accept=accept)
 
+    def getDuplicateSuppressionPolicy(self):
+        return jsonRequest(self, "GET", "/suppressDuplicates", accept="application/json") or None
+
+    def setDuplicateSuppressionPolicy(self, mode):
+        nullRequest(self, "PUT", "/suppressDuplicates?" + urlenc(type=mode or "false"))
+
+    def disableDuplicateSuppression(self):
+        nullRequest(self, "DELETE", "/suppressDuplicates")
+
     def callStoredProc(self, function, module, *args):
         encoded = encode(serialize(args))
         return deserialize(decode(jsonRequest(self, "POST", "/custom/"+function,

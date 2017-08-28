@@ -1093,6 +1093,33 @@ class RepositoryConnection(object):
         stringTuples = self._get_mini_repository().getDuplicateStatements(mode)
         return RepositoryResult(stringTuples)
 
+    def getDuplicateSuppressionPolicy(self):
+        """
+        Return the duplicate suppression policy used by the store.
+        See https://franz.com/agraph/support/documentation/current/deleting-duplicate-triples.html
+
+        :return: Duplicate suppression policy: "spo", "spog" or None.
+        :rtype: str
+        """
+        return self._get_mini_repository().getDuplicateSuppressionPolicy()
+
+    def setDuplicateSuppressionPolicy(self, mode):
+        """
+        Set the duplicate suppression policy used by the store.
+        See https://franz.com/agraph/support/documentation/current/deleting-duplicate-triples.html
+
+        :param mode: Duplicate suppression policy: "spo", "spog" or None (disable suppression).
+        :type mode: str
+        """
+        self._get_mini_repository().setDuplicateSuppressionPolicy(mode)
+
+    def disableDuplicateSuppression(self):
+        """
+        Disable duplicate suppression for this store.
+        See https://franz.com/agraph/support/documentation/current/deleting-duplicate-triples.html
+        """
+        self._get_mini_repository().disableDuplicateSuppression()
+
     def callStoredProc(self, function, module, *args):
         return self._get_mini_repository().callStoredProc(function, module,
             *args)

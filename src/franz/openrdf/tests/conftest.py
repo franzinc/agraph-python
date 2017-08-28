@@ -39,6 +39,7 @@ def conn():
     if STORE in stores:
         connection.clear()
         connection.clearNamespaces()
+        connection.disableDuplicateSuppression()
 
     with connection:
         yield connection
@@ -72,3 +73,35 @@ def non_existing_repo():
     yield store
     if store in catalog.listRepositories():
         catalog.deleteRepository(store)
+
+
+# noinspection PyShadowingNames
+@pytest.fixture
+def session(conn):
+    conn.openSession()
+    yield conn
+    conn.closeSession()
+
+
+# Injecting common URIs this way is less verbose
+
+def make_uri_fixture(name):
+    """
+    Create a pytest fixture named NAME that resolves
+    to a URI object '<ex://NAME>'.
+    """
+    # noinspection PyShadowingNames
+    def func(conn):
+        return conn.createURI('ex://' + name)
+    func.__name__ = name
+    return pytest.fixture(func, name=name)
+
+
+def define_uri_fixtures():
+    gl = globals()
+    for uri in ('s', 'p', 'o', 'g', 'x'):
+        for suffix in ('', '1', '2'):
+            name = uri + suffix
+            gl[name] = make_uri_fixture(name)
+
+define_uri_fixtures()

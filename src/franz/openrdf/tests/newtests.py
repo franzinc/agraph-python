@@ -216,19 +216,13 @@ def test_get_statements_raw_value(conn):
 
 
 # See spr43630
-def test_unicode_literal_filter(conn):
-    s = conn.createURI('ex://s')
-    p = conn.createURI('ex://p')
+def test_unicode_literal_filter(conn, s, p):
     o = conn.createLiteral(u'<दुप>')
     conn.add(s, p, o)
     conn.getStatements(None, None, o)
 
-def test_remove_statement(conn):
-    s = conn.createURI('ex://s')
-    p = conn.createURI('ex://p')
-    o = conn.createURI('ex://o')
-    g = conn.createURI('ex://g')
-    x = conn.createURI('ex://x')
+
+def test_remove_statement(conn, s, p, o, x, g):
     conn.add(s, p, o, [g])
     conn.add(x, p, o, [g])
     conn.add(s, x, o, [g])
@@ -241,3 +235,85 @@ def test_remove_statement(conn):
     for r in remaining:
         assert r.getSubject() != s or r.getPredicate() != p \
                or r.getObject() != o or r.getContext() != g
+
+
+def test_no_suppression(conn, s, p, o, o2):
+    assert conn.getDuplicateSuppressionPolicy() is None
+    conn.add(s, p, o)
+    conn.add(s, p, o)
+    conn.add(s, p, o2)
+    conn.commit()
+    assert len(conn.getStatements(None, None, None)) == 3
+
+
+def test_spo_suppression(conn, s, p, o, o2, g1, g2):
+    conn.setDuplicateSuppressionPolicy("spo")
+    assert conn.getDuplicateSuppressionPolicy() == "spo"
+    conn.add(s, p, o, [g1])
+    conn.add(s, p, o, [g1])
+    conn.add(s, p, o2, [g1])
+    conn.add(s, p, o, [g2])
+    conn.commit()
+    assert len(conn.getStatements(None, None, None)) == 2
+
+
+def test_spog_suppression(conn, s, p, o, o2, g1, g2):
+    conn.setDuplicateSuppressionPolicy("spog")
+    assert conn.getDuplicateSuppressionPolicy() == "spog"
+    conn.add(s, p, o, [g1])
+    conn.add(s, p, o, [g1])
+    conn.add(s, p, o2, [g1])
+    conn.add(s, p, o, [g2])
+    conn.commit()
+    assert len(conn.getStatements(None, None, None)) == 3
+
+
+def test_disable_suppression(conn, s, p, o, o2):
+    conn.setDuplicateSuppressionPolicy("spo")
+    conn.add(s, p, o)
+    conn.add(s, p, o)
+    conn.add(s, p, o2)
+    conn.commit()
+    conn.disableDuplicateSuppression()
+    assert conn.getDuplicateSuppressionPolicy() is None
+    conn.add(s, p, o)
+    conn.add(s, p, o2)
+    assert len(conn.getStatements(None, None, None)) == 4
+
+
+def test_suppression_none(conn, s, p, o, o2):
+    conn.setDuplicateSuppressionPolicy("spo")
+    conn.add(s, p, o)
+    conn.add(s, p, o)
+    conn.add(s, p, o2)
+    conn.commit()
+    conn.setDuplicateSuppressionPolicy(None)
+    assert conn.getDuplicateSuppressionPolicy() is None
+    conn.add(s, p, o)
+    conn.add(s, p, o2)
+    assert len(conn.getStatements(None, None, None)) == 4
+
+
+def test_switch_suppression(conn, s, p, o, o2, g1, g2):
+    conn.setDuplicateSuppressionPolicy("spog")
+    assert conn.getDuplicateSuppressionPolicy() == "spog"
+    conn.add(s, p, o, [g1])
+    conn.add(s, p, o, [g1])
+    conn.add(s, p, o2, [g1])
+    conn.add(s, p, o, [g2])
+    conn.commit()
+    conn.setDuplicateSuppressionPolicy("spo")
+    assert conn.getDuplicateSuppressionPolicy() == "spo"
+    conn.add(s, p, o)
+    assert len(conn.getStatements(None, None, None)) == 3
+
+
+def test_switch_suppression_before_commit(session, s, p, o, o2, g1, g2):
+    session.setDuplicateSuppressionPolicy("spog")
+    session.add(s, p, o, [g1])
+    session.add(s, p, o, [g1])
+    session.add(s, p, o2, [g1])
+    session.add(s, p, o, [g2])
+    session.setDuplicateSuppressionPolicy("spo")
+    session.commit()
+    assert len(session.getStatements(None, None, None)) == 2

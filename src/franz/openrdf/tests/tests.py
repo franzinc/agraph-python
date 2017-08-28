@@ -120,6 +120,7 @@ def connect(accessMode=Repository.RENEW):
     myRepository = catalog.getRepository(STORE, mode)
     myRepository.initialize()
     connection = myRepository.getConnection()
+    connection.disableDuplicateSuppression()
 
     if accessMode == Repository.RENEW:
         connection.clear()
