@@ -204,7 +204,7 @@ _proxy_types = {
 }
 
 
-def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None, headers=None):
+def makeRequest(obj, method, url, body=None, accept=None, contentType=None, callback=None, errCallback=None, headers=None):
     """
     Send a request to the server.
 
@@ -221,6 +221,9 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     ##curl.setopt(pycurl.DEBUGFUNCTION, report)
 
     #curl.setopt(pycurl.TIMEOUT, 45)
+
+    if accept is None:
+        accept = "*/*"
 
     # Proxy support
     if obj.proxy is not None:

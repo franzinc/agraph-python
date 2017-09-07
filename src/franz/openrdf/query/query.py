@@ -16,6 +16,9 @@ from past.builtins import basestring
 
 from future.utils import iteritems, python_2_unicode_compatible
 
+from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.rio.tupleformat import TupleFormat
+from franz.openrdf.util.contexts import output_to
 from ..exceptions import IllegalOptionException, QueryMissingFeatureException
 from .dataset import ALL_CONTEXTS, Dataset
 from .queryresult import GraphQueryResult, TupleQueryResult
@@ -162,7 +165,9 @@ class Query(object):
     def _get_connection(self):
         return self.connection
     
-    def evaluate_generic_query(self, count=False, accept=None, analyze=False, analysisTechnique=None, analysisTimeout=None, update=False):
+    def evaluate_generic_query(self, count=False, accept=None, callback=None,
+                               analyze=False, analysisTechnique=None, analysisTimeout=None,
+                               update=False):
         """
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case).  Return an appropriate response.
@@ -188,15 +193,21 @@ class Query(object):
         if self.queryLanguage == QueryLanguage.SPARQL:  
             response = mini.evalSparqlQuery(self.queryString, context=regularContexts, namedContext=namedContexts, 
                                             infer=self.includeInferred, bindings=bindings,
-                                            checkVariables=self.checkVariables, count=count, accept=accept, analyze=analyze,
-                                            analysisTechnique=analysisTechnique, analysisTimeout=analysisTimeout, update=update)
+                                            checkVariables=self.checkVariables, count=count,
+                                            accept=accept, callback=callback,
+                                            analyze=analyze, analysisTechnique=analysisTechnique,
+                                            analysisTimeout=analysisTimeout, update=update)
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
                 raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
             if analyze:
                 raise QueryMissingFeatureException("Prolog queries do not support analysis.")
             # evalPrologQuery is already always done as if update=True
-            response = mini.evalPrologQuery(self.queryString, infer=self.includeInferred, count=count, accept=accept)
+            response = mini.evalPrologQuery(self.queryString,
+                                            infer=self.includeInferred, count=count, accept=accept,
+                                            callback=callback)
+        else:
+            raise ValueError('Unsupported query language: %s' % self.queryLanguage)
         return response
 
     @staticmethod
@@ -214,19 +225,27 @@ class Query(object):
        
   
 class TupleQuery(Query):
-    def evaluate(self, count=False):
+    def evaluate(self, count=False, output=None, output_format=None):
         """
         Execute the embedded query against the RDF store.  Return
         an iterator that produces for each step a tuple of values
         (resources and literals) corresponding to the variables
         or expressions in a 'select' clause (or its equivalent).
         """
-        response = self.evaluate_generic_query(count=count)
 
-        if count:
-            return response
-        
-        return TupleQueryResult(response['names'], response['values'])
+        with output_to(output) as out:
+            callback = None if output is None else out.write
+            accept = None if output is None else TupleFormat.mime_type_for_format(output_format)
+            response = self.evaluate_generic_query(
+                count=count, accept=accept, callback=callback)
+
+            if count:
+                return response
+
+            if output is not None:
+                return None
+
+            return TupleQueryResult(response['names'], response['values'])
 
     def analyze(self, analysisTechnique=None, analysisTimeout=None):
         """
@@ -250,13 +269,20 @@ class UpdateQuery(Query):
 
 class GraphQuery(Query):
     
-    def evaluate(self):
+    def evaluate(self, output=None, output_format=RDFFormat.NQX):
         """
         Execute the embedded query against the RDF store.  Return
         a graph.
         """
-        response = self.evaluate_generic_query()
-        return GraphQueryResult(response)
+        with output_to(output) as out:
+            callback = None if output is None else out.write
+            accept = None if output is None else RDFFormat.mime_type_for_format(output_format)
+            response = self.evaluate_generic_query(accept=accept, callback=callback)
+            if output is None:
+                return GraphQueryResult(response)
+            else:
+                return None
+
 
 class BooleanQuery(Query):
     

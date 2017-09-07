@@ -342,12 +342,19 @@ implementation)! </p>
   </tr>
   <tr>
     <td valign="top">getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,<br>
-limit=None, tripleIDs=False)</td>
-      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDFS++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; If <em>tripleIDs</em> is True, the output includes the triple ID field (the fifth field of the quad). </td>
+limit=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX)</td>
+      <td>Gets all statements with a specific <em>subject</em>, <em>predicate</em> and/or <em>object</em> from the repository. The result is optionally restricted to the specified set of named <em>contexts</em> (default is ALL_CONTEXTS). A context is the URI of a subgraph. Returns a <a href="#RepositoryResult Class">RepositoryResult</a> iterator that produces a '<a href="#Statement Class">Statement</a>' each time that 'next' is called. May optionally <em>includeInferred</em> statements provided by RDFS++ inference (default is False). Takes an optional <em>limit</em> on the number of statements to return.&nbsp; If <em>tripleIDs</em> is True, the output includes the triple ID field (the fifth field of the quad).
+        To serialize the statements to a file or stream, pass a file path or a file-like object as the <em>output</em> parameter.
+        Set <em>output_format</em> to an instance of RDFFormat to control the serialization format.
+        Note that if the <em>output</em> parameter is used the function returns None instead of a RepositoryResult.
+      </td>
   </tr>
   <tr>
     <td valign="top">getStatementsById(self, ids) </td>
-    <td>Return all statements whose triple ID matches an ID in the list of <em>ids.</em> </td>
+    <td>Return all statements whose triple ID matches an ID in the list of <em>ids.</em>
+      To serialize the statements to a file or stream, pass a file path or a file-like object as the <em>output</em> parameter.
+      Set <em>output_format</em> to an instance of RDFFormat to control the serialization format.
+      Note that if the <em>output</em> parameter is used the function returns None instead of a RepositoryResult.   </td>
   </tr>
   <tr>
     <td valign="top">getValueFactory(self)</td>
@@ -744,7 +751,12 @@ to return the results as a string in xml or json format. (Best practice is to us
         <td>Execute the embedded query against the RDF store. Return 
 an iterator that produces for each step a tuple of values 
 (resources and literals) corresponding to the variables 
-or expressions in a 'select' clause (or its equivalent).</td>
+or expressions in a 'select' clause (or its equivalent).
+
+To serialize the returned tuples to a file or stream, pass a file path or a file-like object as the <em>output</em> parameter.
+Set <em>output_format</em> to an instance of TupleFormat to control the serialization format.
+Note that if the <em>output</em> parameter is used the function returns None.
+        </td>
     </tr>
 </table>
 <h3 id="Subclass GraphQuery">Subclass GraphQuery&nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a> </h3>
@@ -754,7 +766,14 @@ or expressions in a 'select' clause (or its equivalent).</td>
 <table width="769" border="2px" cellpadding="4px" style="border-collapse:collapse; border-color:#0000FF;">
     <tr>
         <td valign="top">evaluate(self)</td>
-        <td>Execute the embedded query against the RDF store.</td>
+        <td>Execute the embedded query against the RDF store.
+
+          Returns a RepositoryResult object.
+
+          To serialize the statements to a file or stream, pass a file path or a file-like object as the <em>output</em> parameter.
+          Set <em>output_format</em> to an instance of RDFFormat to control the serialization format.
+          Note that if the <em>output</em> parameter is used the function returns None instead of a RepositoryResult.
+        </td>
     </tr>
 </table>
 <h3 id="Subclass BooleanQuery">Subclass BooleanQuery &nbsp;&nbsp;&nbsp;<a class="returnlink" href="#Contents">Return to Top</a></h3>

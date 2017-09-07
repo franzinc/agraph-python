@@ -12,9 +12,14 @@ from decimal import Decimal
 import pytest
 import sys
 
+import re
+from six import BytesIO
+
 from franz.openrdf.connect import ag_connect
 from franz.openrdf.model import Literal, Statement
+from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.sail import AllegroGraphServer
 from franz.openrdf.tests.tz import MockTimezone
 from franz.openrdf.vocabulary import XMLSchema
@@ -130,7 +135,7 @@ def test_server_https_if_cainfo():
     ("somefile.kaboom", None, None),
 ])
 def test_format_for_ext(filename, expected_format, expected_compression):
-    actual_format, actual_compression = RDFFormat.rdf_format_for_file_name(filename)
+    actual_format, actual_compression = RDFFormat.format_for_file_name(filename)
     if actual_format is None:
         assert expected_format is None
     else:
@@ -317,3 +322,55 @@ def test_switch_suppression_before_commit(session, s, p, o, o2, g1, g2):
     session.setDuplicateSuppressionPolicy("spo")
     session.commit()
     assert len(session.getStatements(None, None, None)) == 2
+
+
+def test_export_ntriples(conn):
+    conn.addData("""<ex://s1> <ex://p1> <ex://o1> .
+                    <ex://s2> <ex://p2> <ex://o2> .""")
+    out = BytesIO()
+    conn.getStatements(output=out, output_format=RDFFormat.NTRIPLES)
+    result = sorted(out.getvalue().decode('utf-8').splitlines())
+    assert result == [
+        "<ex://s1> <ex://p1> <ex://o1> .",
+        "<ex://s2> <ex://p2> <ex://o2> ."
+    ]
+
+
+def test_export_by_id(conn):
+    conn.addData("""<ex://s1> <ex://p1> <ex://o1> .
+                    <ex://s2> <ex://p2> <ex://o2> .""")
+    ids = [stmt.getTripleID()
+           for stmt in conn.getStatements(subject=conn.createURI('ex://s2'), tripleIDs=True)]
+
+    out = BytesIO()
+    conn.getStatementsById(ids, output=out, output_format=RDFFormat.NTRIPLES)
+    result = sorted(out.getvalue().decode('utf-8').splitlines())
+    assert result == [
+        "<ex://s2> <ex://p2> <ex://o2> ."
+    ]
+
+
+def test_export_query_result(conn):
+    conn.addData("""<ex://s1> <ex://p1> <ex://o1> .
+                    <ex://s2> <ex://p2> <ex://o2> .""")
+    query_string = "select ?s { ?s <ex://p1> ?o }"
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL, query_string)
+    out = BytesIO()
+    query.evaluate(output=out, output_format=TupleFormat.CSV)
+    result = re.sub(r'\s', '', out.getvalue().decode('utf-8'))
+    assert result == 's"ex://s1"'
+
+
+def test_export_construct(conn):
+    query = conn.prepareGraphQuery(QueryLanguage.SPARQL, """
+        CONSTRUCT {
+          <ex://s1> <ex://p1> <ex://o1> .
+          <ex://s2> <ex://p2> <ex://o2> .
+        } WHERE {}""")
+    out = BytesIO()
+    query.evaluate(output=out, output_format=RDFFormat.NTRIPLES)
+    result = sorted(out.getvalue().decode('utf-8').splitlines())
+    assert result == [
+        "<ex://s1> <ex://p1> <ex://o1> .",
+        "<ex://s2> <ex://p2> <ex://o2> ."
+    ]

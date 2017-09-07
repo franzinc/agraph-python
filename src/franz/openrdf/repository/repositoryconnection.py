@@ -15,6 +15,8 @@ from __future__ import unicode_literals
 from future.builtins import object
 from past.builtins import map, unicode, basestring
 
+from franz.miniclient.request import wrap_callback
+from franz.openrdf.util.contexts import output_to
 from .repositoryresult import RepositoryResult
 
 from ..exceptions import IllegalOptionException, IllegalArgumentException
@@ -274,59 +276,97 @@ class RepositoryConnection(object):
         else:
             return self._to_ntriples(term)
 
-    def getStatements(self, subject, predicate,  object, contexts=ALL_CONTEXTS, includeInferred=False,
-                       limit=None, offset=None, tripleIDs=False):
+    def getStatements(self, subject=None, predicate=None,  object=None, contexts=ALL_CONTEXTS, includeInferred=False,
+                       limit=None, offset=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX):
         """
         Gets all statements with a specific subject, predicate and/or object from
         the repository. The result is optionally restricted to the specified set
         of named contexts.  Returns a RepositoryResult that produces a 'Statement'
-        each time that 'next' is called.
+        each time that 'next' is called.  Alternatively the output can be written
+        to a file or a file-like object passed in the output parameter. In that case
+        None is returned. Set output_format to an RDFormat to control the serialization
+        format.
         """
-        subj = self._convert_term_to_mini_term(subject)
-        pred = self._convert_term_to_mini_term(predicate)
-        obj = self._convert_term_to_mini_term(object, predicate)
-        cxt = self._contexts_to_ntriple_contexts(contexts)
-        if isinstance(object, GeoSpatialRegion):
-            return self._getStatementsInRegion(subj, pred, obj, cxt, limit=limit, offset=offset)
+        with output_to(output) as out_file:
+            callback = None if output is None else out_file.write
+            accept = None if output is None else RDFFormat.mime_type_for_format(output_format)
 
-        stringTuples = self._get_mini_repository().getStatements(subj, pred, obj, cxt,
-            infer=includeInferred, limit=limit, offset=offset, tripleIDs=tripleIDs)
-        return RepositoryResult(stringTuples, tripleIDs=tripleIDs)
+            subj = self._convert_term_to_mini_term(subject)
+            pred = self._convert_term_to_mini_term(predicate)
+            obj = self._convert_term_to_mini_term(object, predicate)
+            cxt = self._contexts_to_ntriple_contexts(contexts)
+            if isinstance(object, GeoSpatialRegion):
+                if cxt is not None and cxt != ALL_CONTEXTS:
+                    raise ValueError('Geospatial queries cannot be limited to a context.')
+                return self._getStatementsInRegion(subj, pred, obj, limit=limit, offset=offset,
+                                                   accept=accept, callback=callback)
+            else:
+                result = self._get_mini_repository().getStatements(
+                    subj, pred, obj, cxt,
+                    infer=includeInferred, limit=limit, offset=offset, tripleIDs=tripleIDs,
+                    accept=accept, callback=callback)
 
-    def getStatementsById(self, ids):
+            if output is None:
+                return RepositoryResult(result, tripleIDs=tripleIDs)
+            else:
+                return None
+
+    def getStatementsById(self, ids, output=None, output_format=RDFFormat.NQX):
         """
         Return all statements whose triple ID matches an ID in the list 'ids'.
         """
-        stringTuples = self._get_mini_repository().getStatementsById(ids)
-        return RepositoryResult(stringTuples, tripleIDs=False)
+        with output_to(output) as out_file:
+            callback = None if output is None else out_file.write
+            accept = None if output is None else RDFFormat.mime_type_for_format(output_format)
+            result = self._get_mini_repository().getStatementsById(ids, accept=accept, callback=callback)
+        if output is None:
+            return RepositoryResult(result, tripleIDs=False)
+        else:
+            return False
 
-    def _getStatementsInRegion(self, subject, predicate,  region, contexts, limit=None, offset=None):
+    def _getStatementsInRegion(self, subject, predicate, region, limit=None, offset=None, accept=None, callback=None):
         geoType = region.geoType
         miniGeoType = geoType._getMiniGeoType()
+        common_args = {
+            'limit': limit,
+            'offset': offset,
+            'accept': accept,
+            'callback': callback
+        }
+
         if isinstance(region, GeoBox):
             if geoType.system == GeoType.Cartesian:
-                stringTuples = self._get_mini_repository().getStatementsInsideBox(miniGeoType, predicate,
-                                        region.xMin, region.xMax, region.yMin, region.yMax,
-                                        limit=limit, offset=offset)
+                stringTuples = self._get_mini_repository().getStatementsInsideBox(
+                    miniGeoType, predicate, region.xMin, region.xMax, region.yMin, region.yMax,
+                    **common_args)
             elif geoType.system == GeoType.Spherical:
-                stringTuples = self._get_mini_repository().getStatementsInsideBox(miniGeoType, predicate,
-                                        region.yMin, region.yMax, region.xMin, region.xMax,
-                                        limit=limit, offset=offset)
+                stringTuples = self._get_mini_repository().getStatementsInsideBox(
+                    miniGeoType, predicate, region.yMin, region.yMax, region.xMin, region.xMax,
+                    **common_args)
+            else:
+                raise ValueError('Unsupported coordinate system: %s' % geoType.system)
+
         elif isinstance(region, GeoCircle):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self._get_mini_repository().getStatementsInsideCircle(miniGeoType, predicate,
-                                        region.x, region.y, region.radius, limit=limit, offset=offset)
+                                        region.x, region.y, region.radius, **common_args)
             elif geoType.system == GeoType.Spherical:
                 stringTuples = self._get_mini_repository().getStatementsHaversine(miniGeoType, predicate,
                                         region.x, region.y, region.radius, unit=region.unit,
-                                        limit=limit, offset=offset)
-            else: pass ## can't happen
+                                        **common_args)
+            else:
+                raise ValueError('Unsupported coordinate system: %s' % geoType.system)
         elif isinstance(region, GeoPolygon):
             stringTuples = self._get_mini_repository().getStatementsInsidePolygon(miniGeoType, predicate,
                                         self._convert_term_to_mini_term(region.getResource()),
-                                        limit=limit, offset=offset)
-        else: pass ## can't happen
-        return RepositoryResult(stringTuples, subjectFilter=subject)
+                                        **common_args)
+        else:
+            raise ValueError('Unsupported region type: %s' % type(region))     # can't happen
+
+        if callback is None:
+            return RepositoryResult(stringTuples, subjectFilter=subject)
+        else:
+            return None
 
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
     def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
@@ -372,7 +412,7 @@ class RepositoryConnection(object):
             context = context[0] if context else None
         contextString = self._context_to_ntriples(context, none_is_mini_null=True)
 
-        fmt, ce = RDFFormat.rdf_format_for_file_name(filePath)
+        fmt, ce = RDFFormat.format_for_file_name(filePath)
         format = format or fmt
         content_encoding = content_encoding or ce
     
@@ -386,8 +426,8 @@ class RepositoryConnection(object):
         Adds data from a string to the repository.
 
         :param data: Data to be added.
-        :param rdf_format: Data format.
-        :type rdf_format: RDFFormat
+        :param rdf_format: Data format - either a RDFFormat or a MIME type (string).
+        :type rdf_format: RDFFormat|str
         :param base_uri: Base for resolving relative URIs.
                          If None (default), the URI will be chosen by the server.
         :param context: Graph to add the data to.
@@ -549,26 +589,27 @@ class RepositoryConnection(object):
         """
         Exports all explicit statements in the specified contexts to the supplied
         RDFHandler.
-        """
 
-        warnings.warn("export is deprecated. Use saveResponse instead.", DeprecationWarning, stacklevel=2)
+        .. deprecated:: 4.6
+           Use getStatements(output=...) instead.
+        """
+        warnings.warn("export is deprecated. Use getStatements(output=...) instead.", DeprecationWarning, stacklevel=2)
         self.exportStatements(None, None, None, False, handler, contexts=contexts)
 
     def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS):
         """
         Exports all statements with a specific subject, predicate and/or object
         from the repository, optionally from the specified contexts.
-        """
-        warnings.warn("exportStatements is deprecated. Use saveResponse instead.", DeprecationWarning, stacklevel=2)
-        def doit(fileobj):
-            with self.saveResponse(fileobj, handler.getRDFFormat().mime_types[0]):
-                self.getStatements(subj, pred, obj, contexts, includeInferred=includeInferred)
 
-        if handler.getFilePath() is None:
-            doit(sys.stdout)
-        else:
-            with open(handler.getFilePath(), 'w') as outfile:
-                doit(outfile)
+        .. deprecated:: 4.6
+           Use getStatements(output=...) instead.
+        """
+        warnings.warn("exportStatements is deprecated. Use getStatements(output=...) instead.",
+                      DeprecationWarning, stacklevel=2)
+        self.getStatements(subj, pred, obj, contexts,
+                           output=handler.getFilePath() or sys.stdout,
+                           output_format=handler.getRDFFormat(),
+                           includeInferred=includeInferred)
 
     def getSubjectTriplesCacheSize(self):
         """
@@ -864,7 +905,7 @@ class RepositoryConnection(object):
         Return an array of statements for the given free-text pattern search.
         """
         miniRep = self._get_mini_repository()
-        return miniRep.evalFreeTextSearch(pattern, index, infer, callback, limit, offset=offset)
+        return miniRep.evalFreeTextSearch(pattern, index, infer, wrap_callback(callback), limit, offset=offset)
 
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         """
@@ -965,6 +1006,9 @@ class RepositoryConnection(object):
         Save the server response(s) for the call(s) within the with statement
         to fileobj, using accept for the response type requested.
 
+        .. deprecated:: 100.0.1
+           Use getStatements(output=...) or evaluate(output=...) to export data.
+
         Responses will be uncompressed and saved to fileobj, but not decoded.
         Therefore, the API called will likely error out shortly after the
         response is saved (which is okay because we really only want
@@ -982,7 +1026,7 @@ class RepositoryConnection(object):
             with conn.saveResponse(response, 'application/rdf+xml'):
                 conn.getStatements(None, None, None) # The response is written to response
         """
-        with self._get_mini_repository().saveResponse(fileobj,accept,raiseAll):
+        with self._get_mini_repository().saveResponse(fileobj, accept, raiseAll):
             yield
 
     def commit(self):

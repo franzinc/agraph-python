@@ -150,7 +150,7 @@ def normalize_headers(headers):
         return result
 
 
-def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, callback=None, errCallback=None, headers=None):
+def makeRequest(obj, method, url, body=None, accept=None, contentType=None, callback=None, errCallback=None, headers=None):
     """
     Send an HTTP request to given URL.
 
@@ -184,6 +184,8 @@ def makeRequest(obj, method, url, body=None, accept="*/*", contentType=None, cal
     :return: Status code and response body, unless callback is specified (in that case None is returned).
     :rtype: (int, string) | None
     """
+    if accept is None:
+        accept = "*/*"
     # We create a session object lazily, so we do not have any requests-specific stuff
     # in the implementation of the Service class.
     if obj.session is None:

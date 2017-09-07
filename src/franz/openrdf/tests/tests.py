@@ -2270,17 +2270,6 @@ def test_save_response():
     assert len(buf.getvalue()) > 0
 
     buf = io.BytesIO()
-    with conn.saveResponse(buf, 'application/rdf+xml', True):
-        try:
-            conn.getStatements()
-        except TypeError:
-            pass
-        else:
-            assert False, "Throwing exceptions failed."
-
-    assert len(buf.getvalue()) == 0
-
-    buf = io.BytesIO()
     with conn.saveResponse(buf, 'application/rdf+xml'):
         conn.getStatements(subject=None, predicate=None, object=None)
 

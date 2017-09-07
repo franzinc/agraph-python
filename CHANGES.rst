@@ -11,9 +11,27 @@ rfe15005: duplicate suppression control API
 It is now possible to set and query the duplicate suppression policy of
 a repository from Python, using three new methods of the connection
 object:
+
     - getDuplicateSuppressionPolicy()
     - setDuplicateSuppressionPolicy()
     - disableDuplicateSuppression()
+
+New export methods
+------------------
+
+A new mechanism for exporting data has been added. It utilizes a new
+``output`` parameter that has been added to the following methods:
+
+   - RepositoryConnection.getStatements()
+   - RepositoryConnection.getStatementsById()
+   - TupleQuery.evaluate()
+   - GraphQuery.evaluate()
+
+Setting the new parameter to a file name or a file-like object
+will cause the data that would normally be returned by the call
+to be saved to the specified file instead. Serialization format
+can be controlled by setting another new parameter,
+``output_format``.
 
 Release 100.0.0
 ===============

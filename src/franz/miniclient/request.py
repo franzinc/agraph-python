@@ -28,8 +28,6 @@ else:
     except ImportError:
         import franz.miniclient.backends.requests as backend
 
-makeRequest = backend.makeRequest
-
 from franz.openrdf.util.strings import to_native_string
 from franz.miniclient.agjson import decode_json, JsonDecodeError
 
@@ -40,15 +38,17 @@ else:
     from urllib import quote
     from cStringIO import StringIO
 
+makeRequest = backend.makeRequest
 
-def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", rowreader=None, accept="application/json", headers=None):
+def jsonRequest(obj, method, url, body=None, content_type="application/x-www-form-urlencoded",
+                callback=None, accept=None, headers=None):
     """
     Create a request that expects a JSON response.
 
     The response can optionally be saved to a file-like object if
     the connection object has the _saveFile and _saveAccept attributes.
 
-    Instead of being returned the response might be passed to a RowReader object.
+    Instead of being returned the response might be passed to a callback function.
 
     Raise an exception if the returned status is not in the 2XX range.
 
@@ -62,37 +62,41 @@ def jsonRequest(obj, method, url, body=None, contentType="application/x-www-form
     :type body: basestring|file
     :param accept: Value of the accept header (default: ``"application/json"``)
     :type accept: string
-    :param contentType: MIME type of the request body, optional.
-    :type contentType: string
+    :param content_type: MIME type of the request body, optional.
+    :type content_type: string
     :param headers: Either a dictionary mapping headers to values or
                     a list of strings that will be included in the request's headers.
     :type headers: Iterable[string] | dict[string, string] | None
     :return: Status code and response body, unless callback is specified (in that case None is returned).
-    :param rowreader: A RowReader object that will process the response.
-    :type rowreader: RowReader
+    :param callback: A callback function that will be called for each response chunk (optional).
+                     The return value should be either None or the number of bytes
+                     received, anything else will cause the request to be aborted.
+    :type callback: (bytestring) -> int
 
-    :return: A parsed JSON response or ``None`` if the response was saved to a file or processed by a RowReader.
+    :return: A parsed JSON response or ``None`` if the response was saved to a file or processed by a callback.
     :rtype: dict|string|int|float|None
     """
-    callback = None if rowreader is None else rowreader.process
+    if accept is None:
+        accept = "application/json"
+
     # If there is a _saveFile and _saveAccept, they override the arguments
     if hasattr(obj, '_saveFile') and hasattr(obj, '_saveAccept'):
         accept = obj._saveAccept
         callback = obj._saveFile.write
 
     if callback is None:
-        status, body = makeRequest(obj, method, url, body, accept, contentType, headers=headers)
-        if (status == 200):
+        status, body = makeRequest(obj, method, url, body, accept, content_type, headers=headers)
+        if status == 200:
             if accept in ('application/json', 'text/integer', "application/x-quints+json"):
                 body = decode_json(body)
             return body
         else: raise RequestError(status, body)
     else:
         def raiseErr(status, message): raise RequestError(status, message)
-        makeRequest(obj, method, url, body, accept, contentType, callback=callback, errCallback=raiseErr, headers=headers)
+        makeRequest(obj, method, url, body, accept, content_type, callback=callback, errCallback=raiseErr, headers=headers)
 
 
-def nullRequest(obj, method, url, body=None, contentType="application/x-www-form-urlencoded", content_encoding=None):
+def nullRequest(obj, method, url, body=None, content_type="application/x-www-form-urlencoded", content_encoding=None):
     """
     Create a request that expects an empty response body.
 
@@ -106,14 +110,15 @@ def nullRequest(obj, method, url, body=None, contentType="application/x-www-form
     :type url: string
     :param body: Request body (for PUT/POST requests) or query string, optional.
     :type body: basestring|file
-    :param contentType: MIME type of the request body, optional.
-    :type contentType: string
+    :param content_type: MIME type of the request body, optional.
+    :type content_type: string
     """
     headers = []
     if content_encoding is not None:
         headers.append('Content-Encoding: ' + content_encoding)
-    status, body = makeRequest(obj, method, url, body, "application/json", contentType, headers=headers)
-    if (status < 200 or status > 204): raise RequestError(status, body)
+    status, body = makeRequest(obj, method, url, body, "application/json", content_type, headers=headers)
+    if status < 200 or status > 204:
+        raise RequestError(status, body)
 
 
 if sys.version_info[0] == 2:
@@ -186,6 +191,28 @@ def urlenc(**args):
     for arg_name, value in iteritems(args):
         encval(arg_name, value)
     return buf.getvalue()
+
+
+def wrap_callback(callback):
+    """
+    Converts a row callback into a response callback.
+
+    A row callback is a function that takes rows (arrays of values).
+    A response callback takes raw response chunks (bytestrings).
+    The returned callback will parse a JSON response and invoke
+    the argument on each row discovered.
+
+    Passing in None as the argument is not an error and
+    results in None being returned.
+
+    :param callback: A row callback.
+    :type callback: list -> *
+    :return: A response callback that parses JSON.
+    :rtype: bytestring -> int
+    """
+    if callback is None:
+        return None
+    return RowReader(callback).process
 
 
 class RowReader(object):

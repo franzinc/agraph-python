@@ -12,6 +12,7 @@ from past.utils import old_div
 from past.builtins import basestring
 
 from franz.miniclient.agjson import encode_json
+from franz.openrdf.rio.formats import Format
 
 if sys.version_info[0] > 2:
     from urllib.parse import quote, urlparse
@@ -288,7 +289,7 @@ class Repository(Service):
                        planner=planner, checkVariables=checkVariables,
                        analyzeIndicesUsed=analyze, queryAnalysisTechnique=analysisTechnique,
                        queryAnalysisTimeout=analysisTimeout) + (bindings or ""),
-                       rowreader=callback and RowReader(callback),
+                       callback=callback,
                        accept=accept)
 
     def evalPrologQuery(self, query, infer=False, callback=None, limit=None, count=False, accept=None):
@@ -297,7 +298,7 @@ class Repository(Service):
             accept="text/integer" if count else "application/json"
         return jsonRequest(self, "POST", self.url,
                            urlenc(query=query, infer=infer, queryLn="prolog", limit=limit),
-                           rowreader=callback and RowReader(callback),
+                           callback=callback,
                            accept=accept)
 
     def definePrologFunctors(self, definitions):
@@ -332,7 +333,7 @@ class Repository(Service):
         nullRequest(self, "POST", "/rollback")
 
     def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None,
-                      limit=None, offset=None, tripleIDs=False, count=False):
+                      limit=None, offset=None, accept=None, tripleIDs=False, count=False):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
@@ -342,23 +343,26 @@ class Repository(Service):
         if isinstance(pred, tuple): pred, predEnd = pred
         if isinstance(obj, tuple): obj, objEnd = obj
 
-        accept = "application/json"
-        if count: accept = "text/integer"
-        elif tripleIDs: accept = "application/x-quints+json"
+        if accept is None:
+            accept = "application/json"
+            if count: accept = "text/integer"
+            elif tripleIDs: accept = "application/x-quints+json"
         return jsonRequest(self, "GET", "/statements",
             urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
                 obj=obj, objEnd=objEnd, context=context, infer=infer,
                 limit=limit, offset=offset),
-            rowreader=callback and RowReader(callback), accept=accept)
+            callback=callback, accept=accept)
 
-    def getStatementsById(self, ids, returnIDs=True):
+    def getStatementsById(self, ids, returnIDs=True, accept=None, callback=None):
+        if accept is None and returnIDs:
+            accept = "application/x-quints+json" if returnIDs else "application/json"
         return jsonRequest(self, "GET", "/statements/id", urlenc(id=ids),
-            accept=(returnIDs and "application/x-quints+json") or "application/json")
+                           accept=accept, callback=callback)
 
     def addStatement(self, subj, pred, obj, context=None):
         """Add a single statement to the repository."""
         nullRequest(self, "POST", "/statements", encode_json([[subj, pred, obj, context]]),
-                    contentType="application/json")
+                    content_type="application/json")
 
     def deleteMatchingStatements(self, subj=None, pred=None, obj=None, context=None):
         """Delete all statements matching the constraints from the
@@ -371,21 +375,7 @@ class Repository(Service):
         should be an array of four-element arrays, where the fourth
         element, the graph name, may be None."""
         nullRequest(self, "POST", "/statements?" + urlenc(commit=commitEvery),
-            encode_json(quads), contentType="application/json")
-
-    def mime_type_for_format(self, rdf_format):
-        """
-        Get the preferred MIME type for an RDF format.
-         Raise an error if the format is `None`
-
-        :param rdf_format: the format to get the MIME type for.
-        :type rdf_format: franz.openrdf.rio.rdfformat.RDFFormat
-        :return: A MIME type.
-        :rtype: string
-        """
-        if rdf_format is None:
-            raise Exception('Unable to determine file format.')
-        return rdf_format.mime_types[0]
+                    encode_json(quads), content_type="application/json")
 
     def loadData(self, data, rdf_format, base_uri=None, context=None, commit_every=None, content_encoding=None):
         nullRequest(self, "POST",
@@ -393,11 +383,11 @@ class Repository(Service):
                                             baseURI=base_uri,
                                             commit=commit_every),
                     data,
-                    contentType=self.mime_type_for_format(rdf_format),
+                    content_type=Format.mime_type_for_format(rdf_format),
                     content_encoding=content_encoding)
 
     def loadFile(self, file, rdf_format, baseURI=None, context=None, serverSide=False, commitEvery=None, content_encoding=None):
-        mime = self.mime_type_for_format(rdf_format)
+        mime = Format.mime_type_for_format(rdf_format)
 
         if serverSide:
             # file is a server-side path, body should be empty
@@ -415,23 +405,24 @@ class Repository(Service):
         with body_context as body:
             params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery)
             nullRequest(self, "POST", "/statements?" + params, body,
-                        contentType=mime, content_encoding=content_encoding)
+                        content_type=mime, content_encoding=content_encoding)
 
     def getBlankNodes(self, amount=1):
         return jsonRequest(self, "POST", "/blankNodes", urlenc(amount=amount))
 
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""
-        nullRequest(self, "POST", "/statements/delete", encode_json(quads), contentType="application/json")
+        nullRequest(self, "POST", "/statements/delete", encode_json(quads), content_type="application/json")
 
     def deleteStatementsById(self, ids):
-        nullRequest(self, "POST", "/statements/delete?ids=true", encode_json(ids), contentType="application/json")
+        nullRequest(self, "POST", "/statements/delete?ids=true", encode_json(ids), content_type="application/json")
 
     def evalFreeTextSearch(self, pattern, index=None, infer=False, callback=None, limit=None, offset=None):
         """Use free-text indices to search for the given pattern.
         Returns an array of statements."""
-        return jsonRequest(self, "GET", "/freetext", urlenc(pattern=pattern, infer=infer, limit=limit, offset=offset, index=index),
-                           rowreader=callback and RowReader(callback))
+        return jsonRequest(self, "GET", "/freetext",
+                           urlenc(pattern=pattern, infer=infer, limit=limit, offset=offset, index=index),
+                           callback=callback)
 
     def listFreeTextIndices(self):
         """List the names of free-text indices defined in this
@@ -515,7 +506,7 @@ class Repository(Service):
 
     def addNamespace(self, prefix, uri):
         nullRequest(self, "PUT", "/namespaces/" + quote(prefix),
-                    uri, contentType="text/plain")
+                    uri, content_type="text/plain")
 
     def deleteNamespace(self, prefix):
         nullRequest(self, "DELETE", "/namespaces/" + quote(prefix))
@@ -607,29 +598,38 @@ class Repository(Service):
         conv = self.unitDegreeFactor(unit)
         return "\"%s%s\"^^%s" % (asISO6709(lat * conv, 2), asISO6709(longitude * conv, 3), type)
 
-    def getStatementsHaversine(self, type, predicate, lat, longitude, radius, unit="km", limit=None, offset=None):
+    def getStatementsHaversine(self, type, predicate, lat, longitude, radius, unit="km", limit=None, offset=None,
+                               accept=None, callback=None):
         """Get all the triples with a given predicate whose object
         lies within radius units from the given latitude/longitude."""
         return jsonRequest(self, "GET", "/geo/haversine",
-                           urlenc(type=type, predicate=predicate, lat=lat, long=longitude, radius=radius, unit=unit, limit=limit, offset=offset))
+                           urlenc(type=type, predicate=predicate, lat=lat, long=longitude, radius=radius, unit=unit,
+                                  limit=limit, offset=offset),
+                           accept=accept, callback=callback)
 
-    def getStatementsInsideBox(self, type, predicate, xMin, xMax, yMin, yMax, limit=None, offset=None):
+    def getStatementsInsideBox(self, type, predicate, xMin, xMax, yMin, yMax, limit=None, offset=None,
+                               accept=None, callback=None):
         """Get all the triples with a given predicate whose object
         lies within the specified box."""
         return jsonRequest(self, "GET", "/geo/box",
-                           urlenc(type=type, predicate=predicate, xmin=xMin, xmax=xMax, ymin=yMin, ymax=yMax, limit=limit, offset=offset))
+                           urlenc(type=type, predicate=predicate, xmin=xMin, xmax=xMax, ymin=yMin, ymax=yMax,
+                                  limit=limit, offset=offset),
+                           accept=accept, callback=callback)
 
-    def getStatementsInsideCircle(self, type, predicate, x, y, radius, limit=None, offset=None):
+    def getStatementsInsideCircle(self, type, predicate, x, y, radius, limit=None, offset=None,
+                                  accept=None, callback=None):
         """Get all the triples with a given predicate whose object
         lies within the specified circle."""
         return jsonRequest(self, "GET", "/geo/circle",
-                           urlenc(type=type, predicate=predicate, x=x, y=y, radius=radius, limit=limit, offset=offset))
+                           urlenc(type=type, predicate=predicate, x=x, y=y, radius=radius, limit=limit, offset=offset),
+                           accept=accept, callback=callback)
 
-    def getStatementsInsidePolygon(self, type, predicate, polygon, limit=None, offset=None):
+    def getStatementsInsidePolygon(self, type, predicate, polygon, limit=None, offset=None, accept=None, callback=None):
         """Get all the triples with a given predicate whose object
         lies within the specified polygon (see createPolygon)."""
         return jsonRequest(self, "GET", "/geo/polygon",
-                           urlenc(type=type, predicate=predicate, polygon=polygon, limit=limit, offset=offset))
+                           urlenc(type=type, predicate=predicate, polygon=polygon, limit=limit, offset=offset),
+                           accept=accept, callback=callback)
 
     def createPolygon(self, resource, points):
         """Create a polygon with the given name in the store. points
@@ -731,7 +731,7 @@ class Repository(Service):
                     reg.format if hasattr(reg, "format") else reg[1]})
 
         nullRequest(self, "POST", "/encodedIds/prefixes",
-            contentType="application/json", body=encode_json(body))
+                    content_type="application/json", body=encode_json(body))
 
     def listEncodedIdPrefixes(self):
         return jsonRequest(self, "GET", "/encodedIds/prefixes")
