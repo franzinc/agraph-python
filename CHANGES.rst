@@ -5,6 +5,15 @@ AllegroGraph Python client release history
 Release 100.0.1
 ===============
 
+bug24892: Time parsing fixes
+----------------------------
+
+The Python client used to fail when trying to retrieve a
+datetimeValue() of a literal that contained time zone
+information. This has been corrected.
+
+All datetime objects created by the Python API are now timezone-aware.
+
 rfe15005: duplicate suppression control API
 -------------------------------------------
 

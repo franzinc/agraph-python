@@ -22,6 +22,7 @@ with open('README.rst', 'rb') as f:
     long_description = f.read().decode('utf-8')
 
 install_requires = [
+    'iso8601>=0.1.12,<1.0.0',
     'six>=1.10.0',
     'future>=0.15.2,<1.0',
     'requests>=2.11.1,<3.0']

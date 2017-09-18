@@ -6,7 +6,7 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 
 import pytest
@@ -374,3 +374,29 @@ def test_export_construct(conn):
         "<ex://s1> <ex://p1> <ex://o1> .",
         "<ex://s2> <ex://p2> <ex://o2> ."
     ]
+
+
+def test_datetime_value_tz():
+    lit = Literal('1984-08-26T10:00:05+02:00', XMLSchema.DATETIME)
+    dt = lit.datetimeValue()
+    assert dt.utcoffset() == timedelta(0, 7200)
+
+
+def test_time_value_tz():
+    lit = Literal('1984-08-26T10:00:05+02:00', XMLSchema.DATETIME)
+    t = lit.datetimeValue()
+    assert t.utcoffset() == timedelta(0, 7200)
+
+
+def test_datetime_tz_roundtrip(conn, s, p):
+    dt = conn.createLiteral('1984-08-26T10:00:05+02:00', XMLSchema.DATETIME)
+    conn.addTriple(s, p, dt)
+    actual = conn.getStatements().asList()[0].getObject()
+    assert actual == dt
+
+
+def test_time_tz_roundtrip(conn, s, p):
+    t = conn.createLiteral('10:00:05+02:00', XMLSchema.TIME)
+    conn.addTriple(s, p, t)
+    actual = conn.getStatements().asList()[0].getObject()
+    assert actual == t

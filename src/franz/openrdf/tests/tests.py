@@ -1485,7 +1485,7 @@ def test_temporal():
 
     x_dt = Literal(datetime.datetime(2009, 9, 28, 17, 41, 39))
     y_dt = Literal(datetime.datetime(2009, 9, 28, 18, 22))
-    z_dt = Literal(datetime.datetime(2009, 9, 28, 17, 0o2, 41))
+    z_dt = Literal(datetime.datetime(2009, 9, 28, 17, 2, 41))
 
     conn.addStatement(Statement(x, pred, x_dt))
     conn.addStatement(Statement(y, pred, y_dt))
@@ -1859,6 +1859,8 @@ def test_roundtrips():
         obj = next(conn.getStatements(None, '<http:%s>' % name, None)).\
             getObject().toPython()
         assert isinstance(obj, the_type)
+        # Ignore time zone - 'value' is going to be naive
+        obj = obj.replace(tzinfo=None)
         # Microseconds can have floating point roundoff...
         print('Original:', value, 'Store:', obj)
         assert obj == value or abs(obj.microsecond - value.microsecond) < 300

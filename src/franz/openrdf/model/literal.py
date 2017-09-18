@@ -13,6 +13,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import iso8601
 import math
 from decimal import Decimal
 
@@ -28,9 +29,12 @@ from ..util import strings
 import datetime
 from collections import defaultdict
 
-# Needed to temporarily convert times to datetimes to do arithmetic.
-RANDOM_DAY = datetime.date(1984, 8, 26)
 
+# Needed to temporarily convert times to datetimes to do arithmetic.
+# Python time objects do not support adding/subtracting time deltas,
+# but datetimes do. We need that operation to normalize times to UTC.
+RANDOM_DAY = datetime.date(1984, 8, 26)
+RANDOM_DAY_STRING = RANDOM_DAY.isoformat()
 
 def datatype_from_python(value, datatype):
     """
@@ -162,21 +166,28 @@ class Literal(Value):
     
     def dateValue(self):
         """Convert to date"""
-        label = self._label
-        if label.endswith('Z'):
-            label = label[:-1]
-        return datetime.datetime.strptime(label, "%Y-%m-%d").date()
+        # iso8601 can parse a date, but it will still be
+        # returned as a datetime.datetime object. So we have
+        # to extract the date (as a datetime.date object) from it.
+        return iso8601.parse_date(self._label).date()
 
     def datetimeValue(self):
         """Convert to datetime"""
-        return _parse_iso(self._label)
+        return iso8601.parse_date(self._label, default_timezone=None)
 
     def timeValue(self):
         """Convert to time"""
-        # Making this easy by picking a someone arbitrary date (that had a leap second just in case)
-        # and reusing _parse_iso
-        return _parse_iso('2008-12-31T' + self._label).time()
-    
+        # iso8601 can't parse a time
+        # We trick it by prepending a random date,
+        # parsing the result as a datetime and extracting
+        # the time from that.
+        label = RANDOM_DAY_STRING + 'T' + self._label
+        # Return a naive time if there is no timezone.
+        # The default is UTC.
+        dt = iso8601.parse_date(label, default_timezone=None)
+        # Note that time() strips the time zone
+        return dt.time().replace(tzinfo=dt.tzinfo)
+
     ## Returns the {@link XMLGregorianCalendar} value of this literal. A calendar
     ## representation can be given for literals whose label conforms to the
     ## syntax of the following <a href="http://www.w3.org/TR/xmlschema-2/">XML
@@ -331,167 +342,3 @@ class GeoPolygon(GeoSpatialRegion):
     def getResource(self): return self.resource
     
     def __str__(self): return "|Polygon|%s" % self.vertices
-    
-# The code below this line is modifed from the fixed_datetime.py file
-# which can be found here:
-#
-# http://blog.twinapex.fi/2008/06/30/relativity-of-time-shortcomings-in-python-datetime-and-workaround/
-#
-# We don't wish to be dependant on pytz or monkeypatch datetime, so only
-# portions were used.
-
-# Copyright (c) 2008, Red Innovation Ltd., Finland
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of Red Innovation nor the names of its contributors 
-#       may be used to endorse or promote products derived from this software 
-#       without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY RED INNOVATION ``AS IS'' AND ANY
-# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL RED INNOVATION BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-def _parse_iso(timestamp):
-    """Parses the given ISO 8601 compatible timestamp string 
-    and converts it to fixed_datetime.datetime. The timestamp
-    must conform to following formats:
-
-         - the format is DATE SEP TIME TIMEZONE without
-           any intervening spaces.
-
-         - the date must be in format YYYY-MM-DD
-
-         - the time may be either
-             * HH:MM:SS,FFFF
-             * HH:MM,FFFF
-             * HH,FFFF
-           FFFF is the fractional part. Decimal point can be
-           used too.
-
-         - the time zone must be either Z, -HH:MM or +HH:MM
-
-         - the date and time must be separated either by
-           whitespace or single T letter
-
-         - the separators - and : may all be omitted, or
-           must all be present.
-
-         Examples (Unix Epoch):
-
-             1970-01-01T00:00:00Z 
-             1970-01-01T00Z 
-             1969-12-31 19,5-04:30
-             19700101T030000+0300
-    """
-    timestamp = timestamp.strip()
-    
-    m = _parse_iso.parser.match(timestamp)
-    if not m:
-        raise ValueError("%s: Not a proper ISO 8601 timestamp!" % timestamp)
-
-    year  = int(m.group('year'))
-    month = int(m.group('month'))
-    day   = int(m.group('day'))
-    
-    h, min, s, us = None, None, None, 0
-    frac = 0
-    if m.group('tzempty') == None and m.group('tzh') == None:
-        raise ValueError("Not a proper ISO 8601 timestamp: " +
-                "missing timezone (Z or +hh[:mm])!")
-
-    if m.group('frac'):
-        frac = m.group('frac')
-        power = len(frac)
-        frac  = old_div(int(frac), 10.0 ** power)
-
-    if m.group('hour'):
-        h = int(m.group('hour'))
-
-    if m.group('minute'):
-        min = int(m.group('minute'))
-
-    if m.group('second'):
-        s = int(m.group('second'))
-
-    if frac != None:
-        # ok, fractions of hour?
-        if min == None:
-           frac, min = math.modf(frac * 60.0)
-           min = int(min)
-
-        # fractions of second?
-        if s == None:
-           frac, s = math.modf(frac * 60.0)
-           s = int(s)
-
-        # and extract microseconds...
-        us = int(frac * 1000000)
-
-    if m.group('tzempty') == 'Z':
-        offsetmins = 0
-    else:
-        # timezone: hour diff with sign
-        offsetmins = int(m.group('tzh')) * 60
-        tzm = m.group('tzm')
-      
-        # add optional minutes
-        if tzm != None:
-            tzm = int(tzm)
-            offsetmins += tzm if offsetmins > 0 else -tzm
-
-    # For our use here, we should not be given non-zero offsets
-    assert offsetmins == 0
-
-    return datetime.datetime(year, month, day, h, min, s, us)
-
-import re
-
-_parse_iso.parser = re.compile("""
-    ^
-    (?P<year> [0-9]{4})(?P<ymdsep>-?)
-    (?P<month>[0-9]{2})(?P=ymdsep)
-    (?P<day>  [0-9]{2})
-
-    (?: # time part... optional... at least hour must be specified
-	(?:T|\s+)
-        (?P<hour>[0-9]{2})
-        (?:
-            # minutes, separated with :, or none, from hours
-            (?P<hmssep>[:]?)
-            (?P<minute>[0-9]{2})
-            (?:
-                # same for seconds, separated with :, or none, from hours
-                (?P=hmssep)
-                (?P<second>[0-9]{2})
-            )?
-        )?
-        
-        # fractions
-        (?: [,.] (?P<frac>[0-9]{1,10}))?
-
-        # timezone, Z, +-hh or +-hh:?mm. MUST BE, but complain if not there.
-        (
-            (?P<tzempty>Z) 
-        | 
-            (?P<tzh>[+-][0-9]{2}) 
-            (?: :? # optional separator 
-                (?P<tzm>[0-9]{2})
-            )?
-        )?
-    )?
-    $
-""", re.X) # """
