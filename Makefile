@@ -61,8 +61,6 @@ TOXENVDIR := toxenv
 ENVDIR := env
 ENVDIR3 := env3
 
-# Do not recreate virtualenvs unless necessary
-TOX_RECREATE :=
 TOX := $(TOXENVDIR)/bin/tox
 
 # List of virtual environments created during build (not including .tox ones).
@@ -120,16 +118,16 @@ ifndef AGRAPH_PORT
 endif
 	@echo Using port $(AGRAPH_PORT)
 
-$(TOXENVDIR): Makefile
+$(TOXENVDIR): Makefile .venv
 	rm -rf $(TOXENVDIR)
 	virtualenv --no-site-packages $(TOXENVDIR)
 	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} setuptools wheel pip tox twine
 
 $(ENVDIR): $(TOXENVDIR) .venv
-	$(TOX) $(TOX_RECREATE) -e $(PY2)-env
+	$(TOX) -e $(PY2)-env
 
 $(ENVDIR3): $(TOXENVDIR) .venv
-	$(TOX) $(TOX_RECREATE) -e $(PY3)-env
+	$(TOX) -e $(PY3)-env
 
 test-env: $(ENVDIR)
 
@@ -140,18 +138,18 @@ wheelhouse: $(ENVDIR) $(ENVDIR3)
 prepush: prepush2 prepush3
 
 prepush2: checkPort $(TOXENVDIR) .venv
-	$(TOX) $(TOX_RECREATE) -e $(PY2)-test
+	$(TOX) -e $(PY2)-test
 	AG_FORCE_REQUESTS_BACKEND=y $(TOX) -e $(PY2)-test
 
 prepush3: checkPort $(TOXENVDIR) .venv
-	$(TOX) $(TOX_RECREATE) -e $(PY3)-test
+	$(TOX) -e $(PY3)-test
 	AG_FORCE_REQUESTS_BACKEND=y $(TOX) -e $(PY3)-test
 
 events: checkPort $(TOXENVDIR) .venv
-	$(TOX) $(TOX_RECREATE) -e $(PY2)-events
+	$(TOX) -e $(PY2)-events
 
 events3: checkPort $(TOXENVDIR) .venv
-	$(TOX) $(TOX_RECREATE) -e $(PY3)-events
+	$(TOX) -e $(PY3)-events
 
 # This does not use Tox, since the idea is to check if 'pip install'
 # will work correctly at the target machine.
@@ -218,7 +216,7 @@ fix-copyrights: FORCE
 
 # If any of these files change rebuild the virtual environments.
 .venv: setup.py requirements.txt requirements2.txt tox.ini Makefile
-	$(eval TOX_RECREATE := --recreate)
+	rm -rf $(ENVS) .tox
 	touch .venv
 
 FORCE:
