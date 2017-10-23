@@ -10,12 +10,14 @@ from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 
 import pytest
+import os
 import sys
 
 import re
 from six import BytesIO
 
 from franz.openrdf.connect import ag_connect
+from franz.openrdf.exceptions import RequestError
 from franz.openrdf.model import Literal, Statement
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.rio.rdfformat import RDFFormat
@@ -27,7 +29,8 @@ from franz.openrdf.vocabulary import XMLSchema
 from .tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, STORE, USER, PASSWORD
 
 common_args = dict(
-    host=AG_HOST, port=AG_PORT, catalog=CATALOG, user=USER, password=PASSWORD, proxy=AG_PROXY
+    host=AG_HOST, port=AG_PORT, catalog=CATALOG,
+    user=USER, password=PASSWORD, proxy=AG_PROXY
 )
 
 
@@ -400,3 +403,28 @@ def test_time_tz_roundtrip(conn, s, p):
     conn.addTriple(s, p, t)
     actual = conn.getStatements().asList()[0].getObject()
     assert actual == t
+
+
+def test_invalid_query(conn):
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL,
+                                   '"; DROP TABLE students;')
+    with open(os.devnull, 'w') as out:
+        with pytest.raises(RequestError):
+            query.evaluate(output=out)
+
+
+def test_default_rdf_format(conn):
+    out = BytesIO()
+    query = conn.prepareGraphQuery(QueryLanguage.SPARQL,"""
+        CONSTRUCT { <ex://s> <ex://p> <ex://o> } WHERE {}""")
+    query.evaluate(output=out)
+    assert out.getvalue()
+
+
+def test_default_tuple_format(conn):
+    out = BytesIO()
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL,"""
+        SELECT ?x { BIND(42 as ?x) }""")
+    query.evaluate(output=out)
+    assert out.getvalue()
+

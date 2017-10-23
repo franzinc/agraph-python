@@ -2,6 +2,19 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.0.2
+===============
+
+Various fixes related to data export
+------------------------------------
+
+Specifically the following adjustments have been done:
+
+   - Changed the default RDF export format to N-Quads.
+   - Fixed a bug where errors returned during export
+     caused an encoding error.
+   - Provided a default format (CSV) for tuple queries.  
+     
 Release 100.0.1
 ===============
 

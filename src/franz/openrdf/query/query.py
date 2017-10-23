@@ -225,7 +225,7 @@ class Query(object):
        
   
 class TupleQuery(Query):
-    def evaluate(self, count=False, output=None, output_format=None):
+    def evaluate(self, count=False, output=None, output_format=TupleFormat.CSV):
         """
         Execute the embedded query against the RDF store.  Return
         an iterator that produces for each step a tuple of values
@@ -269,7 +269,7 @@ class UpdateQuery(Query):
 
 class GraphQuery(Query):
     
-    def evaluate(self, output=None, output_format=RDFFormat.NQX):
+    def evaluate(self, output=None, output_format=RDFFormat.NQUADS):
         """
         Execute the embedded query against the RDF store.  Return
         a graph.

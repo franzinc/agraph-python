@@ -232,7 +232,9 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
                 if errCallback is None:
                     response.raise_for_status()
                 else:
-                    errCallback(response.status_code, to_native_string(response.raw.read()))
+                    errCallback(response.status_code, 
+                                to_native_string(response.raw.read(
+                                    decode_content=True)))
         else:
             # Note: no error callback in this case
             return response.status_code, to_native_string(response.content)

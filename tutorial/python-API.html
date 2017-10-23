@@ -350,7 +350,7 @@ limit=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX)</td>
       </td>
   </tr>
   <tr>
-    <td valign="top">getStatementsById(self, ids) </td>
+    <td valign="top">getStatementsById(self, ids, output=None, output_format=RDFFormat.NQX) </td>
     <td>Return all statements whose triple ID matches an ID in the list of <em>ids.</em>
       To serialize the statements to a file or stream, pass a file path or a file-like object as the <em>output</em> parameter.
       Set <em>output_format</em> to an instance of RDFFormat to control the serialization format.
