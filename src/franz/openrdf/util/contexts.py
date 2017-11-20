@@ -34,8 +34,10 @@ def output_to(target):
     Target can be:
 
         - None: the returned stream will ignore all data
+        - True: data will be written to stdout.
         - a string: a file will be opened (in binary mode)
         - a file-like object: will be returned as is.
+        - an int - a file descriptor.
 
     :param target: File path, None or a file-like object.
     """
@@ -43,11 +45,15 @@ def output_to(target):
         # TODO: consider replacing with an object with empty methods
         target = os.devnull
 
-    if isinstance(target, basestring):
+    # Note that True is also an int (specifically 1 - i.e. stdout).
+    if isinstance(target, int):
+        with os.fdopen(target, 'wb') as out:
+            yield out
+    elif isinstance(target, basestring):
         with open(target, 'wb') as out:
             yield out
     elif hasattr(target, 'write'):
         # If it quacks like a duck and has a write method...
         yield target
     else:
-        raise ValueError('Invlid output specification %s' % target)
+        raise ValueError('Invalid output specification %s' % target)

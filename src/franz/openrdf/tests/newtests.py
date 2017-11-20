@@ -24,6 +24,7 @@ from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.sail import AllegroGraphServer
 from franz.openrdf.tests.tz import MockTimezone
+from franz.openrdf.util.contexts import output_to
 from franz.openrdf.vocabulary import XMLSchema
 
 from .tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, STORE, USER, PASSWORD
@@ -428,3 +429,23 @@ def test_default_tuple_format(conn):
     query.evaluate(output=out)
     assert out.getvalue()
 
+
+def test_output_to_true(capfd):
+    with output_to(True) as f:
+        f.write(b'test')
+    out, err = capfd.readouterr()
+    assert out == 'test'
+
+
+def test_output_to_stderr(capfd):
+    with output_to(2) as f:
+        f.write(b'test')
+    out, err = capfd.readouterr()
+    assert err == 'test'
+
+
+def test_export_to_true(capfd, conn, s, p, o):
+    conn.add(s, p, o)
+    conn.getStatements(output=True)
+    out, err = capfd.readouterr()
+    assert out.strip() == "<ex://s> <ex://p> <ex://o> ."

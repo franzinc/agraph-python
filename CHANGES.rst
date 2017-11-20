@@ -14,7 +14,9 @@ Specifically the following adjustments have been done:
    - Fixed a bug where errors returned during export
      caused an encoding error.
    - Provided a default format (CSV) for tuple queries.  
-     
+   - Value of the output parameter can now be True (stdout)
+     or a file descriptor.
+
 Release 100.0.1
 ===============
 
