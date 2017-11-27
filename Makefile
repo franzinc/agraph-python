@@ -121,7 +121,7 @@ endif
 $(TOXENVDIR): Makefile .venv
 	rm -rf $(TOXENVDIR)
 	virtualenv --no-site-packages $(TOXENVDIR)
-	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} setuptools==36.8.0 wheel==0.30.0 pip==9.0.1 tox==2.9.1 twine==1.9.1
+	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
 
 $(ENVDIR): $(TOXENVDIR) .venv
 	$(TOX) -e $(PY2)-env
@@ -158,8 +158,8 @@ disttest: wheel $(TOXENVDIR) FORCE
 	rm -rf disttest
         # Use toxenv's virtualenv so we get a recent enough pip
 	$(TOXENVDIR)/bin/virtualenv -p python2 --no-site-packages disttest
-        # Update to the very latest
-	disttest/bin/pip install -U ${AG_PIP_OPTS} setuptools==36.8.0 wheel==0.30.0 pip==9.0.1
+        # Update pip and setuptools
+	disttest/bin/pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
         # Install from the release tarball
         # Make sure pycurl compiles
 	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) DIST/$(SDIST)
