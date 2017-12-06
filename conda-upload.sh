@@ -6,8 +6,8 @@ set -e
 
 # Install miniconda if required. This will detect if the
 # directories already exist.
-./install-conda.sh 2
-./install-conda.sh 3
+./conda-install.sh 2
+./conda-install.sh 3
 
 # Paths to conda tools. Note that we need absolute paths here.
 CONDA2_DIR="$(pwd)/miniconda2"

@@ -31,8 +31,19 @@ export AG_RUN_SSL_TEST=y
 # Prevent virtualenv from downloading stuff from PyPI
 export VIRTUALENV_NO_DOWNLOAD=y
 
-# Used to download packages, the default is https://pypi.python.org/simple
-PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
+# Used to download packages:
+#  - Inside Franz we want to use Nexus on SAN1
+#  - If that is not available use the default PyPI index
+#  - In both cases one can override the choice by setting PIP_INDEX.
+ifeq ($(shell dig +short -t a san1.franz.com),)
+    # Global PyPI index
+    PIP_INDEX ?= https://pypi.python.org/simple
+else
+    # Nexus repository on SAN1
+    PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
+    PIP_CERT = --cert=$(abspath nexus.ca.crt)
+endif
+
 # If the index is not available over HTTPS users need to pass --trusted-host
 # --no-cache-dir is another option that can be added here.
 PIP_EXTRA_OPTS ?=
@@ -53,7 +64,7 @@ else
     TWINE_ARGS = -r $(PYPI_REPO_URL) --repository-url $(PYPI_REPO_URL) -u $(PYPI_USER)
 endif
 
-export AG_PIP_OPTS = --use-wheel --index-url=$(PIP_INDEX) --cert=$(abspath nexus.ca.crt) $(PIP_EXTRA_OPTS)
+export AG_PIP_OPTS = --use-wheel --index-url=$(PIP_INDEX) $(PIP_CERT)  $(PIP_EXTRA_OPTS)
 
 # TOXENV will have current tox installed.
 TOXENVDIR := toxenv
@@ -65,12 +76,7 @@ TOX := $(TOXENVDIR)/bin/tox
 
 # List of virtual environments created during build (not including .tox ones).
 # stress/env is created by the events test.
-ENVS := $(ENVDIR) $(ENVDIR3) $(TOXENVDIR) stress/env disttest
-
-# Some hosts have only 2.6, some only 2.7...
-VERSION_SCRIPT := import sys; print('py%d%d' % (sys.version_info[0], sys.version_info[1]))
-PY2 := $(shell python2 -c "$(VERSION_SCRIPT)")
-PY3 := $(shell python3 -c "$(VERSION_SCRIPT)")
+ENVS := $(ENVDIR) $(ENVDIR3) stress/env disttest
 
 # Note: GPG_PASS_OPTS will only be set in the appropriate target,
 # since a prompt might be required to get the passphrase.
@@ -85,7 +91,56 @@ ifeq ($(TERM),$(filter $(TERM),emacs dumb))
     AG_NO_GPG_AGENT=y
 endif
 
-default: dist
+default: wheel
+
+# Python installation - we use conda to create an environment
+# for each Python version we want to test on.
+# Conda installers and packages needed to create the environments
+# are stored on the SAN, but can be downloaded directly from
+# the internet if needed.
+
+# Versions we want to test on
+PYTHONS=2.7 3.4 3.5 3.6
+PYTHONS2=$(filter 2.%,$(PYTHONS))
+PYTHONS3=$(filter 3.%,$(PYTHONS)) 
+
+# Use this to install all interpreters
+all-pythons: $(addprefix py,$(PYTHONS))
+# Call this to download all packages from the internet and stash
+# them on SAN1.
+upload-to-san: $(patsubst %,python%-upload-to-san,$(PYTHONS))
+
+# To install a single interpreter, call 'make py<VERSION>'.
+$(foreach V,$(PYTHONS),$(eval py$(V): pythons/.python$(V)-timestamp))
+.PHONY: $(addprefix py,$(PYTHONS))
+
+# Put all binary directories on the path, so tox can find them
+# Note: $(eval) is a hack that allows us to get a literal space.
+export PATH := $(subst $(eval) ,:,$(patsubst %,${CURDIR}/pythons/%/bin,$(PYTHONS))):$(PATH)
+
+CONDA3_BIN=miniconda3/bin
+CONDA3=$(CONDA3_BIN)/conda
+
+$(CONDA3): conda-install.sh
+	bash ./conda-install.sh 3
+
+SAN_DIR=/net/san1/disk1/conda-pkgs
+
+pythons/.python%-timestamp: $(CONDA3)
+	$(eval SPEC:=$(SAN_DIR)/python-$*.spec)
+	rm -rf pythons/$*
+	$(CONDA3) create -qym -p pythons/$* \
+           $(if $(wildcard $(SPEC)),--offline --file $(SPEC),python=$* virtualenv)
+	touch pythons/.python$*-timestamp
+
+python%-upload-to-san:
+	$(eval SPEC:=$(SAN_DIR)/python-$*.spec)
+	rm -f $(SPEC) pythons/.python$*-timestamp
+	$(MAKE) pythons/.python$*-timestamp
+	. $(CONDA3_BIN)/activate pythons/$* && conda list --explicit | grep '^http' | wget -c -i - -P $(SAN_DIR)
+	. $(CONDA3_BIN)/activate pythons/$* && conda list --explicit | sed -e 's|^.*/\([^/]*\)$$|$(SAN_DIR)/\1|' > $(SPEC)
+
+# End Python installation
 
 prepare-release: FORCE
 # Make sure we have a dev version.
@@ -118,18 +173,20 @@ ifndef AGRAPH_PORT
 endif
 	@echo Using port $(AGRAPH_PORT)
 
-$(TOXENVDIR): Makefile .venv
+$(TOXENVDIR): py3.6 toxenv-requirements.txt
 	rm -rf $(TOXENVDIR)
-	virtualenv --no-site-packages $(TOXENVDIR)
-	. ./$(TOXENVDIR)/bin/activate && pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
+	$(CONDA3) create -p $(TOXENVDIR) --offline --clone pythons/3.6
+	. ./$(CONDA3_BIN)/activate $(TOXENVDIR) && pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
 
 $(ENVDIR): $(TOXENVDIR) .venv
-	$(TOX) -e $(PY2)-env
+	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS2))))
 
 $(ENVDIR3): $(TOXENVDIR) .venv
-	$(TOX) -e $(PY3)-env
+	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS3))))
 
 test-env: $(ENVDIR)
+
+.PHONY: $(TOXENVDIR) $(ENVDIR) $(ENVDIR3) test-env
 
 wheelhouse: $(ENVDIR) $(ENVDIR3)
 	$(ENVDIR)/bin/pip wheel -rrequirements.txt -rrequirements2.txt -w wheelhouse
@@ -137,19 +194,21 @@ wheelhouse: $(ENVDIR) $(ENVDIR3)
 
 prepush: prepush2 prepush3
 
-prepush2: checkPort $(TOXENVDIR) .venv
-	$(TOX) -e $(PY2)-test
-	AG_FORCE_REQUESTS_BACKEND=y $(TOX) -e $(PY2)-test
+prepush2: checkPort $(TOXENVDIR) $(addprefix py,$(PYTHONS2)) .venv
+	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS2))))
+	$(RUN)
+	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
 
-prepush3: checkPort $(TOXENVDIR) .venv
-	$(TOX) -e $(PY3)-test
-	AG_FORCE_REQUESTS_BACKEND=y $(TOX) -e $(PY3)-test
+prepush3: checkPort $(TOXENVDIR) $(addprefix py,$(PYTHONS3)) .venv
+	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS3))))
+	$(RUN)
+	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
 
-events: checkPort $(TOXENVDIR) .venv
-	$(TOX) -e $(PY2)-events
+events: checkPort $(TOXENVDIR) py$(lastword $(PYTHONS2)) .venv
+	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS2))))
 
-events3: checkPort $(TOXENVDIR) .venv
-	$(TOX) -e $(PY3)-events
+events3: checkPort $(TOXENVDIR) py$(lastword $(PYTHONS3)) .venv
+	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS3))))
 
 # This does not use Tox, since the idea is to check if 'pip install'
 # will work correctly at the target machine.
@@ -208,15 +267,21 @@ tags: FORCE
 	etags `find . -name '*.py'`
 
 clean-envs: FORCE
-	rm -rf .tox $(ENVS)
+	rm -rf .tox $(ENVS) $(TOXENVDIR)
 
 fix-copyrights: FORCE
 	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE
 	find src -name '*.py' -print0 | xargs -0 python2 fix-header.py
 
 # If any of these files change rebuild the virtual environments.
-.venv: setup.py requirements.txt requirements2.txt tox.ini Makefile
+.venv: setup.py requirements.txt requirements2.txt tox.ini
 	rm -rf $(ENVS) .tox
 	touch .venv
+
+clean: clean-envs
+	rm -rf DIST pythons miniconda2 miniconda3 report.xml build .venv \
+            src/agraph_python.egg-info/
+	find . -name \*.pyc -delete
+	find . -path '*/__pycache__*' -delete
 
 FORCE:

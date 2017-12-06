@@ -30,5 +30,6 @@ certs.db/
 # Miniconda installs
 /miniconda2
 /miniconda3
-
+# Python interpreters
+/pythons
 stress/events/phase*
