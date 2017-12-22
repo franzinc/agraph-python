@@ -17,6 +17,7 @@ from franz.openrdf.repository import Repository
 from franz.openrdf.sail import AllegroGraphServer
 
 from .tests import AG_HOST, AG_PORT, AG_PROXY, STORE, CATALOG, USER, PASSWORD
+import os
 
 
 @pytest.fixture
@@ -83,7 +84,16 @@ def session(conn):
     conn.closeSession()
 
 
+@pytest.fixture
+def clean_env():
+    old = os.environ
+    os.environ = {}
+    yield os.environ
+    os.environ = old
+
+
 # Injecting common URIs this way is less verbose
+
 
 def make_uri_fixture(name):
     """

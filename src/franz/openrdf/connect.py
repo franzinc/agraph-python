@@ -59,7 +59,8 @@ def ag_connect(repo, catalog=None,
                          for you when the session starts. The default is ``False``.
                          Ignored if not starting a session.
     :type loadinitfile: bool
-    :param host: AllegroGraph server host (default: `"localhost"`).
+    :param host: AllegroGraph server host (default: ``'127.0.0.1'`` or the value
+                 of the AGRAPH_HOST environment variable if that is defined.`
                  Can also be used to supply protocol and port number
                  (e.g. ``https://localhost:10036``).
     :type host: string
@@ -68,11 +69,14 @@ def ag_connect(repo, catalog=None,
                      Overrides the protocol specified in ``host``.
     :type protocol: string
     :param port: AllegroGraph server port (default: `10035` for http and `10036`
-                 for https). Overrides the port number provided in ``host``.
+                 for https, or the AGRAPH_PORT environment variable if that is defined).
+                 Overrides the port number provided in ``host``.
     :type port: int
-    :param user: Username for authentication.
+    :param user: Username for authentication (default: value of the ``AGRAPH_USER``
+                 environment variable).
     :type user: string
-    :param password:  Password for authentication.
+    :param password:  Password for authentication (default: value of the ``AGRAPH_PASSWORD``
+                      environment variable).
     :type password: string
     :param cainfo: Path to file or directory with CA certificates.
     :type cainfo: string

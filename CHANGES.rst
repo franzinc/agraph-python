@@ -37,6 +37,21 @@ will ensure that the query result is closed at the right time. Note that
 this should not be relied upon in more complex scenarios, where circular
 references might occur and prevent the result object from being closed.
 
+Connection parameters can now be passed in environment variables
+-----------------------------------------------------------------
+
+The following environment variables are now used when connecting
+to the server:
+
+   - ``AGRAPH_HOST`` - server address, the default is '127.0.0.1'
+   - ``AGRAPH_PORT`` - port number (default: 10035 for HTTP connections,
+                       10036 for HTTPS).
+   - ``AGRAPH_USER`` - Username, no default.
+   - ``AGRAPH_PASSWORD`` - Password, no default.
+
+Note that parameters passed to ``ag_connect()`` or  ``AllegroGraphServer()``
+will override these variables.
+
 Various fixes related to data export
 ------------------------------------
 

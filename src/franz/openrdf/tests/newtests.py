@@ -73,39 +73,50 @@ def test_ag_connect_session(repo_name):
         assert conn.is_session_active
 
 
-def test_server_all_data_in_host():
+def test_server_all_data_in_host(clean_env):
     server = AllegroGraphServer('https://somehost:4321/and/then/some')
     assert server.url == 'https://somehost:4321/and/then/some'
 
 
-def test_server_all_defaults():
+def test_server_all_defaults(clean_env):
     server = AllegroGraphServer('somehost')
     assert server.url == 'http://somehost:10035'
 
 
-def test_server_protocol_as_arg():
+def test_server_protocol_as_arg(clean_env):
     server = AllegroGraphServer('somehost', protocol='https')
     assert server.url == 'https://somehost:10036'
 
 
-def test_server_override_protocol():
+def test_server_override_protocol(clean_env):
     server = AllegroGraphServer('http://somehost', protocol='https')
     assert server.url == 'https://somehost:10036'
 
 
-def test_server_port_as_arg():
+def test_server_port_as_arg(clean_env):
     server = AllegroGraphServer('somehost', port=4321)
     assert server.url == 'http://somehost:4321'
 
 
-def test_server_override_port():
+def test_server_override_port(clean_env):
     server = AllegroGraphServer('somehost:1234', port=4321)
     assert server.url == 'http://somehost:4321'
 
 
-def test_server_https_if_cainfo():
+def test_server_https_if_cainfo(clean_env):
     server = AllegroGraphServer('somehost', cainfo='/path/to/ca/bundle')
     assert server.url == 'https://somehost:10036'
+
+
+def test_server_url_in_env(clean_env):
+    clean_env['AGRAPH_HOST'] = 'somehost'
+    clean_env['AGRAPH_PORT'] = 12345
+    clean_env['AGRAPH_USER'] = 'luser'
+    clean_env['AGRAPH_PASSWORD'] = '1234'
+    server = AllegroGraphServer()
+    assert server.url == 'http://somehost:12345'
+    assert server._client.user == 'luser'
+    assert server._client.password == '1234'
 
 
 @pytest.mark.parametrize("filename, expected_format, expected_compression", [

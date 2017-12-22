@@ -50,12 +50,14 @@ class AllegroGraphServer(object):
 
         :param host: Address of the AllegroGraph server to connect to.
                      This can also include protocol and port
-                     (e.g. http://localhost:10035).
+                     (e.g. http://localhost:10035). Can also be specified in
+                     the ``AGRAPH_HOST`` environment variable.
                      The default value is ``'localhost'```.
         :type host: string
         :param port: Port on which the server is listening.
                      The default is 10035 if ``protocol`` is ``'http'``
-                     and 10036 if it is ``'https'``.
+                     and 10036 if it is ``'https'``. Can also be specified in
+                     the ``AGRAPH_PORT`` environment variable.
                      If passed explicitly this parameter overrides any value
                      that might have been specified as a part of the ``host`` string.
         :type port: int
@@ -65,9 +67,11 @@ class AllegroGraphServer(object):
                          If passed explicitly this parameter overrides any value
                          that might have been specified as a part of the ``host`` string.
         :type protocol: string
-        :param user: Username (when using Basic authentication).
+        :param user: Username (when using Basic authentication). Can also be specified in
+                     the ``AGRAPH_USER`` environment variable.
         :type user: string
-        :param password: Password (when using Basic authentication).
+        :param password: Password (when using Basic authentication). Can also be specified in
+                         the ``AGRAPH_PASSWORD`` environment variable.
         :type password: string
         :param cainfo: Path to a file or directory containing CA certificates that
                        will be used to validate the server's certificate.
@@ -99,7 +103,7 @@ class AllegroGraphServer(object):
         # Not sure why we accept these, but don't want to change the API at this point.
         del options
 
-        host = host or 'localhost'
+        host = host or os.environ.get('AGRAPH_HOST', '127.0.0.1')
 
         # Check if other arguments were passed as a part of host
         match = re.match(r'^(?:(?P<protocol>https?)://)?'
@@ -120,9 +124,15 @@ class AllegroGraphServer(object):
             protocol = 'https' if has_https_params else 'http'
 
         if port is None:
-            port = 10035 if protocol == 'http' else 10036
+            if 'AGRAPH_PORT' in os.environ:
+                port = int(os.environ.get('AGRAPH_PORT'))
+            else:
+                port = 10035 if protocol == 'http' else 10036
 
         uri = '{protocol}://{host}:{port}{tail}'.format(protocol=protocol, host=host, port=port, tail=tail)
+
+        user = user or os.environ.get('AGRAPH_USER')
+        password = password or os.environ.get('AGRAPH_PASSWORD')
 
         self._client = miniserver.Client(uri, user, password, cainfo, sslcert, verifyhost, verifypeer,
                                          proxy=proxy)
