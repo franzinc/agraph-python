@@ -23,6 +23,20 @@ New tutorial
 
 The tutorial has been updated and restyled using Sphinx.
 
+Finalizers for query results
+----------------------------
+
+All result objects are now closed automatically when garbage collected.
+This makes it possible to write simple loops like the one below::
+
+   for stmt in conn.executeTupleQuery('...'):
+       ...
+
+without having to use the ``with`` statement, since reference counting
+will ensure that the query result is closed at the right time. Note that
+this should not be relied upon in more complex scenarios, where circular
+references might occur and prevent the result object from being closed.
+
 Various fixes related to data export
 ------------------------------------
 
