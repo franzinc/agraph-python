@@ -30,19 +30,19 @@ policy:
 
 # Building and publishing releases
 
-The release process works as follows:
+   - Run `make prepare-release`. This will strip .dev from the version
+     number, commit, and tag the commit.  Nothing is pushed at this
+     point.
 
-   - First `make prepare-release` must be run. This will update
-     the version number and push changes to git (skipping gerrit).
-   - After that the sources are ready for a regular AG release.
-   - After the AG release `make publish` should be executed to 
-     publish PyPI and conda packages. This requires proper 
-     credentials, as described in the next section.
+   - Run `make publish` to publish PyPI and conda packages. This
+     requires proper credentials, as described in the next section.
      This step might be skipped during rc and test releases.
-   - Finally `make post-release` must be run - this will 
-     increment the version number and push the result to 
-     git. This step must be performed before any other 
-     changes to the agraph-python module are committed. 
+
+   - Run `make post-release`. This will increment the version number
+     (and change it back to a .dev version), commit, and submit the
+     outstanding commits via gerrit.  This step must be performed
+     before any other changes to the agraph-python module are
+     committed.
 
 # Credentials
 

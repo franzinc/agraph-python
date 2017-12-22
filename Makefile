@@ -163,8 +163,8 @@ post-release: FORCE
 # Commit the result
 	git add src/franz/__init__.py
 	git commit -m "Next dev version: `python version.py`"
-# Push (directly, skipping gerrit review).
-	git push origin HEAD
+# Push and submit via gerrit
+	git push gerrit 'HEAD:refs/for/master%submit'
 
 checkPort: FORCE
 ifndef AGRAPH_PORT
