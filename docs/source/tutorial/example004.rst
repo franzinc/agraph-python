@@ -11,16 +11,27 @@ comparisons you should use a SPARQL query instead.)
 
 Below, we illustrate two kinds of :meth:`getStatements` calls. The
 first mimics traditional RDF4J syntax, and returns a |Statement|
-object at each iteration. We will reuse functions defined in previous
+object at each iteration. We will reuse data from in previous
 examples to create a connection object and populate the repository
 with four triples describing Bob and Alice. We're going to search for
 triples that mention Alice, so we have to create an "Alice" URI to use
 in the search pattern:
 
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
 .. testcode:: example4
 
-   conn = connect()
-   add_bob_and_alice(conn)
+   conn.addData("""
+       @base <http://example.org/> .
+
+       <people/alice> a <ontology/Person> ;
+                      <ontology/name> "Alice" .
+       <people/bob> a <ontology/Person> ;
+                    <ontology/name> "Bob" .
+   """)
    alice = conn.createURI("http://example.org/people/alice")
 
 Now we search for triples with Alice's URI in the subject

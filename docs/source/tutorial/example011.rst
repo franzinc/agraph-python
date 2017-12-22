@@ -29,13 +29,18 @@ connection object registers a new namespace.
 .. note:: It is legal, although not recommended, to redefine the
           built-in prefixes (RDF, XSD etc...).
 
-We start by opening a connection and creating two URIs. Note how
-:meth:`createURI` allows us to compose URIs from namespaces and local
-names.
+We start by opening a connection
+
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
+and creating two URIs. Note how :meth:`createURI` allows us to compose
+URIs from namespaces and local names.
           
 .. testcode:: example11
 
-   conn = connect()
    exns = "http://example.org/people/"
    alice = conn.createURI(namespace=exns, localname="alice")
    person = conn.createURI(namespace=exns, localname="Person")

@@ -12,11 +12,17 @@ query, and also by using the :meth:`evalFreeTextSearch` method of the
 connection object. It requires, however, that you create and configure
 indexes appropriate to the searches you want to pursue.
 
+First let's open a connection
+
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
 We will start this example by importing some sample data
 
 .. testcode:: example12
 
-   conn = connect()
    conn.addData("""
        @prefix : <ex://> .
        

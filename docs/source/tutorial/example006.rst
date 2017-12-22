@@ -9,11 +9,8 @@ calls the connection object's :meth:`add` method to load an N-Triples
 file, and :meth:`addFile` to load an RDF/XML file. Both methods work,
 but the best practice is to use :meth:`addFile`.
 
-.. note::
-
-   If you get a 'file not found' error while executing this example, make sure that the `DATA_DIR` setting (described in the :ref:`setup` section of this tutorial).
-
-The RDF/XML file contains a short list of v-cards (virtual business cards), like this one:
+The :download:`RDF/XML file <../../data/vcards.rdf>` contains a short
+list of v-cards (virtual business cards), like this one:
 
 .. code-block:: xml
 
@@ -24,10 +21,14 @@ The RDF/XML file contains a short list of v-cards (virtual business cards), like
        <vCard:Given>John</vCard:Given>
      </vCard:N>
    </rdf:Description>
-  
-The N-Triples file contains a graph of resources describing the
-Kennedy family, the places where they were each born, their colleges,
-and their professions. A typical entry from that file looks like this:
+
+Save this file in :file:`./data/vcards.rdf` (or choose another path
+and adjust the code below).
+
+The :download:`N-Triples file <../../data/kennedy.ntriples>` contains
+a graph of resources describing the Kennedy family, the places where
+they were each born, their colleges, and their professions. A typical
+entry from that file looks like this:
 
 .. code-block:: text
 
@@ -45,6 +46,8 @@ and their professions. A typical entry from that file looks like this:
    <http://www.franz.com/simple#person1> <http://www.franz.com/simple#birth-place> <http://www.franz.com/simple#place5> . 
    <http://www.franz.com/simple#person1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.franz.com/simple#person> . 
 
+Save the file to :file:`./data/kennedy.ntriples`.
+
 Note that AllegroGraph can segregate triples into contexts (subgraphs)
 by treating them as quads, but the N-Triples and RDF/XML formats
 cannot include context information (unlike e.g `N-Quads`_ or
@@ -60,18 +63,20 @@ total number of triples in the repository. Below, it returns the
 number ``16`` for the ``context`` context argument, and the number
 ``28`` for the null context (``None``) argument.
 
-.. testcode:: example6
-
-   from franz.openrdf.rio.rdfformat import RDFFormat
-   import os.path
-
-   conn = connect()
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
    
 The variables ``path1`` and ``path2`` are bound to the RDF/XML and
 N-Triples files, respectively.
 
 .. testcode:: example6
 
+   import os.path
+
+   # We assume that our data files live in this directory.
+   DATA_DIR = 'data'
    path1 = os.path.join(DATA_DIR, 'vcards.rdf')    
    path2 = os.path.join(DATA_DIR, 'kennedy.ntriples')
 
@@ -86,6 +91,8 @@ In the next step we use :meth:`addFile` to load the VCard triples into
 the ``#vcards`` context:
 
 .. testcode:: example6
+
+   from franz.openrdf.rio.rdfformat import RDFFormat
 
    conn.addFile(path1, None, format=RDFFormat.RDFXML, context=context)
    

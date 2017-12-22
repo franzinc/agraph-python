@@ -8,13 +8,19 @@ contexts (like that from :ref:`example6`) behaves when queried using
 various methods. This exampe covers only the results of basic
 queries. The subject is explored in more detail in :ref:`example10`.
 
-Let us start by creating a few triples in the default context:
+Let us start by creating a connection:
+
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
+and adding a few triples in the default context:
 
 .. testcode:: example7
 
    from franz.openrdf.query.query import QueryLanguage
 
-   conn = connect()
    conn.addData("""
       <ex://default1> <ex://p1> 1 .
       <ex://default2> <ex://p2> 2 .

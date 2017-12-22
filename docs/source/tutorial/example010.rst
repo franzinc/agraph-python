@@ -8,11 +8,17 @@ to a non-default context and run queries against such data. In this
 example we'll explore facilities for handling multiple contexts
 provided by SPARQL and the AllegroGraph Python client.
 
-We'll start by creating two URIs that will represent named contexts.
+We'll start by opening a connection:
+
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
+Now we will create two URIs that will represent named contexts.
 
 .. testcode:: example10
 
-   conn = connect()
    context1 = conn.createURI("ex://context1")      
    context2 = conn.createURI("ex://context2")
 

@@ -19,10 +19,7 @@ while the second one will contain all other numbers.
 
    from franz.openrdf.connect import ag_connect
 
-   with ag_connect('python_fib', catalog=AGRAPH_CATALOG,
-                   host=AGRAPH_HOST, port=AGRAPH_PORT,
-                   user=AGRAPH_USER, password=AGRAPH_PASSWORD,
-                   create=True, clear=True) as conn:
+   with ag_connect('python_fib', create=True, clear=True) as conn:
        conn.addData("""
            @prefix : <ex://> .
 
@@ -34,10 +31,7 @@ while the second one will contain all other numbers.
            :thirteen :value 13 .
        """)  
    
-   with ag_connect('python_boring', catalog=AGRAPH_CATALOG,
-                   host=AGRAPH_HOST, port=AGRAPH_PORT,
-                   user=AGRAPH_USER, password=AGRAPH_PASSWORD,
-                   create=True, clear=True) as conn:
+   with ag_connect('python_boring', create=True, clear=True) as conn:
        conn.addData("""
            @prefix : <ex://> .
 
@@ -60,11 +54,10 @@ an :class:`.AllegroGraphServer` instance.
 
    from franz.openrdf.sail.allegrographserver import AllegroGraphServer
               
-   server = AllegroGraphServer(
-       AGRAPH_HOST, AGRAPH_PORT, AGRAPH_USER, AGRAPH_PASSWORD)
+   server = AllegroGraphServer()
 
-We are using server address and credentials configured in the
-:ref:`setup` section of the tutorial.
+We are using default server address and credentials, as described in
+the :ref:`setup` section of the tutorial.
 
 The next step is to use the :meth:`~.AllegroGraphServer.openFederated`
 method to create a federated session. We will pass the list of
@@ -77,12 +70,11 @@ be
      store)
    * (storename, catalogname) tuples.
 
-We'll use the last option
+We'll use the third option
 
 .. testcode:: example16
 
-   conn = server.openFederated([('python_fib', AGRAPH_CATALOG),
-                                ('python_boring', AGRAPH_CATALOG)])
+   conn = server.openFederated(['python_fib', 'python_boring'])
 
 Now we can query the combined repository.
 

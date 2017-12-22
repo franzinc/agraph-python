@@ -26,6 +26,22 @@ follows this diagram:
 | triples in a specific repository.    |                                      |
 +--------------------------------------+--------------------------------------+
 
+Before we start, we will extract the location of the AG server from environment
+variables
+
+.. testcode:: example1
+
+   import os
+
+   AGRAPH_HOST = os.environ.get('AGRAPH_HOST')
+   AGRAPH_PORT = int(os.environ.get('AGRAPH_PORT', '10035'))
+   AGRAPH_USER = os.environ.get('AGRAPH_USER')
+   AGRAPH_PASSWORD = os.environ.get('AGRAPH_PASSWORD')
+
+AllegroGraph connection functions use these environment variables as
+defaults, but we will pass the values explicitly to illustrate how to
+specify connection parameters in Python.
+
 The example first connects to an AllegroGraph Server by providing the
 endpoint (host IP address and port number) of an already-launched
 AllegroGraph server. This creates a client-side server object, which can
@@ -36,7 +52,7 @@ will be represented by ``None``:
 .. testcode:: example1
 
    from franz.openrdf.sail.allegrographserver import AllegroGraphServer
-              
+
    print("Connecting to AllegroGraph server --",
          "host:'%s' port:%s" % (AGRAPH_HOST, AGRAPH_PORT))
    server = AllegroGraphServer(AGRAPH_HOST, AGRAPH_PORT,
@@ -66,12 +82,12 @@ Listing repositories
 
 In the next part of this example, we use the :meth:`~openCatalog`
 method to create a client-side catalog object. In this example we will
-connect to the catalog specified in ``AGRAPH_CATALOG``. When we look
-inside that catalog, we can see which repositories are available:
+connect to the root catalog. When we look inside that catalog, we can
+see which repositories are available:
 
 .. testcode:: example1
 
-   catalog = server.openCatalog(AGRAPH_CATALOG) 
+   catalog = server.openCatalog('')
    print("Available repositories in catalog '%s':" % catalog.getName())
    for repo_name in catalog.listRepositories():
        print('  - ' + repo_name)
@@ -100,7 +116,7 @@ Creating repositories
 The next step is to create a client-side repository object representing
 the respository we wish to open, by calling the :meth:`~getRepository`
 method of the catalog object. We have to provide the name of the desired
-repository (``AGRAPH_REPOSITORY``), and select one of four access modes:
+repository (``'python-tutorial'``), and select one of four access modes:
 
 -  ``Repository.RENEW`` clears the contents of an existing repository
    before opening. If the indicated repository does not exist, it
@@ -117,7 +133,7 @@ repository (``AGRAPH_REPOSITORY``), and select one of four access modes:
    from franz.openrdf.repository.repository import Repository
 
    mode = Repository.RENEW
-   my_repository = catalog.getRepository(AGRAPH_REPOSITORY, mode)
+   my_repository = catalog.getRepository('python-tutorial', mode)
    my_repository.initialize()
 
 .. currentmodule:: franz.openrdf.repository.repository.Repository
@@ -149,7 +165,7 @@ This is the output so far:
 
 .. testoutput:: example1
                 
-   Repository pythontutorial is up!
+   Repository python-tutorial is up!
    It contains 0 statement(s). 
 
 Managing indices
@@ -290,7 +306,7 @@ released by using the ``with`` statement:
 
 .. testcode:: example1
 
-   with catalog.getRepository(AGRAPH_REPOSITORY, Repository.OPEN) as repo:
+   with catalog.getRepository('python-tutorial', Repository.OPEN) as repo:
        # Note: an explicit call to initialize() is not required
        # when using the `with` statement.
        with repo.getConnection() as conn:
@@ -302,30 +318,27 @@ released by using the ``with`` statement:
 
 Utility functions
 ~~~~~~~~~~~~~~~~~
-Creating the intermediate server, catalog and repository objects can
-be tedious when the only thing required is a single connection to one
-repository. In such circumstances it might be more convenient to use
-the :func:`~ag_connect` function. Let us use this method to create a
-utility procedure that we'll use in other examples to connect to the
-repository.
 
 .. currentmodule:: franz.openrdf.connect
 
-.. literalinclude:: doctest_setup.py
-   :language: python
-   :start-after: BEGIN-CONNECT
-   :end-before: END-CONNECT
+Creating the intermediate server, catalog and repository objects can
+be tedious when the only thing required is a single connection to one
+repository. In such circumstances it might be more convenient to use
+the :func:`~ag_connect` function. That is what we will do in further
+examples. Here is a brief example of using :func:`~ag_connect`
+
+.. testcode:: example1
+
+   from franz.openrdf.connect import ag_connect
+
+   with ag_connect('python-tutorial', create=True, clear=True) as conn:
+       print('Statements:', conn.size())
 
 This function take care of creating all required objects and the
 returned context manager ensures that all necessary initialization
 steps are taken and no resources are leaked. The ``create`` and
 ``clear`` arguments ensure that the repository is empty and that it is
 created if necessary.
-
-.. testcode:: example1
-
-   with connect() as conn:
-       print('Statements:', conn.size())
 
 .. testoutput:: example1
 

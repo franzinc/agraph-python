@@ -7,13 +7,18 @@ The :ref:`previous example <example8>` showed how to serialize
 statements to a file or a stream. It is also possible to perform a
 similar operation on the result of a query.
 
-As usual, we'll start by opening a connection and importing sample
-data - in this case containing birth and (when applicable) coronation
-dates of the sons of Henry II.
+As usual, we'll start by opening a connection:
+
+ .. literalinclude:: doctest_setup.py
+    :language: python
+    :start-after: BEGIN-CONNECT
+    :end-before: END-CONNECT
+
+and importing sample data - in this case containing birth and
+(when applicable) coronation dates of the sons of Henry II.
 
 .. testcode:: example9
 
-   conn = connect()
    conn.addData("""
      @prefix : <ex://> .
      @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .

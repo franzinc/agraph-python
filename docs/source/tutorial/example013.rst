@@ -7,12 +7,18 @@ SPARQL provides alternatives to the standard SELECT query. This
 example exercises these alternatives to show how AllegroGraph Server
 and the Python client handle them.
 
+Let's connect to the database:
+
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
 We'll need some sample data to illustrate all the query types. Our
 dataset will contain information about rulers of 17th century England.
 
 .. testcode:: example13
 
-   conn = connect()
    conn.addData("""
        @prefix : <ex://> .
        @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .

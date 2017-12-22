@@ -12,10 +12,25 @@ Our next example illustrates how to evaluate a SPARQL query. This is
 the simplest query, the one that returns all triples. Note that we
 will use the same triples that were used in :ref:`example2`.
 
+Let's create the connection first:
+
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
+And now we can add our data and define the query:
+
 .. testcode:: example3
 
-   conn = connect()
-   add_bob_and_alice(conn)
+   conn.addData("""
+       @base <http://example.org/> .
+
+       <people/alice> a <ontology/Person> ;
+                      <ontology/name> "Alice" .
+       <people/bob> a <ontology/Person> ;
+                    <ontology/name> "Bob" .
+   """)
    query_string = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
       
 The ``SELECT`` clause returns the variables ``?s``, ``?p`` and ``?o``

@@ -7,9 +7,10 @@ This example shows how to serialize contents of a repository to a
 file. As usual we'll start with obtaining a connection to the
 repository:
 
-.. testcode:: example8
-
-   conn = connect()
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
 
 Now let's import some data:
 

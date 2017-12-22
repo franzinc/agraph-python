@@ -22,56 +22,27 @@ Setting the environment for the tutorial
 
 Before running any of the tutorial examples it is necessary to set a
 few variables that describe the location of the AllegroGraph server
-and other configuration parameters.
-
-The code below sets all the required variables based on the values of
-environment variables of the same name. Default values are provided in
-case the environment variables are not set.
-
-.. literalinclude:: doctest_setup.py
-   :language: python
-   :start-after: BEGIN-VARIABLES
-   :end-before: END-VARIABLES
+and credentials used to access it. By default the Python client looks
+for these parameters in environment variables.
 
 The variables that must be set are:
 
    - ``AGRAPH_HOST``: Specifies the IP address or hostname of the
-     agraph server. Defaults to ``'localhost'``.
+     agraph server. Defaults to ``'127.0.0.1'``.
 
    - ``AGRAPH_PORT``: Specifies the port of the agraph server at
      ``AGRAPH_HOST``. The port used by the server is specified in the
      agraph.cfg file. The default is ``10035``.
-
-   - ``AGRAPH_CATALOG``: Specifies the catalog to use for the
-     tutorial.  Set to blank to use the root catalog (this is the
-     default). If you wish to use a catalog other than the root
-     catalog, it must be defined in the agraph.cfg file. See the
-     :docs:`Server Installation <server-installation.html>` document.
-     The Python tutorial examples create up to three repositories
-     within ``AGRAPH_CATALOG``: ``AGRAPH_REPOSITORY``, used by most
-     examples; ``'redthings'`` and ``'greenthings'``, used by
-     :ref:`example16`.
-
-   - ``AGRAPH_REPOSITORY``: Name of the repository used by most
-     examples. The default is ``'pythontutorial'``.
 
    - ``AGRAPH_USER``: Specifies the username for authentication. For
      best results, this should name an agraph user with superuser
      privileges. If a non-superuser is specified, that user must have
      **Start Session** privileges to run example 6 and examples
      dependent on that example, and **Evaluate Arbitrary Code**
-     privileges to run example 17. The default is ``'test'``
+     privileges to run example 17. There is no default.
 
    - ``AGRAPH_PASSWORD``: Specifies the password for authentication of
-     ``AGRAPH_USER``. There is no default - if the setting is not
-     provided a password prompt will be displayed.
-
-   - ``DATA_DIR``: Directory containing the sample data files.  These
-     can be found in the ``docs/data`` subdirectory contained in the
-     AllegroGraph Python client distribution archive.  The default
-     value is ``'data'``, relative to the current working
-     directory. It is suitable for running the tutorial in the ``docs``
-     directory of the distribution archive.
+     ``AGRAPH_USER``. There is no default..
 
 The ``agraph.cfg`` file (see the :docs:`Server Installation
 <server-installation.html>` document) specifies values like the port
@@ -236,25 +207,26 @@ You will be asked to log in. Use the superuser credentials described in
 the previous section.
 
 The first page of WebView is a summary of your catalogs and
-repositories. Select ``Admin | Users`` from the navigation menu at the
-top of the page.
+repositories. Select :menuselection:`Admin --> Users` from the
+navigation menu at the top of the page.
 
 |img-user-menu|
 
 This exposes the ``Users and Roles`` page. This is the page for
 creating and managing user accounts.
 
-To create a new user, click the ``[add a user]`` link.
+To create a new user, click the :guilabel:`[add a user]` link.
 
 |img-user-add|
 
 This exposes a small form where you can enter the username and
-password. Click ``OK`` to save the new account.
+password. Click :guilabel:`OK` to save the new account.
 
 |img-user-dialog|
 
-The new user will appear in the list of users. Click the ``[edit]``
-link to open a control panel for the new user account:
+The new user will appear in the list of users. Click the
+:guilabel:`[edit]` link to open a control panel for the new user
+account:
 
 |img-user-click-edit|
 
@@ -263,10 +235,11 @@ session is needed by :ref:`example6`).
 
 |img-user-perms|
 
-It is important that you set up access permissions for the new user. Use
-the form to create an access rule by selecting read, write or read/write
-access, naming a catalog (or ``*`` for all), and naming a repository within
-that catalog (or ``*`` for all). Click the ``[add]`` link.
+It is important that you set up access permissions for the new
+user. Use the form to create an access rule by selecting read, write
+or read/write access, naming a catalog (or :guilabel:`*` for all), and
+naming a repository within that catalog (or :guilabel:`*` for
+all). Click the :guilabel:`[add]` link.
 
 |img-user-add-access|
 

@@ -8,11 +8,17 @@ practice it is often necessary to include some variable elements
 (e.g. user input, results from another query, ...) in the query
 strings.
 
-To illustrate, let us populate the repository with sample data:
+To illustrate, let us create a connection
+
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
+
+and populate the repository with sample data:
 
 .. testcode:: example14
 
-   conn = connect()
    conn.addData(r"""
      @prefix : <ex://> .
 

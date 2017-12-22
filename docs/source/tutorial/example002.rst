@@ -8,7 +8,7 @@ Bob and Alice, by asserting triples into the repository. The example
 also retracts and replaces a triple. Assertions and retractions to the
 triple store are executed by :meth:`~add` and :meth:`~remove` methods
 belonging to the connection object, which we obtain by calling the
-``connect()`` function from :ref:`example1`.
+:meth:`.ag_connect` function described in :ref:`example1`.
 
 Before asserting a triple, we have to generate the URI values for the
 subject, predicate and object fields. The AllegroGraph Python client
@@ -23,12 +23,13 @@ omitted, triples are asserted/retracted to/from the default graph. In
 the example below, facts about Alice and Bob reside in the default
 graph.
 
-The second example begins by calling ``connect()`` to create the
+The second example begins by calling :meth:`.ag_connect` to create the
 appropriate connection object, which is bound to the variable ``conn``.
 
-.. testcode:: example2
-
-   conn = connect()
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
 
 The next step is to begin assembling the URIs we will need for the new
 triples. The :meth:`~createURI` method generates a URI from a string.
@@ -133,25 +134,31 @@ containing triples in `Turtle`_, `N-Triples`_ or another RDF format.
 
 Let us see how the data used in this example could be added using
 :meth:`~addData`. We will also wrap the whole process in a function
-that we'll use in further examples:
+that we'll use later:
 
-.. literalinclude:: doctest_setup.py
-   :language: python
-   :start-after: BEGIN-ADD-BOB-AND-ALICE
-   :end-before: END-ADD-BOB-AND-ALICE
+.. testcode:: example2
 
+   def add_bob_and_alice(conn):
+      conn.addData("""
+          @base <http://example.org/> .
+
+          <people/alice> a <ontology/Person> ;
+                         <ontology/name> "Alice" .
+          <people/bob> a <ontology/Person> ;
+                       <ontology/name> "Bob" .
+      """)
 
 The string used here is in the `Turtle`_ format. It is also possible
 to use other formats by passing the ``rdf_format`` argument to
 :meth:`~addData`.
                         
 We should check if the new function behaves as expected by creating a
-fresh connection (recall that ``connect()`` uses the ``clear``
-parameter, which causes all existing triples to be deleted):
+fresh connection (recall that the ``clear`` parameter causes all existing
+triples to be deleted):
 
 .. testcode:: example2
 
-   with connect() as conn:
+   with ag_connect('python-tutorial', clear=True) as conn:
        add_bob_and_alice(conn)
        print("Triple count:", conn.size())
 

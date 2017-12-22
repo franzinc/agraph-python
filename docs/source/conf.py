@@ -435,8 +435,7 @@ from __future__ import print_function
 # Definitions used in multiple tests. The code must be included in the 
 # appropriate part of the tutorial, but we need the definitions to be in 
 # a global setup block to make them visible in all documents.
-from doctest_setup import *
-"""
+""" + open('tutorial/doctest_setup.py').read()
 
 doctest_global_cleanup="""
 # Not all examples have to create conn...

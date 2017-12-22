@@ -205,35 +205,42 @@ events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS3))))
 
 # This does not use Tox, since the idea is to check if 'pip install'
-# will work correctly at the target machine.
-disttest: wheel $(TOXDEP) FORCE
-        # Always recreate the environment from scratch
+# will work correctly without Tox.
+disttest/.timestamp: $(TOXDEP) .venv
 	rm -rf disttest
-        # Use toxenv's virtualenv so we get a recent enough pip
+        # Use toxenv's virtualenv so we get a recent enough pip	
 	$(TOXENVDIR)/bin/virtualenv -p python2 --no-site-packages disttest
         # Update pip and setuptools
 	disttest/bin/pip install -U $(AG_PIP_OPTS) -r toxenv-requirements.txt
-        # Install from the release tarball
-        # Make sure pycurl compiles
-	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) DIST/$(SDIST)
         # We need sphinx to run the doctests
 	disttest/bin/pip install $(AG_PIP_OPTS) -rdocs-requirements.txt
+        # Remember creation time, to detect changes
+	touch disttest/.timestamp
+
+disttest: wheel disttest/.timestamp
+        # Install from the release tarball
+        # Make sure pycurl compiles
+	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) -U DIST/$(SDIST)
+
+.PHONY: disttest
 
 # runs the examples from the tutorial and compares the actual output
 # to whatever the tutorial claims should be printed.
 # To run just a single example do 'EXAMPLE=example7 make tutorial'.
 tutorial: checkPort disttest
-	cd docs && AGRAPH_PASSWORD=xyzzy AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/sphinx-build -b doctest source build/doctest
+	cd docs && AGRAPH_USER=test AGRAPH_PASSWORD=xyzzy AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/sphinx-build -b doctest source build/doctest
 
-docs: $(TOXENVDIR) .venv FORCE
-	$(TOX) $(TOX_RECREATE) -e doc
+docs: $(TOXDEP) .venv FORCE
+	$(TOX) -e doc
 
-wheel: $(ENVDIR)
+wheel: $(ENVDIR)/.timestamp FORCE
 	mkdir -p DIST
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)
 	$(ENVDIR)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
         # Also build a source dist
 	$(ENVDIR)/bin/python setup.py sdist -d DIST # --owner=root --group=root 
+
+.PHONY: wheel
 
 register: $(TOXDEP) wheel
 	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/$(WHEEL)

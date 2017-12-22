@@ -28,13 +28,13 @@ unanticipated results.
 Setup
 ~~~~~
 
-We begin by obtaining a connection object using the `connect` function
-defined in :ref:`example1`. Recall that this function deletes all
-existing triples from the repository.
+We begin by obtaining a connection object and remvoing all existing data
+from the repository
 
-.. testcode:: example5
-
-   conn = connect()
+.. literalinclude:: doctest_setup.py
+   :language: python
+   :start-after: BEGIN-CONNECT
+   :end-before: END-CONNECT
 
 For the sake of coding efficiency, it is good practice to create variables
 for namespace strings. We'll use this namespace again and again in the
