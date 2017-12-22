@@ -137,8 +137,8 @@ python%-upload-to-san:
 	$(eval SPEC:=$(SAN_DIR)/python-$*.spec)
 	rm -f $(SPEC) pythons/.python$*-timestamp
 	$(MAKE) pythons/.python$*-timestamp
-	. $(CONDA3_BIN)/activate pythons/$* && conda list --explicit | grep '^http' | wget -c -i - -P $(SAN_DIR)
-	. $(CONDA3_BIN)/activate pythons/$* && conda list --explicit | sed -e 's|^.*/\([^/]*\)$$|$(SAN_DIR)/\1|' > $(SPEC)
+	. $(CONDA3_BIN)/activate $(abspath pythons/$*) && conda list --explicit | grep '^http' | wget -c -i - -P $(SAN_DIR)
+	. $(CONDA3_BIN)/activate $(abspath pythons/$*) && conda list --explicit | sed -e 's|^.*/\([^/]*\)$$|$(SAN_DIR)/\1|' > $(SPEC)
 
 # End Python installation
 
@@ -176,12 +176,12 @@ endif
 $(TOXENVDIR): py3.6 toxenv-requirements.txt
 	rm -rf $(TOXENVDIR)
 	$(CONDA3) create -p $(TOXENVDIR) --offline --clone pythons/3.6
-	. ./$(CONDA3_BIN)/activate $(TOXENVDIR) && pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
+	. ./$(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
 
-$(ENVDIR): $(TOXENVDIR) .venv
+$(ENVDIR): .venv $(TOXENVDIR) py$(lastword $(PYTHONS2))
 	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS2))))
 
-$(ENVDIR3): $(TOXENVDIR) .venv
+$(ENVDIR3): .venv $(TOXENVDIR) py$(lastword $(PYTHONS3))
 	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS3))))
 
 test-env: $(ENVDIR)
@@ -268,7 +268,7 @@ endif
 publish: $(TOXENVDIR) wheel sign
 	python version.py verify-not-dev
 	cp DIST/$(SDIST) CHANGES.rst /fi/ftp/pub/agraph/python-client/
-	$(TOXENVDIR)/bin/twine upload $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
+	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 	./conda-upload.sh
 
 tags: FORCE
