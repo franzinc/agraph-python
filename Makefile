@@ -33,15 +33,20 @@ export VIRTUALENV_NO_DOWNLOAD=y
 
 # Used to download packages:
 #  - Inside Franz we want to use Nexus on SAN1
-#  - If that is not available use the default PyPI index
-#  - In both cases one can override the choice by setting PIP_INDEX.
-ifeq ($(shell dig +short -t a san1.franz.com),)
-    # Global PyPI index
-    PIP_INDEX ?= https://pypi.python.org/simple
-else
+#  - If that is not available use the default PyPI index / Anaconda channel
+#  - In both cases one can override the choice by setting PIP_INDEX
+#    or CONDA_OPTS.
+ifeq ($(shell domainname),franz.com)
     # Nexus repository on SAN1
     PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
     PIP_CERT = --cert=$(abspath nexus.ca.crt)
+    # Use the Nexus proxy, disable default channels and ignore
+    # certificate errors.
+    CONDA_OPTS ?= -c https://san1.franz.com:8443/repository/anaconda-proxy/anaconda -k --override-channels
+else
+    # Global PyPI index
+    PIP_INDEX ?= https://pypi.python.org/simple
+    # Do not set CONDA_OPTS - use defaults or ~/.condarc
 endif
 
 # If the index is not available over HTTPS users need to pass --trusted-host
@@ -76,20 +81,11 @@ TOX := $(TOXENVDIR)/bin/tox
 
 # List of virtual environments created during build (not including .tox ones).
 # stress/env is created by the events test.
-ENVS := $(ENVDIR) $(ENVDIR3) stress/env disttest
+ENVS := $(ENVDIR) $(ENVDIR3) $(TOXENVDIR) stress/env disttest
 
 # Note: GPG_PASS_OPTS will only be set in the appropriate target,
 # since a prompt might be required to get the passphrase.
-GPG_SIGN=gpg -u $(PYPI_GPG_KEY) --batch $(GPG_PASS_OPTS) --detach-sign -a
-
-# Prompt used when reading the passpharse from stdin:
-GPG_PROMPT=Enter GPG passphrase for $(PYPI_GPG_KEY) to sign the package:
-
-# Check if it is safe to use the curses-based gpg-agent prompt
-# Note that the condition is also true if TERM is empty or not defined.
-ifeq ($(TERM),$(filter $(TERM),emacs dumb))
-    AG_NO_GPG_AGENT=y
-endif
+GPG_SIGN=gpg --batch $(GPG_PASS_OPTS) --detach-sign -a
 
 default: wheel
 
@@ -102,16 +98,15 @@ default: wheel
 # Versions we want to test on
 PYTHONS=2.7 3.4 3.5 3.6
 PYTHONS2=$(filter 2.%,$(PYTHONS))
-PYTHONS3=$(filter 3.%,$(PYTHONS)) 
+PYTHONS3=$(filter 3.%,$(PYTHONS))
 
 # Use this to install all interpreters
 all-pythons: $(addprefix py,$(PYTHONS))
-# Call this to download all packages from the internet and stash
-# them on SAN1.
-upload-to-san: $(patsubst %,python%-upload-to-san,$(PYTHONS))
 
 # To install a single interpreter, call 'make py<VERSION>'.
 $(foreach V,$(PYTHONS),$(eval py$(V): pythons/.python$(V)-timestamp))
+# Use $(PY<V>) in dependencies.
+$(foreach V,$(PYTHONS),$(eval PY$(V)=pythons/.python$(V)-timestamp))
 .PHONY: $(addprefix py,$(PYTHONS))
 
 # Put all binary directories on the path, so tox can find them
@@ -124,21 +119,10 @@ CONDA3=$(CONDA3_BIN)/conda
 $(CONDA3): conda-install.sh
 	bash ./conda-install.sh 3
 
-SAN_DIR=/net/san1/disk1/conda-pkgs
-
 pythons/.python%-timestamp: $(CONDA3)
-	$(eval SPEC:=$(SAN_DIR)/python-$*.spec)
 	rm -rf pythons/$*
-	$(CONDA3) create -qym -p pythons/$* \
-           $(if $(wildcard $(SPEC)),--offline --file $(SPEC),python=$* virtualenv)
+	$(CONDA3) create $(CONDA_OPTS) -qym -p pythons/$* python=$* virtualenv
 	touch pythons/.python$*-timestamp
-
-python%-upload-to-san:
-	$(eval SPEC:=$(SAN_DIR)/python-$*.spec)
-	rm -f $(SPEC) pythons/.python$*-timestamp
-	$(MAKE) pythons/.python$*-timestamp
-	. $(CONDA3_BIN)/activate $(abspath pythons/$*) && conda list --explicit | grep '^http' | wget -c -i - -P $(SAN_DIR)
-	. $(CONDA3_BIN)/activate $(abspath pythons/$*) && conda list --explicit | sed -e 's|^.*/\([^/]*\)$$|$(SAN_DIR)/\1|' > $(SPEC)
 
 # End Python installation
 
@@ -173,16 +157,26 @@ ifndef AGRAPH_PORT
 endif
 	@echo Using port $(AGRAPH_PORT)
 
-$(TOXENVDIR): py3.6 toxenv-requirements.txt
+TOXDEP=$(TOXENVDIR)/.timestamp
+$(TOXENVDIR): $(TOXDEP)
+
+$(TOXENVDIR)/.timestamp: $(PY3.6) toxenv-requirements.txt
 	rm -rf $(TOXENVDIR)
 	$(CONDA3) create -p $(TOXENVDIR) --offline --clone pythons/3.6
 	. ./$(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
+	touch $(TOXENVDIR)/.timestamp
 
-$(ENVDIR): .venv $(TOXENVDIR) py$(lastword $(PYTHONS2))
+$(ENVDIR)/.timestamp: $(TOXDEP) requirements.txt tox.ini
+	rm -rf $(ENVDIR)
 	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS2))))
+	touch $(ENVDIR)/.timestamp
+$(ENVDIR): $(ENVDIR)/.timestamp
 
-$(ENVDIR3): .venv $(TOXENVDIR) py$(lastword $(PYTHONS3))
+$(ENVDIR3)/.timestamp: $(TOXDEP) requirements.txt tox.ini
+	rm -rf $(ENVDIR3)
 	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS3))))
+	touch $(ENVDIR3)/.timestamp
+$(ENVDIR3): $(ENVDIR3)/.timestamp
 
 test-env: $(ENVDIR)
 
@@ -194,25 +188,25 @@ wheelhouse: $(ENVDIR) $(ENVDIR3)
 
 prepush: prepush2 prepush3
 
-prepush2: checkPort $(TOXENVDIR) $(addprefix py,$(PYTHONS2)) .venv
+prepush2: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS2)) .venv
 	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS2))))
 	$(RUN)
 	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
 
-prepush3: checkPort $(TOXENVDIR) $(addprefix py,$(PYTHONS3)) .venv
+prepush3: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS3)) .venv
 	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS3))))
 	$(RUN)
 	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
 
-events: checkPort $(TOXENVDIR) py$(lastword $(PYTHONS2)) .venv
+events: checkPort $(TOXDEP) py$(lastword $(PYTHONS2)) .venv
 	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS2))))
 
-events3: checkPort $(TOXENVDIR) py$(lastword $(PYTHONS3)) .venv
+events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS3))))
 
 # This does not use Tox, since the idea is to check if 'pip install'
 # will work correctly at the target machine.
-disttest: wheel $(TOXENVDIR) FORCE
+disttest: wheel $(TOXDEP) FORCE
         # Always recreate the environment from scratch
 	rm -rf disttest
         # Use toxenv's virtualenv so we get a recent enough pip
@@ -241,31 +235,16 @@ wheel: $(ENVDIR)
         # Also build a source dist
 	$(ENVDIR)/bin/python setup.py sdist -d DIST # --owner=root --group=root 
 
-register: $(TOXENVDIR) wheel
+register: $(TOXDEP) wheel
 	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/$(WHEEL)
 
 sign: wheel
-	 rm -f DIST/$(WHEEL).asc DIST/$(SDIST).asc
-ifdef AG_GPG_PASSPHRASE
-        # Read passphrase from a variable.
-        # Note that this is insecure since the passphrase will appear
-        # on command line of gpg
-	$(eval GPG_PASS_OPTS := --passphrase "$(AG_GPG_PASSPHRASE)")
-else ifdef AG_GPG_PASSPHRASE_FILE
-	$(eval GPG_PASS_OPTS := --passphrase-file "$(AG_GPG_PASSPHRASE_FILE)")
-else ifdef AG_NO_GPG_AGENT
-        # Prompt manually to avoid gpg-agent.
-        # This is as insecure as using AG_GPG_PASSPHRASE
-	$(eval PASS=$(shell read -s -r -p '$(GPG_PROMPT)' PASS && echo $${PASS}))
-	$(eval GPG_PASS_OPTS := --passphrase "$(PASS)")
-else
-        # Just rely on gpg-agent
-	$(eval GPG_PASS_OPTS := )
-endif
+	$(eval GPG_OPTS=$(shell ./gpg-opts.sh "$(PYPI_GPG_KEY)"))
+	rm -f DIST/$(WHEEL).asc DIST/$(SDIST).asc
 	@$(GPG_SIGN) DIST/$(WHEEL)
 	@$(GPG_SIGN) DIST/$(SDIST)
 
-publish: $(TOXENVDIR) wheel sign
+publish: $(TOXDEP) wheel sign
 	python version.py verify-not-dev
 	cp DIST/$(SDIST) CHANGES.rst /fi/ftp/pub/agraph/python-client/
 	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
@@ -275,7 +254,7 @@ tags: FORCE
 	etags `find . -name '*.py'`
 
 clean-envs: FORCE
-	rm -rf .tox $(ENVS) $(TOXENVDIR)
+	rm -rf .tox $(ENVS)
 
 fix-copyrights: FORCE
 	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE
@@ -283,7 +262,7 @@ fix-copyrights: FORCE
 
 # If any of these files change rebuild the virtual environments.
 .venv: setup.py requirements.txt requirements2.txt tox.ini
-	rm -rf $(ENVS) .tox
+	rm -rf .tox
 	touch .venv
 
 clean: clean-envs

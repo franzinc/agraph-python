@@ -22,6 +22,11 @@ ANACONDA="${CONDA3_DIR}/bin/anaconda"
 # Can be overriden to allow publication to a personal channel.
 CONDA_CHANNEL=${CONDA_CHANNEL:-franzinc}
 
+# Install build and upload tools
+echo "Installing anaconda"
+${CONDA2} install -y anaconda-client conda-build
+${CONDA3} install -y anaconda-client conda-build
+
 # Check if we're already logged in, to avoid nasty warnings.
 USER=$(${ANACONDA} whoami 2> /dev/null | head -n 1 | sed -n 's/\(Username: \(.*\)\)/\2/pi')
 
@@ -63,4 +68,4 @@ ${CONDA2} convert -f --platform all "${PACKAGE2}"
 ${CONDA3} convert -f --platform all "${PACKAGE3}"
 
 # Upload to anaconda.org
-${ANACONDA} upload -c "${CONDA_CHANNEL}" --user "${CONDA_CHANNEL}" $(find . -name 'agraph-python-*.tar.bz2')
+${ANACONDA} upload -c "${CONDA_CHANNEL}" --user "${CONDA_CHANNEL}" --label main $(find . -name 'agraph-python-*.tar.bz2')
