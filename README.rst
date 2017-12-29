@@ -1,6 +1,8 @@
 AllegroGraph Python API
 =======================
 
+|build-status| |rtd-status| |pypi-status| |conda-status|
+
 The AllegroGraph Python API offers convenient and efficient access to
 an AllegroGraph server from a Python-based application. This API
 provides methods for creating, querying and maintaining RDF data, and
@@ -269,3 +271,24 @@ Perform this procedure (replacing `<VERSION>` with the actual version)::
 .. _PyPI: https://pypi.python.org/
 .. _EPEL: https://fedoraproject.org/wiki/EPEL
 .. _virtualenv: https://virtualenv.pypa.io/
+
+
+.. |build-status| image:: https://img.shields.io/travis/franzinc/agraph-python.svg
+   :alt: build status
+   :scale: 100%
+   :target: https://travis-ci.org/franzinc/agraph-python
+
+.. |conda-status| image:: https://img.shields.io/conda/v/franzinc/agraph-python.svg
+   :alt: conda package
+   :scale: 100%
+   :target: https://anaconda.org/franzinc/agraph-python
+
+.. |pypi-status| image:: https://img.shields.io/pypi/v/agraph-python.svg
+   :alt: PyPI package
+   :scale: 100%
+   :target: https://pypi.python.org/pypi/agraph-python
+
+.. |rtd-status| image:: https://img.shields.io/readthedocs/agraph-python.svg
+   :alt: Docs
+   :scale: 100%
+   :target: https://agraph-python.readthedocs.io/en/latest/
