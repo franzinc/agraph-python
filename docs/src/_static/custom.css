@@ -46,3 +46,14 @@ div.nav-links a:first-child {
 a.reference[href^="../_images/"] {
    border-bottom: 0px
 }
+
+/* override table width restrictions on RTD */
+@media screen and (min-width: 767px) {
+   .wy-table-responsive table td {
+      white-space: normal !important;
+   }
+
+   .wy-table-responsive {
+      overflow: visible !important;
+   }
+}

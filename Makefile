@@ -228,7 +228,7 @@ disttest: wheel disttest/.timestamp
 # to whatever the tutorial claims should be printed.
 # To run just a single example do 'EXAMPLE=example7 make tutorial'.
 tutorial: checkPort disttest
-	cd docs && AGRAPH_USER=test AGRAPH_PASSWORD=xyzzy AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/sphinx-build -b doctest source build/doctest
+	cd docs && AGRAPH_USER=test AGRAPH_PASSWORD=xyzzy AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/sphinx-build -b doctest src build/doctest
 
 docs: $(TOXDEP) .venv FORCE
 	$(TOX) -e doc

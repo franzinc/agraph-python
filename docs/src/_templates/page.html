@@ -1,6 +1,7 @@
 {% extends '!page.html' %}
 
 {% block body %}
+  {% if not READTHEDOCS %}
     <div class="nav-links nav-links-header">
       {%- if prev %}
         &laquo;<a href="{{ prev.link|e }}" title="{{ _('previous chapter') }}">{{ prev.title }}</a>
@@ -10,8 +11,9 @@
       &raquo;
     {%- endif %}
     </div>
+  {% endif %}
     {{ super() }}
-
+  {% if not READTHEDOCS %}
     <div class="nav-links nav-links-footer">
       {%- if prev %}
         &laquo;<a href="{{ prev.link|e }}" title="{{ _('previous chapter') }}">{{ prev.title }}</a>
@@ -21,4 +23,6 @@
       &raquo;
     {%- endif %}
     </div>
+  {% endif %}
 {% endblock %}
+    

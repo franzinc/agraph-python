@@ -151,8 +151,13 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-# Allow override with an env var to make testing themes easier.
-html_theme = os.environ.get('theme', 'alabaster')
+# Use the RTD theme when building on RTD
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+if on_rtd:
+    html_theme = 'default'
+else:
+    # Allow override with an env var to make testing themes easier.
+    html_theme = os.environ.get('theme', 'alabaster')
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -469,6 +474,8 @@ def get_ag_version():
 ag_version = get_ag_version()
 
 def setup(app):
+    # Add custom CSS
+    app.add_stylesheet('custom.css')
     # Make the version number available to ifconfig
     app.add_config_value('ag_version', ag_version, 'env')
     # Do not generate apidocs for these:
