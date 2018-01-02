@@ -1852,6 +1852,24 @@ class RepositoryConnection(object):
         """
         return self._get_mini_repository().deleteMaterialized()
 
+    def namespace(self, prefix):
+        """
+        Creates an object that allows for simple creation of URIs in given namespace.
+        Attribute lookups on the returned object will produce URIs with the attribute
+        name as localname.
+
+        >>> from franz.openrdf.connect import ag_connect
+        >>> conn = ag_connect('repo')
+        >>> ex = conn.namespace('http://franz.com/example/')
+        >>> ex.foo
+        <http://franz.com/example/foo>
+
+        :param prefix: Prefix prepended to URIs created by the returned object.
+        :type prefix: str
+        :return: An object that can be used to create URIs.
+        """
+        return self.getValueFactory().namespace(prefix)
+
     def executeTupleQuery(self, query, language=QueryLanguage.SPARQL,
                           output=None, output_format=RDFFormat.TABLE):
         """

@@ -14,6 +14,18 @@ strings or to pass them to addTriples() would fail.
 
 This has been corrected.
 
+Namespace objects
+-----------------
+
+Namespace objects can be used to create URIs, as in the following
+example:
+
+   >>> from franz.openrdf.connect import ag_connect
+   >>> conn = ag_connect('repo')
+   >>> ex = conn.namespace('http://franz.com/example/')
+   >>> ex.foo
+   <http://franz.com/example/foo>
+
 Release 100.0.2
 ===============
 

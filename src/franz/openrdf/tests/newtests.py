@@ -500,3 +500,8 @@ def test_add_triples_statements(conn, ex):
     s = Statement(ex.s, ex.p, ex.o)
     conn.addTriples([s])
     assert conn.getStatements().asList() == [s]
+
+
+def test_conn_namespace(conn):
+    ex = conn.namespace('http://franz.com/example/')
+    assert ex.foo == conn.createURI('http://franz.com/example/foo')

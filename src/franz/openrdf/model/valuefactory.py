@@ -107,3 +107,23 @@ class ValueFactory(object):
         lowerBound = self.object_position_term_to_openrdf_term(lowerBound)
         upperBound = self.object_position_term_to_openrdf_term(upperBound)
         return RangeLiteral(lowerBound=lowerBound, upperBound=upperBound)
+
+    def namespace(self, prefix):
+        """
+        Create an object that allows for simple creation of URIs in given namespace.
+        Attribute lookups on the returned object will produce URIs with the attribute
+        name as localname.
+
+        :param prefix: Prefix prepended to URIs created by the returned object.
+        :type prefix: str
+        :return: An object that can be used to create URIs.
+        """
+        vf = self
+
+        class Namespace(object):
+            __slots__ = ()
+
+            def __getattribute__(self, item):
+                return vf.createURI(namespace=prefix, localname=item)
+
+        return Namespace()

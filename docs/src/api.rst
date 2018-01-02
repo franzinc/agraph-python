@@ -180,6 +180,7 @@ maintain, search, and delete triple stores.
    ~RepositoryConnection.getStatementsById
    ~RepositoryConnection.getValueFactory
    ~RepositoryConnection.isEmpty
+   ~RepositoryConnection.namespace
    ~RepositoryConnection.prepareBooleanQuery
    ~RepositoryConnection.prepareGraphQuery
    ~RepositoryConnection.prepareTupleQuery
