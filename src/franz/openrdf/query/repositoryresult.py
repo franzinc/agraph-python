@@ -49,9 +49,7 @@ class RepositoryResult(object):
         """
         Allocate a Statement and fill it in from 'string_tuple'.
         """
-        stmt = Statement(None, None, None, None)
-        stmt.setQuad(string_tuple)
-        return stmt
+        return Statement(*string_tuple)
 
     def __iter__(self): return self
 

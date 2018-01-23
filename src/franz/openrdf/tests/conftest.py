@@ -13,6 +13,7 @@ import random
 
 import pytest
 
+from franz.openrdf.model import URI
 from franz.openrdf.repository import Repository
 from franz.openrdf.sail import AllegroGraphServer
 
@@ -114,4 +115,14 @@ def define_uri_fixtures():
             name = uri + suffix
             gl[name] = make_uri_fixture(name)
 
+
 define_uri_fixtures()
+
+
+@pytest.fixture
+def ex():
+    class Namespace(object):
+        def __getattribute__(self, item):
+            return URI(namespace='ex://', localname=item)
+
+    return Namespace()

@@ -14,6 +14,7 @@ from .literal import Literal
 from .statement import Statement
 from .value import Value, URI, BNode
 from .valuefactory import ValueFactory
+from .utils import parse_term
 
-__all__ = [ 'BNode', 'Literal', 'Statement', 'URI',
-    'Value', 'ValueFactory' ]
+__all__ = ['BNode', 'Literal', 'Statement', 'URI',
+    'Value', 'ValueFactory', 'parse_term']

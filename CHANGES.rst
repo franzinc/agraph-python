@@ -2,6 +2,18 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.0.3
+===============
+
+bug25079: Statement objects not created from strings are broken
+---------------------------------------------------------------
+
+Statement objects that were created in user code were not fully
+functional. In particular attempts to convert such statements to
+strings or to pass them to addTriples() would fail.
+
+This has been corrected.
+
 Release 100.0.2
 ===============
 

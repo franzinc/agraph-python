@@ -11,80 +11,89 @@
 
 from __future__ import absolute_import
 from __future__ import unicode_literals
-from builtins import object
+from past.builtins import basestring
 from future.utils import python_2_unicode_compatible
 
-from .value import Value, URI, BNode
-from .literal import Literal
-from ..util import strings
+from franz.openrdf.model.utils import parse_term
+from .value import Value, URI
 
 
 @python_2_unicode_compatible
 class Statement(object):
     """
-    Lightweight implementation of 'Statement'
+    Wraps a triple or a quad. Might also contain an id.
     """
-    def __init__(self, subject, predicate, object, context=None):
+    __slots__ = ('subject', 'predicate', 'object', 'context', 'id', '_hash')
+
+    def __init__(self, subject, predicate, object, context=None, id=None):
+        """
+        Create a statement.
+
+        Each component can be either a Value object or a string in N-Triples format.
+        Strings will be parsed lazily the first time a component is accessed.
+        Accessors will always return Value objects.
+
+        :param subject: Subject component - URI, blank node or a string
+                        in N-Triples format.
+        :type subject: URI|BNode|str
+        :param predicate: Predicate component. Either a URI or a string
+                          in N-Triples format.
+        :type predicate URI|str
+        :param object: Subject component. Either a Value or a string
+                       in N-Triples format.
+        :type object: Value|str
+        :param context: Graph component (optional). Can be a URI or
+                        a string in N-Triples format.
+        :type context: URI|str
+        :param id: Statement id (optional).
+        :type id: int|str
+        """
         self.subject = subject
         self.predicate = predicate
         self.object = object
         self.context = context
-        self.string_tuple = None
+        self.id = id
+        self._hash = None
 
     def __eq__(self, other):
         if not isinstance(other, Statement):
             return NotImplemented
 
-        ## The object is potentially the cheapest to check, as types
-        ## of these references might be different.
-        ## In general the number of different predicates in sets of
-        ## statements is the smallest, so predicate equality is checked
-        ## last.
-        spoEqual = self.getObject() == other.getObject() and self.getSubject() == other.getSubject() \
-                and self.getPredicate() == other.getPredicate()
-        if self.context:
-            return spoEqual and self.getContext() == other.getContext()
+        # The object is potentially the cheapest to check, as types
+        # of these references might be different.
+        # In general the number of different predicates in sets of
+        # statements is the smallest, so predicate equality is checked
+        # last.
+        if self.getObject() == other.getObject() and self.getSubject() == other.getSubject() \
+                and self.getPredicate() == other.getPredicate():
+            if self.context:
+                return self.getContext() == other.getContext()
+            else:
+                return not other.getContext()
         else:
-            return spoEqual
+            return False
 
     def __hash__(self):
-        return 961 * self.getSubject().__hash__() + 31 * self.getPredicate().__hash__() + self.getObject().__hash__();
+        if self._hash is None:
+            self._hash = hash((self.getSubject(), self.getPredicate(), self.getObject(), self.getContext()))
+        return self._hash
 
     def __str__(self):
-        sb= []
-        sb.append("(")
-        sb.append(self.string_tuple[0])
-        sb.append(", ")
-        sb.append(self.string_tuple[1])
-        sb.append(", ")
-        sb.append(self.string_tuple[2])
-        if len(self.string_tuple) > 3:
-            cxt = self.string_tuple[3]
-            if cxt:
-                sb.append(", ")        
-                sb.append(self.string_tuple[3])
-            elif len(self.string_tuple) > 4:
-                sb.append(", None")
-        if len(self.string_tuple) > 4:
-            sb.append(", ")        
-            sb.append(self.string_tuple[4])       
-        sb.append(")")
-        return ''.join(sb)
+        elements = [self.getSubject(), self.getPredicate(), self.getObject(), self.getContext(), self.getTripleID()]
+        while len(elements) > 3 and elements[-1] is None:
+            elements.pop()
+        return '(' + ', '.join(map(str, elements)) + ')'
 
     def __len__(self):
-        return len(self.string_tuple)
-    
+        return 3 if self.context is None else 4
+
     def __getitem__(self, index):
         if index == 0: return self.getSubject()
         elif index == 1: return self.getPredicate()
         elif index == 2: return self.getObject()
         elif index == 3: return self.getContext()
         else:
-            raise IndexError("Illegal index %s passed to StatementImpl.\n" +
-                    "  Legal arguments are integers 0-3")
-                                              
-    def setQuad(self, string_tuple):
-        self.string_tuple = string_tuple
+            raise IndexError('Illegal index (%d), must be < 4' % index)
 
     def getSubject(self):
         """
@@ -93,8 +102,9 @@ class Statement(object):
         :return: Subject.
         :rtype: Value
         """
-        if not self.subject:
-            self.subject = Statement.stringTermToTerm(self.string_tuple[0])
+        # Lazily parse and replace the value if needed.
+        if isinstance(self.subject, basestring):
+            self.subject = parse_term(self.subject)
         return self.subject
     
     def setSubject(self, subject):
@@ -107,11 +117,13 @@ class Statement(object):
         :return: Predicate.
         :rtype: URI
         """
-        if not self.predicate:
-            self.predicate = Statement.stringTermToTerm(self.string_tuple[1])
+        # Lazily parse and replace the value if needed.
+        if isinstance(self.predicate, basestring):
+            self.predicate = parse_term(self.predicate)
         return self.predicate
      
-    def setPredicate(self, predicate):self.predicate = predicate
+    def setPredicate(self, predicate):
+        self.predicate = predicate
     
     def getObject(self):
         """
@@ -120,11 +132,13 @@ class Statement(object):
         :return: Object.
         :rtype: Value
         """
-        if not self.object:
-            self.object = Statement.stringTermToTerm(self.string_tuple[2])
+        # Lazily parse and replace the value if needed.
+        if isinstance(self.object, basestring):
+            self.object = parse_term(self.object)
         return self.object
     
-    def setObject(self, object): self.object = object
+    def setObject(self, object):
+        self.object = object
     
     def getContext(self):
         """
@@ -133,12 +147,13 @@ class Statement(object):
         :return: Graph URI.
         :rtype: URI
         """
-        if not self.context:
-            if len(self.string_tuple) == 3: return None
-            self.context = Statement.stringTermToTerm(self.string_tuple[3])
+        # Lazily parse and replace the value if needed.
+        if isinstance(self.context, basestring):
+            self.context = parse_term(self.context)
         return self.context
     
-    def setContext(self, context): self.context = context
+    def setContext(self, context):
+        self.context = context
 
     def getTripleID(self):
         """
@@ -150,32 +165,8 @@ class Statement(object):
         :return: A numerical id.
         :rtype: int
         """
-        if len(self.string_tuple) == 5:
-            id = int(self.string_tuple[4])
-        else:
-            id = -1
-            
-        return id
-    
-    @staticmethod
-    def stringTermToTerm(string_term):
-        """
-        Given a string representing a term in ntriples format, return
-        a URI, Literal, or BNode.
-        """
-        if not string_term:
-            return string_term
-        
-        parsed = strings.uriref(string_term)
-        if parsed:
-            return URI(parsed)
+        # Lazily parse and replace the value if needed.
+        if isinstance(self.id, basestring):
+            self.id = int(self.id)
+        return self.id
 
-        parsed = strings.literal(string_term)
-        if parsed:
-            return Literal(*parsed)
-
-        parsed = strings.nodeid(string_term)
-        if parsed:
-            return BNode(parsed)
-
-        return Literal(string_term)

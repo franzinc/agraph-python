@@ -11,7 +11,7 @@ from builtins import object
 from future.utils import python_2_unicode_compatible
 from past.builtins import unicode
 
-from ..model import Statement
+from ..model import Statement, parse_term
 from .repositoryresult import RepositoryResult
 
 from collections import namedtuple
@@ -153,7 +153,7 @@ class ListBindingSet(object):
         if not term:
             def convert(x):
                 if isinstance(x, list): return [convert(elt) for elt in x]
-                else: return Statement.stringTermToTerm(x)
+                else: return parse_term(x)
             term = convert(self.string_tuple[index])
             self.value_cache[index] = term
         return term

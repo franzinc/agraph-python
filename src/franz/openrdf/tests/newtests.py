@@ -460,3 +460,43 @@ def test_export_to_true(capfd, conn, s, p, o):
     conn.getStatements(output=True)
     out, err = capfd.readouterr()
     assert out.strip() == "<ex://s> <ex://p> <ex://o> ."
+
+
+def test_triple_len(s, p, o):
+    assert len(Statement(s, p, o)) == 3
+
+
+def test_quad_len(s, p, o, g):
+    assert len(Statement(s, p, o, g)) == 4
+
+
+def test_stmt_str(ex):
+    # This used to raise an error, see bug25079
+    assert 'ex' in str(Statement(ex.s, ex.p, ex.o))
+
+
+def test_statement_from_strings_subject(ex):
+    stmt = Statement('<ex://s>', '<ex://p>', '<ex://o>')
+    assert stmt.getSubject() == ex.s
+
+
+def test_statement_from_strings_predicate(ex):
+    stmt = Statement('<ex://s>', '<ex://p>', '<ex://o>')
+    assert stmt.getPredicate() == ex.p
+
+
+def test_statement_from_strings_object(ex):
+    stmt = Statement('<ex://s>', '<ex://p>', '<ex://o>')
+    assert stmt.getObject() == ex.o
+
+
+def test_triple_ne_quad(ex):
+    s1 = Statement(ex.s, ex.p, ex.o)
+    s2 = Statement(ex.s, ex.p, ex.o, ex.g)
+    assert s1 != s2
+
+
+def test_add_triples_statements(conn, ex):
+    s = Statement(ex.s, ex.p, ex.o)
+    conn.addTriples([s])
+    assert conn.getStatements().asList() == [s]
