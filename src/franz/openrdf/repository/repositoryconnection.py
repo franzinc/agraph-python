@@ -309,9 +309,7 @@ class RepositoryConnection(object):
         ALL_CONTEXTS to None.
         And, convert None context to 'null'.
         """
-        if contexts == ALL_CONTEXTS:  ## or contexts is None:
-            ## consistency would dictate that  None => [None], but this would
-            ## likely surprise users, so we don't do that:
+        if contexts == ALL_CONTEXTS:
             cxts = None
         elif contexts is None:
             if none_is_mini_null: cxts = [MINI_NULL_CONTEXT]
@@ -638,7 +636,7 @@ class RepositoryConnection(object):
         else:
             return Literal(term).toNTriples()
 
-    def addTriples(self, triples_or_quads, context=ALL_CONTEXTS, ntriples=False):
+    def addTriples(self, triples_or_quads, context=None, ntriples=False):
         """
         Add the supplied triples or quads to this repository.
 
@@ -646,33 +644,37 @@ class RepositoryConnection(object):
                                  either a statement or a list or tuple of :class:`Value` objects
                                  or strings.
         :type triples_or_quads: Iterable[list[string|Value]|tuple[string|Value]|Statement]
-        :param context: Context (graph) to add the triples to. Default to null (the default graph).
-        :type context: string
+        :param context: Context (graph) or list of contexts to add the triples to.
+                        Defaults to None (the default graph). Note that this will
+                        be ignored for all input quads that already specify a context.
+        :type context: string|URI|list[string|URI]
         :param ntriples: If ``True``, parts of the triples are assumed to be strings
                          in N-Triples format and are sent to the server without any
                          conversion.
         :type ntriples: bool
         """
-        ntriple_contexts = self._contexts_to_ntriple_contexts(context, none_is_mini_null=True)
         quads = []
         for q in triples_or_quads:
             # Note: Statement objects will work here, since they have a length
             # and support accessing components by index.
             is_quad = len(q) == 4
-            quad = [None] * 4
             if ntriples:
-                quad[0] = q[0]
-                quad[1] = q[1]
-                quad[2] = q[2]
-                quad[3] = q[3] if is_quad and q[3] else ntriple_contexts
+                s = q[0]
+                p = q[1]
+                o = q[2]
+                gs = q[3] if is_quad and q[3] else context
             else:
                 predicate = q[1]
                 obj = self.getValueFactory().object_position_term_to_openrdf_term(q[2], predicate=predicate)
-                quad[0] = self._to_ntriples(q[0])
-                quad[1] = self._to_ntriples(predicate)
-                quad[2] = self._to_ntriples(obj)
-                quad[3] = self._to_ntriples(q[3]) if is_quad and q[3] else ntriple_contexts
-            quads.append(quad)
+                s = self._to_ntriples(q[0])
+                p = self._to_ntriples(predicate)
+                o = self._to_ntriples(obj)
+                gs = [self._to_ntriples(q[3])] if is_quad and q[3] else context
+            if gs is None:
+                quads.append((s, p, o, None))
+            else:
+                for g in self._contexts_to_ntriple_contexts(gs, none_is_mini_null=True):
+                    quads.append((s, p, o, g))
         self._get_mini_repository().addStatements(quads, commitEvery=self.add_commit_size)
 
     def addStatement(self, statement, contexts=None):

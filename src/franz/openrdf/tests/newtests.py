@@ -35,6 +35,14 @@ common_args = dict(
 )
 
 
+def get_statements(conn):
+    """
+    Gets all statements as a list of lists of Value objects,
+    sorted lexicographically.
+    """
+    return sorted([list(s) for s in conn.getStatements()])
+
+
 def test_ag_connect_open(repo_name):
     with ag_connect(repo_name, create=False, **common_args) as conn:
         assert conn.size() == 0
@@ -505,3 +513,19 @@ def test_add_triples_statements(conn, ex):
 def test_conn_namespace(conn):
     ex = conn.namespace('http://franz.com/example/')
     assert ex.foo == conn.createURI('http://franz.com/example/foo')
+
+
+def test_add_with_single_context(conn, s, p, o, g):
+    conn.addTriples([(s, p, o)], context=g)
+    assert get_statements(conn) == [[s, p, o, g]]
+
+
+def test_add_with_two_contexts(conn, ex):
+    conn.addTriples([(ex.s, ex.p, ex.o)], context=[ex.g1, ex.g2])
+    assert get_statements(conn) == [[ex.s, ex.p, ex.o, ex.g1],
+                                    [ex.s, ex.p, ex.o, ex.g2]]
+
+
+def test_add_quad_overrides_contexts(conn, ex):
+    conn.addTriples([(ex.s, ex.p, ex.o, ex.g)], context=[ex.g1, ex.g2])
+    assert get_statements(conn) == [[ex.s, ex.p, ex.o, ex.g]]

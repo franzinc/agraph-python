@@ -5,6 +5,18 @@ AllegroGraph Python client release history
 Release 100.0.3
 ===============
 
+bug25081: The 'context' argument to addTriples() is broken
+----------------------------------------------------------
+
+Using the ``addTriples()`` method with the ``context`` parameter
+set to a non-default value used to produce errors::
+
+   >>> conn.addTriples([(s, p, o)], context=g)
+   400 MALFORMED DATA: Invalid graph name: (<ex://g>)
+
+This has been corrected. Context can now be set to a single URI
+or a list of URIs. Both URI objects and strings are supported.
+
 bug25079: Statement objects not created from strings are broken
 ---------------------------------------------------------------
 
