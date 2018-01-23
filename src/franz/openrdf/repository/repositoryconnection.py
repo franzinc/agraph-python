@@ -645,7 +645,7 @@ class RepositoryConnection(object):
         :param triples_or_quads: List of triples or quads. Each element can be
                                  either a statement or a list or tuple of :class:`Value` objects
                                  or strings.
-        :type triples_or_quads: Iterable[list[string|Value]|tuple[string|Value]]
+        :type triples_or_quads: Iterable[list[string|Value]|tuple[string|Value]|Statement]
         :param context: Context (graph) to add the triples to. Default to null (the default graph).
         :type context: string
         :param ntriples: If ``True``, parts of the triples are assumed to be strings
@@ -653,30 +653,25 @@ class RepositoryConnection(object):
                          conversion.
         :type ntriples: bool
         """
-        ntripleContexts = self._contexts_to_ntriple_contexts(context, none_is_mini_null=True)
+        ntriple_contexts = self._contexts_to_ntriple_contexts(context, none_is_mini_null=True)
         quads = []
         for q in triples_or_quads:
-            isQuad = len(q) == 4
+            # Note: Statement objects will work here, since they have a length
+            # and support accessing components by index.
+            is_quad = len(q) == 4
             quad = [None] * 4
             if ntriples:
                 quad[0] = q[0]
                 quad[1] = q[1]
                 quad[2] = q[2]
-                quad[3] = q[3] if isQuad and q[3] else ntripleContexts
-            elif isinstance(quad, (list, tuple)):
+                quad[3] = q[3] if is_quad and q[3] else ntriple_contexts
+            else:
                 predicate = q[1]
                 obj = self.getValueFactory().object_position_term_to_openrdf_term(q[2], predicate=predicate)
                 quad[0] = self._to_ntriples(q[0])
                 quad[1] = self._to_ntriples(predicate)
                 quad[2] = self._to_ntriples(obj)
-                quad[3] = self._to_ntriples(q[3]) if isQuad and q[3] else ntripleContexts
-            else: # must be a statement
-                predicate = q.getPredicate()
-                obj = self.getValueFactory().object_position_term_to_openrdf_term(q.getObject(), predicate=predicate)
-                quad[0] = self._to_ntriples(q.getSubject())
-                quad[1] = self._to_ntriples(predicate)
-                quad[2] = self._to_ntriples(obj)
-                quad[3] = self._to_ntriples(q.getContext()) if isQuad and q.getContext() else ntripleContexts
+                quad[3] = self._to_ntriples(q[3]) if is_quad and q[3] else ntriple_contexts
             quads.append(quad)
         self._get_mini_repository().addStatements(quads, commitEvery=self.add_commit_size)
 
