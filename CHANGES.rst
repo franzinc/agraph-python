@@ -5,6 +5,12 @@ AllegroGraph Python client release history
 Release 100.0.3
 ===============
 
+Resolved issues with running unit tests from a wheel
+----------------------------------------------------
+
+Some unit tests used to fail when the module was installed
+from a binary wheel. This has been corrected.
+
 bug25081: The 'context' argument to addTriples() is broken
 ----------------------------------------------------------
 

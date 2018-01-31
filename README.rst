@@ -138,7 +138,7 @@ environment variables::
 
 To run the tests, type::
 
-    pytest --pyargs franz
+    pytest --pyargs franz.openrdf.tests.tests --pyargs franz.openrdf.tests.newtests
 
 Optional requirements
 ---------------------
