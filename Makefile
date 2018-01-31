@@ -166,15 +166,15 @@ $(TOXENVDIR)/.timestamp: $(PY3.6) toxenv-requirements.txt
 	. ./$(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && pip install -U ${AG_PIP_OPTS} -r toxenv-requirements.txt
 	touch $(TOXENVDIR)/.timestamp
 
-$(ENVDIR)/.timestamp: $(TOXDEP) requirements.txt tox.ini
+$(ENVDIR)/.timestamp: $(TOXDEP) $(PY2.7) requirements.txt tox.ini
 	rm -rf $(ENVDIR)
-	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS2))))
+	$(TOX) -e py27-env
 	touch $(ENVDIR)/.timestamp
 $(ENVDIR): $(ENVDIR)/.timestamp
 
-$(ENVDIR3)/.timestamp: $(TOXDEP) requirements.txt tox.ini
+$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.6) requirements.txt tox.ini
 	rm -rf $(ENVDIR3)
-	$(TOX) $(patsubst %,-e py%-env,$(lastword $(subst .,,$(PYTHONS3))))
+	$(TOX) -e py36-env
 	touch $(ENVDIR3)/.timestamp
 $(ENVDIR3): $(ENVDIR3)/.timestamp
 
@@ -246,7 +246,7 @@ register: $(TOXDEP) wheel
 	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/$(WHEEL)
 
 sign: wheel
-	$(eval GPG_OPTS=$(shell ./gpg-opts.sh "$(PYPI_GPG_KEY)"))
+	$(eval GPG_PASS_OPTS=$(shell ./gpg-opts.sh "$(PYPI_GPG_KEY)"))
 	rm -f DIST/$(WHEEL).asc DIST/$(SDIST).asc
 	@$(GPG_SIGN) DIST/$(WHEEL)
 	@$(GPG_SIGN) DIST/$(SDIST)
