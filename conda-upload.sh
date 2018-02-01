@@ -28,7 +28,7 @@ ${CONDA2} install -y anaconda-client conda-build
 ${CONDA3} install -y anaconda-client conda-build
 
 # Check if we're already logged in, to avoid nasty warnings.
-USER=$(${ANACONDA} whoami 2> /dev/null | head -n 1 | sed -n 's/\(Username: \(.*\)\)/\2/pi')
+USER=$(${ANACONDA} whoami 2>&1 | grep ^Username: | sed -n 's/\(Username: \(.*\)\)/\2/pi')
 
 if [ -z "${USER}" ] ; then
     echo "Need login credentials for anaconda.org:"
@@ -68,4 +68,4 @@ ${CONDA2} convert -f --platform all "${PACKAGE2}"
 ${CONDA3} convert -f --platform all "${PACKAGE3}"
 
 # Upload to anaconda.org
-${ANACONDA} upload -c "${CONDA_CHANNEL}" --user "${CONDA_CHANNEL}" --label main $(find . -name 'agraph-python-*.tar.bz2')
+${ANACONDA} upload -c "${CONDA_CHANNEL}" --user "${CONDA_CHANNEL}" --label main "${PACKAGE2}" "${PACKAGE3}" $(find . -name 'agraph-python-*.tar.bz2')
