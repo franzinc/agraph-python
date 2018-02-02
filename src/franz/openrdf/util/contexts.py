@@ -51,7 +51,7 @@ def output_to(target):
     # are not smart enough to capture things written to an fd.
     if target is True:
         # Make sure that the thing we return supports binary I/O
-        if sys.version_info >= (3, 0):
+        if hasattr(sys.stdout, 'buffer'):
             yield sys.stdout.buffer
         else:
             yield sys.stdout

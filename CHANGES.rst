@@ -2,6 +2,16 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.0.4
+===============
+
+Jupyter-friendly stdout
+-----------------------
+
+The ``output_to`` context manager (used internally when writing output
+to stdout) has been modified to work better in environments that
+hijack the ``sys.stdout`` value, such as Jupyter notebooks or IDLE.
+
 Release 100.0.3
 ===============
 
