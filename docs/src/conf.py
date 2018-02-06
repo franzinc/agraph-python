@@ -21,6 +21,20 @@ import re
 import sys
 from datetime import datetime
 
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+
+# RTD doesn't allow C extensions, so we have to mock pycurl.
+# But we only do this on RTD, since running the tutorial
+# still requires an actual HTTP client.
+if on_rtd:
+    # RTD will use Python > 3.3, so no need to add a dependency
+    from unittest.mock import MagicMock
+    class Mock(MagicMock):
+        @classmethod
+        def __getattr__(cls, name):
+            return MagicMock()
+    sys.modules.update((('pycurl', Mock()),))
+
 # Don't ask.
 if sys.version_info <= (3,0):
     reload(sys)
@@ -151,8 +165,8 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
+
 # Use the RTD theme when building on RTD
-on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     html_theme = 'default'
 else:
