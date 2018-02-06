@@ -126,6 +126,13 @@ pythons/.python%-timestamp: $(CONDA3)
 
 # End Python installation
 
+# PYTHONPATH can cause problems and it is useless here because
+# we use our own Python interpreters and virtualenvs anyway.
+ifdef PYTHONPATH
+  $(warning Unsetting PYTHONPATH)
+  unexport PYTHONPATH
+endif
+
 prepare-release: FORCE
 # Make sure we have a dev version.
 	python version.py verify-dev
