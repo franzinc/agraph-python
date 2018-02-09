@@ -44,6 +44,9 @@ policy:
      before any other changes to the agraph-python module are
      committed.
 
+     After the changes are merged, ask Kevin to update the
+     AllegroGraph documentation website.
+
 # Credentials
 
 The following credentials are required by `make publish`

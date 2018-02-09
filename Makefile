@@ -155,6 +155,8 @@ post-release: FORCE
 	git add src/franz/__init__.py
 	git commit -m "Next dev version: `python version.py`"
 # Push and submit via gerrit
+	# FIXME: This never works.  Gerrit doesn't like two commits
+	# which modify the same file.
 	git push gerrit 'HEAD:refs/for/master%submit'
 
 checkPort: FORCE
