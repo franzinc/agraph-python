@@ -38,7 +38,7 @@ class Statement(object):
         :type subject: URI|BNode|str
         :param predicate: Predicate component. Either a URI or a string
                           in N-Triples format.
-        :type predicate URI|str
+        :type predicate: URI|str
         :param object: Subject component. Either a Value or a string
                        in N-Triples format.
         :type object: Value|str
