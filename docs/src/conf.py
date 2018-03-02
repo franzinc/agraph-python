@@ -75,6 +75,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
+    'sphinxcontrib.jupyter',
     'hacks'
 ]
 
@@ -416,6 +417,71 @@ intersphinx_mapping = {
 # Simplify external links.
 extlinks = {'docs': ('https://franz.com/agraph/support/documentation/current/%s',
                      'AllegroGraph documentation: ')}
+
+# --------------------------------------------
+# sphinxcontrib-jupyter Configuration Settings
+# --------------------------------------------
+
+# Conversion Mode Settings
+# If "all", convert codes and texts into jupyter notebook
+# If "code", convert code-blocks only
+jupyter_conversion_mode = "all"
+
+jupyter_write_metadata = True
+
+# Location for _static folder
+jupyter_static_file_path = ["_static"]
+
+# Configure Jupyter Kernels
+jupyter_kernels = {
+    "python_rdf": {
+        "kernelspec": {
+            "display_name": "Python",
+            "language": "python3",
+            "name": "python3"
+            },
+        "file_extension": ".py",
+    },
+}
+
+# Configure Jupyter headers
+jupyter_headers = {
+    "python_rdf": [
+    ],
+}
+
+# This must be set, yet seems to be ignored...
+jupyter_welcome_block = "jupyter.welcome.block"
+
+# This method must be monkey-patched, otherwise it
+# raises an exception and causes the build to fail.
+# The code below was copied from sphinxcontrib-jupyter
+# and amended.
+def depart_list_item(self, node):
+    # self.first_line_in_list_item = False
+
+    list_item_start = self.list_item_starts.pop()
+    indent = self.indent_char * self.indents[-1]
+    br_removed_flag = False
+
+    ###############################################################################
+    # CHANGED LINE: The build crashes here without the added checks
+    ###############################################################################
+    if self.markdown_lines and self.markdown_lines[-1] and self.markdown_lines[-1][-1] == "\n":
+        br_removed_flag = True
+        self.markdown_lines[-1] = self.markdown_lines[-1][:-1]
+
+    for i in range(list_item_start, len(self.markdown_lines)):
+        self.markdown_lines[i] = self.markdown_lines[i].replace(
+            "\n", "\n{}".format(indent))
+
+    # add breakline
+    if br_removed_flag:
+        self.markdown_lines.append("\n")
+
+# Monkey-patch the method defined above.
+from sphinxcontrib.jupyter.writers.translate_all import JupyterTranslator
+JupyterTranslator.depart_list_item = depart_list_item
 
 # autodoc config
 

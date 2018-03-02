@@ -32,7 +32,7 @@ connection object registers a new namespace.
 We start by opening a connection
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 

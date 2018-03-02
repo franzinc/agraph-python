@@ -10,7 +10,7 @@ similar operation on the result of a query.
 As usual, we'll start by opening a connection:
 
  .. literalinclude:: doctest_setup.py
-    :language: python
+    :language: python_rdf
     :start-after: BEGIN-CONNECT
     :end-before: END-CONNECT
 

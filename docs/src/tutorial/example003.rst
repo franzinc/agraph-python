@@ -15,7 +15,7 @@ will use the same triples that were used in :ref:`example2`.
 Let's create the connection first:
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 

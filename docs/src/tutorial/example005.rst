@@ -32,7 +32,7 @@ We begin by obtaining a connection object and remvoing all existing data
 from the repository
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 

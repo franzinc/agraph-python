@@ -11,7 +11,7 @@ patterns that can match a range of values for each component. To
 illustrate this let us first create a connection:
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 

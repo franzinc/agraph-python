@@ -38,3 +38,5 @@ stress/events/phase*
 # Docs - output and generated files
 /docs/build
 /docs/source/_gen
+# Generated notebooks are stored here
+/jupyter

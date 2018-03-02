@@ -11,7 +11,7 @@ queries. The subject is explored in more detail in :ref:`example10`.
 Let us start by creating a connection:
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 

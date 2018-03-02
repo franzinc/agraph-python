@@ -10,7 +10,7 @@ and the Python client handle them.
 Let's connect to the database:
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 

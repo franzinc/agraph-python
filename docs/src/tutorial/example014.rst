@@ -11,7 +11,7 @@ strings.
 To illustrate, let us create a connection
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 

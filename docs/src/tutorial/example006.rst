@@ -64,7 +64,7 @@ number ``16`` for the ``context`` context argument, and the number
 ``28`` for the null context (``None``) argument.
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
    

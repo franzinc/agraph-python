@@ -242,6 +242,16 @@ tutorial: checkPort disttest
 docs: $(TOXDEP) .venv FORCE
 	$(TOX) -e doc
 
+jupyter: $(TOXDEP) .venv FORCE
+	$(TOX) -e jupyter
+	rm -rf jupyter
+	mkdir -p jupyter
+	for f in docs/build/jupyter/tutorial/*.ipynb ; do \
+          python fix_notebook.py < $$f > jupyter/$$(basename $$f) ; \
+        done
+	cp -r docs/src/images jupyter/
+	cp -r docs/data jupyter/
+
 wheel: $(ENVDIR)/.timestamp FORCE
 	mkdir -p DIST
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)

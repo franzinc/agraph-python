@@ -15,7 +15,7 @@ indexes appropriate to the searches you want to pursue.
 First let's open a connection
 
 .. literalinclude:: doctest_setup.py
-   :language: python
+   :language: python_rdf
    :start-after: BEGIN-CONNECT
    :end-before: END-CONNECT
 
