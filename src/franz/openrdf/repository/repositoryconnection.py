@@ -1858,13 +1858,18 @@ class RepositoryConnection(object):
         """
         Creates an object that allows for simple creation of URIs in given namespace.
         Attribute lookups on the returned object will produce URIs with the attribute
-        name as localname.
+        name as localname. Indexing into the object or calling it like a function
+        will have the same effect.
 
         >>> from franz.openrdf.connect import ag_connect
         >>> conn = ag_connect('repo')
         >>> ex = conn.namespace('http://franz.com/example/')
         >>> ex.foo
         <http://franz.com/example/foo>
+        >>> ex['bar']
+        <http://franz.com/example/bar>
+        >>> ex('baz')
+        <http://franz.com/example/baz>
 
         :param prefix: Prefix prepended to URIs created by the returned object.
         :type prefix: str

@@ -2,6 +2,24 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.0.5
+===============
+
+Enhanced namespace objects
+--------------------------
+
+Namespace objects can now create URIs when indexed or called like a
+function. This makes it easier to create URIs where the local name is
+not a valid attribute name:
+
+   >>> from franz.openrdf.connect import ag_connect
+   >>> conn = ag_connect('repo')
+   >>> ex = conn.namespace('http://franz.com/example/')
+   >>> ex('is')
+   <http://franz.com/example/is>
+   >>> ex['def']
+   <http://franz.com/example/def>
+
 Release 100.0.4
 ===============
 

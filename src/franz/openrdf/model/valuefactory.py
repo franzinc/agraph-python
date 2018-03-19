@@ -112,7 +112,8 @@ class ValueFactory(object):
         """
         Create an object that allows for simple creation of URIs in given namespace.
         Attribute lookups on the returned object will produce URIs with the attribute
-        name as localname.
+        name as localname. Array item access and function calls will have the same
+        effect.
 
         :param prefix: Prefix prepended to URIs created by the returned object.
         :type prefix: str
@@ -123,7 +124,13 @@ class ValueFactory(object):
         class Namespace(object):
             __slots__ = ()
 
-            def __getattribute__(self, item):
-                return vf.createURI(namespace=prefix, localname=item)
+            def __getattribute__(self, name):
+                return self(name)
+
+            def __getitem__(self, index):
+                return self(index)
+
+            def __call__(self, arg):
+                return vf.createURI(namespace=prefix, localname=arg)
 
         return Namespace()

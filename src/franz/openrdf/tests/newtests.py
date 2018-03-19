@@ -514,6 +514,13 @@ def test_conn_namespace(conn):
     ex = conn.namespace('http://franz.com/example/')
     assert ex.foo == conn.createURI('http://franz.com/example/foo')
 
+def test_conn_namespace_array(conn):
+    ex = conn.namespace('http://franz.com/example/')
+    assert ex['bar'] == conn.createURI('http://franz.com/example/bar')
+
+def test_conn_namespace_call(conn):
+    ex = conn.namespace('http://franz.com/example/')
+    assert ex('baz') == conn.createURI('http://franz.com/example/baz')
 
 def test_add_with_single_context(conn, s, p, o, g):
     conn.addTriples([(s, p, o)], context=g)
