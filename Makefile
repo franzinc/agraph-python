@@ -253,6 +253,10 @@ jupyter: $(TOXDEP) .venv FORCE
 	cp -r docs/src/images jupyter/
 	cp -r docs/data jupyter/
 
+publish-jupyter: jupyter
+	tar czf agraph-jupyter.tar.gz jupyter/
+	mv agraph-jupyter.tar.gz /fi/ftp/pub/agraph/python-client
+
 wheel: $(ENVDIR)/.timestamp FORCE
 	mkdir -p DIST
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)
