@@ -1,5 +1,7 @@
 # Requirements installed in the environment used to run tox
 # Versions are pinned to ensure that Python 2.6 is supported.
+certifi==2018.1.18
+pluggy==0.6.0
 setuptools==36.8.0
 wheel==0.30.0
 pip==9.0.1
