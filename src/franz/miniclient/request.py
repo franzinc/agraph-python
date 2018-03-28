@@ -16,9 +16,6 @@ from past.builtins import str as old_str
 from future.utils import native_str
 import os, re, sys
 
-from franz.miniclient.agjson import JsonDecodeError, decode_json
-from franz.openrdf.util.strings import to_native_string
-
 # Select the backend (curl or requests).
 if os.environ.get('AG_FORCE_REQUESTS_BACKEND'):
     import franz.miniclient.backends.requests as backend
@@ -29,6 +26,7 @@ else:
         import franz.miniclient.backends.requests as backend
 
 from franz.openrdf.util.strings import to_native_string
+from franz.openrdf.util.http import merge_headers
 from franz.miniclient.agjson import decode_json, JsonDecodeError
 
 if sys.version_info[0] > 2:
@@ -38,7 +36,10 @@ else:
     from urllib import quote
     from cStringIO import StringIO
 
+# Note: this is mocked in some unit tests, be careful when changing the way
+# the import works.
 makeRequest = backend.makeRequest
+
 
 def jsonRequest(obj, method, url, body=None, content_type="application/x-www-form-urlencoded",
                 callback=None, accept=None, headers=None):
@@ -85,7 +86,8 @@ def jsonRequest(obj, method, url, body=None, content_type="application/x-www-for
         callback = obj._saveFile.write
 
     if callback is None:
-        status, body = makeRequest(obj, method, url, body, accept, content_type, headers=headers)
+        status, body = makeRequest(obj, method, url, body, accept, content_type,
+                                   headers=merge_headers(obj.getHeaders(), headers))
         if status == 200:
             if accept in ('application/json', 'text/integer', "application/x-quints+json"):
                 body = decode_json(body)
@@ -113,10 +115,11 @@ def nullRequest(obj, method, url, body=None, content_type="application/x-www-for
     :param content_type: MIME type of the request body, optional.
     :type content_type: string
     """
-    headers = []
+    headers = None
     if content_encoding is not None:
-        headers.append('Content-Encoding: ' + content_encoding)
-    status, body = makeRequest(obj, method, url, body, "application/json", content_type, headers=headers)
+        headers = ['Content-Encoding: ' + content_encoding]
+    status, body = makeRequest(obj, method, url, body, "application/json", content_type,
+                               headers=merge_headers(obj.getHeaders(), headers))
     if status < 200 or status > 204:
         raise RequestError(status, body)
 

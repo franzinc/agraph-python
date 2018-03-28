@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, with_statement
 
 import sys
+from datetime import timedelta
 
 from past.utils import old_div
 from past.builtins import basestring
@@ -20,7 +21,7 @@ else:
     from urllib import quote
     from urlparse import urlparse
 
-import inspect, math, threading
+import copy, inspect, math, threading
 
 from contextlib import contextmanager
 from .request import *
@@ -47,9 +48,11 @@ def _split_proxy(proxy):
 
 class Service(object):
     def __init__(self, url, user=None, password=None, cainfo=None, sslcert=None,
-                 verifyhost=None, verifypeer=None, proxy=None, session=None):
+                 verifyhost=None, verifypeer=None, proxy=None):
         # Note: it is important to save the arguments into fields with identical names.
         # This makes the weird cloning mechanism used by subclasses work.
+        # WARNING: The cloning process mentioned above will create a **shallow** copy
+        # of each argument.
         self.url = url
         self.user = user
         self.password = password
@@ -60,9 +63,37 @@ class Service(object):
         self.verifypeer = verifypeer
         self.proxy = proxy
         self.proxy_type, self.proxy_host, self.proxy_port = _split_proxy(proxy)
-        self.session = session
+        self.session = None  # Will be created lazily
+        self.transaction_settings = None
 
-    def _instance_from_url(self, subclass, url):
+    def getHeaders(self):
+        """
+        Return a dictionary of headers that should be added to every request.
+        Return ``None`` instead of an empty dictionary if there are no such
+        headers.
+        """
+        s = self.transaction_settings
+        if s:
+            values = []
+            if s.distributed_transaction_timeout is not None:
+                values.append(
+                    ('distributedTransactionTimeout',
+                     time_in_seconds(s.distributed_transaction_timeout)))
+            if s.durability is not None:
+                values.append(('durability', s.durability))
+            if s.transaction_latency_count is not None:
+                values.append(('transactionLatencyCount',
+                               s.transaction_latency_count))
+            if s.transaction_latency_timeout is not None:
+                values.append(('transactionLatencyTimeout',
+                               time_in_seconds(s.transaction_latency_timeout)))
+            if values:
+                return {
+                    'x-repl-settings': ' '.join('%s=%s' % value for value in values)
+                }
+        return None
+
+    def _instance_from_url(self, subclass, url=None):
         """
         Create a copy of this service object that will:
            - be an instance of the ``subclass`` class.
@@ -75,10 +106,14 @@ class Service(object):
         kwargs = {}
         for arg_name in inspect.getargspec(subclass.__init__).args:
             if hasattr(self, arg_name):
-                kwargs[arg_name] = getattr(self, arg_name)
+                kwargs[arg_name] = copy.copy(getattr(self, arg_name))
         # Override URL
-        kwargs['url'] = url
+        if url is not None:
+            kwargs['url'] = url
         return subclass(**kwargs)
+
+    def copy(self):
+        return self._instance_from_url(type(self))
 
 
 class Catalog(Service):
@@ -863,3 +898,26 @@ class Repository(Service):
         finally:
             del self._saveFile
             del self._saveAccept
+
+
+def time_in_seconds(t):
+    """
+    Try to convert an argument to a number of seconds.
+
+    This works on:
+
+        - integers (which are simply returned)
+        - strings (cast to ints, suffixes like s, h, .. are *not* supported)
+        - timedelta objects
+
+    :param t: Time in seconds.
+    :type t: int|str|timedelta
+    :return: Number of seconds.
+    :rtype: int
+    """
+    if t is None:
+        return None
+    if isinstance(t, timedelta):
+        # Can't use total_seconds() in Python 2.6
+        return t.seconds + t.days * 24 * 3600
+    return int(t)

@@ -2,8 +2,22 @@
 AllegroGraph Python client release history
 ==========================================
 
-Release 100.0.5
+Release 100.1.0
 ===============
+
+Distributed transaction settings
+--------------------------------
+
+It is now possible to configure distributed transaction parameters
+in multiple ways:
+
+   - By passing arguments to the ``commit()`` method
+   - By calling ``setTransactionSettings()`` on the connection object.
+   - By using a context manager returned by the
+     ``temporaryTransactionSettings()`` method.
+
+In all cases the settings can be passed either in a single
+``TransactionSettings`` object or as individual keyword arguments.
 
 Enhanced namespace objects
 --------------------------

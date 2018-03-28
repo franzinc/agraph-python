@@ -20,14 +20,19 @@ from franz.openrdf.connect import ag_connect
 from franz.openrdf.exceptions import RequestError
 from franz.openrdf.model import Literal, Statement
 from franz.openrdf.query.query import QueryLanguage
+from franz.openrdf.repository.transactions import TransactionSettings
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.sail import AllegroGraphServer
 from franz.openrdf.tests.tz import MockTimezone
 from franz.openrdf.util.contexts import output_to
+from franz.openrdf.util.http import normalize_headers
 from franz.openrdf.vocabulary import XMLSchema
 
 from .tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, STORE, USER, PASSWORD
+
+# Imported to allow mocking
+import franz.miniclient.request
 
 common_args = dict(
     host=AG_HOST, port=AG_PORT, catalog=CATALOG,
@@ -536,3 +541,173 @@ def test_add_with_two_contexts(conn, ex):
 def test_add_quad_overrides_contexts(conn, ex):
     conn.addTriples([(ex.s, ex.p, ex.o, ex.g)], context=[ex.g1, ex.g2])
     assert get_statements(conn) == [[ex.s, ex.p, ex.o, ex.g]]
+
+
+# A helper function that makes a request and intercepts
+# the repl header. It also sorts all the settings
+# in the header to make comparisons easier.
+def get_repl_header(conn, ex, mocker):
+    req = mocker.spy(franz.miniclient.request, 'makeRequest')
+    conn.addTriple(ex.s, ex.p, ex.o)
+    # not implemented in Python 2...
+    # req.assert_called()
+    for _args, kwargs in req.call_args_list:
+        headers = normalize_headers(kwargs.get('headers', {})) or {}
+        return normalize_repl_header(headers.get('x-repl-settings'))
+
+
+# Sort values in a repl header
+def normalize_repl_header(header):
+    if header is None:
+        return None
+    return ' '.join(sorted(header.split()))
+
+
+def test_default_get_transaction_settings(conn):
+    assert conn.getTransactionSettings() is None
+
+
+def test_set_durability(conn):
+    conn.setTransactionSettings(durability=42)
+    assert conn.getTransactionSettings().durability == 42
+
+
+def test_set_durability_does_not_change_latency(conn):
+    conn.setTransactionSettings(transaction_latency_count=7)
+    conn.setTransactionSettings(durability=42)
+    assert conn.getTransactionSettings().transaction_latency_count == 7
+
+
+def test_set_settings_object(conn):
+    conn.setTransactionSettings(durability=42)
+    conn.setTransactionSettings(TransactionSettings(transaction_latency_count=7))
+    assert conn.getTransactionSettings().transaction_latency_count == 7
+    assert conn.getTransactionSettings().durability is None
+
+
+def test_settings_object_and_kwargs(conn):
+    conn.setTransactionSettings(durability=42)
+    conn.setTransactionSettings(
+        TransactionSettings(transaction_latency_count=7),
+        transaction_latency_timeout=2000)
+    assert conn.getTransactionSettings().transaction_latency_count == 7
+    assert conn.getTransactionSettings().transaction_latency_timeout == 2000
+    assert conn.getTransactionSettings().durability is None
+
+
+def test_settings_object_and_kwargs_overwrite(conn):
+    conn.setTransactionSettings(
+        TransactionSettings(durability=7), durability=42)
+    assert conn.getTransactionSettings().durability == 42
+
+
+def test_default_transaction_settings(conn, ex, mocker):
+    assert get_repl_header(conn, ex, mocker) is None
+
+
+def test_temporary_settings_object(conn):
+    new = TransactionSettings(durability=7)
+    with conn.temporaryTransactionSettings(new):
+        assert conn.getTransactionSettings() == new
+
+
+def test_temporary_settings_object_restore(conn):
+    old = TransactionSettings(durability=42)
+    new = TransactionSettings(durability=7)
+    conn.setTransactionSettings(old)
+    with conn.temporaryTransactionSettings(new):
+        pass
+    assert conn.getTransactionSettings() == old
+
+
+def test_temporary_settings_kwargs(conn):
+    with conn.temporaryTransactionSettings(durability=7):
+        assert conn.getTransactionSettings().durability == 7
+
+
+def test_temporary_settings_kwargs_restore(conn):
+    old = TransactionSettings(durability=42)
+    conn.setTransactionSettings(old)
+    with conn.temporaryTransactionSettings(durability=7):
+        pass
+    assert conn.getTransactionSettings() == old
+
+
+def test_temporary_settings_kwargs_overwrite(conn):
+    old = TransactionSettings(durability=42, transaction_latency_count=10)
+    conn.setTransactionSettings(old)
+    with conn.temporaryTransactionSettings(durability=7):
+        assert conn.getTransactionSettings().durability == 7
+        assert conn.getTransactionSettings().transaction_latency_count == 10
+
+
+def test_temporary_settings_object_and_kwargs_overwrites_all(conn):
+    old = TransactionSettings(durability=42)
+    new = TransactionSettings()
+    conn.setTransactionSettings(old)
+    with conn.temporaryTransactionSettings(new, transaction_latency_count=7):
+        assert conn.getTransactionSettings().durability is None
+
+
+def test_temporary_settings_object_and_kwargs(conn):
+    old = TransactionSettings(durability=42)
+    new = TransactionSettings(durability=7)
+    conn.setTransactionSettings(old)
+    with conn.temporaryTransactionSettings(new, transaction_latency_count=100):
+        assert conn.getTransactionSettings().durability == 7
+        assert conn.getTransactionSettings().transaction_latency_count == 100
+    assert conn.getTransactionSettings() == old
+
+
+def test_temporary_settings_nonlocal_return(conn):
+    old = TransactionSettings(durability=42)
+    new = TransactionSettings(durability=7)
+    conn.setTransactionSettings(old)
+    while True:
+        with conn.temporaryTransactionSettings(new):
+            break
+    assert conn.getTransactionSettings() == old
+
+
+def test_set_durability_header(conn, ex, mocker):
+    conn.setTransactionSettings(durability=7)
+    assert get_repl_header(conn, ex, mocker) == 'durability=7'
+
+
+def test_set_durability_and_latency_count(conn, ex, mocker):
+    conn.setTransactionSettings(durability=7, transaction_latency_count=3)
+    settings = get_repl_header(conn, ex, mocker)
+    assert settings == 'durability=7 transactionLatencyCount=3'
+
+
+def test_set_all_transaction_settings(conn, ex, mocker):
+    conn.setTransactionSettings(distributed_transaction_timeout=1,
+                                durability=2, transaction_latency_count=3,
+                                transaction_latency_timeout=4)
+    settings = get_repl_header(conn, ex, mocker)
+    assert settings == ' '.join(('distributedTransactionTimeout=1',
+                                 'durability=2',
+                                 'transactionLatencyCount=3',
+                                 'transactionLatencyTimeout=4'))
+
+
+def test_latency_timeout_timedelta(conn, ex, mocker):
+    conn.setTransactionSettings(transaction_latency_timeout=timedelta(hours=1))
+    assert get_repl_header(conn, ex, mocker) == 'transactionLatencyTimeout=3600'
+
+
+def test_timeout_timedelta(conn, ex, mocker):
+    conn.setTransactionSettings(distributed_transaction_timeout=timedelta(hours=1))
+    assert get_repl_header(conn, ex, mocker) == 'distributedTransactionTimeout=3600'
+
+
+def test_commit_settings(conn, ex, mocker):
+    req = mocker.spy(franz.miniclient.request, 'makeRequest')
+    conn.addTriple(ex.s, ex.p, ex.o)
+    conn.commit(durability='quorum')
+    # Not available in Python 2
+    # req.assert_called()
+    args, kwargs = req.call_args
+    headers = normalize_headers(kwargs.get('headers', {})) or {}
+    header = normalize_repl_header(headers.get('x-repl-settings'))
+    assert header == 'durability=quorum'

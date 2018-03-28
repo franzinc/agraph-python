@@ -24,6 +24,7 @@ from requests.packages.urllib3.util.retry import Retry
 from pkg_resources import parse_version
 
 from franz.openrdf.util.strings import to_native_string
+from franz.openrdf.util.http import normalize_headers
 
 # Public symbols
 __all__ = ['makeRequest']
@@ -121,33 +122,6 @@ def create_session(obj):
     session.mount('http://', HTTPAdapter(max_retries=retries))
 
     return session
-
-
-def normalize_headers(headers):
-    """
-    Create a dictionary of headers from:
-       * A list of curl-style headers
-       * None
-       * a dictionary (return a *copy*).
-
-    :param headers: List or dict of header (may also be None).
-    :type headers: Iterable[string] | dict[string, string] | None
-    :return: A dictionary of headers suitable for requests.
-    :rtype: dict[string,string]
-    """
-    if headers is None:
-        return {}
-    elif isinstance(headers, dict):
-        return headers.copy()
-    else:
-        # Assume curl-style sequence of strings
-        result = {}
-        for line in headers:
-            key, sep, value = line.partition(':')
-            if sep is None:
-                raise Exception("Internal error - invalid header line (%s)" % line)
-            result[key.strip().lower()] = value.strip()
-        return result
 
 
 def makeRequest(obj, method, url, body=None, accept=None, contentType=None, callback=None, errCallback=None, headers=None):

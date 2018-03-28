@@ -17,8 +17,9 @@ from past.builtins import map, unicode, basestring
 
 from franz.miniclient.request import wrap_callback
 from franz.openrdf.util.contexts import output_to
-from .repositoryresult import RepositoryResult
 
+from .repositoryresult import RepositoryResult
+from .transactions import TransactionSettings, DEFAULT_TRANSACTION_SETTINGS
 from ..exceptions import IllegalOptionException, IllegalArgumentException
 from ..model import Statement, Value, URI
 from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon, Literal
@@ -29,16 +30,19 @@ from ..util import uris
 
 from collections import namedtuple
 
+import copy, sys, warnings
+from contextlib import contextmanager
+
+
 class PrefixFormat(namedtuple('EncodedIdPrefix', 'prefix format')):
     __slots__ = ()
 
-import copy, sys, warnings
-from contextlib import contextmanager
 
 if sys.version_info[0] > 2:
     # Hack for isinstance checks
     import io
     file = io.IOBase
+
 
 class RepositoryConnection(object):
     """
@@ -78,6 +82,7 @@ class RepositoryConnection(object):
         """
         self.repository = repository
         self.mini_repository = repository.mini_repository
+        self.has_dedicated_mini_repository = False
         self.is_closed = False
         self._add_commit_size = None
         self._close_repo = close_repo
@@ -92,7 +97,12 @@ class RepositoryConnection(object):
         """
         return self.repository.getSpec()
 
-    def _get_mini_repository(self):
+    # By default the mini-client might be shared with other connections to the same repository,
+    # but when opening a session or changing connection settings we need to have our own client.
+    def _get_mini_repository(self, dedicated=False):
+        if dedicated and not self.has_dedicated_mini_repository:
+            self.mini_repository = copy.copy(self.mini_repository)
+            self.has_dedicated_mini_repository = True
         return self.mini_repository
 
     def getValueFactory(self):
@@ -1533,12 +1543,8 @@ class RepositoryConnection(object):
         :type loadinitfile: bool
         """
         if not self.is_session_active:
-            miniRep = self._get_mini_repository()
-            if miniRep == self.repository.mini_repository:
-                # Don't use the shared mini_repository for a session
-                miniRep = self.mini_repository = copy.copy(self.repository.mini_repository)
-
-            miniRep.openSession(autocommit, lifetime, loadinitfile)
+            mini_repo = self._get_mini_repository(dedicated=True)
+            mini_repo.openSession(autocommit, lifetime, loadinitfile)
             self.is_session_active = True
 
     def closeSession(self):
@@ -1632,10 +1638,16 @@ class RepositoryConnection(object):
         with self._get_mini_repository().saveResponse(fileobj, accept, raiseAll):
             yield
 
-    def commit(self):
+    def commit(self, settings=None, **kwargs):
         """
         Commit changes on an open session.
+
+        Parameters can be used to control distributed transaction settings
+        for the current transaction, as if using :meth:`temporaryTransactionSettings`.
         """
+        if settings or kwargs:
+            with self.temporaryTransactionSettings(settings, **kwargs):
+                return self._get_mini_repository().commit()
         return self._get_mini_repository().commit()
 
     def rollback(self):
@@ -1950,7 +1962,80 @@ class RepositoryConnection(object):
         q = self.prepareUpdate(QueryLanguage.SPARQL, query)
         return q.evaluate()
 
-    
+    def setTransactionSettings(self, settings=None, **kwargs):
+        """
+        Change distributed transaction settings used by this connection.
+
+        The new settings can be described either by a :class:`TransactionSettings`
+        object or by passing individual parameters as keyword arguments.
+        Argument names must match the fields of the :class:`TransactionSettings`
+        class.
+
+        If a settings object is passed all settings will be replaced.
+        Keyword arguments will only affect specific parameters, any
+        setting for which there is no corresponding keyword argument
+        in the call will keep its current value.
+
+        If both types of arguments are passed they will be merged, with keyword
+        arguments taking precedence over values from the settings object.
+
+        :param settings: A settings object.
+        :type settings: TransactionSettings
+        :param kwargs: Individual transaction parameters.
+                       See :class:`TransactionSettings` for a list of valid names.
+        """
+        client = self._get_mini_repository(dedicated=True)
+        settings = settings or client.transaction_settings
+        if kwargs:
+            settings = (settings or DEFAULT_TRANSACTION_SETTINGS)._replace(**kwargs)
+        client.transaction_settings = settings
+
+    @contextmanager
+    def temporaryTransactionSettings(self, settings=None, **kwargs):
+        """
+        Create a context in which transaction settings of this connection
+        are modified or replaced.
+
+        If a settings object is given as an argument it will replace all
+        transaction settings. Keyword arguments may be used to modify
+        individual transaction parameters without affecting other settings.
+
+        Here is how this method can be used to temporarily lower durability
+        requirements while executing some operations::
+
+            with conn.temporaryTransactionSettings(durability='min'):
+                # Durability is now 'min', other settings remain unchanged.
+                # Perform some operations
+                ...
+                conn.commit()
+            # At this points durability will be restored to its original value.
+
+        :param settings: A settings object.
+        :type settings: TransactionSettings
+        :param kwargs: Individual transaction parameters.
+                       See :class:`TransactionSettings` for a list of valid names.
+        :return: A context manager that takes care of changing and restroing
+                 distributed transaction settings.
+        """
+        client = self._get_mini_repository(dedicated=True)
+        old_settings = client.transaction_settings
+        self.setTransactionSettings(settings, **kwargs)
+        try:
+            yield
+        finally:
+            self.setTransactionSettings(old_settings)
+
+    def getTransactionSettings(self):
+        """
+        Return distributed transaction settings currently in force.
+
+        :return: A settings object.
+        :rtype: TransactionSettings
+        """
+        client = self._get_mini_repository()
+        return client.transaction_settings
+
+
 class GeoType(object):
     Cartesian = 'CARTESIAN'
     Spherical = 'SPHERICAL'

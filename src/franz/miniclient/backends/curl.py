@@ -147,7 +147,7 @@ def normalize_headers(headers):
         result = ['%s: %s' % entry for entry in iteritems(headers)]
     else:
         result = headers[:]
-    return map(to_native_string, result)
+    return [to_native_string(h) for h in result]
 
 
 def retrying_perform(curl):
@@ -284,10 +284,9 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
     # The "Expect:" is there to suppress "Expect: 100-continue"
     # behavior that is the default in libcurl when posting large
     # bodies.
+    headers = normalize_headers(headers)
     if headers is None:
         headers = []
-    for i in range(len(headers)):
-        headers[i] = to_native_string(headers[i])
     headers.extend(["Connection: keep-alive", "Accept: " + to_native_string(accept), "Expect:"])
     if callback: headers.append("Connection: close")
     if contentType: headers.append("Content-Type: " + to_native_string(contentType))
