@@ -13,21 +13,20 @@ from past.utils import old_div
 from past.builtins import basestring
 
 from franz.miniclient.agjson import encode_json
+from franz.openrdf.repository.attributes import AttributeFilter
 from franz.openrdf.rio.formats import Format
 
-if sys.version_info[0] > 2:
-    from urllib.parse import quote, urlparse
-else:
-    from urllib import quote
-    from urlparse import urlparse
+from six.moves.urllib.parse import quote, urlparse
 
-import copy, inspect, math, threading
+import copy, inspect, math, re, threading
 
 from contextlib import contextmanager
-from .request import *
+from .request import encode, serialize, decode, deserialize, \
+    jsonRequest, nullRequest, urlenc, RequestError
 from ..openrdf.util.contexts import wrap_context
 from ..openrdf.util.strings import to_native_string
 
+from six import python_2_unicode_compatible
 
 def _split_proxy(proxy):
     """
@@ -65,6 +64,7 @@ class Service(object):
         self.proxy_type, self.proxy_host, self.proxy_port = _split_proxy(proxy)
         self.session = None  # Will be created lazily
         self.transaction_settings = None
+        self.user_attributes = None
 
     def getHeaders(self):
         """
@@ -73,8 +73,8 @@ class Service(object):
         headers.
         """
         s = self.transaction_settings
+        values = []
         if s:
-            values = []
             if s.distributed_transaction_timeout is not None:
                 values.append(
                     ('distributedTransactionTimeout',
@@ -87,10 +87,14 @@ class Service(object):
             if s.transaction_latency_timeout is not None:
                 values.append(('transactionLatencyTimeout',
                                time_in_seconds(s.transaction_latency_timeout)))
-            if values:
-                return {
-                    'x-repl-settings': ' '.join('%s=%s' % value for value in values)
-                }
+
+        if values or self.user_attributes:
+            result = {
+                'x-repl-settings': ' '.join('%s=%s' % value for value in values)
+            }
+            if self.user_attributes:
+                result['x-user-attributes'] = encode_json(self.user_attributes)
+            return result
         return None
 
     def _instance_from_url(self, subclass, url=None):
@@ -394,10 +398,16 @@ class Repository(Service):
         return jsonRequest(self, "GET", "/statements/id", urlenc(id=ids),
                            accept=accept, callback=callback)
 
-    def addStatement(self, subj, pred, obj, context=None):
+    def addStatement(self, subj, pred, obj, context=None, attributes=None):
         """Add a single statement to the repository."""
-        nullRequest(self, "POST", "/statements", encode_json([[subj, pred, obj, context]]),
-                    content_type="application/json")
+        args = {
+            'subj': subj,
+            'pred': pred,
+            'obj': obj,
+            'context': context,
+            'attributes': attributes and encode_json(attributes)
+        }
+        nullRequest(self, "PUT", "/statement?" + urlenc(**args))
 
     def deleteMatchingStatements(self, subj=None, pred=None, obj=None, context=None):
         """Delete all statements matching the constraints from the
@@ -407,21 +417,27 @@ class Repository(Service):
 
     def addStatements(self, quads, commitEvery=None):
         """Add a collection of statements to the repository. Quads
-        should be an array of four-element arrays, where the fourth
-        element, the graph name, may be None."""
-        nullRequest(self, "POST", "/statements?" + urlenc(commit=commitEvery),
+        should be an array of or five four-element arrays, where the fourth
+        element, the graph name, may be None. The fifth element, if present,
+        must be a string with a JSON-encoded dictionary of attribute values.
+        """
+        nullRequest(self, "POST", "/statements?" +
+                    urlenc(commit=commitEvery),
                     encode_json(quads), content_type="application/json")
 
-    def loadData(self, data, rdf_format, base_uri=None, context=None, commit_every=None, content_encoding=None):
+    def loadData(self, data, rdf_format, base_uri=None, context=None,
+                 commit_every=None, content_encoding=None, attributes=None):
         nullRequest(self, "POST",
                     "/statements?" + urlenc(context=context,
                                             baseURI=base_uri,
-                                            commit=commit_every),
+                                            commit=commit_every,
+                                            attributes=attributes and encode_json(attributes)),
                     data,
                     content_type=Format.mime_type_for_format(rdf_format),
                     content_encoding=content_encoding)
 
-    def loadFile(self, file, rdf_format, baseURI=None, context=None, serverSide=False, commitEvery=None, content_encoding=None):
+    def loadFile(self, file, rdf_format, baseURI=None, context=None, serverSide=False,
+                 commitEvery=None, content_encoding=None, attributes=None):
         mime = Format.mime_type_for_format(rdf_format)
 
         if serverSide:
@@ -438,7 +454,8 @@ class Repository(Service):
             file = None
 
         with body_context as body:
-            params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery)
+            params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery,
+                            attributes=attributes and encode_json(attributes))
             nullRequest(self, "POST", "/statements?" + params, body,
                         content_type=mime, content_encoding=content_encoding)
 
@@ -898,6 +915,40 @@ class Repository(Service):
         finally:
             del self._saveFile
             del self._saveAccept
+
+    def setAttributeFilter(self, attribute_filter):
+        if isinstance(attribute_filter, AttributeFilter):
+            attribute_filter = attribute_filter.to_expr()
+        args = urlenc(filter=attribute_filter)
+        return nullRequest(self, 'POST', '/attributes/staticFilter?' + args)
+
+    def getAttributeFilter(self):
+        return jsonRequest(self, 'GET', '/attributes/staticFilter')
+
+    def clearAttributeFilter(self):
+        return nullRequest(self, 'DELETE', '/attributes/staticFilter')
+
+    def getAttributeDefinitions(self):
+        return jsonRequest(self, 'GET', '/attributes/definitions')
+
+    def getAttributeDefinition(self, name):
+        return jsonRequest(
+            self, 'GET', '/attributes/definitions?' + urlenc(name=name))
+
+    def setAttributeDefinition(self, attr_def):
+        args = {
+            'name': attr_def.name,
+            'allowed-values': attr_def.allowed_values,
+            'ordered': attr_def.ordered,
+            'minimum-number': attr_def.minimum_number,
+            'maximum-number': attr_def.maximum_number
+        }
+        return nullRequest(
+            self, 'POST', '/attributes/definitions?' + urlenc(**args))
+
+    def deleteAttributeDefinition(self, name):
+        return jsonRequest(
+            self, 'DELETE', '/attributes/definitions?' + urlenc(name=name))
 
 
 def time_in_seconds(t):

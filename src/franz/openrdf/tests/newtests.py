@@ -6,6 +6,7 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
+import json
 from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 
@@ -20,6 +21,9 @@ from franz.openrdf.connect import ag_connect
 from franz.openrdf.exceptions import RequestError
 from franz.openrdf.model import Literal, Statement
 from franz.openrdf.query.query import QueryLanguage
+from franz.openrdf.repository.attributes import AttributeDefinition, TripleAttribute, UserAttribute, \
+    attribute_filter_to_expr, And, Or, Not, Empty, Overlap, Subset, Superset, Equal, Lt, Le, Eq, Ge, Gt, \
+    attribute_set_to_expr
 from franz.openrdf.repository.transactions import TransactionSettings
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
@@ -42,7 +46,7 @@ common_args = dict(
 
 def get_statements(conn):
     """
-    Gets all statements as a list of lists of Value objects,
+    Gets all statements as a list of 4-element lists of Value objects,
     sorted lexicographically.
     """
     return sorted([list(s) for s in conn.getStatements()])
@@ -711,3 +715,180 @@ def test_commit_settings(conn, ex, mocker):
     headers = normalize_headers(kwargs.get('headers', {})) or {}
     header = normalize_repl_header(headers.get('x-repl-settings'))
     assert header == 'durability=quorum'
+
+
+def test_define_attribute(conn):
+    attr = AttributeDefinition(
+        name='test', allowed_values=['a', 'b', 'c'],
+        minimum_number=0, maximum_number=1)
+    conn.setAttributeDefinition(attr)
+    actual = conn.getAttributeDefinition('test')
+    assert actual.name == 'test'
+    assert sorted(actual.allowed_values) == ['a', 'b', 'c']
+    assert actual.ordered is False
+    assert actual.minimum_number == 0
+    assert actual.maximum_number == 1
+
+
+def test_get_set_attribute_filter_str(conn, attr):
+    conn.setAttributeFilter('(empty triple.test)')
+    assert conn.getAttributeFilter() == '(empty triple.test)'
+
+
+def test_attribute_filter_works(conn, ex, attr):
+    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={'test': 'a'})
+    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={'test': 'b'})
+    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={'test': 'c'})
+    conn.setAttributeFilter(TripleAttribute.test == 'b')
+    assert get_statements(conn) == [[ex.s2, ex.p2, ex.o2, None]]
+
+
+def test_attribute_filter_with_user_attributes(conn, ex, attr):
+    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={'test': 'a'})
+    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={'test': 'b'})
+    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={'test': 'c'})
+    conn.setUserAttributes({'test': 'b'})
+    conn.setAttributeFilter(TripleAttribute.test == UserAttribute.test)
+    assert get_statements(conn) == [[ex.s2, ex.p2, ex.o2, None]]
+
+
+@pytest.mark.parametrize("attr_set, expected_text", [
+    ('raw-value', '"raw-value"'),
+    ('value-with-"-inside', '"value-with-\\"-inside"'),
+    (['a', 'list', 'of', 'strings'], '("a" "list" "of" "strings")'),
+    (UserAttribute.test, 'user.test'),
+    (TripleAttribute.level, 'triple.level')])
+def test_attr_set_expr(attr_set, expected_text):
+    assert expected_text == attribute_set_to_expr(attr_set)
+
+
+@pytest.mark.parametrize("attr_filter, expected_text", [
+    ('(empty ("raw" "string"))', '(empty ("raw" "string"))'),
+    (And('(and)', '(or)'), '(and (and) (or))'),
+    (Or('(and)', '(or)'), '(or (and) (or))'),
+    (And('(and)',Or()), '(and (and) (or))'),
+    (Or(And(), '(or)'), '(or (and) (or))'),
+    (Not('(and)'), '(not (and))'),
+    (Not(Not(Not(And()))), '(not (not (not (and))))'),
+    (Empty([]), '(empty ())'),
+    (Empty(TripleAttribute.restricted), '(empty triple.restricted)'),
+    (Overlap([], ["x"]), '(overlap () ("x"))'),
+    (Overlap(UserAttribute.flags, TripleAttribute.flags),
+     '(overlap user.flags triple.flags)'),
+    (Subset([], ["x"]), '(subset () ("x"))'),
+    (Subset(UserAttribute.flags, TripleAttribute.flags),
+     '(subset user.flags triple.flags)'),
+    (Superset([], ["x"]), '(superset () ("x"))'),
+    (Superset(UserAttribute.flags, TripleAttribute.flags),
+     '(superset user.flags triple.flags)'),
+    (Equal(["y"], ["x"]), '(equal ("y") ("x"))'),
+    (Equal(UserAttribute.color, TripleAttribute.color),
+     '(equal user.color triple.color)'),
+    (Lt(UserAttribute.level, TripleAttribute.level),
+     '(attribute-set< user.level triple.level)'),
+    (Le(UserAttribute.level, TripleAttribute.level),
+     '(attribute-set<= user.level triple.level)'),
+    (Eq(UserAttribute.level, TripleAttribute.level),
+     '(attribute-set= user.level triple.level)'),
+    (Ge(UserAttribute.level, TripleAttribute.level),
+     '(attribute-set>= user.level triple.level)'),
+    (Gt(UserAttribute.level, TripleAttribute.level),
+     '(attribute-set> user.level triple.level)'),
+    (UserAttribute.x < TripleAttribute.x, '(attribute-set< user.x triple.x)'),
+    (UserAttribute.x <= TripleAttribute.x, '(attribute-set<= user.x triple.x)'),
+    (UserAttribute.x == TripleAttribute.x, '(equal user.x triple.x)'),
+    (UserAttribute.x > TripleAttribute.x, '(attribute-set> user.x triple.x)'),
+    (UserAttribute.x >= TripleAttribute.x, '(attribute-set>= user.x triple.x)'),
+    (UserAttribute.x << TripleAttribute.x, '(subset user.x triple.x)'),
+    (UserAttribute.x >> TripleAttribute.x, '(superset user.x triple.x)'),
+    ('a' < TripleAttribute.x, '(attribute-set> triple.x "a")'),
+    ('a' <= TripleAttribute.x, '(attribute-set>= triple.x "a")'),
+    ('a' == TripleAttribute.x, '(equal triple.x "a")'),
+    ('a' > TripleAttribute.x, '(attribute-set< triple.x "a")'),
+    ('a' >= TripleAttribute.x, '(attribute-set<= triple.x "a")'),
+    ('a' << TripleAttribute.x, '(subset "a" triple.x)'),
+    ('a' >> TripleAttribute.x, '(superset "a" triple.x)'),
+    (Empty([]) & '(or)', '(and (empty ()) (or))'),
+    (Empty([]) & Or(), '(and (empty ()) (or))'),
+    (Empty([]) | '(and)', '(or (empty ()) (and))'),
+    (Empty([]) | And(), '(or (empty ()) (and))'),
+    (~Empty([]), '(not (empty ()))')
+])
+def test_attr_filter_to_expr(attr_filter, expected_text):
+    assert expected_text == attribute_filter_to_expr(attr_filter)
+
+
+def normalize_attributes(d):
+    """
+    Sort returned attribute values.
+    """
+    if d is None:
+        return None
+    r = {}
+    for key, value in d.items():
+        if isinstance(value, list):
+            r[key] = sorted(value)
+        else:
+            r[key] = value
+    return r
+
+
+def get_triple_attributes(conn, s, p, o, g=None):
+    if g is None:
+        qt = '''select ?a { 
+                   ?a <http://franz.com/ns/allegrograph/6.2.0/attributes> (?s ?p ?o) . 
+        }'''
+    else:
+        qt = '''select ?a { 
+                   graph ?g {
+                       ?a <http://franz.com/ns/allegrograph/6.2.0/attributes> (?s ?p ?o) .
+                   } 
+        }'''
+    query = conn.prepareTupleQuery(query=qt)
+    query.setBinding('s', s)
+    query.setBinding('p', p)
+    query.setBinding('o', o)
+    if g is not None:
+        query.setBinding('g', g)
+    with query.evaluate() as result:
+        return [normalize_attributes(json.loads(b['a'].label or 'null'))
+                for b in result
+                if b['a'] is not None]
+
+
+def test_add_data_with_attributes(conn, ex, attr):
+    conn.addData('<ex://s> <ex://p> <ex://o> .', attributes={'test': 'c'})
+    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s, ex.p, ex.o)
+
+
+def test_add_tuples_with_attributes(conn, ex, attr):
+    conn.addTriples([[ex.s1, ex.p1, ex.o1], [ex.s2, ex.p2, ex.o2]],
+                    attributes={'test': 'c'})
+    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+
+
+def test_add_quints(conn, ex, attr):
+    conn.addTriples([[ex.s1, ex.p1, ex.o1, None, {'test': 'a'}],
+                    [ex.s2, ex.p2, ex.o2, None, {'test': 'b'}]])
+    assert [{'test': 'a'}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{'test': 'b'}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+
+
+def test_add_quints_multiple_values(conn, ex, attr2):
+    conn.addTriples([[ex.s1, ex.p1, ex.o1, None, {'test2': ['a', 'b']}],
+                     [ex.s2, ex.p2, ex.o2, None, {'test2': ['b', 'c']}]])
+    assert [{'test2': ['a', 'b']}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{'test2': ['b', 'c']}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+
+
+def test_add_quints_with_attributes(conn, ex, attr):
+    conn.addTriples([[ex.s1, ex.p1, ex.o1, None, {'test': 'a',}],
+                     [ex.s2, ex.p2, ex.o2],
+                     [ex.s3, ex.p3, ex.o3, None, None],
+                     [ex.s4, ex.p4, ex.o4, None, {}]],
+                    attributes={'test': 'c'})
+    assert [{'test': 'a'}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s3, ex.p3, ex.o3)
+    assert [] == get_triple_attributes(conn, ex.s4, ex.p4, ex.o4)

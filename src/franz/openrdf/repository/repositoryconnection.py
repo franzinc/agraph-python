@@ -15,7 +15,9 @@ from __future__ import unicode_literals
 from future.builtins import object
 from past.builtins import map, unicode, basestring
 
+from franz.miniclient.agjson import encode_json
 from franz.miniclient.request import wrap_callback
+from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.util.contexts import output_to
 
 from .repositoryresult import RepositoryResult
@@ -43,6 +45,10 @@ if sys.version_info[0] > 2:
     import io
     file = io.IOBase
 
+# Used instead of None as the default value of optional parameters
+# when we want to distinguish between the caller passing None as
+# the actual value and the parameter not being present in the call.
+NOT_GIVEN = object()
 
 class RepositoryConnection(object):
     """
@@ -374,7 +380,7 @@ class RepositoryConnection(object):
             return self._to_ntriples(term)
 
     def getStatements(self, subject=None, predicate=None,  object=None, contexts=ALL_CONTEXTS, includeInferred=False,
-                       limit=None, offset=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX):
+                      limit=None, offset=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX):
         """
         Get all statements with a specific subject, predicate and/or
         object from the repository. The result is optionally
@@ -411,6 +417,9 @@ class RepositoryConnection(object):
         :type output: str|file
         :param output_format: Serialization format for ``output``.
         :type output_format: RDFFormat
+        :param include_attributes: If true the returned statements will
+            include triple attributes. The default is false.
+        :type include_attributes: bool
         :return: An iterator over the resulting statements 
                  or ``None`` (if ``output`` is used).
         :rtype: RepositoryResult
@@ -509,7 +518,8 @@ class RepositoryConnection(object):
             return None
 
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
-    def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False):
+    def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False,
+            attributes=None):
         """
         Calls :meth:`.addTriple`, :meth:`.addStatement`, or :meth:`.addFile`.
 
@@ -536,6 +546,8 @@ class RepositoryConnection(object):
         :param serverSide: Indicates whether the filepath refers to a file on the client computer
                            or on the server.  Defaults to ``False`` (i.e. client-side).
         :type serverSide: bool
+        :param attributes: Attributes for the new triple (a mapping from attribute names to values).
+        :type attributes: dict[str, str]
         """
         if contexts and not isinstance(contexts, list):
             contexts = [contexts]
@@ -546,19 +558,21 @@ class RepositoryConnection(object):
                 context = contexts[0]
             else:
                 context = None
-            return self.addFile(arg0, base=base, format=format, context=context, serverSide=serverSide)
+            return self.addFile(arg0, base=base, format=format, context=context, serverSide=serverSide,
+                                attributes=attributes)
         elif isinstance(arg0, Value):
-            return self.addTriple(arg0, arg1, arg2, contexts=contexts)
+            return self.addTriple(arg0, arg1, arg2, contexts=contexts, attributes=attributes)
         elif isinstance(arg0, Statement):
-            return self.addStatement(arg0, contexts=contexts)
+            return self.addStatement(arg0, contexts=contexts, attributes=attributes)
         elif hasattr(arg0, '__iter__'):
             for s in arg0:
-                self.addStatement(s, contexts=contexts)
+                self.addStatement(s, contexts=contexts, attributes=attributes)
         else:
             raise IllegalArgumentException("Illegal first argument to 'add'.  Expected a Value, Statement, File, or string.")
 
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
-    def addFile(self, filePath, base=None, format=None, context=None, serverSide=False, content_encoding=None):
+    def addFile(self, filePath, base=None, format=None, context=None, serverSide=False, content_encoding=None,
+                attributes=None):
         """
         Loads a file into the triple store. Note that a file can be loaded into only one context.
 
@@ -576,6 +590,8 @@ class RepositoryConnection(object):
         :param serverSide: Indicates whether the filepath refers to a file on the client computer
                            or on the server.  Defaults to ``False`` (i.e. client-side).
         :type serverSide: bool
+        :param attributes: Attributes for all added triples (a mapping from attribute names to values).
+        :type attributes: dict[str, str]
         """
         if isinstance(context, (list, tuple)):
             if len(context) > 1:
@@ -590,9 +606,10 @@ class RepositoryConnection(object):
         self._get_mini_repository().loadFile(
             filePath, format, context=contextString, serverSide=serverSide,
             commitEvery=self.add_commit_size, baseURI=base,
-            content_encoding=content_encoding)
+            content_encoding=content_encoding,
+            attributes=attributes)
 
-    def addData(self, data, rdf_format=RDFFormat.TURTLE, base_uri=None, context=None):
+    def addData(self, data, rdf_format=RDFFormat.TURTLE, base_uri=None, context=None, attributes=None):
         """
         Adds data from a string to the repository.
 
@@ -606,12 +623,14 @@ class RepositoryConnection(object):
         :param context: Graph to add the data to.
                         If None (default) the default graph will be used.
         :type context: URI|string
+        :param attributes: Attributes for the added triples (a mapping from attribute names to values).
+        :type attributes: dict[str, str]
         """
         ctx = self._context_to_ntriples(context, none_is_mini_null=True)
         self._get_mini_repository().loadData(
-            data, rdf_format, base_uri=base_uri, context=ctx)
+            data, rdf_format, base_uri=base_uri, context=ctx, attributes=attributes)
 
-    def addTriple(self, subject, predicate, object, contexts=None):
+    def addTriple(self, subject, predicate, object, contexts=None, attributes=None):
         """
         Add a single triple to the repository.
 
@@ -625,12 +644,14 @@ class RepositoryConnection(object):
                          Defaults to ``None``, which adds the statement to the
                          null context (the default or background graph).
         :type contexts: Iterable[string|URI]
+        :param attributes: Attributes for the added triple (a mapping from attribute names to values).
+        :type attributes: dict[str, str]
         """
         obj = self.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
         cxts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
         for cxt in cxts:
             self._get_mini_repository().addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
-                        self._convert_term_to_mini_term(obj), cxt)
+                        self._convert_term_to_mini_term(obj), cxt, attributes=attributes)
 
     def _to_ntriples(self, term):
         """
@@ -646,9 +667,12 @@ class RepositoryConnection(object):
         else:
             return Literal(term).toNTriples()
 
-    def addTriples(self, triples_or_quads, context=None, ntriples=False):
+    def addTriples(self, triples_or_quads, context=None, ntriples=False, attributes=None):
         """
         Add the supplied triples or quads to this repository.
+
+        Each triple or quad can have between 3 and 5 elements, the last one being
+        the dictionary of attributes (or None if the default attributes should be used).
 
         :param triples_or_quads: List of triples or quads. Each element can be
                                  either a statement or a list or tuple of :class:`Value` objects
@@ -662,12 +686,17 @@ class RepositoryConnection(object):
                          in N-Triples format and are sent to the server without any
                          conversion.
         :type ntriples: bool
+        :param attributes: Default attributes for the added triples (a mapping from attribute
+                           names to values). These will be used only for statements that do not
+                           contain their own attribute dictionaries.
+        :type attributes: dict[str, str]
         """
         quads = []
         for q in triples_or_quads:
             # Note: Statement objects will work here, since they have a length
             # and support accessing components by index.
-            is_quad = len(q) == 4
+            is_quad = len(q) >= 4
+            quad_attributes = q[4] if len(q) >= 5 and q[4] is not None else attributes
             if ntriples:
                 s = q[0]
                 p = q[1]
@@ -680,14 +709,23 @@ class RepositoryConnection(object):
                 p = self._to_ntriples(predicate)
                 o = self._to_ntriples(obj)
                 gs = [self._to_ntriples(q[3])] if is_quad and q[3] else context
+            # We try to avoid passing the fifth element, since it might confuse older AG servers.
             if gs is None:
-                quads.append((s, p, o, None))
+                if quad_attributes:
+                    quads.append((s, p, o, None, encode_json(quad_attributes)))
+                else:
+                    quads.append((s, p, o, None))
             else:
-                for g in self._contexts_to_ntriple_contexts(gs, none_is_mini_null=True):
-                    quads.append((s, p, o, g))
+                ntriple_contexts = self._contexts_to_ntriple_contexts(gs, none_is_mini_null=True)
+                if quad_attributes:
+                    for g in ntriple_contexts:
+                        quads.append((s, p, o, g, encode_json(quad_attributes)))
+                else:
+                    for g in ntriple_contexts:
+                        quads.append((s, p, o, g))
         self._get_mini_repository().addStatements(quads, commitEvery=self.add_commit_size)
 
-    def addStatement(self, statement, contexts=None):
+    def addStatement(self, statement, contexts=NOT_GIVEN, attributes=None):
         """
         Add the supplied statement to the specified contexts in the repository.
 
@@ -695,12 +733,19 @@ class RepositoryConnection(object):
                           ignored (use the ``contexts`` parameters instead).
         :type statement: Statement
         :param contexts: List of contexts (graph URIs) to add the statement to.
-                         Defaults to ``None``, which adds the statement to the
+                         If present this overrides the context from the statement object.
+                         The default context is ``None``, which adds the statement to the
                          null context (the default or background graph).
         :type contexts: Iterable[string|URI]
+        :param attributes: Attributes for the added triple (a mapping from attribute names to values).
+                           If present this overrides the attributes passed in the statement object.
+        :type attributes: dict[str, str]
         """
+        if contexts is NOT_GIVEN:
+            ctx = statement.getContext()
+            contexts = [ctx] if ctx is not None else None
         self.addTriple(statement.getSubject(), statement.getPredicate(), statement.getObject(),
-                       contexts=contexts)
+                       contexts=contexts, attributes=attributes)
 
     def remove(self, arg0, arg1=None, arg2=None, contexts=None):
         """
@@ -740,13 +785,13 @@ class RepositoryConnection(object):
         from the repository, optionally restricted to the specified contexts.
 
         :param subject: Subject of the triples to be removed.
-        :type subject: Value
+        :type subject: Value|None
         :param predicate: Predicate of the triples to be removed.
-        :type predicate: URI
+        :type predicate: URI|None
         :param object: Object of the triples to be removed.
-        :type object: Value
+        :type object: Value|None
         :param contexts: An optional list of graphs to remove triples from.
-        :type contexts: Iterable[URI|string]
+        :type contexts: Iterable[URI|string]|None
         """
         subj = self._to_ntriples(subject)
         pred = self._to_ntriples(predicate)
@@ -2034,6 +2079,129 @@ class RepositoryConnection(object):
         """
         client = self._get_mini_repository()
         return client.transaction_settings
+
+    def setUserAttributes(self, attributes):
+        """
+        Set user attributes (used to filter the store during queries).
+
+        :param attributes: A dictionary mapping attribute names to values.
+                           A value is either a string or a list of strings.
+        :type attributes: dict[str, str|list[str]]
+        """
+        client = self._get_mini_repository(dedicated=True)
+        client.user_attributes = copy.deepcopy(attributes)
+
+    def getUserAttributes(self):
+        """
+        Get the current set of user attributes.
+
+        :return: A dictionary mapping attribute names to values
+                 (or lists of values).
+        :rtype: dict[str, str|list[str]]
+        """
+        client = self._get_mini_repository()
+        return copy.deepcopy(client.user_attributes)
+
+    @contextmanager
+    def temporaryUserAttributes(self, attributes):
+        """
+        Set user attributes for the duration of a code block.
+
+        This method returns a context manager. It can be used like this::
+
+            with conn.temporaryUserAttributes({'access-level': 'low'}):
+                conn.do_something()
+
+        :param attributes: A dictionary mapping attribute names to values.
+                           A value is either a string or a list of strings.
+        :type attributes: dict[str, str|list[str]]
+        :rtype: ContextManager[None]
+        """
+        client = self._get_mini_repository(dedicated=True)
+        old = client.user_attributes
+        client.user_attributes = attributes
+        try:
+            yield
+        finally:
+            client.user_attributes = old
+
+    def setAttributeDefinition(self, attr_def):
+        """
+        Define or modify an attribute definition.
+
+        :param attr_def: Attribute definition.
+        """
+        self._get_mini_repository().setAttributeDefinition(attr_def)
+
+    def deleteAttributeDefinition(self, name):
+        """
+        Delete an attribute definition.
+
+        :param name: Attribute name.
+        """
+        self._get_mini_repository().deleteAttributeDefinition(name)
+
+    def getAttributeDefinitions(self):
+        """
+        Get a list of all attribute definitions from the server.
+
+        :return: A list of attribute definition objects.
+        :rtype: list[AttributeDefinition]
+        """
+        raw = self._get_mini_repository().getAttributeDefinitions()
+        return [attribute_definition_from_dict(item) for item in raw]
+
+    def getAttributeDefinition(self, name):
+        """
+        Get the definition of a given attribute.
+
+        Return None if there is no such attribute.
+
+        :param name: Attribute name.
+        :return: A definition object.
+        :rtype: AttributeDefinition
+        """
+        raw = self._get_mini_repository().getAttributeDefinition(name)
+        if raw:
+            return attribute_definition_from_dict(raw[0])
+        return None
+
+    def setAttributeFilter(self, attribute_filter):
+        """
+        Set the static attribute filter.
+
+        :param attribute_filter: The filter - either an AttributeFilter
+                                 or a string.
+        :type attribute_filter: AttributeFilter|str
+        """
+        self._get_mini_repository().setAttributeFilter(attribute_filter)
+
+    def getAttributeFilter(self):
+        """
+        Get the current static attribute filter.
+
+        The result will be a string, not an AttributeFilter object.
+
+        :return: The filter or none (if there is no static filter).
+        :rtype: str
+        """
+        return self._get_mini_repository().getAttributeFilter()
+
+    def clearAttributeFilter(self):
+        """
+        Remove the static attribute filter (if set).
+        """
+        self._get_mini_repository().clearAttributeFilter()
+
+
+def attribute_definition_from_dict(item):
+    return AttributeDefinition(
+        name=item.get('name'),
+        allowed_values=item.get('allowed-values'),
+        ordered=bool(item.get('ordered')),
+        minimum_number=item.get('minimum-number'),
+        maximum_number=item.get('maximum-number')
+    )
 
 
 class GeoType(object):

@@ -5,6 +5,25 @@ AllegroGraph Python client release history
 Release 100.1.0
 ===============
 
+Triple attributes
+-----------------
+
+Added support for triple attributes (requires AG >= 6.1). Specifically
+it is now possible to:
+
+   - Set and retrieve the static attribute filter using
+     ``conn.setAttributeFilter()`` and ``conn.getAttributeFilter()``
+   - Set and retrieve user attributes (that will be sent with each
+     request) using ``conn.setUserAttributes()`` and
+     ``conn.getUserAttributes()``.
+   - Manage attribute definitions using various methods in the
+     connection class..
+   - Add triples with attributes - a new keyword parameter named
+     'attributes' has been added to methods that add triples,
+     such as ``addData()``. It is also possible to pass five-element
+     tuples to ``addTriples()``, where the fifth element is
+     a dictionary of attribute values.
+
 Distributed transaction settings
 --------------------------------
 

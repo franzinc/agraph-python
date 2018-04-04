@@ -15,6 +15,7 @@ import pytest
 
 from franz.openrdf.model import URI
 from franz.openrdf.repository import Repository
+from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.sail import AllegroGraphServer
 
 from .tests import AG_HOST, AG_PORT, AG_PROXY, STORE, CATALOG, USER, PASSWORD
@@ -39,9 +40,13 @@ def conn():
     connection = repo.getConnection()
 
     if STORE in stores:
+        connection.setUserAttributes({})
+        connection.clearAttributeFilter()
         connection.clear()
         connection.clearNamespaces()
         connection.disableDuplicateSuppression()
+        for attr in connection.getAttributeDefinitions():
+            connection.deleteAttributeDefinition(attr.name)
 
     with connection:
         yield connection
@@ -83,6 +88,22 @@ def session(conn):
     conn.openSession()
     yield conn
     conn.closeSession()
+
+
+@pytest.fixture
+def attr(conn):
+    attr = AttributeDefinition(
+        name='test', allowed_values=['a', 'b', 'c'],
+        minimum_number=0, maximum_number=1)
+    yield conn.setAttributeDefinition(attr)
+
+
+@pytest.fixture
+def attr2(conn):
+    attr = AttributeDefinition(
+        name='test2', allowed_values=['a', 'b', 'c'],
+        minimum_number=0, maximum_number=None)
+    yield conn.setAttributeDefinition(attr)
 
 
 @pytest.fixture
