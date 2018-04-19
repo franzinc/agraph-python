@@ -166,6 +166,10 @@ class Literal(Value):
         """Convert to bool"""
         return self._label == 'true'
     
+    def decimalValue(self):
+        """Convert to a decimal"""
+        return Decimal(self._label)
+    
     def dateValue(self):
         """Convert to date"""
         # iso8601 can parse a date, but it will still be
@@ -238,7 +242,8 @@ XSDToPython = defaultdict(lambda: Literal.getValue, [
                 (XMLSchema.BOOLEAN.uri, Literal.booleanValue),
                 (XMLSchema.DATETIME.uri, Literal.datetimeValue),
                 (XMLSchema.DATE.uri, Literal.dateValue),
-                (XMLSchema.TIME.uri, Literal.timeValue)])
+                (XMLSchema.TIME.uri, Literal.timeValue),
+                (XMLSchema.DECIMAL.uri, Literal.decimalValue)])
 
 
 ###############################################################################

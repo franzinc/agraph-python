@@ -17,6 +17,13 @@ from .repositoryresult import RepositoryResult
 from collections import namedtuple
 
 
+try:
+    import franz.openrdf.query.pandas_support as pandas
+    has_pandas = True
+except ImportError:
+    has_pandas = False
+
+
 class QueryResult(object):
     """
     Super type of all query result types (TupleQueryResult, GraphQueryResult, etc.
@@ -116,6 +123,11 @@ class TupleQueryResult(QueryResult):
 
     def rowCount(self):
         return len(self)
+
+    def toPandas(self):
+        if not has_pandas:
+            raise Exception('Pandas not installed.')
+        return pandas.rows_to_pandas(self, self.variable_names)
 
 
 @python_2_unicode_compatible

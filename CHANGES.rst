@@ -2,6 +2,16 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.2.0
+===============
+
+Pandas support
+--------------
+
+It is now possible to turn a query result into a Pandas DataFrame
+by calling the ``toPandas()`` method of the result object. Note that 
+Pandas must be installed separately for this to work.
+
 Release 100.1.2
 ===============
 

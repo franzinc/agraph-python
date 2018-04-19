@@ -16,6 +16,13 @@ from past.builtins import unicode
 
 from ..model import Statement, Value
 
+try:
+    import franz.openrdf.query.pandas_support as pandas
+    has_pandas = True
+except ImportError:
+    has_pandas = False
+
+
 class RepositoryResult(object):
     """An iterable collection of statements.
 
@@ -172,3 +179,10 @@ class RepositoryResult(object):
 
     def __del__(self):
         self.close()
+
+    def toPandas(self, include_graph=True):
+        if not has_pandas:
+            raise Exception('Pandas not installed.')
+        return pandas.rows_to_pandas(
+            self,
+            ['s', 'p', 'o', 'g'] if include_graph else False)
