@@ -9,6 +9,7 @@
 Utilities related to context managers.
 """
 from contextlib import contextmanager
+import doctest
 import os
 import sys
 
@@ -53,6 +54,9 @@ def output_to(target):
         # Make sure that the thing we return supports binary I/O
         if hasattr(sys.stdout, 'buffer'):
             yield sys.stdout.buffer
+        # Doctest checker only accepts strings, not bytes...
+        elif isinstance(sys.stdout, doctest._SpoofOut):
+            yield BinWrapper(sys.stdout)
         else:
             yield sys.stdout
     elif isinstance(target, int):
@@ -66,3 +70,12 @@ def output_to(target):
         yield target
     else:
         raise ValueError('Invalid output specification %s' % target)
+
+
+# Used to convert text output streams to binary UTF-8 streams
+class BinWrapper(object):
+    def __init__(self, target):
+        self.target = target
+        
+    def write(self, byte_string):
+        self.target.write(byte_string.decode('utf-8'))

@@ -58,6 +58,8 @@ We can view the index configuration using the
 
    config = conn.getFreeTextIndexConfiguration("index1")
    for key, value in config.items():
+       if isinstance(value, list):
+           value = ', '.join(str(x) for x in value)
        print('{key}: {value}'.format(key=key, value=value))
 
 .. testoutput:: example12
@@ -66,13 +68,13 @@ We can view the index configuration using the
    tokenizer: default
    indexLiterals: True
    minimumWordSize: 3
-   indexFields: [u'object']
+   indexFields: object
    stopWords: ...
-   innerChars: []
-   predicates: [<ex://fullname>]
-   wordFilters: []
+   innerChars: 
+   predicates: <ex://fullname>
+   wordFilters: 
    indexResources: False
-   borderChars: []
+   borderChars: 
 
 This configuration says that ``index1`` will operate on the literal
 values it finds in the object position of the ``<ex://fullname>``
