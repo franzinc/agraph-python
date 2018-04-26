@@ -85,9 +85,10 @@ def jsonRequest(obj, method, url, body=None, content_type="application/x-www-for
         accept = obj._saveAccept
         callback = obj._saveFile.write
 
+    headers = merge_headers(obj.getHeaders(), headers)
     if callback is None:
         status, body = makeRequest(obj, method, url, body, accept, content_type,
-                                   headers=merge_headers(obj.getHeaders(), headers))
+                                   headers=headers)
         if status == 200:
             if accept in ('application/json', 'text/integer', "application/x-quints+json"):
                 body = decode_json(body)

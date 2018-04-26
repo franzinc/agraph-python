@@ -87,15 +87,12 @@ class Service(object):
             if s.transaction_latency_timeout is not None:
                 values.append(('transactionLatencyTimeout',
                                time_in_seconds(s.transaction_latency_timeout)))
-
-        if values or self.user_attributes:
-            result = {
-                'x-repl-settings': ' '.join('%s=%s' % value for value in values)
-            }
-            if self.user_attributes:
-                result['x-user-attributes'] = encode_json(self.user_attributes)
-            return result
-        return None
+        result = {}
+        if values:
+            result['x-repl-settings'] = ' '.join('%s=%s' % value for value in values)
+        if self.user_attributes:
+            result['x-user-attributes'] = encode_json(self.user_attributes)
+        return result or None
 
     def _instance_from_url(self, subclass, url=None):
         """

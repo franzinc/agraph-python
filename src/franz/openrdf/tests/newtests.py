@@ -11,6 +11,7 @@ from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 
 import pytest
+import io
 import os
 import sys
 
@@ -741,6 +742,17 @@ def test_attribute_filter_works(conn, ex, attr):
     conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={'test': 'c'})
     conn.setAttributeFilter(TripleAttribute.test == 'b')
     assert get_statements(conn) == [[ex.s2, ex.p2, ex.o2, None]]
+    
+
+def test_attribute_filter_works_with_output(conn, ex, attr):
+    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={'test': 'a'})
+    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={'test': 'b'})
+    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={'test': 'c'})
+    conn.setAttributeFilter(TripleAttribute.test == 'b')
+    buf = io.BytesIO()
+    conn.executeTupleQuery('select ?s { ?s ?p ?o }', 
+                           output=buf, output_format=TupleFormat.CSV)
+    assert buf.getvalue().strip().split() == [b's', b'"ex://s2"']
 
 
 def test_attribute_filter_with_user_attributes(conn, ex, attr):
