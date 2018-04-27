@@ -27,6 +27,9 @@ install_requires = [
     'future>=0.15.2,<1.0',
     'requests>=2.11.1,<3.0']
 
+if sys.version_info < (3,5):
+    install_requires.append('typing==3.6.4')
+
 tests_require = ['nose>=1.3.7,<2.0', 'pytest>=3.0,<4.0', 'pytest-timeout>=1.0,<2.0']
 
 setup(name='agraph-python',
