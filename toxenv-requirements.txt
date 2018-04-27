@@ -1,10 +1,21 @@
-# Requirements installed in the environment used to run tox
-# Versions are pinned to ensure that Python 2.6 is supported.
+asn1crypto==0.22.0
 certifi==2018.1.18
+cffi==1.10.0
+chardet==3.0.4
+cryptography==2.0.3
+idna==2.6
+pkginfo==1.4.2
 pluggy==0.6.0
-setuptools==36.8.0
-wheel==0.30.0
-pip==9.0.1
-py==1.4.34
-tox==2.9.1
-twine==1.9.1
+pip==10.0.1
+py==1.5.3
+pycparser==2.18
+pyOpenSSL==17.2.0
+PySocks==1.6.7
+requests==2.18.4
+requests-toolbelt==0.8.0
+six==1.11.0
+tox==3.0.0
+tqdm==4.23.1
+twine==1.11.0
+urllib3==1.22
+virtualenv==15.2.0
