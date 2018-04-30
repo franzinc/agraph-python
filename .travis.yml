@@ -30,3 +30,9 @@ before_script:
   - export AGRAPH_PORT=10035
   - export AGRAPH_HOST=127.0.0.1
   - export AGRAPH_CATALOG=/
+notifications:
+  email:
+    recipients:
+        - allegrograph-dev@franz.com
+      on_success: change # default: change
+      on_failure: always # default: always
