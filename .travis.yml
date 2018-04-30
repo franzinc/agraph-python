@@ -33,6 +33,6 @@ before_script:
 notifications:
   email:
     recipients:
-        - allegrograph-dev@franz.com
-      on_success: change # default: change
-      on_failure: always # default: always
+      - allegrograph-dev@franz.com
+    on_success: change # default: change
+    on_failure: always # default: always
