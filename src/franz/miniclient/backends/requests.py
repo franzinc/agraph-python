@@ -97,11 +97,11 @@ def create_session(obj):
     if obj.user is not None and obj.password is not None:
         session.auth = (obj.user, obj.password)
 
-    # Proxy setup
+    # Proxy setup dictionary creation
     if obj.proxy is not None:
-        session.proxy = '%s://%s:%s' % (translate_proxy_scheme(obj.proxy_type),
+        proxy_server = '%s://%s:%s' % (translate_proxy_scheme(obj.proxy_type),
                                         obj.proxy_host, obj.proxy_port)
-
+        session.proxies = {'http': proxy_server} # Dictionary for proxy argument in requests.Session()
     # Emulate curl's way of handling SSL
     if obj.cainfo is not None:
         # CA certificates
