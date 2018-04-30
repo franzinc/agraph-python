@@ -69,7 +69,7 @@ else
     TWINE_ARGS = -r $(PYPI_REPO_URL) --repository-url $(PYPI_REPO_URL) -u $(PYPI_USER)
 endif
 
-export AG_PIP_OPTS = --use-wheel --index-url=$(PIP_INDEX) $(PIP_CERT)  $(PIP_EXTRA_OPTS)
+export AG_PIP_OPTS = --index-url=$(PIP_INDEX) $(PIP_CERT)  $(PIP_EXTRA_OPTS)
 
 # TOXENV will have current tox installed.
 TOXENVDIR := toxenv
