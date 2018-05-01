@@ -99,8 +99,9 @@ def create_session(obj):
 
     # Proxy setup
     if obj.proxy is not None:
-        session.proxy = '%s://%s:%s' % (translate_proxy_scheme(obj.proxy_type),
-                                        obj.proxy_host, obj.proxy_port)
+        proxy = '%s://%s:%s' % (translate_proxy_scheme(obj.proxy_type),
+                                obj.proxy_host, obj.proxy_port)
+        session.proxies = {'http': proxy, 'https': proxy}
 
     # Emulate curl's way of handling SSL
     if obj.cainfo is not None:

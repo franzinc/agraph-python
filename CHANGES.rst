@@ -2,6 +2,23 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.1.2
+===============
+
+bug25281: Proxy settings are ignored
+------------------------------------
+Proxy settings used to be ignored when the requests backend was used.
+This has been corrected.
+
+Thanks to Iván Darío Ramos Vacca for reporting the bug and providing
+a fix.
+
+Release 100.1.1
+===============
+
+A bugfix release that adds some missing dependencies that are needed
+when using Python < 3.5.
+
 Release 100.1.0
 ===============
 
