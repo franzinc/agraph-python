@@ -193,7 +193,7 @@ test-env: $(ENVDIR)
 .PHONY: $(TOXENVDIR) $(ENVDIR) $(ENVDIR3) test-env
 
 wheelhouse: $(ENVDIR) $(ENVDIR3)
-	$(ENVDIR)/bin/pip wheel -rrequirements.txt -rrequirements2.txt -w wheelhouse
+	$(ENVDIR)/bin/pip wheel -rrequirements.txt -w wheelhouse
 	$(ENVDIR3)/bin/pip wheel -rrequirements.txt -w wheelhouse
 
 prepush: prepush2 prepush3
@@ -292,7 +292,7 @@ fix-copyrights: FORCE
 	find src -name '*.py' -print0 | xargs -0 python2 fix-header.py
 
 # If any of these files change rebuild the virtual environments.
-.venv: setup.py requirements.txt requirements2.txt tox.ini
+.venv: setup.py requirements.txt tox.ini
 	rm -rf .tox
 	touch .venv
 
