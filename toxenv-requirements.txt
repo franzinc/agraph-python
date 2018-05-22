@@ -17,4 +17,6 @@ tox==3.0.0
 tqdm==4.23.1
 twine==1.11.0
 urllib3==1.22
-virtualenv==15.2.0
+# Keep this in sync with the version installed by conda
+# Otherwise pip will overwrite it and break things.
+virtualenv==15.1.0

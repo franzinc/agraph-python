@@ -121,7 +121,7 @@ $(CONDA3): conda-install.sh
 
 pythons/.python%-timestamp: $(CONDA3)
 	rm -rf pythons/$*
-	$(CONDA3) create $(CONDA_OPTS) -qym -p pythons/$* python=$* virtualenv
+	$(CONDA3) create $(CONDA_OPTS) -qym -p pythons/$* python=$* virtualenv=15.1.0
 	touch pythons/.python$*-timestamp
 
 # End Python installation
