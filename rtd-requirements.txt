@@ -31,7 +31,7 @@ requests==2.18.4
 s3transfer==0.1.11
 six==1.11.0
 snowballstemmer==1.2.1
-Sphinx==1.7.1
+Sphinx==1.7.0
 sphinxcontrib-jupyter==0.1.dev20171024
 sphinxcontrib-websupport==1.0.1
 traceback2==1.4.0
