@@ -93,11 +93,11 @@ DataFrame from it:
 Notice that the DataFrame can be used after the result has been
 discarded, since all required data has been copied.
 
-At this point the :meth:`.toPandas` method does not allow fine-grained
-control over types of the returned columns. The ``'cheese'`` column
-contains decimal values, but floats would be more convenient for
-further computation. Thus we will modify the dataframe and convert the
-data:
+At this point the :meth:`.TupleQueryResult.toPandas` method does not
+allow fine-grained control over types of the returned columns. The
+``'cheese'`` column contains decimal values, but floats would be more
+convenient for further computation. Thus we will modify the dataframe
+and convert the data:
 
 .. testcode:: example18
 

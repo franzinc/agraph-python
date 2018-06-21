@@ -30,13 +30,13 @@ class ExtAutoSummary(Autosummary):
     """
 
     @staticmethod
-    def get_members(obj, typ, include_public=None):
+    def get_members(app, obj, typ, include_public=None):
         if not include_public:
             include_public = []
         items = []
         for name in vars(obj):
             try:
-                documenter = get_documenter(safe_getattr(obj, name), obj)
+                documenter = get_documenter(app, safe_getattr(obj, name), obj)
             except AttributeError:
                 continue
             if documenter.objtype == typ:
@@ -54,7 +54,7 @@ class ExtAutoSummary(Autosummary):
         def process_obj(name, typ, include_public=None):
             obj_name = name[name.index(':') + 1:]
             full_name, obj, _, _ = import_by_name(obj_name, prefixes=prefixes)
-            members, _ = self.get_members(obj, typ, include_public)
+            members, _ = self.get_members(env.app, obj, typ, include_public)
             ext_names.extend(['~%s.%s' % (full_name, member) for member in members])
         
         for elt in names:
@@ -216,9 +216,9 @@ def hack_sphinx_doctest():
                 self._checker = old_checker
 
     old_test_group = DocTestBuilder.test_group
-    def test_group(self, group, filename):
+    def test_group(self, group):
         if not should_skip(group.name):
-            return old_test_group(self, group, filename)
+            return old_test_group(self, group)
 
     sphinx.ext.doctest.SphinxDocTestRunner = HackedRunner
     sphinx.ext.doctest.DocTestBuilder.test_group = test_group

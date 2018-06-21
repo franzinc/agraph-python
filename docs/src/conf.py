@@ -74,7 +74,6 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
     'sphinxcontrib.jupyter',
     'hacks'
 ]
@@ -488,7 +487,7 @@ JupyterTranslator.depart_list_item = depart_list_item
 # Do not taker class documentation from the init method.
 autoclass_content = 'class'
 
-from sphinx.apidoc import main as apidoc_main
+from sphinx.ext.apidoc import main as apidoc_main
 
 # Text prepended to each document
 rst_prolog = """
@@ -574,10 +573,9 @@ def setup(app):
                    for path in exclude]
     # Generate apidocs
     # Options:
-    #  -e = create a separate page for each module
     #  -f = overwrite old files
     #  -o ... = output directory
     # ../src = path to the sources
     # rest = exclusion patterns
-    apidoc_main(['-e', '-f', '-o', os.path.abspath('source/_gen'), 
+    apidoc_main(['-f', '-o', os.path.abspath('src/_gen'), 
                  os.path.abspath('../src')] + abs_exclude)

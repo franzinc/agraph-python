@@ -95,12 +95,14 @@ class UserAttribute(ContextAttribute):
     User attribute reference to be used in filters.
 
     A user attribute name 'foo' can be referenced in three ways:
+
        - ``UserAttribute('foo')``
        - ``UserAttribute.foo``
        - ``UserAttribute['foo']``
 
     Filters involving objects of this class can be constructed
     using the following operators:
+
        - ``<``, ``<=``, ``==``, ``>=`` ,``>`` - note that ``==``
          is translated as ``equals``, not ``attribute=``.
        - ``<<`` and ``>>`` - meaning 'subset' and 'superset'.
@@ -113,12 +115,14 @@ class TripleAttribute(ContextAttribute):
     Triple attribute reference to be used in filters.
 
     A triple attribute name 'foo' can be referenced in three ways:
+
        - ``TripleAttribute('foo')``
        - ``TripleAttribute.foo``
        - ``TripleAttribute['foo']``
 
     Filters involving objects of this class can be constructed
     using the following operators:
+
        - ``<``, ``<=``, ``==``, ``>=`` ,``>`` - note that ``==``
          is translated as ``equals``, not ``attribute=``.
        - ``<<`` and ``>>`` - meaning 'subset' and 'superset'.
