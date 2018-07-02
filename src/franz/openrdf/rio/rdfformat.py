@@ -107,3 +107,10 @@ class RDFFormat(Format):
         file_extensions=[],
         supports_namespaces=False,
         supports_contexts=True)
+
+    JSONLD = dict(
+        name="JSON-LD",
+        mime_types=["application/ld+json"],
+        file_extensions=["json", "jsonld"],
+        supports_namespaces=True,
+        supports_contexts=True)
