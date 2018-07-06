@@ -2,6 +2,21 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 100.3.0
+===============
+
+User data access
+----------------
+
+AllegroGraph allows each user to store arbitrary key-value data
+on the server. This storage can now be accessed from Python by
+using new ``AllegroGraphServer` methods:
+
+  - ``listUserData()``
+  - ``getUserData()``
+  - ``setUserData()``
+  - ``deleteUserData()``
+
 Release 100.2.0
 ===============
 

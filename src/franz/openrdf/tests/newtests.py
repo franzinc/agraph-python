@@ -904,3 +904,28 @@ def test_add_quints_with_attributes(conn, ex, attr):
     assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
     assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s3, ex.p3, ex.o3)
     assert [] == get_triple_attributes(conn, ex.s4, ex.p4, ex.o4)
+
+
+def test_set_user_data(server):
+    server.setUserData('testKey', 'Hello, "World"!')
+    try:
+        assert server.getUserData('testKey') == 'Hello, "World"!'
+    finally:
+        server.deleteUserData('testKey')
+
+
+def test_user_data_not_found(server):
+    assert server.getUserData('nope') is None
+
+
+def test_del_user_data(server):
+    server.setUserData('testKey', 'Hello, "World"!')
+    server.deleteUserData('testKey')
+    assert server.getUserData('testKey') is None
+
+
+def test_user_data_fixture(server, user_data):
+    user_data['testKey2'] = 'hello!'
+    assert server.getUserData('testKey2') == 'hello!'
+    del user_data['testKey2']
+    assert server.getUserData('testKey2') is None

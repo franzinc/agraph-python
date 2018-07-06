@@ -9,9 +9,12 @@
 Test fixtures, moved to a separate file to avoid warnings
 about parameter names shadowing global symbols.
 """
+import contextlib
 import random
+from collections import MutableMapping
 
 import pytest
+import six
 
 from franz.openrdf.model import URI
 from franz.openrdf.repository import Repository
@@ -22,13 +25,13 @@ from .tests import AG_HOST, AG_PORT, AG_PROXY, STORE, CATALOG, USER, PASSWORD
 import os
 
 
+# noinspection PyShadowingNames
 @pytest.fixture
-def conn():
+def conn(server):
     """
     Provides a connection to the test repository. The repository is cleared
     before the test, but not after it.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     stores = catalog.listRepositories()
 
@@ -66,13 +69,21 @@ def repo_name(conn):
 
 
 @pytest.fixture
-def non_existing_repo():
+def server():
+    """
+    A fixture that allows easy access to an AllegroGraphServer object.
+    """
+    yield AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
+
+
+# noinspection PyShadowingNames
+@pytest.fixture
+def non_existing_repo(server):
     """
     A fixture that makes sure a repository does not exist before the test
     and also deletes it after the test.
     The value returned by this fixture is the name of the store.
     """
-    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     catalog = server.openCatalog(CATALOG)
     store = 'temp-store'
     while store in catalog.listRepositories():
@@ -147,3 +158,64 @@ def ex():
             return URI(namespace='ex://', localname=item)
 
     return Namespace()
+
+
+class UserData(MutableMapping):
+    """
+    A dictionary-like object that stores values in the user data
+    service on an AllegroGraph server.
+
+    This object keeps track of the values it changed. All changes
+    can be undone by calling 'close'.
+    """
+    def __init__(self, server_object):
+        """
+        Initialize user data dictionary.
+
+        :param server_object: AG server handle.
+        :type server_object: AllegroGraphServer
+        """
+        self.server = server_object
+        self.old_values = {}
+
+    def __setitem__(self, k, v):
+        if k not in self.old_values:
+            self.old_values[k] = self.server.getUserData(k)
+        self.server.setUserData(k, v)
+
+    def __delitem__(self, k):
+        if k not in self.old_values:
+            self.old_values[k] = self.server.getUserData(k)
+        self.server.deleteUserData(k)
+
+    def __getitem__(self, k):
+        return self.server.getUserData(k)
+
+    def __len__(self):
+        return len(self.server.listUserData())
+
+    def __iter__(self):
+        for k in self.server.listUserData():
+            yield self.server.getUserData(k)
+
+    def close(self):
+        """
+        Undo all changes made through this object.
+        """
+        for k, v in six.iteritems(self.old_values):
+            if v is None:
+                self.server.deleteUserData(k)
+            else:
+                self.server.setUserData(k, v)
+        self.old_values.clear()
+
+
+# noinspection PyShadowingNames
+@pytest.fixture
+def user_data(server):
+    """
+    A test fixture providing access to an instance of the UserData class.
+    All user data changes are undone during cleanup.
+    """
+    with contextlib.closing(UserData(server)) as ud:
+        yield ud

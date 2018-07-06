@@ -179,7 +179,7 @@ class AllegroGraphServer(object):
             raise ServerException("There is no catalog named '%s' (found %s)"
                 % (name, cats))
 
-        return Catalog(name, self._client)
+        return Catalog(name, self, self._client)
 
     def getInitfile(self):
         """
@@ -268,6 +268,53 @@ class AllegroGraphServer(object):
         :rtype: string
         """
         return self._client.getScript(module)
+
+    def getUserData(self, key):
+        """
+        Retrieve user data value with given key.
+
+        Users can store arbitrary strings on the server
+        using :meth:`setUserData`.
+
+        :param key: Value identifier.
+        :type key: str
+        :return: Stored string or None if there is no data under specified key.
+        :rtype: str|None
+        """
+        return self._client.getUserData(key)
+
+    def setUserData(self, key, data):
+        """
+        Set user data with given key.
+
+        This can be used to store arbitrary strings on the server.
+
+        :param key: Value identifier.
+        :type key: str
+        :param data: Value to be stored.
+        :type data: str
+        """
+        self._client.setUserData(key, data)
+
+    def deleteUserData(self, key):
+        """
+        Remove user data from the server.
+
+        This removes a value set with :meth:`setUserData`
+
+        :param key: Value identifier.
+        :type key: str
+        """
+        self._client.deleteUserData(key)
+
+    def listUserData(self):
+        """
+        Get all used keys from the user data store on the server.
+
+        :return: A list of key names.
+        :rtype: list[str]
+        """
+        return self._client.listUserData()
 
     def openFederated(self, repositories, autocommit=False, lifetime=None, loadinitfile=False):
         """
@@ -539,7 +586,8 @@ class Catalog(object):
     """
     Container of multiple repositories (triple stores).
     """
-    def __init__(self, name, client):
+    def __init__(self, name, server, client):
+        self.server = server
         self.mini_catalog = client.openCatalogByName(name)
         self._name = name
 

@@ -6,7 +6,6 @@
 ################################################################################
 from __future__ import absolute_import, division, with_statement
 
-import sys
 from datetime import timedelta
 
 from past.utils import old_div
@@ -27,6 +26,7 @@ from ..openrdf.util.contexts import wrap_context
 from ..openrdf.util.strings import to_native_string
 
 from six import python_2_unicode_compatible
+
 
 def _split_proxy(proxy):
     """
@@ -138,7 +138,7 @@ class Catalog(Service):
         return self._instance_from_url(Repository, to_native_string(self.url) + "/repositories/" + quote(name))
 
 
-class Client(Catalog):
+class Client(Service):
     def getVersion(self):
         return jsonRequest(self, "GET", "/version")
 
@@ -219,7 +219,6 @@ class Client(Catalog):
     def listUserEffectiveAccess(self, name):
         return jsonRequest(self, "GET", "/users/" + quote(name) + "/effectiveAccess")
 
-
     def listUserPermissions(self, name):
         return jsonRequest(self, "GET", "/users/" + quote(name) + "/permissions")
 
@@ -291,6 +290,31 @@ class Client(Catalog):
     def deleteRoleSecurityFilter(self, role, _type, s=None, p=None, o=None, g=None):
         nullRequest(self, "DELETE", "/roles/" + quote(role) + "/security-filters/" + to_native_string(_type) + "?" +
             urlenc(s=s, p=p, o=o, g=g))
+
+    def getUserData(self, key):
+        try:
+            return jsonRequest(self, "GET",
+                               "/users/%s/data/%s" % (quote(self.user, safe=''),
+                                                      quote(key, safe='')),
+                               )
+        except RequestError as e:
+            if e.status == 404:
+                return None
+            raise
+
+    def setUserData(self, key, data):
+        nullRequest(self, "PUT", "/users/%s/data/%s" % (quote(self.user, safe=''),
+                                                        quote(key, safe='')),
+                    body=data)
+
+    def deleteUserData(self, key):
+        nullRequest(self, "DELETE", "/users/%s/data/%s" % (quote(self.user, safe=''),
+                                                           quote(key, safe='')))
+
+    def listUserData(self):
+        entries = jsonRequest(self, "GET",
+                              "/users/%s/data/" % quote(self.user, safe=''))
+        return [entry['id'] for entry in entries]
 
 
 class Repository(Service):
