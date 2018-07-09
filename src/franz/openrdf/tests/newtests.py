@@ -11,6 +11,7 @@ from datetime import datetime, date, time, timedelta
 from decimal import Decimal
 
 import pytest
+import requests
 import io
 import os
 import sys
@@ -34,7 +35,7 @@ from franz.openrdf.util.contexts import output_to
 from franz.openrdf.util.http import normalize_headers
 from franz.openrdf.vocabulary import XMLSchema
 
-from .tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, STORE, USER, PASSWORD
+from franz.openrdf.tests.tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, STORE, USER, PASSWORD
 
 # Imported to allow mocking
 import franz.miniclient.request
@@ -929,3 +930,14 @@ def test_user_data_fixture(server, user_data):
     assert server.getUserData('testKey2') == 'hello!'
     del user_data['testKey2']
     assert server.getUserData('testKey2') is None
+
+
+def test_http_sanity(http_server):
+    http_server.publish('/', b'Hello!')
+    r = requests.get(http_server.url('/'))
+    assert r.text == 'Hello!'
+
+
+def test_remote_http_sanity(remote_http_server):
+    remote_http_server.publish('/', 'Hello!')
+    assert remote_http_server.send_request('/') == 'Hello!'
