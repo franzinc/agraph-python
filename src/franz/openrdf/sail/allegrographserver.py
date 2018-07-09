@@ -147,6 +147,21 @@ class AllegroGraphServer(object):
         """Return the server's version as a string."""
         return self._client.getVersion()
 
+    @property
+    def versionTuple(self):
+        """
+        Return the version number as a tuple of integers.
+
+        All non-digit characters from the version string are ignored
+        and act only as separators. All trailing zeros are skipped.
+        This is compatible with the way in which the Java client
+        parses and compares AG version strings.
+        """
+        components = [int(c) for c in re.findall(r'\d+', self.version)]
+        while components and components[-1] == 0:
+            components.pop()
+        return tuple(components)
+
     def listCatalogs(self):
         """
         Get the list of catalogs on this server.

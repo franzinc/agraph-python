@@ -487,3 +487,24 @@ def ensure_slash(text):
         return text
     return '/' + text
 
+
+# Cache the version number
+_version = None
+
+
+@pytest.fixture(scope='module')
+def version():
+    global _version
+    if _version is None:
+        server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
+        _version = server.versionTuple
+    return _version
+
+
+# Decorator used to skip tests
+def min_version(*args):
+    if version() < args:
+        expected = '.'.join(str(c) for c in args)
+        actual = '.'.join(str(c) for c in version())
+        return pytest.mark.skip("AG server version: %s < %s" % (actual, expected))
+    return lambda x: x

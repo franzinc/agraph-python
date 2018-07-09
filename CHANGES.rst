@@ -5,6 +5,27 @@ AllegroGraph Python client release history
 Release 100.3.0
 ===============
 
+JSON-LD support
+---------------
+
+A new RDF format (`RDFFormat.JSONLD`) has been added. When importing
+documents from strings or files it is now possible to specify
+a few JSON-LD specific arguments:
+
+   - `json_ld_context`: a JSON object defining the mapping between
+     JSON-LD terms and triples.
+   - `json_ld_store_source`: a flag that can be used to persist
+     the whole input document in a single triple.
+   - `allow_external_references` a flag that must be explicitly
+     set to True to allow the JSON-LD importer to retrieve
+     external resources referenced in the input document or in
+     the `json_ld_context` argument.
+   - `external_reference_timeout`: HTTP timeout that will be
+     used by the server when retrieving external resources.
+
+In addition the `addData()` method can import a JSON-LD document
+in the form of a dictionary.
+
 User data access
 ----------------
 

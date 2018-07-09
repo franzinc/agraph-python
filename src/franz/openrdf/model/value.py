@@ -12,6 +12,8 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+import builtins
+
 from future.utils import python_2_unicode_compatible
 from past.builtins import basestring
 from builtins import object
@@ -130,27 +132,52 @@ class URI(Resource):
         """
         return strings.encode_ntriple_uri(self.uri)
 
+    def to_json_ld_key(self):
+        """ Converts to a string to be used as a JSON-LD key. """
+        return self.uri
+
+    def to_json_ld(self):
+        """ Converts to an object to be used as a JSON-LD value. """
+        return {"@id": self.uri}
+
 
 class BNode(Resource):
     """
     A blank node.
     """
     def __init__(self, id=None):
+        """
+        Create a blank node.
+
+        :param id: Node identifier, if not supplied one will be generated.
+        """
+        if id is None:
+            id = 'b' + hex(builtins.id(self))
         self.id = id
         
     def getId(self):
+        """
+        Get the identifier of this blank node.
+        """
         return self.id
 
-    def getID(self):
-        return self.id
+    getID = getId
 
     getValue = getID
     
     def get_cmp_key(self):
-        return self.id
+        return self.getId()
     
     def toNTriples(self):
-        return "_:%s" % self.id
+        return "_:%s" % self.getId()
+
+    def to_json_ld_key(self):
+        """ Converts to a string to be used as a JSON-LD key. """
+        return self.toNTriples()
+
+    def to_json_ld(self):
+        """ Converts to an object to be used as a JSON-LD value. """
+        return {"@id": self.toNTriples()}
 
 
 @python_2_unicode_compatible

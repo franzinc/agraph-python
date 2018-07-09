@@ -12,6 +12,8 @@
 from __future__ import absolute_import
 from __future__ import with_statement
 from __future__ import unicode_literals
+
+import six
 from future.builtins import object
 from past.builtins import map, unicode, basestring
 
@@ -572,7 +574,11 @@ class RepositoryConnection(object):
 
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
     def addFile(self, filePath, base=None, format=None, context=None, serverSide=False, content_encoding=None,
-                attributes=None):
+                attributes=None,
+                json_ld_store_source=None,
+                json_ld_context=None,
+                allow_external_references=None,
+                external_reference_timeout=None):
         """
         Loads a file into the triple store. Note that a file can be loaded into only one context.
 
@@ -592,6 +598,28 @@ class RepositoryConnection(object):
         :type serverSide: bool
         :param attributes: Attributes for all added triples (a mapping from attribute names to values).
         :type attributes: dict[str, str]
+        :param json_ld_store_source: If set to true then a triple containing the whole uploaded
+                                     document as a string will also be added to the store.
+                                     The default is False.
+        :type json_ld_store_source: bool
+        :param json_ld_context: A JSON-LD context. This must be either a dictionary describing
+                                a JSON object or a string containing the address of an external
+                                context. The context can also be stored in the JSON-LD document,
+                                either inline or as a reference to an external URI.
+                                Note that a JSON-LD context is an object describing
+                                the way in which a JSON document should be represented as triples.
+                                It should not be confused with RDF contexts (i.e. graphs).
+        :type json_ld_context: str|dict
+        :param allow_external_references: If False (default) the server will refuse to
+                                          retrieve external JSON-LD contexts and references
+                                          from XML documents. Note that allowing
+                                          untrusted documents to retrieve arbitrary URLs might
+                                          have security implications.
+        :type allow_external_references: bool
+        :param external_reference_timeout: Timeout value (in seconds) used when retrieving
+                                           external JSON-LD contexts.  By default there is
+                                           no timeout.
+        :type external_reference_timeout: int
         """
         if isinstance(context, (list, tuple)):
             if len(context) > 1:
@@ -607,15 +635,29 @@ class RepositoryConnection(object):
             filePath, format, context=contextString, serverSide=serverSide,
             commitEvery=self.add_commit_size, baseURI=base,
             content_encoding=content_encoding,
-            attributes=attributes)
+            attributes=attributes,
+            json_ld_store_source=json_ld_store_source,
+            json_ld_context=json_ld_context,
+            allow_external_references=allow_external_references,
+            external_reference_timeout=external_reference_timeout)
 
-    def addData(self, data, rdf_format=RDFFormat.TURTLE, base_uri=None, context=None, attributes=None):
+    def addData(self, data, rdf_format=None, base_uri=None, context=None, attributes=None,
+                json_ld_store_source=None,
+                json_ld_context=None,
+                allow_external_references=None,
+                external_reference_timeout=None):
         """
         Adds data from a string to the repository.
 
-        :param data: Data to be added.
-        :type data: string
+        :param data: Data to be added. Can be a string, a dictionary containing a JSON-LD
+                     document or a list of such dictionaries. In addition to regular 
+                     JSON-serializable values a JSON-LD document might contain URI 
+                     and BNode objects as keys and all kinds of RDF terms (literals, URIs 
+                     and BNodes) as values.
+        :type data: string|dict|list
         :param rdf_format: Data format - either a RDFFormat or a MIME type (string).
+                           Defaults to RDFFormat.TURTLE, unless the data is given as
+                           a dictionary, in which case the default is RDFFormat.JSONLD.
         :type rdf_format: RDFFormat|str
         :param base_uri: Base for resolving relative URIs.
                          If None (default), the URI will be chosen by the server.
@@ -625,10 +667,44 @@ class RepositoryConnection(object):
         :type context: URI|string
         :param attributes: Attributes for the added triples (a mapping from attribute names to values).
         :type attributes: dict[str, str]
+        :param json_ld_store_source: If set to true then a triple containing the whole uploaded
+                                     document as a string will also be added to the store.
+                                     The default is False.
+        :type json_ld_store_source: bool
+        :param json_ld_context: A JSON-LD context. This must be either a dictionary describing
+                                a JSON object or a string containing the address of an external
+                                context. The context can also be stored in the JSON-LD document,
+                                either inline or as a reference to an external URI.
+                                Note that a JSON-LD context is an object describing
+                                the way in which a JSON document should be represented as triples.
+                                It should not be confused with RDF contexts (i.e. graphs).
+        :type json_ld_context: str|dict
+        :param allow_external_references: If False (default) the server will refuse to
+                                          retrieve external JSON-LD contexts and references
+                                          from XML documents. Note that allowing
+                                          untrusted documents to retrieve arbitrary URLs might
+                                          have security implications.
+        :type allow_external_references: bool
+        :param external_reference_timeout: Timeout value (in seconds) used when retrieving
+                                           external JSON-LD contexts.  By default there is
+                                           no timeout.
+        :type external_reference_timeout: int
         """
+        if isinstance(data, dict) or isinstance(data, list):
+            data = dump_json_ld(data)
+            if rdf_format is None:
+                rdf_format = RDFFormat.JSONLD
+
+        if rdf_format is None:
+            rdf_format = RDFFormat.TURTLE
+
         ctx = self._context_to_ntriples(context, none_is_mini_null=True)
         self._get_mini_repository().loadData(
-            data, rdf_format, base_uri=base_uri, context=ctx, attributes=attributes)
+            data, rdf_format, base_uri=base_uri, context=ctx, attributes=attributes,
+            json_ld_store_source=json_ld_store_source,
+            json_ld_context=json_ld_context,
+            allow_external_references=allow_external_references,
+            external_reference_timeout=external_reference_timeout)
 
     def addTriple(self, subject, predicate, object, contexts=None, attributes=None):
         """
@@ -2275,3 +2351,39 @@ class GeoType(object):
             miniVertices = [miniRep.createSphericalGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
         miniRep.createPolygon(miniResource, miniVertices)
         return poly
+
+
+def dump_json_ld(source):
+    """
+    Convert a dictionary to JSON-LD string.
+
+    This basically dumps the source like a regular JSON document,
+    but is a bit smarter about URLs and literals.
+
+    :param source: Dictionary to be serialized.
+    :return: a JSON-serializable dict.
+    """
+    def fix_value(value):
+        if callable(getattr(value, 'to_json_ld', None)):
+            return value.to_json_ld()
+        elif isinstance(value, dict):
+            return fix_dict(value)
+        elif isinstance(value, list):
+            return [fix_value(v) for v in value]
+        return value
+
+    def fix_dict(d):
+        result = {}
+        for key, value in six.iteritems(d):
+            if callable(getattr(key, 'to_json_ld_key', None)):
+                key = key.to_json_ld_key()
+            # Handle @id, @vocab, ...
+            if key.startswith('@') and \
+                    callable(getattr(value, 'to_json_ld_key', None)):
+                value = value.to_json_ld_key()
+            else:
+                value = fix_value(value)
+            result[key] = value
+        return result
+
+    return encode_json(fix_value(source))

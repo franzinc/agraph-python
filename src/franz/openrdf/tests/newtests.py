@@ -30,6 +30,7 @@ from franz.openrdf.repository.transactions import TransactionSettings
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.sail import AllegroGraphServer
+from franz.openrdf.tests.conftest import min_version
 from franz.openrdf.tests.tz import MockTimezone
 from franz.openrdf.util.contexts import output_to
 from franz.openrdf.util.http import normalize_headers
@@ -941,3 +942,200 @@ def test_http_sanity(http_server):
 def test_remote_http_sanity(remote_http_server):
     remote_http_server.publish('/', 'Hello!')
     assert remote_http_server.send_request('/') == 'Hello!'
+
+
+@min_version(6, 5)
+def test_add_json_ld(conn, ex):
+    conn.addData('''{
+      "@context": {
+        "@vocab": "ex://"
+      },
+      "@id": "subject",
+      "predicate": { "@id": "object" }
+    }''', rdf_format=RDFFormat.JSONLD)
+    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+
+
+@min_version(6, 5)
+def test_add_json_from_dict(conn, ex):
+    conn.addData({
+      "@context": {
+        "@vocab": "ex://"
+      },
+      "@id": "subject",
+      "predicate": {"@id": "object"}
+    })
+    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+
+
+@min_version(6, 5)
+def test_add_json_ld_with_context(conn, ex):
+    conn.addData('''{
+      "@id": "subject",
+      "predicate": { "@id": "object" }
+    }''', rdf_format=RDFFormat.JSONLD, json_ld_context={
+        "@vocab": "ex://"
+    })
+    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+
+
+@min_version(6, 5)
+def test_add_json_ld_with_external_context(conn, ex, remote_http_server):
+    url = remote_http_server.publish('/ctx.json', '{"@context": {"@vocab":"ex://"}}')
+    conn.addData('''{
+      "@id": "subject",
+      "predicate": { "@id": "ex://object" }}''',
+                 rdf_format=RDFFormat.JSONLD,
+                 json_ld_context=url,
+                 allow_external_references=True)
+    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+
+
+@min_version(6, 5)
+def test_add_json_ld_with_external_context_inside(conn, ex, remote_http_server):
+    url = remote_http_server.publish('/ctx.json', json.dumps({
+       "@context": {
+           "predicate": {
+               "@id": "ex://predicate",
+               "@type": "@id"
+           }
+       }
+    }))
+    conn.addData('''{
+      "@context": %s,
+      "@id": "ex://subject",
+      "predicate": { "@id": "ex://object" }}''' % json.dumps(url),
+                 rdf_format=RDFFormat.JSONLD,
+                 allow_external_references=True)
+    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+
+
+@min_version(6, 5)
+def test_add_json_ld_keep_source(conn):
+    src = '''{}'''
+    conn.addData(src, rdf_format=RDFFormat.JSONLD, json_ld_store_source=True)
+    statements = get_statements(conn)
+    assert 1 == len(statements)
+    assert statements[0][2].label == src
+
+
+@min_version(6, 5)
+def test_add_json_ld_empty_dict(conn):
+    conn.addData({})
+    assert [] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_simple_dict(conn, ex):
+    conn.addData({
+        '@context': {
+            '@vocab': '',
+            '@base': 'ex://'
+        },
+        '@id': 's',
+        'p': {'@id': 'o'}
+    })
+    assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_uri_key(conn, ex):
+    conn.addData({
+        '@context': {
+            '@vocab': '',
+            '@base': 'ex://'
+        },
+        '@id': 's',
+        ex.p: {'@id': 'o'}
+    })
+    assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_uri_values(conn, ex):
+    conn.addData({
+        '@context': {
+            '@vocab': '',
+            '@base': 'ex://'
+        },
+        '@id': ex.s,
+        'p': {'@id': ex.o}
+    })
+    assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_literal_value(conn, ex):
+    conn.addData({
+        '@context': {
+            '@vocab': '',
+            '@base': 'ex://'
+        },
+        '@id': 's',
+        ex.p: Literal('o')
+    })
+    assert [[ex.s, ex.p, Literal('o'), None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_typed_literal_value(conn, ex):
+    conn.addData({
+        '@context': {
+            '@vocab': '',
+            '@base': 'ex://'
+        },
+        '@id': 's',
+        ex.p: Literal('oooo', XMLSchema.BASE64BINARY)
+    })
+    assert [[ex.s,
+             ex.p,
+             Literal('oooo', XMLSchema.BASE64BINARY),
+             None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_lang_literal_value(conn, ex):
+    conn.addData({
+        '@context': {
+            '@vocab': '',
+            '@base': 'ex://'
+        },
+        '@id': 's',
+        # A bathtub in Sindarin
+        ex.p: Literal('🛀', language='sjn')
+    })
+    assert [[ex.s, ex.p, Literal('🛀', language='sjn'), None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_integer_literal_value(conn, ex):
+    conn.addData({
+        '@context': {
+            '@vocab': '',
+            '@base': 'ex://'
+        },
+        '@id': 's',
+        ex.p: Literal(42)
+    })
+    assert [[ex.s, ex.p, Literal(42), None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_dict_with_terms(conn, ex):
+    conn.addData({
+        '@id': ex.s,
+        ex.p: ex.o
+    })
+    assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
+
+@min_version(6, 5)
+def test_add_json_ld_list(conn, ex):
+    conn.addData([{
+        '@id': ex.s,
+        ex.p: ex.o1
+    }, {
+        '@id': ex.s,
+        ex.p: ex.o2
+    }])
+    assert [[ex.s, ex.p, ex.o1, None], 
+            [ex.s, ex.p, ex.o2, None]] == get_statements(conn)

@@ -447,18 +447,29 @@ class Repository(Service):
                     encode_json(quads), content_type="application/json")
 
     def loadData(self, data, rdf_format, base_uri=None, context=None,
-                 commit_every=None, content_encoding=None, attributes=None):
+                 commit_every=None, content_encoding=None, attributes=None,
+                 json_ld_store_source=None,
+                 json_ld_context=None, allow_external_references=None,
+                 external_reference_timeout=None):
         nullRequest(self, "POST",
-                    "/statements?" + urlenc(context=context,
-                                            baseURI=base_uri,
-                                            commit=commit_every,
-                                            attributes=attributes and encode_json(attributes)),
+                    "/statements?" + urlenc(
+                        context=context,
+                        baseURI=base_uri,
+                        commit=commit_every,
+                        attributes=attributes and encode_json(attributes),
+                        jsonLdStoreSource=json_ld_store_source,
+                        jsonLdContext=json_ld_context and fix_json_ld_context(json_ld_context),
+                        externalReferences=allow_external_references,
+                        extermalReferenceTimeout=external_reference_timeout),
                     data,
                     content_type=Format.mime_type_for_format(rdf_format),
-                    content_encoding=content_encoding)
+                    content_encoding=content_encoding,)
 
     def loadFile(self, file, rdf_format, baseURI=None, context=None, serverSide=False,
-                 commitEvery=None, content_encoding=None, attributes=None):
+                 commitEvery=None, content_encoding=None, attributes=None,
+                 json_ld_store_source=None,
+                 json_ld_context=None, allow_external_references=None,
+                 external_reference_timeout=None):
         mime = Format.mime_type_for_format(rdf_format)
 
         if serverSide:
@@ -476,7 +487,11 @@ class Repository(Service):
 
         with body_context as body:
             params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery,
-                            attributes=attributes and encode_json(attributes))
+                            attributes=attributes and encode_json(attributes),
+                            jsonLdStoreSource=json_ld_store_source,
+                            jsonLdContext=json_ld_context and fix_json_ld_context(json_ld_context),
+                            externalReferences=allow_external_references,
+                            extermalReferenceTimeout=external_reference_timeout)
             nullRequest(self, "POST", "/statements?" + params, body,
                         content_type=mime, content_encoding=content_encoding)
 
@@ -993,3 +1008,14 @@ def time_in_seconds(t):
         # Can't use total_seconds() in Python 2.6
         return t.seconds + t.days * 24 * 3600
     return int(t)
+
+
+def fix_json_ld_context(context):
+    """
+    Take a dict or a string and return a JSON string.
+
+    If the input dict does not contain "@context", wrap it.
+    """
+    if not isinstance(context, dict) or "@context" not in context:
+        context = {"@context": context}
+    return encode_json(context)
