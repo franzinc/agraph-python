@@ -31,6 +31,9 @@ export AG_RUN_SSL_TEST=y
 # Prevent virtualenv from downloading stuff from PyPI
 export VIRTUALENV_NO_DOWNLOAD=y
 
+# Certificate verification for Nexus fails on some boxes
+export REQUESTS_CA_BUNDLE=$(CURDIR)/nexus.ca.crt
+
 # Used to download packages:
 #  - Inside Franz we want to use Nexus on SAN1
 #  - If that is not available use the default PyPI index / Anaconda channel
