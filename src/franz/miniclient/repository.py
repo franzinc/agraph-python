@@ -8,10 +8,12 @@ from __future__ import absolute_import, division, with_statement
 
 from datetime import timedelta
 
+import six
 from past.utils import old_div
 from past.builtins import basestring
 
 from franz.miniclient.agjson import encode_json
+from franz.openrdf.model.value import URI
 from franz.openrdf.repository.attributes import AttributeFilter
 from franz.openrdf.rio.formats import Format
 
@@ -989,6 +991,101 @@ class Repository(Service):
     def deleteAttributeDefinition(self, name):
         return jsonRequest(
             self, 'DELETE', '/attributes/definitions?' + urlenc(name=name))
+
+    def loadDocument(self, doc, doc_format, base=None,
+                     rules=None, subject=None, prefix=None,
+                     rename=None, rdf_type=None, lang=None, skip=None,
+                     transform=None, graph=None, json_store_source=None,
+                     csv_columns=None, csv_separator=None, csv_quote=None,
+                     csv_whitespace=None, csv_double_quote=None, csv_escape=None,
+                     attributes=None, commit=None, context=None,
+                     encoding=None, content_encoding=None):
+        mime = Format.mime_type_for_format(doc_format)
+        if encoding:
+            mime += ';charset=' + encoding
+
+        if prefix is None:
+            prefix = {}
+        if rename is not None:
+            # Copy the keys, since we will be changing some renames
+            for k, v in list(six.iteritems(rename)):
+                if isinstance(v, URI):
+                    # To provide a full URI for a key we need to use both 'prefix'
+                    # and 'rename' options
+                    namespace, local_name = v.split()
+                    if local_name != k:
+                        rename[k] = local_name
+                    prefix[k] = namespace
+
+        prefix_list = uri_dict_to_string_list(prefix) or []
+        if base is not None:
+            prefix_list.append(uri_to_string(base))
+
+        args = {
+            'transform-rules': rules,
+            'tr-id': uri_to_string(subject),
+            'tr-prefix': prefix_list,
+            'tr-rename': dict_to_string_list(rename),
+            'tr-type': uri_dict_to_string_list(rdf_type),
+            'tr-lang':  dict_to_string_list(lang),
+            'tr-skip': skip,
+            'tr-transform':  dict_to_string_list(transform),
+            'tr-graph': ['%s=%s' % (k, URI(str(v)))
+                         for k, v in six.iteritems(graph or {})],
+            'json-store-source': bool(json_store_source),
+            'csv-columns': ','.join(csv_columns) if csv_columns else None,
+            'csv-separator': csv_separator,
+            'csv-quote': csv_quote,
+            'csv-whitespace': ','.join(csv_whitespace) if csv_whitespace is not None else None,
+            'csv-double-quote-p': bool(csv_double_quote) if csv_double_quote is not None else None,
+            'csv-escape': csv_escape,
+            'context': str(URI(str(context))) if context else None,
+            'commit': commit,
+            'attributes': attributes and encode_json(attributes)
+        }
+        return nullRequest(self, 'POST', '/statements/transform?' + urlenc(**args),
+                           doc, content_type=mime, content_encoding=content_encoding)
+
+    def getGeneration(self):
+        return jsonRequest(self, 'GET', '/generation')
+
+
+def uri_to_string(uri):
+    """
+    Converts a URI to a string. If the input is None then None is returned.
+    If the input is a string it is returned after stripping angle brackets
+    (if present).
+    :param uri: Either a URI object or a string.
+    :type uri: str|URI|None
+    :return: str|None
+    """
+    if uri is None:
+        return None
+    elif isinstance(uri, URI):
+        return uri.uri
+    else:
+        return URI(uri).uri
+
+
+def uri_dict_to_string_list(d):
+    """
+    Convert a dict to a list of strings of the form key=value,
+    but make sure that URI objects are serialized without angle brackets.
+    """
+    if d is None:
+        return None
+    result = []
+    for k, v in six.iteritems(d):
+        result.append('%s=%s' % (uri_to_string(k), uri_to_string(v)))
+    return result
+
+
+def dict_to_string_list(d):
+    """
+    Converts a dict to a list of 'key=value' strings. If the input is None
+    then None will be returned.
+    """
+    return ['%s=%s' % kv for kv in six.iteritems(d)] if d else None
 
 
 def time_in_seconds(t):

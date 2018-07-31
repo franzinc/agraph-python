@@ -60,11 +60,11 @@ class ValueFactory(object):
         """
         See :meth:`.RepositoryConnection.createURI`.
         """
-        if namespace and not localname:
+        if namespace is not None and localname is None:
             return URI(namespace=uri, localname=namespace, canonical=canonical)
         else:
             return URI(uri=uri, namespace=namespace, localname=localname, canonical=canonical)
-    
+
 
 #############################################################################
 ## Extension to RDF4J API

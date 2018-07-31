@@ -18,8 +18,15 @@ import builtins
 
 import weakref
 from six import python_2_unicode_compatible
+import six
 
 from ..util import uris, strings
+
+
+# Keys used to establish ordering between different types of terms
+LITERAL_CMP_KEY = 1
+URI_CMP_KEY = 2
+BNODE_CMP_KEY = 3
 
 
 @python_2_unicode_compatible
@@ -47,7 +54,8 @@ class Value(object):
 
     # Comparison methods rely on get_cmp_key.
     def __eq__(self, other):
-        return type(self) == type(other) and self.get_cmp_key() == other.get_cmp_key()
+        return self is other or (isinstance(other, Value)
+                                 and self.get_cmp_key() == other.get_cmp_key())
 
     def __ne__(self, other):
         return not self == other
@@ -56,16 +64,10 @@ class Value(object):
         return hash(self.get_cmp_key())
 
     def __lt__(self, other):
-        if type(self) == type(other):
-            return self.get_cmp_key() < other.get_cmp_key()
-        else:
-            return type(self) < type(other)
+        return self.get_cmp_key() < other.get_cmp_key()
 
     def __gt__(self, other):
-        if type(self) == type(other):
-            return self.get_cmp_key() > other.get_cmp_key()
-        else:
-            return type(self) > type(other)
+        return self.get_cmp_key() > other.get_cmp_key()
 
     def __le__(self, other):
         return not self > other
@@ -128,7 +130,7 @@ class URI(Resource):
         self._is_canonical = canonical
 
     def get_cmp_key(self):
-        return self.uri
+        return URI_CMP_KEY, self.uri
     
     def getURI(self):
         """
@@ -153,7 +155,14 @@ class URI(Resource):
 
     def getNamespace(self):
         pos = uris.getLocalNameIndex(self.getURI())
-        return self.uri[0:pos]
+        return self.uri[:pos]
+
+    def split(self):
+        """
+        Split into a namespace + local name pair.
+        """
+        pos = uris.getLocalNameIndex(self.uri)
+        return self.uri[:pos + 1], self.uri[pos + 1:]
 
     namespace = property(getNamespace)
 
@@ -200,7 +209,7 @@ class BNode(Resource):
     getValue = getID
     
     def get_cmp_key(self):
-        return self.getId()
+        return BNODE_CMP_KEY, self.getId()
     
     def toNTriples(self):
         return "_:%s" % self.getId()

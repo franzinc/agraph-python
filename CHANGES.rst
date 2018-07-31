@@ -3,6 +3,20 @@ AllegroGraph Python client release history
 ==========================================
 
 
+Release 101.1.0
+===============
+
+Non-RDF document import
+-----------------------
+
+JSON and CSV documents can be imported into AllegroGraph using
+the new 'transform' service introduced in AG 6.5.0. This can
+now be accessed from the Python client by calling the
+``addDocumentFile()`` method of the connection object.
+Document data from strings or Python dictionaries can be added
+with ``addDocumentData()``.
+
+
 Release 101.0.0
 ===============
 

@@ -13,6 +13,8 @@ from __future__ import absolute_import
 from __future__ import with_statement
 from __future__ import unicode_literals
 
+import csv
+import string
 import six
 from future.backports import OrderedDict
 from future.builtins import object
@@ -20,6 +22,7 @@ from past.builtins import map, unicode, basestring
 
 from franz.miniclient.agjson import encode_json
 from franz.openrdf.repository.attributes import AttributeDefinition
+from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.util.contexts import output_to
 
 from .repositoryresult import RepositoryResult
@@ -730,6 +733,284 @@ class RepositoryConnection(object):
             json_ld_context=json_ld_context,
             allow_external_references=allow_external_references,
             external_reference_timeout=external_reference_timeout)
+
+    def addDocumentFile(self, doc, doc_format=None, base=None, rules=None,
+                        subject=None, keys=None,
+                        prefix=None, rename=None, rdf_type=None, lang=None, skip=None,
+                        transform=None, graph=None, json_store_source=None,
+                        csv_dialect=None, csv_columns=None, csv_separator=None,
+                        csv_quote=None, csv_whitespace=None, csv_double_quote=None,
+                        csv_escape=None, attributes=None, commit=None, context=None,
+                        encoding=None, content_encoding=None):
+        """
+        Convert a JSON or CSV file into triples and add the resulting triples
+        into the repository.
+
+        Use :meth:`addDocumentData` instead if the document is stored in
+        a string or in a Python list or dictionary.
+
+        The document will be interpreted as a set of key-value pairs and a triple
+        will be added to the repository for each such pair. For CSV documents
+        the keys are column names. Mapping of JSON documents is somewhat more
+        involved:
+
+           - JSON documents must be objects or lists of objects.
+           - If the value of a key is itself an object, that object is
+             recursively interpreted as a document. The subject of resulting
+             triples is used as the value associated with the original key.
+           - If a value is a list then a triple is added for each element.
+             Note that an RDF list is *not* created.
+           - Multiple objects can be passed by using  `DocFormat.JSON_LINES`.
+             In that case the input document should contain one JSON
+             object per line (see http://jsonlines.org/).
+
+        The subject of added triples is computed from the `subject` parameter,
+        which is a template that can refer to other keys. If the parameter
+        is not given then the subject will be a fresh blank node.
+
+        There are multiple parameters that control the way in which values
+        for a given key are turned into predicates and objects. These can be
+        provided in two ways:
+
+           - By passing a dictionary as the `keys` parameter. It must map
+             strings (document key names) to :class:`DocumentKey` objects.
+
+           - By passing dictionaries indexed by document key names in the
+             `prefix`, `rename`, `rdf_type`, `lang`, `transform` and  `graph`
+             parameters. The `skip` parameter may also be used (it must be
+             a list of key names).
+
+        If both methods are used to provide a particular setting, the value
+        passed in the individual parameter takes precedence.
+
+        :param doc: Path to the document to be imported.
+        :type doc: str
+        :param doc_format: Format of the document.
+                           If not given it is guessed from the extension.
+        :type doc_format: DocFormat
+        :param base: Base URI that will be prepended to key names to create
+                     predicate URIs. If not specified it is chosen by the server.
+        :type base: URI|str
+        :param rules: Subject of a set of triples that describe transformation rules
+                      to be applied during import. See server documentation
+                      for more details. This must be a string that will be
+                      interpreted as a relative URI in the
+                      `http://franz.com/ns/allegrograph/6.4/load-meta#`
+                      namespace.
+        :type rules: str
+        :param subject: Template used to create the subject for added triples.
+                        The template is a string that can refer to any
+                        value in the document using the `${key}` notation.
+                        A URI object can also be used as the subject.
+                        URI objects are simply converted to strings, so
+                        any dollar signs inside URIs will be interpreted
+                        as key references.
+        :type subject: URI|str
+        :param keys: A dictionary mapping key names to transformation settings.
+                     Settings for each key are described using
+                     :class:`DocumentKey` objects. Each such object is a simple
+                     named tuple in which all fields are optional. The meaning
+                     of each field is the same as that of the corresponding
+                     `addDocument` parameter.
+        :type keys: dict[str,DocumentKey]
+        :param prefix: A dictionary mapping key names to prefixes of predicates
+                       that will be used to represent those keys. By default
+                       the value of `base` is used.
+        :type prefix: dict[str,str|URI]
+        :param rename: A dictionary mapping key names to local names of
+                       predicates that will be used to represent those keys.
+                       By default the local name is the same as the key name.
+                       It is also possible to pass full names here, as URI
+                       objects. In that case any 'prefix' setting will be
+                       ignored.
+        :type prefix: dict[str,str|URI]
+        :param rdf_type: A dictionary mapping key names to RDF datatypes
+                         of corresponding values. The datatype can be a
+                         URI or a string. A special value `'uri'` can be
+                         used to make the object of the produced triple be
+                         a URI rather than a literal. Other than that
+                         full URIs and qualified names (e.g. xsd:date)
+                         can be used as datatypes.
+                         The default datatype is string, except that
+                         booleans in JSON documents will be turned
+                         into xsd:booleans and integers will be xsd:integers.
+        :type rdf_type: dict[str,URI|str]
+        :param lang: A dictionary mapping key names to RDF language tags
+                     that will be associated with objects of the resulting
+                     triples.
+        :type lang: dict[str,str]
+        :param skip: A list of keys for which no triple should be produced.
+        :type skip: list[str]
+        :param transform: A dictionary mapping key names to ways in which
+                          values should be transformed or computed.
+                          Values can be either template strings (using `$key`
+                          or ${key} to reference values of any key) or names
+                          of built-in transformation functions (e.g.
+                          `'string-upcase'`). Note that it is possible
+                          to use this argument to add a new, computed key
+                          to the dataset. In addition, keys can also be
+                          URI objects.
+        :type rdf_type: dict[str|URI,str]
+        :param graph: A dictionary mapping key names to graph URIs.
+                      The triple (or triples, since values in a JSON
+                      document can be lists) generated for a key will
+                      be added to the graph specified here instead of
+                      the default graph.
+        :type graph: dict[str,URI|str]
+        :param json_store_source: If this flag is set to True then
+                                  an additional triple which stores the
+                                  whole input document as a string is created.
+                                  This only works for JSON documents.
+        :type json_store_source: bool
+        :param csv_dialect: A dialect object that specifies the syntax used
+                            to parse CSV documents. Note that all options
+                            specified in the dialect object can be overriden
+                            by individual `csv_*` arguments.
+                            This can be either a csv.Dialect instance
+                            or the name of a registered dialect, such as 'excel'.
+        :type csv_dialect: str|csv.Dialect
+        :param csv_columns: List of column names to be used when parsing
+                            a CSV document. If not given the first row of
+                            the document will be used instead.
+        :type csv_columns: list[str]
+        :param csv_separator: Character used to separate CSV fields.
+        :type csv_separator: str
+        :param csv_quote: Quote character, used around CSV fields that
+                          contain the separator character.
+        :type csv_quote: str
+        :param csv_whitespace: A string or list of characters that should
+                               be treated as whitespace when parsing CSV.
+                               Whitespace characters are stripped from the start
+                               and end of each value.
+        :type csv_whitespace: str|list[str]
+        :param csv_double_quote: If true (default) quotes can be escaped inside
+                                 quoted values by doubling the quote character.
+        :type csv_double_quote: bool
+        :param csv_escape: Character that can be used in CSV fields to escape
+                           the next character. By default there is no such
+                           character.
+        :type csv_escape: str
+        :param context: Graph to add the data to.
+                        If None (default) the default graph will be used.
+        :type context: URI|string
+        :param commit: If specified then a commit will occur every time
+                       the specified number of triples has been generated.
+                       This prevents excessive memory usage when importing
+                       large files, but makes the import non-transactional.
+        :type commit: int
+        :param attributes: Attributes for the added triples (a mapping from attribute names to values).
+        :type attributes: dict[str, str]
+        :param encoding: Character encoding used by the input file.
+                         By default the file is interpreted as UTF-8.
+        :type encoding: str
+        :param content_encoding: Compression format, supported values are 'gzip' or 'none'.
+                                 By default the format is guessed from file extension.
+        :type content_encoding: str
+        """
+        args = locals()
+        del args['self']
+        fmt, ce = DocFormat.format_for_file_name(doc)
+        args['doc_format'] = doc_format or fmt
+        content_encoding = content_encoding or ce
+        args['content_encoding'] = content_encoding if content_encoding != 'none' else None
+        with open(doc, 'rb') as f:
+            args['doc'] = f
+            self._addDocument(**args)
+
+    def addDocumentData(self, doc, doc_format=DocFormat.JSON, base=None, rules=None,
+                        subject=None, keys=None,
+                        prefix=None, rename=None, rdf_type=None, lang=None, skip=None,
+                        transform=None, graph=None, json_store_source=None,
+                        csv_dialect=None, csv_columns=None, csv_separator=None,
+                        csv_quote=None, csv_whitespace=None, csv_double_quote=None,
+                        csv_escape=None, attributes=None, commit=None, context=None):
+        """
+        Convert a JSON or CSV document string into triples and add the resulting triples
+        into the repository.
+
+        The first argument must be a string, a dict (will be converted to JSON)
+        or a list of dicts (converted to JSON lines).
+        The second argument describes the document format, the default is JSON.
+        Note that if the first argument is a dict or a list the format argument
+        will be ignored.
+
+        See :meth:`addDocument` for the description of other parameters.
+        """
+        # Do not send a request for empty documents
+        if not doc:
+            return
+        args = locals()
+        del args['self']
+        if isinstance(doc, dict):
+            args['doc'] = encode_json(doc)
+            args['doc_format'] = DocFormat.JSON
+        elif isinstance(doc, list):
+            args['doc'] = '\n'.join(encode_json(d) for d in doc)
+            args['doc_format'] = DocFormat.JSON_LINES
+        self._addDocument(**args)
+
+    # Make sure the arguments here match the two methods above.
+    def _addDocument(self, doc, doc_format=None, base=None, rules=None,
+                     subject=None, keys=None,
+                     prefix=None, rename=None, rdf_type=None, lang=None, skip=None,
+                     transform=None, graph=None, json_store_source=None,
+                     csv_dialect=None, csv_columns=None, csv_separator=None,
+                     csv_quote=None, csv_whitespace=None, csv_double_quote=None,
+                     csv_escape=None, attributes=None, commit=None, context=None,
+                     encoding=None, content_encoding=None):
+        args = locals()
+
+        # Unpack 'keys' into individual dicts
+        augmented = {}
+        if keys:
+            for name, props in six.iteritems(keys):
+                for prop in ('prefix', 'rename', 'rdf_type', 'lang', 'transform', 'graph'):
+                    value = getattr(props, prop)
+                    if value is not None:
+                        if prop not in augmented:
+                            augmented[prop] = args[prop].copy() if args[prop] else {}
+                        # Do not overwrite if we already have a value
+                        if name not in augmented[prop]:
+                            augmented[prop][name] = value
+                if props.skip:
+                    if 'skip' not in augmented:
+                        augmented['skip'] = skip[:] if skip else []
+                    augmented['skip'].append(name)
+
+        # Unpack the CSV dialect, but existing csv_* arguments have precedence
+        if csv_dialect:
+            if isinstance(csv_dialect, six.string_types):
+                csv_dialect = csv.get_dialect(csv_dialect)
+            if csv_separator is None:
+                augmented['csv_separator'] = csv_dialect.delimiter
+            if csv_quote is None:
+                augmented['csv_quote'] = csv_dialect.quotechar
+            if csv_whitespace is None:
+                if csv_dialect.skipinitialspace:
+                    augmented['csv_whitespace'] = string.whitespace
+                else:
+                    # The server uses tab and space as defaults
+                    augmented['csv_whitespace'] = ''
+            if csv_double_quote is None:
+                augmented['csv_double_quote'] = csv_dialect.doublequote
+            if csv_escape is None:
+                augmented['csv_escape'] = csv_dialect.escapechar
+
+        args.update(augmented)
+
+        del args['csv_dialect']
+        del args['keys']
+        del args['self']
+        self._get_mini_repository().loadDocument(**args)
+
+    def getGeneration(self):
+        """
+        Get the current DB generation.
+
+        :return: Generation
+        :rtype: int
+        """
+        return self._get_mini_repository().getGeneration()
 
     def addTriple(self, subject, predicate, object, contexts=None, attributes=None):
         """
@@ -2450,3 +2731,17 @@ def dump_json_ld(source, sort_keys=False):
         return dict(result)
 
     return encode_json(fix_value(source))
+
+
+class DocumentKey(namedtuple('DocumentKey', ('prefix', 'rename', 'rdf_type', 'lang', 'skip', 'transform', 'graph'))):
+    """
+    Describes the way in which value of a single key is translated into a triple (or triples,
+    if the value is a list) when importing documents into AG.
+
+    See the documentation of :meth:`RepositoryConnection#addDocument` for details.
+    """
+    __slots__ = ()
+
+
+DocumentKey.__new__.__defaults__ = (None,) * len(DocumentKey._fields)
+

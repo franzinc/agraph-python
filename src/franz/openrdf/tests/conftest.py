@@ -512,3 +512,29 @@ def min_version(*args):
         actual = '.'.join(str(c) for c in version)
         return pytest.mark.skip("AG server version: %s < %s" % (actual, expected))
     return lambda x: x
+
+
+# noinspection PyShadowingNames
+@pytest.fixture
+def ex(conn):
+    return conn.namespace('ex://')
+
+
+@pytest.fixture
+def after():
+    """
+    A fixture that resolves to a mutable list of functions that will
+    be called after the test.
+    """
+    to_call = []
+    exceptions = []
+    yield to_call
+    for o in to_call:
+        try:
+            o()
+        except Exception as e:
+            exceptions.append(e)
+    if exceptions:
+
+        raise Exception('Exception(s) raised when cleaning up' +
+                        ('\n'.join(str(e) for e in exceptions)))

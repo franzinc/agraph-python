@@ -27,6 +27,7 @@ from franz.openrdf.repository.attributes import AttributeDefinition, TripleAttri
     attribute_filter_to_expr, And, Or, Not, Empty, Overlap, Subset, Superset, Equal, Lt, Le, Eq, Ge, Gt, \
     attribute_set_to_expr
 from franz.openrdf.repository.transactions import TransactionSettings
+from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.sail import AllegroGraphServer

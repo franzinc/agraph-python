@@ -2551,20 +2551,14 @@ def test_bnode_eq():
     assert not b42 == b44
 
 
-if sys.version_info[0] > 2:
-    @raises(TypeError)
-    def test_value_ordering():
-        uri = URI("http://www.franz.com/test")
-        literal = Literal("http://www.franz.com/test")
-        uri < literal
-else:
-    def test_value_ordering():
-        literals = [Literal("urn:x-test:%d" % x) for x in [1, 2, 3]]
-        uris = [URI("urn:x-test:%d" % x) for x in [1, 2, 3]]
-        values = [literals[1], uris[1], uris[0], literals[2], literals[0], uris[2]]
-        values.sort()
+def test_value_ordering():
+    literals = [Literal("urn:x-test:%d" % x) for x in [1, 2, 3]]
+    uris = [URI("urn:x-test:%d" % x) for x in [1, 2, 3]]
+    values = [literals[1], uris[1], uris[0], literals[2], literals[0], uris[2]]
+    values.sort()
 
-        assert values == literals + uris or values == uris + literals
+    # Literal < URI
+    assert values == literals + uris
 
 
 def test_turtle_import():

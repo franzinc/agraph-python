@@ -21,7 +21,7 @@ from future.utils import python_2_unicode_compatible
 
 from past.builtins import long, unicode
 
-from .value import Value, URI
+from .value import LITERAL_CMP_KEY, URI, Value
 from ..exceptions import IllegalArgumentException
 from ..vocabulary.xmlschema import XMLSchema
 from ..util import strings
@@ -146,7 +146,7 @@ class Literal(Value):
     label = property(getLabel, setLabel)
 
     def get_cmp_key(self):
-        return self.label, self.datatype, self.language
+        return LITERAL_CMP_KEY, self.label, self.datatype, self.language
     
     def intValue(self):
         """Convert to int"""
