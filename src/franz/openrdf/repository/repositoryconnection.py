@@ -18,7 +18,6 @@ from future.builtins import object
 from past.builtins import map, unicode, basestring
 
 from franz.miniclient.agjson import encode_json
-from franz.miniclient.request import wrap_callback
 from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.util.contexts import output_to
 
@@ -1623,6 +1622,11 @@ class RepositoryConnection(object):
         """
         Return a list of statements for the given free-text pattern search.
 
+        Note that this method operates on unparsed data. Returned statements
+        will be lists of strings in N-Triples format, not statement objects.
+        The first element of each list will be the triple id
+        (an integer, not a string).
+
         If no index is provided, all indices will be used.
 
         :param pattern: Search pattern, see
@@ -1631,9 +1635,17 @@ class RepositoryConnection(object):
         :type pattern: string
         :param index: List of indices to query. If not given - query all indices.
         :type index: string|list[string]
+        :param callback: A function that will be called for each statement retrieved.
+                         If this argument is used then the list of statements is not
+                         returned.
         """
         miniRep = self._get_mini_repository()
-        return miniRep.evalFreeTextSearch(pattern, index, infer, wrap_callback(callback), limit, offset=offset)
+        result = miniRep.evalFreeTextSearch(pattern, index, infer, limit, offset=offset)
+        if callback:
+            for row in result:
+                callback(row)
+            return None
+        return result
 
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         """

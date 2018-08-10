@@ -505,12 +505,11 @@ class Repository(Service):
     def deleteStatementsById(self, ids):
         nullRequest(self, "POST", "/statements/delete?ids=true", encode_json(ids), content_type="application/json")
 
-    def evalFreeTextSearch(self, pattern, index=None, infer=False, callback=None, limit=None, offset=None):
+    def evalFreeTextSearch(self, pattern, index=None, infer=False, limit=None, offset=None):
         """Use free-text indices to search for the given pattern.
         Returns an array of statements."""
         return jsonRequest(self, "GET", "/freetext",
-                           urlenc(pattern=pattern, infer=infer, limit=limit, offset=offset, index=index),
-                           callback=callback)
+                           urlenc(pattern=pattern, infer=infer, limit=limit, offset=offset, index=index))
 
     def listFreeTextIndices(self):
         """List the names of free-text indices defined in this
