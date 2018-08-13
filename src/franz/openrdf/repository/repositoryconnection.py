@@ -1102,7 +1102,7 @@ class RepositoryConnection(object):
         """
         return self.getValueFactory().createLiteral(value, datatype=datatype, language=language)
 
-    def createURI(self, uri=None, namespace=None, localname=None):
+    def createURI(self, uri=None, namespace=None, localname=None, canonical=True):
         """
         Creates a new URI from the supplied string-representation(s).
         If two non-keyword arguments are passed, assumes they represent a
@@ -1116,10 +1116,15 @@ class RepositoryConnection(object):
         :type namespace: string|URI
         :param localname: Local part of the URI. Should only be used as a
                           keyword argument and together with ``namespace``.
+        :param canonical: If true (default) ensure that the same URI object
+                          is returned each time when the same string is
+                          passed to this method.
+        :type canonical: bool
         :return: An URI object.
         :rtype: URI
         """
-        return self.getValueFactory().createURI(uri=uri, namespace=namespace, localname=localname)
+        return self.getValueFactory().createURI(
+            uri=uri, namespace=namespace, localname=localname, canonical=canonical)
 
     def createBNode(self, nodeID=None):
         """

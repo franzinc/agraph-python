@@ -14,15 +14,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import iso8601
-import math
 from decimal import Decimal
 
 from future.utils import python_2_unicode_compatible
-from past.utils import old_div
 
 from past.builtins import long, unicode
 
-from franz.openrdf.vocabulary import canonical_uri_object
 from .value import Value, URI
 from ..exceptions import IllegalArgumentException
 from ..vocabulary.xmlschema import XMLSchema
@@ -112,7 +109,7 @@ class Literal(Value):
         if isinstance(datatype, unicode):
             if datatype[0] == '<':
                 datatype = datatype[1:-1]
-            datatype = canonical_uri_object(datatype) or URI(datatype)
+            datatype = URI(datatype)
         elif datatype is not None:
             if not isinstance(datatype, URI):
                 datatype = URI(datatype)

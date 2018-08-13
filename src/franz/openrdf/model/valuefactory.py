@@ -56,14 +56,14 @@ class ValueFactory(object):
         """
         return Statement(subject, predicate, _object, context=context)
     
-    def createURI(self, uri=None, namespace=None, localname=None):
+    def createURI(self, uri=None, namespace=None, localname=None, canonical=True):
         """
         See :meth:`.RepositoryConnection.createURI`.
         """
         if namespace and not localname:
-            return URI(namespace=uri, localname=namespace)
+            return URI(namespace=uri, localname=namespace, canonical=canonical)
         else:
-            return URI(uri=uri, namespace=namespace, localname=localname)
+            return URI(uri=uri, namespace=namespace, localname=localname, canonical=canonical)
     
 
 #############################################################################
@@ -108,7 +108,7 @@ class ValueFactory(object):
         upperBound = self.object_position_term_to_openrdf_term(upperBound)
         return RangeLiteral(lowerBound=lowerBound, upperBound=upperBound)
 
-    def namespace(self, prefix):
+    def namespace(self, prefix, canonical=True):
         """
         Create an object that allows for simple creation of URIs in given namespace.
         Attribute lookups on the returned object will produce URIs with the attribute
@@ -117,6 +117,10 @@ class ValueFactory(object):
 
         :param prefix: Prefix prepended to URIs created by the returned object.
         :type prefix: str
+        :param canonical: If true (default) ensure that the same URI object
+                          is returned each time when the same string is
+                          passed as the local name.
+        :type canonical: bool
         :return: An object that can be used to create URIs.
         """
         vf = self
@@ -131,6 +135,6 @@ class ValueFactory(object):
                 return self(index)
 
             def __call__(self, arg):
-                return vf.createURI(namespace=prefix, localname=arg)
+                return vf.createURI(namespace=prefix, localname=arg, canonical=canonical)
 
         return Namespace()

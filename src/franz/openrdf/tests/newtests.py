@@ -21,7 +21,7 @@ from six import BytesIO
 
 from franz.openrdf.connect import ag_connect
 from franz.openrdf.exceptions import RequestError
-from franz.openrdf.model import Literal, Statement
+from franz.openrdf.model import Literal, Statement, URI
 from franz.openrdf.query.query import QueryLanguage
 from franz.openrdf.repository.attributes import AttributeDefinition, TripleAttribute, UserAttribute, \
     attribute_filter_to_expr, And, Or, Not, Empty, Overlap, Subset, Superset, Equal, Lt, Le, Eq, Ge, Gt, \
@@ -1128,6 +1128,7 @@ def test_add_json_ld_dict_with_terms(conn, ex):
     })
     assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
 
+
 @min_version(6, 100)
 def test_add_json_ld_list(conn, ex):
     conn.addData([{
@@ -1139,3 +1140,24 @@ def test_add_json_ld_list(conn, ex):
     }])
     assert [[ex.s, ex.p, ex.o1, None], 
             [ex.s, ex.p, ex.o2, None]] == get_statements(conn)
+
+
+def test_uri_canonical_true():
+    uri1 = URI('ex://test')
+    uri2 = URI(namespace='ex://', localname='test')
+    assert uri1 is uri2
+
+
+def test_uri_canonical_false():
+    uri1 = URI('ex://test', canonical=False)
+    uri2 = URI('ex://test', canonical=False)
+    assert uri1 is not uri2
+
+
+def test_uri_canonicalize():
+    uri1 = URI('ex://test', canonical=False)
+    uri2 = URI(uri1)
+    uri3 = URI('ex://test')
+    assert uri2 is not uri1
+    assert uri2 is uri3
+

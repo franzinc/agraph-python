@@ -2,6 +2,19 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 101.0.0
+===============
+
+URI object changes
+------------------
+
+URI objects are now canonicalized by default. This means that
+two equal URIs are guaranteed to be the same object. This behavior
+can be disabled by passing `canonical=False` when creating a URI.
+
+URI objects no longer carry an attribute dictionary. This means
+it is no longer possible to add arbitrary fields to an URI object.
+
 Release 100.3.0
 ===============
 

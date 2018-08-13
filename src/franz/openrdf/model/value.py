@@ -14,11 +14,9 @@ from __future__ import unicode_literals
 
 import builtins
 
-from future.utils import python_2_unicode_compatible
-from past.builtins import basestring
-from builtins import object
+import weakref
+from six import python_2_unicode_compatible
 
-from ..exceptions import IllegalArgumentException
 from ..util import uris, strings
 
 
@@ -27,7 +25,8 @@ class Value(object):
     """
     Top class in the org.openrdf.model interfaces.
     """
-    
+    __slots__ = ('__weakref__',)
+
     def __str__(self):
         return self.toNTriples()
 
@@ -76,24 +75,51 @@ class Value(object):
     
     
 class Resource(Value):
+    __slots__ = ()
     pass
+
 
 class URI(Resource):
     """
     Lightweight implementation of the class 'URI'.
     """
-    def __init__(self, uri=None, namespace=None, localname=None):
-        if uri and not isinstance(uri, basestring):
-            raise IllegalArgumentException("Object of type %s passed to URI constructor where string expected: %s"
-                                           % (type(uri), uri))
-        if uri:
-            if uri[0] == '<' and uri[len(uri) - 1] == '>':
-                ## be kind and trim the uri:
-                uri = uri[1:-1]
-        elif namespace and localname:
-            uri = namespace + localname
+    __slots__ = ('_uri', '_is_canonical')
 
+    _instances = weakref.WeakValueDictionary()
+
+    def __new__(cls, uri=None, namespace=None, localname=None, canonical=True):
+        if isinstance(uri, URI):
+            if not canonical or uri._is_canonical:
+                return uri
+            uri = uri.uri
+        elif uri is None and namespace is not None:
+            uri = namespace + (localname or '')
+
+        if uri is None:
+            raise ValueError('Either URI or namespace is required.')
+
+        if canonical:
+            result = URI._instances.get(uri)
+            if result is not None:
+                return result
+
+        result = super(URI, cls).__new__(cls)
+        if canonical:
+            URI._instances[uri] = result
+        return result
+
+    def __init__(self, uri=None, namespace=None, localname=None, canonical=False):
+        if isinstance(uri, URI):
+            uri = uri.uri
+
+        if uri is None and namespace is not None:
+            uri = namespace + (localname or '')
+
+        if uri and uri[0] == '<' and uri[len(uri) - 1] == '>':
+            # be kind and trim the uri:
+            uri = uri[1:-1]
         self._uri = uri
+        self._is_canonical = canonical
 
     def get_cmp_key(self):
         return self.uri
@@ -145,6 +171,8 @@ class BNode(Resource):
     """
     A blank node.
     """
+    __slots__ = ('id',)
+
     def __init__(self, id=None):
         """
         Create a blank node.
