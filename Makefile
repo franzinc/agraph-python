@@ -10,7 +10,9 @@ SDIST = agraph-python-$(VERSION).tar.gz
 # Binary distribution (for PyPI).
 WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
 
-PATH := /usr/local/python26/bin:/opt/rh/rh-python34/root/usr/bin:$(PATH)
+# Package repositories on SAN1
+NEXUS_PYPI = https://san1.franz.com:8443/repository/pypi-group/simple
+NEXUS_CONDA = https://san1.franz.com:8443/repository/anaconda-proxy/anaconda
 
 YEAR := $(shell date +%Y)
 
@@ -31,26 +33,31 @@ export AG_RUN_SSL_TEST=y
 # Prevent virtualenv from downloading stuff from PyPI
 export VIRTUALENV_NO_DOWNLOAD=y
 
-# Certificate verification for Nexus fails on some boxes
-export REQUESTS_CA_BUNDLE=$(CURDIR)/nexus.ca.crt
-
 # Used to download packages:
 #  - Inside Franz we want to use Nexus on SAN1
 #  - If that is not available use the default PyPI index / Anaconda channel
 #  - In both cases one can override the choice by setting PIP_INDEX
 #    or CONDA_OPTS.
 ifeq ($(shell domainname),franz.com)
+    USE_NEXUS ?= y
+endif
+
+ifeq ($(USE_NEXUS),y)
     # Nexus repository on SAN1
-    PIP_INDEX ?= https://san1.franz.com:8443/repository/pypi-group/simple
+    PIP_INDEX ?= $(NEXUS_PYPI)
+
+    # Certificate verification for Nexus fails on some boxes
+    export REQUESTS_CA_BUNDLE=$(abspath nexus.ca.crt)
     PIP_CERT = --cert=$(abspath nexus.ca.crt)
-    # Use the Nexus proxy, disable default channels and ignore
-    # certificate errors.
-    CONDA_OPTS ?= -c https://san1.franz.com:8443/repository/anaconda-proxy/anaconda -k --override-channels
+
+    # Use the Nexus proxy, disable default channels.
+    CONDA_OPTS ?= -c $(NEXUS_CONDA) -k --override-channels
 else
     # Global PyPI index
     PIP_INDEX ?= https://pypi.python.org/simple
     # Do not set CONDA_OPTS - use defaults or ~/.condarc
 endif
+
 
 # If the index is not available over HTTPS users need to pass --trusted-host
 # --no-cache-dir is another option that can be added here.
