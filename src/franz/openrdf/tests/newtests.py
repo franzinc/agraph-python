@@ -944,7 +944,7 @@ def test_remote_http_sanity(remote_http_server):
     assert remote_http_server.send_request('/') == 'Hello!'
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld(conn, ex):
     conn.addData('''{
       "@context": {
@@ -956,7 +956,7 @@ def test_add_json_ld(conn, ex):
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_from_dict(conn, ex):
     conn.addData({
       "@context": {
@@ -968,7 +968,7 @@ def test_add_json_from_dict(conn, ex):
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_with_context(conn, ex):
     conn.addData('''{
       "@id": "subject",
@@ -979,7 +979,7 @@ def test_add_json_ld_with_context(conn, ex):
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_with_external_context(conn, ex, remote_http_server):
     url = remote_http_server.publish('/ctx.json', '{"@context": {"@vocab":"ex://"}}')
     conn.addData('''{
@@ -991,7 +991,7 @@ def test_add_json_ld_with_external_context(conn, ex, remote_http_server):
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_with_external_context_inside(conn, ex, remote_http_server):
     url = remote_http_server.publish('/ctx.json', json.dumps({
        "@context": {
@@ -1010,7 +1010,7 @@ def test_add_json_ld_with_external_context_inside(conn, ex, remote_http_server):
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_keep_source(conn):
     src = '''{}'''
     conn.addData(src, rdf_format=RDFFormat.JSONLD, json_ld_store_source=True)
@@ -1019,13 +1019,13 @@ def test_add_json_ld_keep_source(conn):
     assert statements[0][2].label == src
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_empty_dict(conn):
     conn.addData({})
     assert [] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_simple_dict(conn, ex):
     conn.addData({
         '@context': {
@@ -1038,7 +1038,7 @@ def test_add_json_ld_simple_dict(conn, ex):
     assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_uri_key(conn, ex):
     conn.addData({
         '@context': {
@@ -1051,7 +1051,7 @@ def test_add_json_ld_uri_key(conn, ex):
     assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_uri_values(conn, ex):
     conn.addData({
         '@context': {
@@ -1064,7 +1064,7 @@ def test_add_json_ld_uri_values(conn, ex):
     assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_literal_value(conn, ex):
     conn.addData({
         '@context': {
@@ -1077,7 +1077,7 @@ def test_add_json_ld_literal_value(conn, ex):
     assert [[ex.s, ex.p, Literal('o'), None]] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_typed_literal_value(conn, ex):
     conn.addData({
         '@context': {
@@ -1093,7 +1093,7 @@ def test_add_json_ld_typed_literal_value(conn, ex):
              None]] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_lang_literal_value(conn, ex):
     conn.addData({
         '@context': {
@@ -1107,7 +1107,7 @@ def test_add_json_ld_lang_literal_value(conn, ex):
     assert [[ex.s, ex.p, Literal('🛀', language='sjn'), None]] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_integer_literal_value(conn, ex):
     conn.addData({
         '@context': {
@@ -1120,7 +1120,7 @@ def test_add_json_ld_integer_literal_value(conn, ex):
     assert [[ex.s, ex.p, Literal(42), None]] == get_statements(conn)
 
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_dict_with_terms(conn, ex):
     conn.addData({
         '@id': ex.s,
@@ -1128,7 +1128,7 @@ def test_add_json_ld_dict_with_terms(conn, ex):
     })
     assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
 
-@min_version(6, 5)
+@min_version(6, 100)
 def test_add_json_ld_list(conn, ex):
     conn.addData([{
         '@id': ex.s,
