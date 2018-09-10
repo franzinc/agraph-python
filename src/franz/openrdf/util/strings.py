@@ -95,7 +95,7 @@ def uriref(string):
         return None
     return ntriples_unescape(match.group(1))
 
-uri_pattern = r'<([^:]+:.+)>'
+uri_pattern = r'<(.*)>'
 uriref.pattern = re.compile(uri_pattern + '$')
 
 
