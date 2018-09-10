@@ -12,6 +12,8 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+import sys
+
 import builtins
 
 import weakref
@@ -31,7 +33,11 @@ class Value(object):
         return self.toNTriples()
 
     def __repr__(self):
-        return self.toNTriples()
+        result = self.toNTriples()
+        # Return an ascii string on Python 2, otherwise pytest gets confused
+        if sys.version_info < (3,):
+            result = result.encode('unicode-escape')
+        return result
 
     def get_cmp_key(self):
         """
