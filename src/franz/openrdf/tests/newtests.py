@@ -1041,7 +1041,7 @@ def test_add_json_ld_empty_dict(conn):
 def test_add_json_ld_simple_dict(conn, ex):
     conn.addData({
         '@context': {
-            '@vocab': '',
+            '@vocab': 'ex://',
             '@base': 'ex://'
         },
         '@id': 's',
@@ -1054,7 +1054,7 @@ def test_add_json_ld_simple_dict(conn, ex):
 def test_add_json_ld_uri_key(conn, ex):
     conn.addData({
         '@context': {
-            '@vocab': '',
+            '@vocab': 'ex://',
             '@base': 'ex://'
         },
         '@id': 's',
@@ -1067,7 +1067,7 @@ def test_add_json_ld_uri_key(conn, ex):
 def test_add_json_ld_uri_values(conn, ex):
     conn.addData({
         '@context': {
-            '@vocab': '',
+            '@vocab': 'ex://',
             '@base': 'ex://'
         },
         '@id': ex.s,
@@ -1080,7 +1080,7 @@ def test_add_json_ld_uri_values(conn, ex):
 def test_add_json_ld_literal_value(conn, ex):
     conn.addData({
         '@context': {
-            '@vocab': '',
+            '@vocab': 'ex://',
             '@base': 'ex://'
         },
         '@id': 's',
@@ -1093,7 +1093,7 @@ def test_add_json_ld_literal_value(conn, ex):
 def test_add_json_ld_typed_literal_value(conn, ex):
     conn.addData({
         '@context': {
-            '@vocab': '',
+            '@vocab': 'ex://',
             '@base': 'ex://'
         },
         '@id': 's',
@@ -1109,7 +1109,7 @@ def test_add_json_ld_typed_literal_value(conn, ex):
 def test_add_json_ld_lang_literal_value(conn, ex):
     conn.addData({
         '@context': {
-            '@vocab': '',
+            '@vocab': 'ex://',
             '@base': 'ex://'
         },
         '@id': 's',
@@ -1123,7 +1123,7 @@ def test_add_json_ld_lang_literal_value(conn, ex):
 def test_add_json_ld_integer_literal_value(conn, ex):
     conn.addData({
         '@context': {
-            '@vocab': '',
+            '@vocab': 'ex://',
             '@base': 'ex://'
         },
         '@id': 's',

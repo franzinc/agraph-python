@@ -14,6 +14,7 @@ from __future__ import with_statement
 from __future__ import unicode_literals
 
 import six
+from future.backports import OrderedDict
 from future.builtins import object
 from past.builtins import map, unicode, basestring
 
@@ -692,7 +693,11 @@ class RepositoryConnection(object):
         :type external_reference_timeout: int
         """
         if isinstance(data, dict) or isinstance(data, list):
-            data = dump_json_ld(data)
+            # Technically dictionaries are only guaranteed to be ordered
+            # on Python 3.7+, but in practice this is also true for
+            # CPython 3.6.
+            sort_keys = json_ld_store_source and sys.version_info < (3, 6)
+            data = dump_json_ld(data, sort_keys=sort_keys)
             if rdf_format is None:
                 rdf_format = RDFFormat.JSONLD
 
@@ -2372,7 +2377,7 @@ class GeoType(object):
         return poly
 
 
-def dump_json_ld(source):
+def dump_json_ld(source, sort_keys=False):
     """
     Convert a dictionary to JSON-LD string.
 
@@ -2380,6 +2385,7 @@ def dump_json_ld(source):
     but is a bit smarter about URLs and literals.
 
     :param source: Dictionary to be serialized.
+    :param sort_keys: if True make sure that metadata keys (@context etc) appear first.
     :return: a JSON-serializable dict.
     """
     def fix_value(value):
@@ -2391,18 +2397,37 @@ def dump_json_ld(source):
             return [fix_value(v) for v in value]
         return value
 
+    def fix_at_value(value):
+        if callable(getattr(value, 'to_json_ld_key', None)):
+            return value.to_json_ld_key()
+        else:
+            return fix_value(value)
+
+    def key_priority(key):
+        if key == '@context':
+            return 0
+        elif key == '@id':
+            return 1
+        elif key == '@value':
+            return 2
+        elif key.startswith('@'):
+            return 3
+        return 4
+
     def fix_dict(d):
-        result = {}
+        result = []
         for key, value in six.iteritems(d):
             if callable(getattr(key, 'to_json_ld_key', None)):
                 key = key.to_json_ld_key()
             # Handle @id, @vocab, ...
-            if key.startswith('@') and \
-                    callable(getattr(value, 'to_json_ld_key', None)):
-                value = value.to_json_ld_key()
+            if key.startswith('@'):
+                value = fix_at_value(value)
             else:
                 value = fix_value(value)
-            result[key] = value
+            result.append((key, value))
+        if sort_keys:
+            # Make sure the @context comes first
+            result = OrderedDict(sorted(result, key=lambda p: key_priority(p[0])))
         return result
 
     return encode_json(fix_value(source))

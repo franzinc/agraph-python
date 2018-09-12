@@ -16,6 +16,7 @@ from __future__ import unicode_literals
 import iso8601
 from decimal import Decimal
 
+from future.backports import OrderedDict
 from future.utils import python_2_unicode_compatible
 
 from past.builtins import long, unicode
@@ -220,10 +221,10 @@ class Literal(Value):
     def to_json_ld(self):
         """ Converts to an object to be used as a JSON-LD value. """
         if self.language:
-            return {
-                '@value': self.label,
-                '@language': self.language
-            }
+            return OrderedDict([
+                ('@value', self.label),
+                ('@language', self.language)
+            ])
 
         if self.datatype is None or self.datatype == XMLSchema.STRING:
             return self.label
@@ -231,10 +232,10 @@ class Literal(Value):
         if self.datatype == XMLSchema.INTEGER:
             return int(self.label)
 
-        return {
-            '@value': self.label,
-            '@type': self.datatype.to_json_ld_key()
-        }
+        return OrderedDict([
+            ('@value', self.label),
+            ('@type', self.datatype.to_json_ld_key())
+        ])
 
 ###############################################################################
 ## Automatic conversion from Literal to Python object
