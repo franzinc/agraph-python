@@ -55,6 +55,18 @@ def get_statements(conn):
     return sorted([list(s) for s in conn.getStatements()])
 
 
+def normalize_query_result(result, sort=True):
+    """
+    Post-process query result to generate a simple, nested list.
+
+    :param result: A QueryResult object.
+    :param sort: if True (default) rows will be sorted.
+    :return: A list of lists of RDF values.
+    """
+    normalized = [[row[i] for i in range(len(row))] for row in result]
+    return sorted(normalized) if sort else normalized
+
+
 def test_ag_connect_open(repo_name):
     with ag_connect(repo_name, create=False, **common_args) as conn:
         assert conn.size() == 0
@@ -1161,3 +1173,10 @@ def test_uri_canonicalize():
     assert uri2 is not uri1
     assert uri2 is uri3
 
+
+def test_prolog_default_graph(conn, ex):
+    conn.addTriple(ex.s, ex.p, ex.o)
+    query = '(select (?s ?p ?o ?g) (q ?s ?p ?o ?g))'
+    with conn.executeTupleQuery(query, QueryLanguage.PROLOG) as result:
+        bindings = normalize_query_result(result)
+    assert bindings == [[ex.s, ex.p, ex.o, None]]

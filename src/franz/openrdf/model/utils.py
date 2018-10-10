@@ -23,5 +23,7 @@ def parse_term(string_term):
         return Literal(*strings.literal(string_term))
     elif string_term.startswith('_'):
         return BNode(strings.nodeid(string_term))
+    elif string_term.startswith('default-graph'):
+        return None
 
     return Literal(string_term)
