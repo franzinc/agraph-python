@@ -542,7 +542,8 @@ class RepositoryConnection(object):
         :param base: The baseURI to associate with loading a file.  Defaults to ``None``.
                      If ``None`` the baseURI will be chosen by the server.
         :type base: string
-        :param format: Either ``RDFFormat.NTRIPLES`` or ``RDFFormat.RDFXML``. Defaults to ``None``.
+        :param format: Format of the uploaded file (e.g. RDFFormat.TURTLE or RDFFormat.NQUADS).
+                       If set to ``None`` (default) the format will be selected based on the filename.
         :type format: RDFFormat
         :param serverSide: Indicates whether the filepath refers to a file on the client computer
                            or on the server.  Defaults to ``False`` (i.e. client-side).
@@ -590,7 +591,8 @@ class RepositoryConnection(object):
         :param base: The baseURI to associate with loading a file.  Defaults to ``None``.
                      If ``None`` the baseURI will be chosen by the server.
         :type base: string
-        :param format: Either ``RDFFormat.NTRIPLES`` or ``RDFFormat.RDFXML``. Defaults to ``None``.
+        :param format: Format of the uploaded file (e.g. RDFFormat.TURTLE or RDFFormat.NQUADS).
+                       If set to ``None`` (default) the format will be selected based on the filename.
         :type format: RDFFormat
         :param serverSide: Indicates whether the filepath refers to a file on the client computer
                            or on the server.  Defaults to ``False`` (i.e. client-side).
