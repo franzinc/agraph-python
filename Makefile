@@ -12,7 +12,9 @@ WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
 
 # Package repositories on SAN1
 NEXUS_PYPI = https://san1.franz.com:8443/repository/pypi-group/simple
-NEXUS_CONDA = https://san1.franz.com:8443/repository/anaconda-proxy/anaconda
+# NEXUS_CONDA = https://san1.franz.com:8443/repository/anaconda-proxy/anaconda
+NEXUS_CONDA = https://san1.franz.com:8443/repository/conda-forge-proxy
+
 
 YEAR := $(shell date +%Y)
 
@@ -106,7 +108,7 @@ default: wheel
 # the internet if needed.
 
 # Versions we want to test on
-PYTHONS=2.7 3.4 3.5 3.6
+PYTHONS=2.7 3.5 3.6
 PYTHONS2=$(filter 2.%,$(PYTHONS))
 PYTHONS3=$(filter 3.%,$(PYTHONS))
 
