@@ -1024,11 +1024,11 @@ def test_add_json_ld_with_external_context_inside(conn, ex, remote_http_server):
 
 @min_version(6, 5)
 def test_add_json_ld_keep_source(conn):
-    src = '''{}'''
+    src = '''{"ex://p": "o"}'''
     conn.addData(src, rdf_format=RDFFormat.JSONLD, json_ld_store_source=True)
     statements = get_statements(conn)
-    assert 1 == len(statements)
-    assert statements[0][2].label == src
+    assert 2 == len(statements)
+    assert statements[0][2].label == src or statements[1][2].label == src
 
 
 @min_version(6, 5)
