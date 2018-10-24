@@ -2427,7 +2427,7 @@ def dump_json_ld(source, sort_keys=False):
             result.append((key, value))
         if sort_keys:
             # Make sure the @context comes first
-            result = OrderedDict(sorted(result, key=lambda p: key_priority(p[0])))
-        return result
+            return OrderedDict(sorted(result, key=lambda p: key_priority(p[0])))
+        return dict(result)
 
     return encode_json(fix_value(source))
