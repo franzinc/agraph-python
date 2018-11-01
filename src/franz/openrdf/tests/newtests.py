@@ -71,6 +71,13 @@ common_args = dict(
 )
 
 
+def remove_whitespace(text):
+    """
+    Remove all whitespace from a string.
+    """
+    return "".join(text.split())
+
+
 def get_statements(conn):
     """
     Gets all statements as a list of 4-element lists of Value objects,
@@ -1191,7 +1198,12 @@ def test_add_json_ld_keep_source(conn):
     conn.addData(src, rdf_format=RDFFormat.JSONLD, json_ld_store_source=True)
     statements = get_statements(conn)
     assert 2 == len(statements)
-    assert statements[0][2].label == src or statements[1][2].label == src
+    labels = [
+        remove_whitespace(row[2].label)
+        for row in statements
+        if isinstance(row[2], Literal)
+    ]
+    assert remove_whitespace(src) in labels
 
 
 @min_version(6, 6)
