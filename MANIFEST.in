@@ -4,5 +4,6 @@ include LICENSE
 include requirements.txt
 include requirements2.txt
 include CHANGES.rst
-recursive-include franz/openrdf/tests *
-recursive-include tutorial *
+graft src/franz/openrdf/tests
+global-exclude __pycache__
+global-exclude *.py[co]

@@ -109,9 +109,9 @@ Unit tests
 The Python client includes a suite of unit tests that can be run after
 installation.  The tests are executed using the ``pytest`` framework
 and also use a few utilities from ``nose``, so these two packages have
-to be installed::
+to be installed. We also need the ``pytest-mock`` plugin::
 
-    pip install pytest nose
+    pip install pytest pytest-mock nose
 
 The tests require a running AllegroGraph server instance. The
 configuration of this server is passed to the tests through
