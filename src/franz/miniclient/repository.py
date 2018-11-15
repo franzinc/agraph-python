@@ -746,6 +746,11 @@ class Repository(Service):
     def enableTripleCache(self, size=None):
         nullRequest(self, "PUT", "/tripleCache?" + urlenc(size=size))
 
+    def warmup(self, includeStrings, includeTriples, indices):
+        nullRequest(self, "PUT", "/warmup?" + urlenc(includeStrings=includeStrings,
+                                                     includeTriples=includeTriples,
+                                                     index=indices))
+           
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         if self.sessionAlive:
             # A session is already active.  Do nothing.

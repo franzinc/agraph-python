@@ -2,6 +2,7 @@
 AllegroGraph Python client release history
 ==========================================
 
+
 Release 101.0.0
 ===============
 
@@ -14,6 +15,13 @@ can be disabled by passing `canonical=False` when creating a URI.
 
 URI objects no longer carry an attribute dictionary. This means
 it is no longer possible to add arbitrary fields to an URI object.
+
+rfe15690: warmup support
+------------------------
+
+Add `RepositoryConnection.warmup()` to allow the user to
+warm up the string table and/or indices.
+
 
 Release 100.3.0
 ===============

@@ -381,6 +381,25 @@ class RepositoryConnection(object):
         else:
             return self._to_ntriples(term)
 
+    def warmup(self, includeStrings=None, includeTriples=None, indices=None):
+        """
+        Warm up specified parts of the repository in order to speed up access.
+
+        :param includeStrings: warm up the string table  (default is True).
+        :type includeStrings: bool
+        :param includeTriples: warm up the triple indices (default is True).
+            Use the indices argument to specify the indices to warm up.
+        :type includeTriples: bool
+        :param indices: list of indices to warm up (default is None meaning all indices). 
+           indices can be a single string naming an index (e.g. 'spogi') or
+           a list of strings (e.g. ['spogi', 'posgi']).
+           Note that  includeTriples must True in order for
+           any indices be warmed up.
+        :type indices: list[str]|str
+        """
+        
+        return self._get_mini_repository().warmup(includeStrings, includeTriples, indices)
+    
     def getStatements(self, subject=None, predicate=None,  object=None, contexts=ALL_CONTEXTS, includeInferred=False,
                       limit=None, offset=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX):
         """

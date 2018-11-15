@@ -1180,3 +1180,15 @@ def test_prolog_default_graph(conn, ex):
     with conn.executeTupleQuery(query, QueryLanguage.PROLOG) as result:
         bindings = normalize_query_result(result)
     assert bindings == [[ex.s, ex.p, ex.o, None]]
+
+def test_warmup(conn):
+    """
+    test warmup with various arguments.  we only verify that the HTTP
+    call is valid and not that the warmup occured.
+    """
+
+    conn.warmup()
+    conn.warmup(includeStrings=True)
+    conn.warmup(includeStrings=False, includeTriples=False)
+    conn.warmup(indices='spogi')
+    conn.warmup(indices=['spogi', 'posgi'], includeTriples=True)

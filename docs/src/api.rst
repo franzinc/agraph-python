@@ -195,6 +195,7 @@ maintain, search, and delete triple stores.
    ~RepositoryConnection.setAddCommitSize
    ~RepositoryConnection.setNamespace
    ~RepositoryConnection.size
+   ~RepositoryConnection.warmup
 
    ~RepositoryConnection.add_commit_size
 
