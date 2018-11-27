@@ -6,26 +6,6 @@ AllegroGraph Python client release history
 Release 101.0.0
 ===============
 
-URI object changes
-------------------
-
-URI objects are now canonicalized by default. This means that
-two equal URIs are guaranteed to be the same object. This behavior
-can be disabled by passing `canonical=False` when creating a URI.
-
-URI objects no longer carry an attribute dictionary. This means
-it is no longer possible to add arbitrary fields to an URI object.
-
-rfe15690: warmup support
-------------------------
-
-Add `RepositoryConnection.warmup()` to allow the user to
-warm up the string table and/or indices.
-
-
-Release 100.3.0
-===============
-
 JSON-LD support
 ---------------
 
@@ -46,6 +26,22 @@ a few JSON-LD specific arguments:
 
 In addition the `addData()` method can import a JSON-LD document
 in the form of a dictionary.
+
+URI object changes
+------------------
+
+URI objects are now canonicalized by default. This means that
+two equal URIs are guaranteed to be the same object. This behavior
+can be disabled by passing `canonical=False` when creating a URI.
+
+URI objects no longer carry an attribute dictionary. This means
+it is no longer possible to add arbitrary fields to an URI object.
+
+rfe15690: warmup support
+------------------------
+
+Add `RepositoryConnection.warmup()` to allow the user to
+warm up the string table and/or indices.
 
 User data access
 ----------------
