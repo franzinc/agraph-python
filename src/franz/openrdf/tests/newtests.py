@@ -965,7 +965,7 @@ def test_add_json_ld(conn, ex):
       },
       "@id": "subject",
       "predicate": { "@id": "object" }
-    }''', rdf_format=RDFFormat.JSONLD)
+    }''', rdf_format=RDFFormat.JSONLD, base_uri=ex('').uri)
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
@@ -977,7 +977,7 @@ def test_add_json_from_dict(conn, ex):
       },
       "@id": "subject",
       "predicate": {"@id": "object"}
-    })
+    }, base_uri=ex('').uri)
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
@@ -988,7 +988,7 @@ def test_add_json_ld_with_context(conn, ex):
       "predicate": { "@id": "object" }
     }''', rdf_format=RDFFormat.JSONLD, json_ld_context={
         "@vocab": "ex://"
-    })
+    }, base_uri=ex('').uri)
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 
@@ -1000,7 +1000,8 @@ def test_add_json_ld_with_external_context(conn, ex, remote_http_server):
       "predicate": { "@id": "ex://object" }}''',
                  rdf_format=RDFFormat.JSONLD,
                  json_ld_context=url,
-                 allow_external_references=True)
+                 allow_external_references=True,
+                 base_uri=ex('').uri)
     assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
 
 

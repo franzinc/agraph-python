@@ -154,12 +154,8 @@ define_uri_fixtures()
 
 
 @pytest.fixture
-def ex():
-    class Namespace(object):
-        def __getattribute__(self, item):
-            return URI(namespace='ex://', localname=item)
-
-    return Namespace()
+def ex(conn):
+    return conn.namespace('ex://')
 
 
 class UserData(MutableMapping):
