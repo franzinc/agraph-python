@@ -290,8 +290,11 @@ sign: wheel
 publish: $(TOXDEP) wheel sign
 	python version.py verify-not-dev
 	cp DIST/$(SDIST) CHANGES.rst /fi/ftp/pub/agraph/python-client/
-	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
-	./conda-upload.sh
+	# Do not use the special nexus.ca.crt CA bundle when performing the
+	# uploads to PyPi and Conda.  It will result in SSL server
+	# certificate validation errors.
+	REQUESTS_CA_BUNDLE= $(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
+	REQUESTS_CA_BUNDLE= ./conda-upload.sh
 
 tags: FORCE
 	etags `find . -name '*.py'`
