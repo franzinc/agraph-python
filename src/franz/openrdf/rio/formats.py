@@ -26,7 +26,7 @@ class FormatMeta(type):
 class Format(object):
     """
     Represents the concept of a data serialization format. Data formats are
-    identified by a {@link #getName() name} and can have one or more associated
+    identified by a name and can have one or more associated
     MIME types, zero or more associated file extensions and can specify a
     default character encoding.
 

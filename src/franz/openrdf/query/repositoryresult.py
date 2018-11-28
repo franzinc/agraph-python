@@ -36,11 +36,11 @@ class RepositoryResult(object):
     
     By default, a RepositoryResult is not necessarily a (mathematical)
     set: it may contain duplicate objects. Duplicate filtering can be
-    {{@link #enableDuplicateFilter() switched on}, but this should not
+    enabled using :meth:`enableDuplicateFilter`, but this should not
     be used lightly as the filtering mechanism is potentially
     memory-intensive.
     
-    A RepositoryResult needs to be {@link #close() closed} after use
+    A RepositoryResult needs to be closed using :meth:`close` after use
     to free up any resources (open connections, read locks, etc.) it
     has on the underlying repository.
     """
