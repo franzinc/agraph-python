@@ -1,3 +1,6 @@
+# Conda scripts require Bash
+SHELL = /bin/bash
+
 VERSION = $(shell python2 -c 'execfile("src/franz/__init__.py"); print __version__')
 
 DISTDIR = agraph-python-$(VERSION)
@@ -129,7 +132,7 @@ CONDA3_BIN=miniconda3/bin
 CONDA3=$(CONDA3_BIN)/conda
 
 $(CONDA3): conda-install.sh
-	bash ./conda-install.sh 3
+	./conda-install.sh 3
 
 pythons/.python%-timestamp: $(CONDA3)
 	rm -rf pythons/$*

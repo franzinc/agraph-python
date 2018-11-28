@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Usage: conda-install.sh [PYTHON_MAJOR_VERSION [MINICONDA_VERSION [ARCH]]]
 # e.g. conda-install.sh 3 4.3.30 x86_64
