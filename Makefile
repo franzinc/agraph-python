@@ -111,7 +111,7 @@ default: wheel
 # the internet if needed.
 
 # Versions we want to test on
-PYTHONS=2.7 3.5 3.6
+PYTHONS=2.7 3.5 3.6 3.7
 PYTHONS2=$(filter 2.%,$(PYTHONS))
 PYTHONS3=$(filter 3.%,$(PYTHONS))
 
@@ -136,7 +136,7 @@ $(CONDA3): conda-install.sh
 
 pythons/.python%-timestamp: $(CONDA3)
 	rm -rf pythons/$*
-	$(CONDA3) create $(CONDA_OPTS) -qym -p pythons/$* python=$* virtualenv=15.1.0
+	$(CONDA3) create $(CONDA_OPTS) -qym -p pythons/$* python=$*
 	touch pythons/.python$*-timestamp
 
 # End Python installation
@@ -184,11 +184,11 @@ endif
 TOXDEP=$(TOXENVDIR)/.timestamp
 $(TOXENVDIR): $(TOXDEP)
 
-$(TOXENVDIR)/.timestamp: $(PY3.6) toxenv-requirements.txt
+$(TOXENVDIR)/.timestamp: $(CONDA3) toxenv.txt
 	rm -rf $(TOXENVDIR)
-	$(CONDA3) create -p $(TOXENVDIR) --clone pythons/3.6
-        # --no-deps is important to avoid overwriting virtualenv
-	. ./$(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && pip install -U ${AG_PIP_OPTS} --no-deps -r toxenv-requirements.txt
+	$(CONDA3) create $(CONDA_OPTS) -qym -p $(TOXENVDIR) python=3.7
+	source $(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && \
+          sed -re '/^(\s*#|$$)/d;' toxenv.txt | xargs -d '\n' ${CONDA3} install $(CONDA_OPTS) -qy
 	touch $(TOXENVDIR)/.timestamp
 
 $(ENVDIR)/.timestamp: $(TOXDEP) $(PY2.7) requirements.txt tox.ini
@@ -235,8 +235,6 @@ disttest/.timestamp: $(TOXDEP) .venv
 	rm -rf disttest
         # Use toxenv's virtualenv so we get a recent enough pip	
 	$(TOXENVDIR)/bin/virtualenv -p python2 --no-site-packages disttest
-        # Update pip and setuptools
-	disttest/bin/pip install -U $(AG_PIP_OPTS) -r toxenv-requirements.txt
         # We need sphinx to run the doctests
 	disttest/bin/pip install $(AG_PIP_OPTS) -rdocs-requirements.txt
         # Remember creation time, to detect changes
