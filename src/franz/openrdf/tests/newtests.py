@@ -958,70 +958,70 @@ def test_remote_http_sanity(remote_http_server):
 
 
 @min_version(6, 5)
-def test_add_json_ld(conn, ex):
+def test_add_json_ld(conn, example):
     conn.addData('''{
       "@context": {
-        "@vocab": "ex://"
+        "@vocab": "http://franz.com/example/"
       },
       "@id": "subject",
       "predicate": { "@id": "object" }
-    }''', rdf_format=RDFFormat.JSONLD, base_uri=ex('').uri)
-    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+    }''', rdf_format=RDFFormat.JSONLD, base_uri=example('').uri)
+    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
 
 
 @min_version(6, 5)
-def test_add_json_from_dict(conn, ex):
+def test_add_json_from_dict(conn, example):
     conn.addData({
       "@context": {
-        "@vocab": "ex://"
+        "@vocab": "http://franz.com/example/"
       },
       "@id": "subject",
       "predicate": {"@id": "object"}
-    }, base_uri=ex('').uri)
-    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+    }, base_uri=example('').uri)
+    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
 
 
 @min_version(6, 5)
-def test_add_json_ld_with_context(conn, ex):
+def test_add_json_ld_with_context(conn, example):
     conn.addData('''{
       "@id": "subject",
       "predicate": { "@id": "object" }
     }''', rdf_format=RDFFormat.JSONLD, json_ld_context={
-        "@vocab": "ex://"
-    }, base_uri=ex('').uri)
-    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+        "@vocab": "http://franz.com/example/"
+    }, base_uri=example('').uri)
+    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
 
 
 @min_version(6, 5)
-def test_add_json_ld_with_external_context(conn, ex, remote_http_server):
-    url = remote_http_server.publish('/ctx.json', '{"@context": {"@vocab":"ex://"}}')
+def test_add_json_ld_with_external_context(conn, example, remote_http_server):
+    url = remote_http_server.publish('/ctx.json', '{"@context": {"@vocab":"http://franz.com/example/"}}')
     conn.addData('''{
       "@id": "subject",
-      "predicate": { "@id": "ex://object" }}''',
+      "predicate": { "@id": "http://franz.com/example/object" }}''',
                  rdf_format=RDFFormat.JSONLD,
                  json_ld_context=url,
                  allow_external_references=True,
-                 base_uri=ex('').uri)
-    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+                 base_uri=example('').uri)
+    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
 
 
 @min_version(6, 5)
-def test_add_json_ld_with_external_context_inside(conn, ex, remote_http_server):
+def test_add_json_ld_with_external_context_inside(conn, example, remote_http_server):
     url = remote_http_server.publish('/ctx.json', json.dumps({
        "@context": {
            "predicate": {
-               "@id": "ex://predicate",
+               "@id": "http://franz.com/example/predicate",
                "@type": "@id"
            }
        }
     }))
     conn.addData('''{
       "@context": %s,
-      "@id": "ex://subject",
-      "predicate": { "@id": "ex://object" }}''' % json.dumps(url),
+      "@id": "http://franz.com/example/subject",
+      "predicate": { "@id": "http://franz.com/example/object" }}''' % json.dumps(url),
                  rdf_format=RDFFormat.JSONLD,
                  allow_external_references=True)
-    assert get_statements(conn) == [[ex.subject, ex.predicate, ex.object, None]]
+    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
 
 
 @min_version(6, 5)
@@ -1040,98 +1040,98 @@ def test_add_json_ld_empty_dict(conn):
 
 
 @min_version(6, 5)
-def test_add_json_ld_simple_dict(conn, ex):
+def test_add_json_ld_simple_dict(conn, example):
     conn.addData({
         '@context': {
-            '@vocab': 'ex://',
-            '@base': 'ex://'
+            '@vocab': 'http://franz.com/example/',
+            '@base': 'http://franz.com/example/'
         },
         '@id': 's',
         'p': {'@id': 'o'}
     })
-    assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
+    assert [[example.s, example.p, example.o, None]] == get_statements(conn)
 
 
 @min_version(6, 5)
-def test_add_json_ld_uri_key(conn, ex):
+def test_add_json_ld_uri_key(conn, example):
     conn.addData({
         '@context': {
-            '@vocab': 'ex://',
-            '@base': 'ex://'
+            '@vocab': 'http://franz.com/example/',
+            '@base': 'http://franz.com/example/'
         },
         '@id': 's',
-        ex.p: {'@id': 'o'}
+        example.p: {'@id': 'o'}
     })
-    assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
+    assert [[example.s, example.p, example.o, None]] == get_statements(conn)
 
 
 @min_version(6, 5)
-def test_add_json_ld_uri_values(conn, ex):
+def test_add_json_ld_uri_values(conn, example):
     conn.addData({
         '@context': {
-            '@vocab': 'ex://',
-            '@base': 'ex://'
+            '@vocab': 'http://franz.com/example/',
+            '@base': 'http://franz.com/example/'
         },
-        '@id': ex.s,
-        'p': {'@id': ex.o}
+        '@id': example.s,
+        'p': {'@id': example.o}
     })
-    assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
+    assert [[example.s, example.p, example.o, None]] == get_statements(conn)
 
 
 @min_version(6, 5)
-def test_add_json_ld_literal_value(conn, ex):
+def test_add_json_ld_literal_value(conn, example):
     conn.addData({
         '@context': {
-            '@vocab': 'ex://',
-            '@base': 'ex://'
-        },
-        '@id': 's',
-        ex.p: Literal('o')
-    })
-    assert [[ex.s, ex.p, Literal('o'), None]] == get_statements(conn)
-
-
-@min_version(6, 5)
-def test_add_json_ld_typed_literal_value(conn, ex):
-    conn.addData({
-        '@context': {
-            '@vocab': 'ex://',
-            '@base': 'ex://'
+            '@vocab': 'http://franz.com/example/',
+            '@base': 'http://franz.com/example/'
         },
         '@id': 's',
-        ex.p: Literal('oooo', XMLSchema.BASE64BINARY)
+        example.p: Literal('o')
     })
-    assert [[ex.s,
-             ex.p,
+    assert [[example.s, example.p, Literal('o'), None]] == get_statements(conn)
+
+
+@min_version(6, 5)
+def test_add_json_ld_typed_literal_value(conn, example):
+    conn.addData({
+        '@context': {
+            '@vocab': 'http://franz.com/example/',
+            '@base': 'http://franz.com/example/'
+        },
+        '@id': 's',
+        example.p: Literal('oooo', XMLSchema.BASE64BINARY)
+    })
+    assert [[example.s,
+             example.p,
              Literal('oooo', XMLSchema.BASE64BINARY),
              None]] == get_statements(conn)
 
 
 @min_version(6, 5)
-def test_add_json_ld_lang_literal_value(conn, ex):
+def test_add_json_ld_lang_literal_value(conn, example):
     conn.addData({
         '@context': {
-            '@vocab': 'ex://',
-            '@base': 'ex://'
+            '@vocab': 'http://franz.com/example/',
+            '@base': 'http://franz.com/example/'
         },
         '@id': 's',
         # A bathtub in Sindarin
-        ex.p: Literal('🛀', language='sjn')
+        example.p: Literal('🛀', language='sjn')
     })
-    assert [[ex.s, ex.p, Literal('🛀', language='sjn'), None]] == get_statements(conn)
+    assert [[example.s, example.p, Literal('🛀', language='sjn'), None]] == get_statements(conn)
 
 
 @min_version(6, 5)
-def test_add_json_ld_integer_literal_value(conn, ex):
+def test_add_json_ld_integer_literal_value(conn, example):
     conn.addData({
         '@context': {
-            '@vocab': 'ex://',
-            '@base': 'ex://'
+            '@vocab': 'http://franz.com/example/',
+            '@base': 'http://franz.com/example/'
         },
         '@id': 's',
-        ex.p: Literal(42)
+        example.p: Literal(42)
     })
-    assert [[ex.s, ex.p, Literal(42), None]] == get_statements(conn)
+    assert [[example.s, example.p, Literal(42), None]] == get_statements(conn)
 
 
 @min_version(6, 5)

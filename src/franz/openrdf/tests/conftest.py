@@ -158,6 +158,11 @@ def ex(conn):
     return conn.namespace('ex://')
 
 
+@pytest.fixture
+def example(conn):
+    return conn.namespace('http://franz.com/example/')
+
+
 class UserData(MutableMapping):
     """
     A dictionary-like object that stores values in the user data
