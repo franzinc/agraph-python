@@ -1827,8 +1827,8 @@ class RepositoryConnection(object):
                             Uses the same syntax as ``innerChars``.
         :type borderChars: list[string]
         :param tokenizer: Controls the way in which the text is plit into tokens.
-                          Can be either ``"default"`` or ``"japaense"``.
-                          Note that the ``japaense`` tokenizer ignores ``innerChars``
+                          Can be either ``"default"`` or ``"japanese"``.
+                          Note that the ``japanese`` tokenizer ignores ``innerChars``
                           and ``borderChars``.
         :type tokenizer: string
         """
@@ -1889,8 +1889,8 @@ class RepositoryConnection(object):
                             Uses the same syntax as ``innerChars``.
         :type borderChars: list[string]
         :param tokenizer: Controls the way in which the text is plit into tokens.
-                          Can be either ``"default"`` or ``"japaense"``.
-                          Note that the ``japaense`` tokenizer ignores ``innerChars``
+                          Can be either ``"default"`` or ``"japanese"``.
+                          Note that the ``japanese`` tokenizer ignores ``innerChars``
                           and ``borderChars``.
         :type tokenizer: string
         """
