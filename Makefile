@@ -13,11 +13,11 @@ SDIST = agraph-python-$(VERSION).tar.gz
 # Binary distribution (for PyPI).
 WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
 
+CONDA_CHANNEL=conda-forge
+
 # Package repositories on SAN1
 NEXUS_PYPI = https://san1.franz.com:8443/repository/pypi-group/simple
-# NEXUS_CONDA = https://san1.franz.com:8443/repository/anaconda-proxy/anaconda
-NEXUS_CONDA = https://san1.franz.com:8443/repository/conda-forge-proxy
-
+NEXUS_CONDA = https://san1.franz.com:8443/repository/$(CONDA_CHANNEL)-proxy
 
 YEAR := $(shell date +%Y)
 
@@ -55,14 +55,13 @@ ifeq ($(USE_NEXUS),y)
     export REQUESTS_CA_BUNDLE=$(abspath nexus.ca.crt)
     PIP_CERT = --cert=$(abspath nexus.ca.crt)
 
-    # Use the Nexus proxy, disable default channels.
-    CONDA_OPTS ?= -c $(NEXUS_CONDA) -k --override-channels
+    CONDA_CHANNEL:=https://san1.franz.com:8443/repository/$(CONDA_CHANNEL)-proxy
 else
     # Global PyPI index
     PIP_INDEX ?= https://pypi.python.org/simple
-    # Do not set CONDA_OPTS - use defaults or ~/.condarc
 endif
 
+CONDA_OPTS ?= -c $(CONDA_CHANNEL) -k --override-channels
 
 # If the index is not available over HTTPS users need to pass --trusted-host
 # --no-cache-dir is another option that can be added here.
