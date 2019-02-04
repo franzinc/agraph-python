@@ -29,7 +29,7 @@ pytest==3.0.2
 pytest-timeout==1.0.0
 python-dateutil==2.6.1
 pytz==2018.3
-requests==2.18.4
+requests==2.20.0
 s3transfer==0.1.11
 six==1.11.0
 snowballstemmer==1.2.1
@@ -39,4 +39,4 @@ sphinxcontrib-websupport==1.1.0
 traceback2==1.4.0
 traitlets==4.3.2
 typing==3.6.2
-urllib3==1.22
+urllib3==1.23
