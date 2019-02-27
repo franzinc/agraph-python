@@ -2,7 +2,6 @@
 # Note that Python files do not have to be listed here.
 include LICENSE
 include requirements.txt
-include requirements2.txt
 include CHANGES.rst
 graft src/franz/openrdf/tests
 global-exclude __pycache__
