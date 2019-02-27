@@ -9,9 +9,11 @@ pandas==0.23.4; python_version != '3.4'
 six==1.10.0
 traceback2==1.4.0
 py==1.4.34
-# No wheel available and some of our hosts 
-# are incapable of building from source for 3.7
-pycurl==7.43.0.2;  python_version != '3.7'
+
+# Using pycurl requires a compiler to be present on the target system.
+# This causes too much pain, so excluding for all python versions.
+#pycurl==7.43.0.2
+
 PySocks==1.6.8
 pytest==3.0.2
 pytest-mock==1.7.1
