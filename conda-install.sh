@@ -25,11 +25,11 @@ fi
 if [[ "$OSTYPE" = darwin* ]]; then
     # Looks like a Mac...
     OS=MacOSX
-    DEFAULT_VERSION=4.5.11
+    DEFAULT_VERSION=4.5.12
 else
     # Just assume Linux.
     OS=Linux
-    DEFAULT_VERSION=4.5.11
+    DEFAULT_VERSION=4.5.12
 fi
 
 # Python major version, can be 2 or 3
