@@ -13,6 +13,8 @@ SDIST = agraph-python-$(VERSION).tar.gz
 # Binary distribution (for PyPI).
 WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
 
+# Using conda-forge instead of the normal "anaconda" because the latter
+# doesn't include the tox package.
 CONDA_CHANNEL=conda-forge
 
 # Package repositories on SAN1
@@ -61,7 +63,7 @@ else
     PIP_INDEX ?= https://pypi.python.org/simple
 endif
 
-CONDA_OPTS ?= -c $(CONDA_CHANNEL) -k --override-channels
+CONDA_OPTS ?= --channel $(CONDA_CHANNEL) --insecure --override-channels
 
 # If the index is not available over HTTPS users need to pass --trusted-host
 # --no-cache-dir is another option that can be added here.
@@ -131,11 +133,13 @@ CONDA3_BIN=miniconda3/bin
 CONDA3=$(CONDA3_BIN)/conda
 
 $(CONDA3): conda-install.sh
+	@echo Installing Miniconda 3
 	./conda-install.sh 3
 
 pythons/.python%-timestamp: $(CONDA3)
+	@echo Installing Python $* using conda
 	rm -rf pythons/$*
-	$(CONDA3) create $(CONDA_OPTS) -qym -p pythons/$* python=$*
+	$(CONDA3) create $(CONDA_OPTS) --quiet --mkdir --yes --prefix pythons/$* python=$*
 	touch pythons/.python$*-timestamp
 
 # End Python installation
@@ -184,19 +188,22 @@ TOXDEP=$(TOXENVDIR)/.timestamp
 $(TOXENVDIR): $(TOXDEP)
 
 $(TOXENVDIR)/.timestamp: $(CONDA3) toxenv.txt
+	@echo Preparing tox environment using conda
 	rm -rf $(TOXENVDIR)
-	$(CONDA3) create $(CONDA_OPTS) -qym -p $(TOXENVDIR) python=3.7
+	$(CONDA3) create $(CONDA_OPTS) --quiet --yes --mkdir --prefix $(TOXENVDIR) python=3.7
 	source $(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && \
-          sed -re '/^(\s*#|$$)/d;' toxenv.txt | xargs -d '\n' ${CONDA3} install $(CONDA_OPTS) -qy
+          sed -re '/^(\s*#|$$)/d;' toxenv.txt | xargs -d '\n' ${CONDA3} install $(CONDA_OPTS) --quiet --yes
 	touch $(TOXENVDIR)/.timestamp
 
 $(ENVDIR)/.timestamp: $(TOXDEP) $(PY2.7) requirements.txt tox.ini
+	@echo Preparing py27-env using tox
 	rm -rf $(ENVDIR)
 	$(TOX) -e py27-env
 	touch $(ENVDIR)/.timestamp
 $(ENVDIR): $(ENVDIR)/.timestamp
 
 $(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.6) requirements.txt tox.ini
+	@echo Preparing py36-env using tox
 	rm -rf $(ENVDIR3)
 	$(TOX) -e py36-env
 	touch $(ENVDIR3)/.timestamp
@@ -206,6 +213,7 @@ test-env: $(ENVDIR)
 
 .PHONY: $(TOXENVDIR) $(ENVDIR) $(ENVDIR3) test-env
 
+# This is used to generate the requirements.txt file(?)
 wheelhouse: $(ENVDIR) $(ENVDIR3)
 	$(ENVDIR)/bin/pip wheel -rrequirements.txt -w wheelhouse
 	$(ENVDIR3)/bin/pip wheel -rrequirements.txt -w wheelhouse
@@ -274,7 +282,7 @@ wheel: $(ENVDIR)/.timestamp FORCE
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)
 	$(ENVDIR)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
         # Also build a source dist
-	$(ENVDIR)/bin/python setup.py sdist -d DIST # --owner=root --group=root 
+	$(ENVDIR)/bin/python setup.py sdist -d DIST
 
 .PHONY: wheel
 
