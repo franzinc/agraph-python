@@ -81,7 +81,7 @@ class RepositoryConnection(object):
     argument may also be ``None``, meaning that the method operates on
     those statements which have no associated context only.
     """
-    def __init__(self, repository, close_repo=False):
+    def __init__(self, repository, close_repo=False, is_session=False):
         """
         Call through :meth:`~franz.openrdf.repository.repository.Repository.getConnection`.
 
@@ -97,7 +97,7 @@ class RepositoryConnection(object):
         self.is_closed = False
         self._add_commit_size = None
         self._close_repo = close_repo
-        self.is_session_active = False
+        self.is_session_active = is_session
 
     def getSpec(self):
         """

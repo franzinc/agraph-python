@@ -609,6 +609,10 @@ def test16():
     greenConn = catalog.getRepository("greenthings", Repository.RENEW).initialize().getConnection()
     rainbowConn = server.openFederated([redConn, greenConn], True)
 
+    ## Verify that the returned connection knows that it is backed by
+    ## a session which must be closed when the connection is closed.
+    assert rainbowConn.is_session_active == True
+
     try:
         ## add a few triples to the red and green stores:
         ex = "http://www.demo.com/example#"
@@ -625,7 +629,7 @@ def test16():
         pt("green", greenConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 1)
         pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3)
     finally:
-        rainbowConn.closeSession()
+        rainbowConn.close()
 
 def kennedy_male_names(conn=None):
     conn = test6(conn)

@@ -241,7 +241,7 @@ class AllegroGraphServer(object):
         :rtype: RepositoryConnection
         """
         minirep = self._client.openSession(spec, autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile)
-        return RepositoryConnection(Repository(None, None, minirep))
+        return RepositoryConnection(Repository(None, None, minirep), is_session=True)
 
     def listScripts(self):
         """
@@ -334,7 +334,7 @@ class AllegroGraphServer(object):
     def openFederated(self, repositories, autocommit=False, lifetime=None, loadinitfile=False):
         """
         Open a session that federates several repositories. The
-        repositories argument should be an array containing store
+        repositories argument must be an array containing store
         designators, which can be Repository or RepositoryConnection
         objects, strings (naming a store in the root catalog, or the
         URL of a store), or (storename, catalogname) tuples.

@@ -16,6 +16,19 @@ now be accessed from the Python client by calling the
 Document data from strings or Python dictionaries can be added
 with ``addDocumentData()``.
 
+Update dependencies which have security vulnerabilities
+-------------------------------------------------------
+
+Bumped urllib3 from 1.22 to 1.23 and requests from 2.18.4 to 2.20.0
+according to recommendations made by Github.
+
+Ensure sessions are closed properly
+-----------------------------------
+
+Sessions created via the ``openFederation()`` or ``openSession()``
+methods of franz.openrdf.sail.allegrographserver.AllegroGraphServer
+were not closed when ``close()`` was called on the resulting
+connection.  This has been fixed.
 
 Release 101.0.0
 ===============
