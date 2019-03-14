@@ -22,6 +22,7 @@ from future.builtins import range, next, object, str
 from future.utils import iteritems, iterkeys
 
 from ..exceptions import RequestError
+from ..exceptions import ServerException
 from ..sail.allegrographserver import AllegroGraphServer
 from ..repository.repository import Repository
 from ..query.query import QueryLanguage
@@ -630,6 +631,40 @@ def test16():
         pt("federated", rainbowConn.prepareTupleQuery(QueryLanguage.SPARQL, queryString).evaluate(), 3)
     finally:
         rainbowConn.close()
+
+
+def test16a():
+    """
+    Attempt to federate server.openSession()'s which isn't allowed
+    """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
+    # open in the root catalog so that we can reference the repo by just
+    # its name in openSession()
+    catalog = server.openCatalog()
+
+    dbname1 = "test16asess1"
+    dbname2 = "test16asess2"
+
+    catalog.createRepository(dbname1)
+    catalog.createRepository(dbname2)
+
+    with server.openSession(dbname1) as sess1:
+        with server.openSession(dbname2) as sess2:
+
+            message = "did not fail"
+
+            try:
+               server.openFederated([sess1, sess2], True)
+            except ServerException as e:
+               message = e.__str__()
+
+    catalog.deleteRepository(dbname1)
+    catalog.deleteRepository(dbname2)
+
+    assert "is not a RepositoryConnection created by Repository.getConnection()" in message
+
+    
+    
 
 def kennedy_male_names(conn=None):
     conn = test6(conn)

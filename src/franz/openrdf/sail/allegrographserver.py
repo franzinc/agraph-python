@@ -356,7 +356,10 @@ class AllegroGraphServer(object):
             if isinstance(x, basestring): return spec.local(x)
             elif isinstance(x, tuple): return spec.local(x[0], x[1])
             elif isinstance(x, Repository): return x.getSpec()
-            elif isinstance(x, RepositoryConnection): return x.getSpec()
+            elif isinstance(x, RepositoryConnection):
+                if (x.repository.database_name == None):
+                    raise ServerException(str(x) + " is not a RepositoryConnection created by Repository.getConnection() and therefore cannot be federated")
+                return x.getSpec()
             else: raise TypeError(str(x) + " is not a valid repository specification.")
         return self.openSession(spec.federate(*list(map(asRepoString, repositories))), autocommit, lifetime, loadinitfile)
 

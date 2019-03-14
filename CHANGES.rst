@@ -3,7 +3,22 @@ AllegroGraph Python client release history
 ==========================================
 
 
-Release 101.1.0
+Release 101.0.2
+===============
+
+Raise error when attemping to federate certain sessions
+----------------------------------------------
+
+A session started by AllegroGraphServer.openSession() cannot
+be federated because this type of session may not be for a
+single repository and may in fact already be a session over
+a federation of repositories.  To federate repositories
+pass a set of Repository.getConnection() objects.
+With this change an exception will be raised when attempting to
+federate a RepositoryConnection created by AllegroGraphServer.openSession().
+
+
+Release 101.0.1
 ===============
 
 Non-RDF document import
