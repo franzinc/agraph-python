@@ -81,7 +81,7 @@ AllegroGraph server and run the following Python script::
     from franz.openrdf.connect import ag_connect
     with ag_connect('repo', host='HOST', port='PORT',
                     user='USER', password='PASS') as conn:
-        print conn.size()
+        print (conn.size())
 
 Substitute appropriate values for the HOST/PORT/USER/PASS
 placeholders. If the script runs successfully a new repository named
