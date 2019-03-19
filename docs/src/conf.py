@@ -496,7 +496,7 @@ rst_prolog = """
 .. currentmodule:: franz.openrdf.repository.repositoryconnection.RepositoryConnection
 """
 
-# Test included at the end of each document.
+# Text included at the end of each document.
 # Note: 'absolute' paths are actually relative to the project directory
 #       regardless of the location of the source file in which the include
 #       directive appears.
