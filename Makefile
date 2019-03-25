@@ -54,7 +54,6 @@ ifeq ($(USE_NEXUS),y)
     PIP_INDEX ?= $(NEXUS_PYPI)
 
     # Certificate verification for Nexus fails on some boxes
-    export REQUESTS_CA_BUNDLE=$(abspath nexus.ca.crt)
     PIP_CERT = --cert=$(abspath nexus.ca.crt)
 
     CONDA_CHANNEL:=https://san1.franz.com:8443/repository/$(CONDA_CHANNEL)-proxy
@@ -63,7 +62,7 @@ else
     PIP_INDEX ?= https://pypi.python.org/simple
 endif
 
-CONDA_OPTS ?= --channel $(CONDA_CHANNEL) --insecure --override-channels
+CONDA_OPTS ?= --channel $(CONDA_CHANNEL) --insecure
 
 # If the index is not available over HTTPS users need to pass --trusted-host
 # --no-cache-dir is another option that can be added here.
@@ -139,7 +138,7 @@ $(CONDA3): conda-install.sh
 pythons/.python%-timestamp: $(CONDA3)
 	@echo Installing Python $* using conda
 	rm -rf pythons/$*
-	$(CONDA3) create $(CONDA_OPTS) --quiet --mkdir --yes --prefix pythons/$* python=$*
+	$(CONDA3) create $(CONDA_OPTS) --quiet --mkdir --yes --prefix $(abspath pythons/$*) python=$*
 	touch pythons/.python$*-timestamp
 
 # End Python installation
@@ -190,7 +189,7 @@ $(TOXENVDIR): $(TOXDEP)
 $(TOXENVDIR)/.timestamp: $(CONDA3) toxenv.txt
 	@echo Preparing tox environment using conda
 	rm -rf $(TOXENVDIR)
-	$(CONDA3) create $(CONDA_OPTS) --quiet --yes --mkdir --prefix $(TOXENVDIR) python=3.7
+	$(CONDA3) create $(CONDA_OPTS) --quiet --yes --mkdir --prefix $(abspath $(TOXENVDIR)) python=3.7
 	source $(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && \
           sed -re '/^(\s*#|$$)/d;' toxenv.txt | xargs -d '\n' ${CONDA3} install $(CONDA_OPTS) --quiet --yes
 	touch $(TOXENVDIR)/.timestamp
@@ -301,8 +300,8 @@ publish: $(TOXDEP) wheel sign
 	# Do not use the special nexus.ca.crt CA bundle when performing the
 	# uploads to PyPi and Conda.  It will result in SSL server
 	# certificate validation errors.
-	REQUESTS_CA_BUNDLE= $(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
-	REQUESTS_CA_BUNDLE= ./conda-upload.sh
+	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
+	./conda-upload.sh
 
 tags: FORCE
 	etags `find . -name '*.py'`
