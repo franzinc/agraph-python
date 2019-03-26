@@ -44,41 +44,29 @@ later.
 Mimicking instructions in the Installation document, you should set up
 the `virtualenv`_ environment.
 
-1. Create an environment named `jsonld`:
-
-.. testcode:: example19
+1. Create an environment named `jsonld`: ::
 
     python3 -m venv jsonld
 
-or
-
-.. testcode:: example19
+or::
 
     python2  -m virtualenv jsonld
 
 2. Activate it:
 
-Using the Bash shell:
-
-.. testcode:: example19
+Using the Bash shell: ::
 
     source jsonld/bin/activate
 
-Using the C shell:
-
-.. testcode:: example19
+Using the C shell: ::
 
     source jsonld/bin/activate.csh
 
-3. Install `agraph-python`:
-
-.. testcode:: example19
+3. Install `agraph-python`: ::
 
     pip install agraph-python
 
-And start **python**:
-
-.. testoutput:: example19
+And start **python**: ::
 
     python
     [various startup and copyright messages]
@@ -86,9 +74,7 @@ And start **python**:
 
 We assume you have an AllegroGraph 6.5.0 server running. We call
 **ag_connect**. Modify the `host`, `port`, `user`, and `password` in
-your call to their correct values:
-
-.. testoutput:: example19
+your call to their correct values: ::
 
     from franz.openrdf.connect import ag_connect
     with ag_connect('repo', host='localhost', port='10035',
@@ -108,10 +94,7 @@ JSON-LD. **createdb()** creates and opens a new repository and
 `port`, `user`, and `password` arguments in the definitions if
 necessary). Both return repository connections which can be used to
 perform repository operations. **showtriples()** displays triples in a
-repository.
-
-
-.. testcode:: example19
+repository. ::
 
     import os
     import json, requests, copy
@@ -137,9 +120,7 @@ repository.
 		 print(statement)
 
 Finally we call our **createdb** function to create a repository and
-return a `RepositoryConnection` to it:
-
-.. testcode:: example19
+return a `RepositoryConnection` to it: ::
     
     conn=createdb('jsonplay')
 
@@ -160,10 +141,7 @@ following ``@context`` says that every time you see ``ical:`` it
 should be replaced by ``http://www.w3.org/2002/12/cal/ical#``,
 ``xsd:`` by ``http://www.w3.org/2001/XMLSchema#``, and that if you see
 ``ical:dtstart`` as a key than the value should be treated as an
-``xsd:dateTime``.
-
-
-.. testcode:: example19
+``xsd:dateTime``. ::
 
     event = {
       "@context": {
@@ -177,9 +155,7 @@ should be replaced by ``http://www.w3.org/2002/12/cal/ical#``,
     }
 
 Let us try it out (the subjects are blank nodes so you will 
-see different values):
-
-.. testoutput:: example19
+see different values): ::
 
     >>> conn.addData(event)
     >>> showtriples()
@@ -197,9 +173,7 @@ blank node, the use of which is problematic when linking across
 repositories; and second, the object does not have an RDF type. We
 solve these problems by adding an ``@id`` to provide an IRI as the
 subject and adding a ``@type`` for the object (those are at the lines
-just after the `@context` definition):
-
-.. testcode:: example19
+just after the `@context` definition): ::
 
     >>> event = {
       "@context": {
@@ -220,16 +194,14 @@ powerful than needed right now (here we just need
 in most later examples. Note the `allow_external_references=True`
 argument to `addData()`. Again, not needed in this example but later
 examples use external contexts and so this argument is required for
-those.
-
-.. testcode:: example19
+those. ::
 
     def test(object,json_ld_context=None,rdf_context=None,maxPrint=100,conn=conn):
 	conn.clear()
 	conn.addData(object, allow_external_references=True)
 	showtriples(limit=maxPrint)
-	
-.. testoutput:: example19
+
+Here we apply **test** to `event`: ::
 
     >>> test(event)
     (<http://www.w3.org/2002/12/cal/ical#event-1>, <http://www.w3.org/2002/12/cal/ical#summary>, "Lady Gaga Concert")
@@ -248,9 +220,7 @@ context that is stored at http://schema.org/.  Also in the definition
 of the function ``test`` above we had this parameter in ``addData``:
 ``allow_external_references=True``.  Requiring that argument
 explicitly is a security feature. One should use external references
-only that context at that URL is trusted (as it is in this case).
-
-.. testcode:: example19
+only that context at that URL is trusted (as it is in this case). ::
 
     person = {
       "@context": "http://schema.org/",
@@ -262,7 +232,7 @@ only that context at that URL is trusted (as it is in this case).
       "url": "http://www.janedoe.com"
     }
 
-.. testoutput:: example19
+Here is the output: ::
 
     >>> test(person)
     (<http://xmlns.com/foaf/0.1/person-1>, <http://schema.org/name>, "Jane Doe")
@@ -280,9 +250,7 @@ objects all at once rather than one at a time. Note that ``addData``
 will take a list of dicts and still do the right thing. So let us add
 a 1000 persons at the same time, each person being a copy of the above
 person but with a different ``@id``. (The example code is repeated
-below for ease of copying.)
-
-.. testoutput:: example19
+below for ease of copying.)::
 
     >>> x = [copy.deepcopy(person) for i in range(1000)]
     >>> len(x)
@@ -306,7 +274,7 @@ below for ease of copying.)
     5000
     >>> 
 
-.. testoutput:: example19
+Here is the code run for copying. ::
 
     x = [copy.deepcopy(person) for i in range(1000)]
     len(x)
@@ -329,9 +297,7 @@ it to the object you want to store. As an illustration we load a
 person context from json-ld.org (actually a fragment of the schema.org
 context) and insert it in a person object. (We have broken and
 truncated some output lines for clarity and all the code executed is
-repeated below for ease of copying.)
-
-.. testoutput:: example19
+repeated below for ease of copying.)::
 
     >>> context=requests.get("https://json-ld.org/contexts/person.jsonld").json()['@context']
     >>> context
@@ -363,7 +329,7 @@ repeated below for ease of copying.)
      <http://xmlns.com/foaf/0.1/Person>) 
     >>>
 
-.. testcode:: example19
+Here is the code run for copying. ::
 
     context=requests.get("https://json-ld.org/contexts/person.jsonld").json()['@context']
     # The next produces lots of output, uncomment if desired
@@ -386,9 +352,7 @@ We start by forcing a key's value to be stored as a resource.
 We saw above that we could specify the value of a key to
 be a date using the ``xsd:dateTime`` specification. We now
 do it again for ``foaf:birthdate``. Then we created several linked
-objects and show the connections using Gruff.
-
-.. testcode:: example19
+objects and show the connections using Gruff. ::
 
    context = { "foaf:child": {"@type":"@id"},
 	       "foaf:brotherOf": {"@type":"@id"},
@@ -418,7 +382,7 @@ objects and show the connections using Gruff.
 
    test([p1,p2,p3])
 
-.. testoutput:: example19
+Here is the output: ::
 
     >>> test([p1,p2,p3])
     (<http://xmlns.com/foaf/0.1/person-1>, <http://xmlns.com/foaf/0.1/birthdate>, "1958-04-09T20:00:00Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>)
@@ -445,9 +409,7 @@ goes to a web page advertising a facial oil. (We make no claims or
 recommendations about this product. We are simply showing how JSON-LD
 appears in many places.) Look at the source of the page and you'll
 find a JSON-LD object similar to the following. Note that ``@``
-directives go to any level. We added an `@id` key.
-
-.. testcode:: example19
+directives go to any level. We added an `@id` key. ::
 
     hippieoil = {"@context":"http://schema.org",
      "@type":"Product",
@@ -477,9 +439,7 @@ JSON-LD @graphs
 
 One can put one or more JSON-LD objects in an RDF named graph. This
 means that the fourth element of each triple generated from a JSON-LD
-object will have the specified graph name. Let's show in an example.
-
-.. testcode:: example19
+object will have the specified graph name. Let's show in an example. ::
 
     context = {
 	    "name": "http://schema.org/name",
@@ -508,9 +468,7 @@ object will have the specified graph name. Let's show in an example.
 		   "longitude": "73.98" }
 	    }}
 
-and here is the result: 
-
-.. testoutput:: example19
+and here is the result: ::
 
     >>> test(place, maxPrint=3) 
     (<http://franz.com/place1>, <http://schema.org/name>, "The Empire State Building", <http://franz.com/place1>)
@@ -522,9 +480,7 @@ Note that the fourth element (graph) of each
 of the triples is <http://franz.com/place1>. If you
 don't add the @id the triples will be put in the default graph.
 
-Here a slightly more complex example:
-
-.. testcode:: example19
+Here a slightly more complex example: ::
 
     library = {
       "@context": {
@@ -558,9 +514,7 @@ Here a slightly more complex example:
       ]
     }
 
-With the result:
-
-.. testoutput:: example19
+With the result: ::
 
     >>> test(library, maxPrint=3) 
     (<http://example.org/library>, <http://example.org/vocab#contains>,
@@ -590,9 +544,7 @@ Setup
 The :download:`Python source file jsonld_tutorial_helper.py
 <../jsonld_tutorial_helper.py>` contains various definitions useful
 for the remainder of this example.  Once it is downloaded, do the
-following (after adding the path to the filename):
-
-.. testcode:: example19
+following (after adding the path to the filename): ::
 
     conn=createdb("docugraph")
     from jsonld_tutorial_helper import *
@@ -601,9 +553,7 @@ following (after adding the path to the filename):
 
 Let's use our event structure again and see how we can store this
 JSON document in the store as a document. Note that the ``addData`` call
-includes the keyword: ``json_ld_store_source=True``.
-
-.. testcode:: example19
+includes the keyword: ``json_ld_store_source=True``. ::
 
     event = { 
       "@context": { 
@@ -619,16 +569,14 @@ includes the keyword: ``json_ld_store_source=True``.
         "ical:dtstart":	"2011-04-09T20:00:00Z" 
     }
 
-.. testoutput:: example19
+Here is the output: ::
 
     >>> conn.addData(event, allow_external_references=True,json_ld_store_source=True)
 
 The *jsonld_tutorial_helper.py* file defines the function ``store`` as
 simple wrapper around ``addData`` that always saves the JSON
 source. For experimentation reasons it also has a parameter ``fresh``
-to clear out the repository first.
-
-.. testoutput:: example19
+to clear out the repository first. ::
 
     >>> store(conn,event, fresh=True) 
 
@@ -646,9 +594,7 @@ persons, a product, and our hippieoil.
 
 First let us store all the objects in a fresh repository. Then we
 check the size of the repo. Finally, we create a freetext index for
-the JSON sources.
-
-.. testoutput:: example19
+the JSON sources. ::
 
     >>> store(conn,[v for k,v in obs.items()], fresh=True)
     >>> conn.size() 
@@ -667,9 +613,7 @@ around SPARQL (see helper file). The name of the wrapper is ``runSparql``.
 
 Here is an example. Let us find all the roots (top-level `@ids`) of
 objects and their types. Some objects do not have roots, so ``None``
-stands for a blank node.
-
-.. testoutput:: example19
+stands for a blank node. ::
 
     >>> pprint(runSparql(conn,"select ?s ?type { ?s a ?type }")) 
     [{'s': 'cocktail1', 'type': 'Cocktail'}, 
@@ -689,9 +633,7 @@ stands for a blank node.
 
 We do not see the full URIs for ?s and ?type. You can see them
 by adding an appropriate `format` argument to **runSparql**, but the default
-is ``terse``.
-
-.. testoutput:: example19
+is ``terse``. ::
 
     >>> pprint(runSparql(conn,"select ?s ?type { ?s a ?type } limit 2",format='ntriples')) 
     [{'s': '<http://franz.com/cocktail1>', 'type': '<http://franz.com/Cocktail>'},
@@ -705,9 +647,7 @@ Retrieving a Dictionary or Object
 *jsonld_tutorial_helper.py*) for this tutorial. It is a wrapper around
 SPARQL to help extract objects. Here we see how we can use it. The sole
 purpose of ``retrieve`` is to retrieve the JSON-LD/dictionary based on
-a SPARQL pattern.
-
-.. testoutput:: example19
+a SPARQL pattern. ::
 
     >>> retrieve(conn,"{?this a ical:Event}") 
     [{'@type': 'ical:Event', 'ical:location': 'New Orleans Arena, New Orleans, Louisiana, USA', 'ical:summary': 'Lady Gaga Concert', '@id': 'ical:event1', '@context': {'xsd': 'http://www.w3.org/2001/XMLSchema#', 'ical': 'http://www.w3.org/2002/12/cal/ical#', 'ical:dtstart': {'@type': 'xsd:dateTime'}}, 'ical:dtstart': '2011-04-09T20:00:00Z'}]
@@ -715,9 +655,7 @@ a SPARQL pattern.
 
 Ok, for a final fun (if you like expensive cars) example: Let us find
 a thing that is "fast and furious", that is worth more than  $80,000
-and that we can pay for in cash:
-
-.. testoutput:: example19
+and that we can pay for in cash: ::
 
     >>> addNamespace(conn,"gr","http://purl.org/goodrelations/v1#") 
     >>> x = retrieve(conn, """{ ?this fti:match 'fast furious*';
