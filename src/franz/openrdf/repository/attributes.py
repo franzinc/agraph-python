@@ -130,9 +130,6 @@ class TripleAttribute(ContextAttribute):
     context = 'triple'
 
 
-AttributeSet = Union[str, ContextAttribute, List[str]]
-
-
 def quote_and_escape_value(value):
     # type: (str) -> str
     """
@@ -142,7 +139,6 @@ def quote_and_escape_value(value):
 
 
 def attribute_set_to_expr(attribute_set):
-    # type: (AttributeSet) -> str
     """
     Convert an attribute set (to be used in a filter) to string.
     """
@@ -234,7 +230,6 @@ class SetOp(AttributeFilter):
     op = ''  # Subclasses must override this
 
     def __init__(self, *args):
-        # type: (*AttributeSet) -> None
         self.args = args
 
     def to_expr(self):
