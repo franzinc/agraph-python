@@ -1046,6 +1046,14 @@ def test_add_json_ld_keep_source(conn):
     assert 2 == len(statements)
     assert statements[0][2].label == src or statements[1][2].label == src
 
+@min_version(6, 5)
+def test_add_json_ld_with_root_graph(conn):
+    src = '''{"ex://p": "o"}'''
+    conn.addData(src, rdf_format=RDFFormat.JSONLD, context=':root')
+    statements = get_statements(conn)
+    assert 1 == len(statements)
+    assert statements[0][0] == statements[0][3]
+    
 
 @min_version(6, 5)
 def test_add_json_ld_empty_dict(conn):
