@@ -423,6 +423,20 @@ def test_export_construct(conn):
         "<ex://s2> <ex://p2> <ex://o2> ."
     ]
 
+@min_version(6, 6)
+def test_export_query_result_tsv(conn):
+    base_uri = u'http://franz.com/'
+    s = conn.createURI(namespace=base_uri, localname='s')
+    p = conn.createURI(namespace=base_uri, localname='p')
+    o = conn.createURI(namespace=base_uri, localname='aa \t \n \r \\ bb')
+    conn.add(s, p, o)
+    conn.commit()
+    query_string = "select ?o { ?s ?p ?o }"
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL, query_string)
+    out = BytesIO()
+    query.evaluate(output=out, output_format=TupleFormat.TSV)
+    assert out.getvalue().decode('utf-8') == '?o\n<http://franz.com/aa \\t \\n \\r \\\\ bb>\n'
+
 
 def test_datetime_value_tz():
     lit = Literal('1984-08-26T10:00:05+02:00', XMLSchema.DATETIME)
