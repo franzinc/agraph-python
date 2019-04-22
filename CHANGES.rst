@@ -6,6 +6,13 @@ AllegroGraph Python client release history
 Release 101.0.2
 ===============
 
+Fix interoperability with Python 3.5.3
+--------------------------------------
+
+The error "TypeError: 'ContextAttribute' object is not callable" would
+occur when using the AllegroGraph Python client with Python 3.5.3.
+This has been fixed.
+
 Raise error when attemping to federate certain sessions
 ----------------------------------------------
 
