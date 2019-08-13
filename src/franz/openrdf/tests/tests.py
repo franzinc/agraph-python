@@ -1608,6 +1608,29 @@ def test_blanknodes():
     value_factory = conn.getValueFactory()
     assert len(value_factory.unusedBNodeIds) + 1 == ValueFactory.BLANK_NODE_AMOUNT
 
+def test_uri_factory():
+    """
+    Test prefixed URI generation
+    """
+    conn = connect()
+    value_factory = conn.getValueFactory()
+    this_prefix, example_prefix = 'http://this.org', 'http://example.org'
+    # Single-prefix:
+    ns = value_factory.namespace(example_prefix)
+    for r in [ns.resource, getattr(ns, 'resource'), ns['resource']]:
+        assert r == value_factory.createURI(namespace=example_prefix, localname='resource')
+    # Multi-prefix:
+    nss = value_factory.namespaces({'': this_prefix, 'ex': example_prefix})
+    assert nss[':resource'] == value_factory.createURI(
+        namespace=this_prefix, localname='resource')
+    assert nss['ex:resource'] == value_factory.createURI(
+        namespace=example_prefix, localname='resource')
+    assert nss['ex'] == value_factory.createURI(
+        namespace=example_prefix, localname='')
+    assert nss['ex:'] == value_factory.createURI(
+        namespace=example_prefix, localname='')
+    assert_raises(AssertionError, lambda n: nss(n), 'unknown:unknown')
+
 def test_delete_repository():
     """
     Test deleting a Repository.

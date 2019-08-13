@@ -2,6 +2,24 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 101.0.3
+===============
+
+Multiple-namespace URI factory object
+-------------------------------------
+
+Added new method ``ValueFactory.namespaces()`` that takes a dictionary of the
+form `{<prefix>: <namespace>, ...}` and returns a factory object that allows to
+create URIs from the strings of the form `<prefix>:<name>`, dispatching the
+prefix to corresponding namespace:
+
+   >>> prefixes = {'': 'http://this.org#', 'ex': 'http://example.org#'}
+   >>> nss = conn.getValueFactory().namespaces(prefixes)
+   >>> nss[':resource']
+   <http://this.org#resource>
+   >>> nss('ex:resource')
+   <http://example.org#resource>
+
 
 Release 101.0.2
 ===============

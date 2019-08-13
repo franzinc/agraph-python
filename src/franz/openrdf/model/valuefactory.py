@@ -138,3 +138,41 @@ class ValueFactory(object):
                 return vf.createURI(namespace=prefix, localname=arg, canonical=canonical)
 
         return Namespace()
+
+    def namespaces(self, prefixes, canonical=True):
+        """
+        Same as :meth:`.namespace`, but allows to create URIs in multiple namespaces
+        from the strings of the form '<abbrev>:<name>', where <abbrev> is one of
+        the namespace abbreviations provided in the 'prefixes' dictionary, and
+        <name> is the resource name.
+
+        :param prefixes: Dictionary mapping prefix abbreviations to prefixes to
+                         be prepended to URIs created by the returned object.
+        :type prefixes: dict
+        :param canonical: If true (default) ensure that the same URI object
+                          is returned each time when the same string is
+                          passed as the local name.
+        :type canonical: bool
+        :return: An object that can be used to create URIs.
+
+        """
+        vf = self
+        pdict = prefixes.copy()
+
+        class Namespaces(object):
+            __slots__ = ()
+
+            def __getattribute__(self, name):
+                return self(name)
+
+            def __getitem__(self, index):
+                return self(index)
+
+            def __call__(self, arg):
+                components = arg.split(':')
+                abbrev, name = components[0], ':'.join(components[1:])
+                prefix = pdict.get(abbrev)
+                assert prefix is not None, "Unknown namespace abbreviation: %s" % abbrev
+                return vf.createURI(namespace=prefix, localname=name, canonical=canonical)
+
+        return Namespaces()
