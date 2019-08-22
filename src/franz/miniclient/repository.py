@@ -529,7 +529,7 @@ class Repository(Service):
                             innerChars=None, borderChars=None, tokenizer=None):
         """Create a free-text index. predicates, if given, should be a
         list of resources. indexLiterals can be True, False, or a list
-        of resources, indicating the literal types to index.
+        of strings, indicating the literal types or langs to index.
         indexResources can be True, False, or \"short\". indexFields
         can be a list containing any combination of the elements
         \"subject\", \"predicate\", \"object\", and \"graph\".

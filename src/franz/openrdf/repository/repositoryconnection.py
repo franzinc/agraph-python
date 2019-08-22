@@ -1790,9 +1790,9 @@ class RepositoryConnection(object):
                            triples will be indexed regardless of predicate.
         :type predicates: list[string|URI]
         :param indexLiterals: Determines which literals to index. It can be``True``
-                              (the default), ``False``, or a list of resources,
-                              indicating the literal types that should be indexed.
-        :type indexLiterals: bool|list[URI]
+                              (the default), ``False``, or a list of strings,
+                              indicating the literal types or langs that should be indexed.
+        :type indexLiterals: bool|list[string]
         :param indexResources: Determines which resources are indexed. It can be
                                ``True``, ``False`` (the default), or ``"short"``,
                                to index only the part of resources after the last
@@ -1852,9 +1852,9 @@ class RepositoryConnection(object):
                            triples will be indexed regardless of predicate.
         :type predicates: list[string|URI]
         :param indexLiterals: Determines which literals to index. It can be``True``
-                              (the default), ``False``, or a list of resources,
-                              indicating the literal types that should be indexed.
-        :type indexLiterals: bool|list[URI]
+                              (the default), ``False``, or a list of strings,
+                              indicating the literal types or langs that should be indexed.
+        :type indexLiterals: bool|list[string]
         :param indexResources: Determines which resources are indexed. It can be
                                ``True``, ``False`` (the default), or ``"short"``,
                                to index only the part of resources after the last

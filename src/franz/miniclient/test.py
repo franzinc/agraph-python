@@ -11,6 +11,7 @@ from builtins import range
 from franz.miniclient import repository
 
 from franz.openrdf.tests.tests import AG_PORT, AG_HOST, AG_PROXY, USER, PASSWORD, CATALOG
+from franz.openrdf.tests.conftest import min_version
 from .request import RequestError, encode, decode, serialize, deserialize
 
 from nose.tools import with_setup, eq_ as eq
@@ -115,6 +116,7 @@ def testTemporal():
     rep.addStatement("<z>", "<happened>", "\"2009-09-28T17:02:41\"^^<time>")
     eq(2, len(rep.getStatements(obj=("\"2009-09-28T17:00:00\"^^<time>", "\"2009-09-28T18:00:00\"^^<time>"))))
 
+@min_version(6, 7)
 @with_setup(cleanup)
 def testFreeText():
     rep.addStatement("<x>", "<p>", "\"foo bar quux rhubarb\"")
@@ -124,7 +126,7 @@ def testFreeText():
     eq(rep.listFreeTextIndices(), ["index"])
     eq(len(rep.evalFreeTextSearch("foo")), 0)
     eq(len(rep.evalFreeTextSearch("quux")), 2)
-    rep.modifyFreeTextIndex("index", indexLiterals=["<type1>"])
+    rep.modifyFreeTextIndex("index", indexLiterals=["type1"])
     eq(len(rep.evalFreeTextSearch("rhubarb")), 1)
     rep.deleteFreeTextIndex("index")
     eq(rep.listFreeTextIndices(), [])
