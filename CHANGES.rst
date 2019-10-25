@@ -5,6 +5,16 @@ AllegroGraph Python client release history
 Release 101.0.3
 ===============
 
+Security-related dependency updates
+-----------------------------------
+
+===========  =====================  ==============
+Package      Previous version       New version
+===========  =====================  ==============
+``numpy``    ``1.15.1``/``1.15.4``  ``1.16.0``
+``urllib3``  ``1.23``               ``1.24.2``
+===========  =====================  ==============
+
 Multiple-namespace URI factory object
 -------------------------------------
 
