@@ -101,3 +101,11 @@ aggregates have been correctly computed over the whole dataset.
 
 Another example of using federated repositories, this time with
 multiple server machines, can be found in :ref:`fedex`.
+
+Finally we'll delete the example repositories:
+
+.. testcode:: example16
+
+   root_catalog = server.openCatalog()
+   for repo in ['python_fib', 'python_boring']:
+       root_catalog.deleteRepository(repo)
