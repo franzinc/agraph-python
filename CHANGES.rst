@@ -42,7 +42,7 @@ occur when using the AllegroGraph Python client with Python 3.5.3.
 This has been fixed.
 
 Raise error when attemping to federate certain sessions
-----------------------------------------------
+-------------------------------------------------------
 
 A session started by AllegroGraphServer.openSession() cannot
 be federated because this type of session may not be for a
