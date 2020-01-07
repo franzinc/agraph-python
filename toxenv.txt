@@ -14,7 +14,6 @@ cryptography=2.3.1=py37hdffb7b8_0
 filelock=3.0.10=py_0
 idna=2.7=py37_1002
 libffi=3.2.1=hfc679d8_5
-libgcc-ng=7.2.0=hdf63c60_3
 libstdcxx-ng=7.2.0=hdf63c60_3
 ncurses=6.1=hfc679d8_1
 openssl=1.0.2p=h470a237_1
