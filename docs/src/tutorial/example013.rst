@@ -161,7 +161,7 @@ relationship:
           ?person1 :child_of ?parent .
           ?person2 :child_of ?parent .
           filter (?person1 != ?person2) .
-      }""")
+      } ORDER BY ?person1""")
    for stmt in query.evaluate():
        print('{0} <-> {1}'.format(stmt.getSubject(),
                                   stmt.getObject()))
@@ -173,9 +173,9 @@ also see that no data has been added to the repository.
 .. testoutput:: example13
 
    Size before: 19
-   <ex://james_ii> <-> <ex://charles_ii>
-   <ex://charles_ii> <-> <ex://james_ii>
    <ex://anne> <-> <ex://mary_ii>
+   <ex://charles_ii> <-> <ex://james_ii>
+   <ex://james_ii> <-> <ex://charles_ii>
    <ex://mary_ii> <-> <ex://anne>
    Size after: 19
 
@@ -194,9 +194,9 @@ so we could have omitted the ``output_format`` argument.
                   
 .. testoutput:: example13
 
-   <ex://james_ii> <ex://sibling_of> <ex://charles_ii> .
-   <ex://charles_ii> <ex://sibling_of> <ex://james_ii> .
    <ex://anne> <ex://sibling_of> <ex://mary_ii> .
+   <ex://charles_ii> <ex://sibling_of> <ex://james_ii> .
+   <ex://james_ii> <ex://sibling_of> <ex://charles_ii> .
    <ex://mary_ii> <ex://sibling_of> <ex://anne> .
                
 ``DESCRIBE``

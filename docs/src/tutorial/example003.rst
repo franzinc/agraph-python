@@ -31,13 +31,14 @@ And now we can add our data and define the query:
        <people/bob> a <ontology/Person> ;
                     <ontology/name> "Bob" .
    """)
-   query_string = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
+   query_string = "SELECT ?s ?p ?o  WHERE {?s ?p ?o . } ORDER BY ?s ?p ?o"
       
 The ``SELECT`` clause returns the variables ``?s``, ``?p`` and ``?o``
 in the binding set. The variables are bound to the subject, predicate
 and objects values of each triple that satisfies the WHERE clause. In
 this case the WHERE clause is unconstrained. The dot (``.``) in the
-fourth position signifies the end of the pattern.
+fourth position signifies the end of the pattern.  We use ORDER BY
+to return the results in a consistent order for demonstration purposes.
 
 The connection object's :meth:`prepareTupleQuery` method creates a
 query object that can be evaluated one or more times. The results are
@@ -63,14 +64,12 @@ in the ``SELECT`` clause.
            o = binding_set.getValue("o")              
            print("%s %s %s" % (s, p, o))
 
-.. Ugh. I really hope the sort order is deterministic here.
-           
 .. testoutput:: example3
 
-   <http://example.org/people/bob> <http://example.org/ontology/name> "Bob"
-   <http://example.org/people/bob> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/ontology/Person>
    <http://example.org/people/alice> <http://example.org/ontology/name> "Alice"
    <http://example.org/people/alice> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/ontology/Person>
+   <http://example.org/people/bob> <http://example.org/ontology/name> "Bob"
+   <http://example.org/people/bob> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/ontology/Person>
 
 Note that we have wrapped the whole result processing in a ``with``
 statement. The reason is that result objects must be closed after

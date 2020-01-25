@@ -60,6 +60,7 @@ duplicates, but it is possible for them to occur.
 This prints out the two matching triples for "Alice."
 
 .. testoutput:: example4
+   :options: +SKIP
 
    (<http://example.org/people/alice>, <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>, <http://example.org/ontology/Person>)
    (<http://example.org/people/alice>, <http://example.org/ontology/name>, "Alice") 

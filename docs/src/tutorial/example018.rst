@@ -71,7 +71,7 @@ DataFrame from it:
    select ?year ?cheese ?doctorates {
        _:b1 ex:year ?year ; ex:cheese ?cheese .
        _:b2 ex:year ?year ; ex:doctorates ?doctorates .
-   }'''
+   } order by ?year'''
    with conn.executeTupleQuery(query) as result:
        df = result.toPandas()
    print(df)
