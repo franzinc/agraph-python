@@ -11,7 +11,7 @@ idna==2.6
 imagesize==1.0.0
 ipython-genutils==0.2.0
 iso8601==0.1.12
-Jinja2==2.10
+Jinja2==2.10.1
 jmespath==0.9.3
 jsonschema==2.6.0
 jupyter-core==4.4.0
