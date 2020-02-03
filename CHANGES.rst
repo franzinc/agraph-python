@@ -5,6 +5,19 @@ AllegroGraph Python client release history
 Release 101.0.3
 ===============
 
+rfe16393: Let SPARQL SELECT queries return metadata
+---------------------------------------------------
+
+Extend `TupleQueryResult` with a field named `metadata` that contains
+the query execution properties, like time spent and memory used:
+
+   >>> from franz.openrdf.query.query import QueryLanguage
+   >>> query = conn.prepareTupleQuery(QueryLanguage.SPARQL, "SELECT * { ?s ?p ?o }")
+   >>> result = query.evaluate()
+   >>> queryDuration = result.metadata['time']['total']
+
+For now this is only supported on `SELECT` queries.
+
 Security-related dependency updates
 -----------------------------------
 

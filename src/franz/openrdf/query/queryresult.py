@@ -76,7 +76,7 @@ class TupleQueryResult(QueryResult):
     bindings. Note: take care to always close a TupleQueryResult after use to
     free any resources it keeps hold of.
     """
-    def __init__(self, variable_names, string_tuples):
+    def __init__(self, variable_names, string_tuples, metadata=None):
         QueryResult.__init__(self)
         if not isinstance(variable_names, list):
             variable_names = [variable_names]
@@ -86,6 +86,7 @@ class TupleQueryResult(QueryResult):
         self.cursor = 0
         self.tuple_count = len(string_tuples)
         self.binding_set = ListBindingSet(self.variable_names)
+        self.metadata = metadata
 
     def __iter__(self):
         return self
@@ -117,6 +118,15 @@ class TupleQueryResult(QueryResult):
         :rtype: list[string]
         """
         return self.variable_names
+
+    def getMetadata(self):
+        """
+        Get a nested dictionary containing query result metadata.
+
+        :return: A dictionary
+        :rtype: dict
+        """
+        return self.metadata
 
     def __len__(self):
         return self.tuple_count

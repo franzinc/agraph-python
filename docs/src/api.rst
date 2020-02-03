@@ -472,6 +472,7 @@ A QueryResult subclass used for queries that return tuples.
    :nosignatures:
 
    ~TupleQueryResult.getBindingNames
+   ~TupleQueryResult.getMetadata
 
 
 Subclass GraphQueryResult

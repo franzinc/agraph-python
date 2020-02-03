@@ -330,7 +330,7 @@ class TupleQuery(Query):
             if output is not None:
                 return None
 
-            return TupleQueryResult(response['names'], response['values'])
+            return TupleQueryResult(response['names'], response['values'], response.get('queryInfo'))
 
     def analyze(self, analysisTechnique=None, analysisTimeout=None):
         """

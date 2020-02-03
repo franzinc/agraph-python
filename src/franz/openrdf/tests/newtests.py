@@ -1216,3 +1216,11 @@ def test_warmup(conn):
     conn.warmup(includeStrings=False, includeTriples=False)
     conn.warmup(indices='spogi')
     conn.warmup(indices=['spogi', 'posgi'], includeTriples=True)
+
+def test_sparql_query_metadata_select(conn):
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL,"""
+        SELECT (count(*) as ?count) { ?s ?p ?o }""")
+    result = query.evaluate()
+    md = result.getMetadata()
+    assert md
+    assert md['time']['total'] > 0

@@ -350,7 +350,8 @@ class Repository(Service):
                    urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
                        planner=planner, checkVariables=checkVariables,
                        analyzeIndicesUsed=analyze, queryAnalysisTechnique=analysisTechnique,
-                       queryAnalysisTimeout=analysisTimeout) + (bindings or ""),
+                       queryAnalysisTimeout=analysisTimeout,
+                       returnQueryMetadata=True) + (bindings or ""),
                        callback=callback,
                        accept=accept)
 
