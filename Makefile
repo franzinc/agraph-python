@@ -111,7 +111,7 @@ default: wheel
 # the internet if needed.
 
 # Versions we want to test on
-PYTHONS=2.7 3.5 3.6 3.7
+PYTHONS=2.7 3.5 3.7
 PYTHONS2=$(filter 2.%,$(PYTHONS))
 PYTHONS3=$(filter 3.%,$(PYTHONS))
 
