@@ -2297,9 +2297,13 @@ def test_ssl():
     server calls to connect to and empty a store.
     """
 
+    # This assumes that tests were invoked from the Makefile at the top
+    # of the agraph-python module.
+    agraph_ssl_dir = "../agraph/lisp/ssl"
+    
     server = AllegroGraphServer(AG_HOST, AG_SSLPORT,
-        cainfo=os.path.join(CURRENT_DIRECTORY, 'ca.cert'),
-        sslcert=os.path.join(CURRENT_DIRECTORY, 'test.cert'),
+        cainfo=os.path.join(agraph_ssl_dir, 'ca.cert'),
+        sslcert=os.path.join(agraph_ssl_dir, 'test.cert'),
         # Test files setup for localhost; if running elsewhere don't verify
         verifyhost=2 if AG_HOST == LOCALHOST else None)
     catalogs = server.listCatalogs()
