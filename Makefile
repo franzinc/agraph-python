@@ -111,7 +111,7 @@ default: wheel
 # the internet if needed.
 
 # Versions we want to test on
-PYTHONS=2.7 3.5 3.7
+PYTHONS=2.7 3.5 3.6 3.7
 PYTHONS2=$(filter 2.%,$(PYTHONS))
 PYTHONS3=$(filter 3.%,$(PYTHONS))
 
@@ -126,20 +126,13 @@ $(foreach V,$(PYTHONS),$(eval PY$(V)=pythons/.python$(V)-timestamp))
 
 # Put all binary directories on the path, so tox can find them
 # Note: $(eval) is a hack that allows us to get a literal space.
-export PATH := $(subst $(eval) ,:,$(patsubst %,${CURDIR}/pythons/%/bin,$(PYTHONS))):$(PATH)
+export PATH := $(subst $(eval) ,:,$(patsubst %,${CURDIR}/pythons/python-%/bin,$(PYTHONS))):$(PATH)
 
-CONDA3_BIN=miniconda3/bin
-CONDA3=$(CONDA3_BIN)/conda
-
-$(CONDA3): conda-install.sh
-	@echo Installing Miniconda 3
-	./conda-install.sh 3
-
-pythons/.python%-timestamp: $(CONDA3)
-	@echo Installing Python $* using conda
-	rm -rf pythons/$*
-	$(CONDA3) create $(CONDA_OPTS) --quiet --mkdir --yes --prefix $(abspath pythons/$*) python=$*
-	touch pythons/.python$*-timestamp
+pythons/.python%-timestamp:
+	mkdir -p pythons/
+	@# $* will be the version number, e.g. 3.7
+	tar -C pythons -x -f /net/san1/disk1/pythons/dist/python-$*.tar.gz
+	touch $@
 
 # End Python installation
 
@@ -186,12 +179,11 @@ endif
 TOXDEP=$(TOXENVDIR)/.timestamp
 $(TOXENVDIR): $(TOXDEP)
 
-$(TOXENVDIR)/.timestamp: $(CONDA3) toxenv.txt
-	@echo Preparing tox environment using conda
+$(TOXENVDIR)/.timestamp: $(PY3.7) toxenv.txt
+	@echo Preparing tox environment
 	rm -rf $(TOXENVDIR)
-	$(CONDA3) create $(CONDA_OPTS) --quiet --yes --mkdir --prefix $(abspath $(TOXENVDIR)) python=3.7
-	source $(CONDA3_BIN)/activate $(abspath $(TOXENVDIR)) && \
-          sed -re '/^(\s*#|$$)/d;' toxenv.txt | xargs -d '\n' ${CONDA3} install $(CONDA_OPTS) --quiet --yes
+	python3 -m venv $(TOXENVDIR)
+	source $(TOXENVDIR)/bin/activate && pip install -r toxenv.txt
 	touch $(TOXENVDIR)/.timestamp
 
 $(ENVDIR)/.timestamp: $(TOXDEP) $(PY2.7) requirements.txt tox.ini
@@ -240,7 +232,7 @@ events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 disttest/.timestamp: $(TOXDEP) .venv
 	rm -rf disttest
         # Use toxenv's virtualenv so we get a recent enough pip	
-	$(TOXENVDIR)/bin/virtualenv -p python2 --no-site-packages disttest
+	$(TOXENVDIR)/bin/virtualenv -p python2 disttest
         # We need sphinx to run the doctests
 	disttest/bin/pip install $(AG_PIP_OPTS) -rdocs-requirements.txt
         # Remember creation time, to detect changes
