@@ -232,7 +232,7 @@ events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 disttest/.timestamp: $(TOXDEP) .venv
 	rm -rf disttest
         # Use toxenv's virtualenv so we get a recent enough pip	
-	$(TOXENVDIR)/bin/virtualenv -p python2 disttest
+	$(TOXENVDIR)/bin/virtualenv -p python3 disttest
         # We need sphinx to run the doctests
 	disttest/bin/pip install $(AG_PIP_OPTS) -rdocs-requirements.txt
         # Remember creation time, to detect changes
