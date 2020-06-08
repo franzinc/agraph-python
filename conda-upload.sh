@@ -6,13 +6,9 @@ set -e
 
 # Install miniconda if required. This will detect if the
 # directories already exist.
-./conda-install.sh 2
 ./conda-install.sh 3
 
 # Paths to conda tools. Note that we need absolute paths here.
-CONDA2_DIR="$(pwd)/miniconda2"
-CONDA2="${CONDA2_DIR}/bin/conda"
-PYTHON2="${CONDA2_DIR}/bin/python"
 CONDA3_DIR="$(pwd)/miniconda3"
 CONDA3="${CONDA3_DIR}/bin/conda"
 PYTHON3="${CONDA3_DIR}/bin/python"
@@ -24,7 +20,6 @@ CONDA_CHANNEL=${CONDA_CHANNEL:-franzinc}
 
 # Install build and upload tools
 echo "Installing anaconda"
-${CONDA2} install -y anaconda-client conda-build
 ${CONDA3} install -y anaconda-client conda-build
 
 # Check if we're already logged in, to avoid nasty warnings.
@@ -54,18 +49,15 @@ export CONDA_BLD_PATH="${BUILD_DIR}/conda-bld"
 export CONDARC="$(pwd)/condarc"
 
 # Build the package from the local folder
-${PYTHON2} setup.py bdist_conda
 ${PYTHON3} setup.py bdist_conda
 
 # Compute the output paths
-PACKAGE2=$(find "${BUILD_DIR}/conda-bld" -name 'agraph-python-*-py2*.tar.bz2')
 PACKAGE3=$(find "${BUILD_DIR}/conda-bld" -name 'agraph-python-*-py3*.tar.bz2')
 
 # Generate versions for all archs
 mkdir "${BUILD_DIR}/dist"
 cd "${BUILD_DIR}/dist"
-${CONDA2} convert -f --platform all "${PACKAGE2}"
 ${CONDA3} convert -f --platform all "${PACKAGE3}"
 
 # Upload to anaconda.org
-${ANACONDA} upload -c "${CONDA_CHANNEL}" --user "${CONDA_CHANNEL}" --label main "${PACKAGE2}" "${PACKAGE3}" $(find . -name 'agraph-python-*.tar.bz2')
+${ANACONDA} upload -c "${CONDA_CHANNEL}" --user "${CONDA_CHANNEL}" --label main "${PACKAGE3}" $(find . -name 'agraph-python-*.tar.bz2')
