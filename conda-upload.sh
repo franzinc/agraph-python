@@ -20,7 +20,7 @@ CONDA_CHANNEL=${CONDA_CHANNEL:-franzinc}
 
 # Install build and upload tools
 echo "Installing anaconda"
-${CONDA3} install -y anaconda-client conda-build
+${CONDA3} install -y anaconda-client conda-build conda-verify
 
 # Check if we're already logged in, to avoid nasty warnings.
 USER=$(${ANACONDA} whoami 2>&1 | grep ^Username: | sed -n 's/\(Username: \(.*\)\)/\2/pi')
