@@ -162,7 +162,7 @@ class URI(Resource):
         Split into a namespace + local name pair.
         """
         pos = uris.getLocalNameIndex(self.uri)
-        return self.uri[:pos + 1], self.uri[pos + 1:]
+        return self.uri[:pos], self.uri[pos:]
 
     namespace = property(getNamespace)
 

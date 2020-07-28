@@ -1707,6 +1707,12 @@ def setup():
 
     return conn
 
+def test_uri_split():
+    x = URI(uri='http://foo.com/bar', namespace='http://foo.com/')
+    nspace, localname = x.split()
+    assert nspace=='http://foo.com/'
+    assert localname=='bar'
+
 def test_query_blank_node():
     """Try using blank node from one query in a second query."""
     conn = setup()

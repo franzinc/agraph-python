@@ -179,10 +179,14 @@ endif
 TOXDEP=$(TOXENVDIR)/.timestamp
 $(TOXENVDIR): $(TOXDEP)
 
+# At this point we've added the programs in pythons/<version>/bin to
+# PATH so we can't just run python3 or we may end up with a
+# version of python3 that is too old to satisfy toxenv.txt requirements
+# so we hardwire in /usr/bin/python3
 $(TOXENVDIR)/.timestamp: $(PY3.7) toxenv.txt
 	@echo Preparing tox environment
 	rm -rf $(TOXENVDIR)
-	python3 -m venv $(TOXENVDIR)
+	/usr/bin/python3 -m venv $(TOXENVDIR)
 	source $(TOXENVDIR)/bin/activate && pip install -r toxenv.txt
 	touch $(TOXENVDIR)/.timestamp
 

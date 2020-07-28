@@ -2,6 +2,15 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 101.0.5
+===============
+
+Fix bug in URI's split function
+
+split() was splitting on the wrong character.
+Fix submitted via github.
+
+
 Release 101.0.4
 ===============
 
