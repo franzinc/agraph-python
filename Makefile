@@ -296,6 +296,7 @@ publish: $(TOXDEP) wheel sign
 	# Do not use the special nexus.ca.crt CA bundle when performing the
 	# uploads to PyPi and Conda.  It will result in SSL server
 	# certificate validation errors.
+	source $(TOXENVDIR)/bin/activate &&  pip install twine  && deactivate
 	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 	./conda-upload.sh
 
