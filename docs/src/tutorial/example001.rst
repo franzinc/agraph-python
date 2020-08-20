@@ -177,8 +177,8 @@ a contiguous range of triples that are likely to match a specific query
 pattern.
 
 These indices are identified by names that describe their organization.
-The default set of indices are called **spogi, posgi, ospgi, gspoi,
-gposi, gospi**, and **i** , where:
+The default set of indices are called **spogi, posgi, psogi, ospgi, gspoi,
+gposi**, and **i** , where:
 
 -  **S** stands for the subject URI.
 -  **P** stands for the predicate URI.
@@ -235,7 +235,7 @@ There are currently seven indices
 
 .. testoutput:: example1
 
-   Current triple indices: i, gospi, gposi, gspoi, ospgi, posgi, spogi
+   Current triple indices: i, gposi, gspoi, ospgi, posgi, psogi, spogi
 
 The indices that begin with "g" are sorted primarily by subgraph (or
 "context"). If your application does not use subgraphs, you should
@@ -247,19 +247,18 @@ convenient :meth:`~dropIndex` method:
 .. testcode:: example1
 
    print("Removing graph indices...")
-   conn.dropIndex("gospi")
    conn.dropIndex("gposi")
    conn.dropIndex("gspoi")
    indices = conn.listIndices()
    print('Current triple indices:', ', '.join(indices))
 
-Having dropped three of the triple indices, there are now four
+Having dropped two of the triple indices, there are now five
 remaining:
 
 .. testoutput:: example1 
 
    Removing graph indices...
-   Current triple indices: i, ospgi, posgi, spogi
+   Current triple indices: i, ospgi, posgi, psogi, spogi
 
 The **i** index is for deleting triples by using the triple id number.
 It is also required for :ref:`free text indexing <example12>`.  The
@@ -286,7 +285,7 @@ use the connection object's :meth:`~addIndex` method:
 .. testoutput:: example1
 
     Adding one graph index back in...
-    Current triple indices: i, gspoi, ospgi, posgi, spogi
+    Current triple indices: i, gspoi, ospgi, posgi, psogi, spogi
 
 Releasing resources
 ~~~~~~~~~~~~~~~~~~~
