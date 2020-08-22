@@ -177,8 +177,9 @@ a contiguous range of triples that are likely to match a specific query
 pattern.
 
 These indices are identified by names that describe their organization.
-The default set of indices are called **spogi, posgi, psogi, ospgi, gspoi,
-gposi**, and **i** , where:
+The default set of indices are called **spogi, posgi, ospgi, gspoi,
+gposi**, and **i** , as well as **psogi** in AllegroGraph 7.1.0
+and **gospi** in versions preceeding 7.1.0.
 
 -  **S** stands for the subject URI.
 -  **P** stands for the predicate URI.
@@ -228,14 +229,16 @@ by using the connection object's :meth:`~listIndices` method:
 
 .. testcode:: example1
 
+   conn.dropIndex("gospi")
+   conn.dropIndex("psogi")	      
    indices = conn.listIndices()
    print('Current triple indices:', ', '.join(indices))
 
-There are currently seven indices
+After dropping the index that is version dependent there are currently six indices
 
 .. testoutput:: example1
 
-   Current triple indices: i, gposi, gspoi, ospgi, posgi, psogi, spogi
+   Current triple indices: i, gposi, gspoi, ospgi, posgi, spogi
 
 The indices that begin with "g" are sorted primarily by subgraph (or
 "context"). If your application does not use subgraphs, you should
@@ -252,13 +255,13 @@ convenient :meth:`~dropIndex` method:
    indices = conn.listIndices()
    print('Current triple indices:', ', '.join(indices))
 
-Having dropped two of the triple indices, there are now five
+Having dropped two of the triple indices, there are now four
 remaining:
 
 .. testoutput:: example1 
 
    Removing graph indices...
-   Current triple indices: i, ospgi, posgi, psogi, spogi
+   Current triple indices: i, ospgi, posgi, spogi
 
 The **i** index is for deleting triples by using the triple id number.
 It is also required for :ref:`free text indexing <example12>`.  The
@@ -285,7 +288,7 @@ use the connection object's :meth:`~addIndex` method:
 .. testoutput:: example1
 
     Adding one graph index back in...
-    Current triple indices: i, gspoi, ospgi, posgi, psogi, spogi
+    Current triple indices: i, gspoi, ospgi, posgi, spogi
 
 Releasing resources
 ~~~~~~~~~~~~~~~~~~~
