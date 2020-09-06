@@ -607,6 +607,25 @@ class Repository(Service):
     def getNamespace(self, prefix):
         return jsonRequest(self, "GET", "/namespaces/" + quote(prefix))
 
+    def clearQueryOptions(self):
+        """
+        Deletes all query options in this repository for the current user.
+        """
+        nullRequest(self, "DELETE", "/query-options")
+
+    def setQueryOption(self, name, value):
+        nullRequest(self, "PUT", "/query-options/" + quote(name),
+                    value, content_type="text/plain")
+
+    def deleteQueryOption(self, name):
+        nullRequest(self, "DELETE", "/query-options/" + quote(name))
+
+    def listQueryOptions(self):
+        return jsonRequest(self, "GET", "/query-options")
+
+    def getQueryOption(self, name):
+        return jsonRequest(self, "GET", "/query-options/" + quote(name))
+
     def listMappedTypes(self):
         return jsonRequest(self, "GET", "/mapping/type")
 

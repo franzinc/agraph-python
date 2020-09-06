@@ -19,6 +19,9 @@ import sys
 import re
 from six import BytesIO
 
+from future.utils import iteritems, iterkeys
+from nose.tools import assert_raises
+
 from franz.openrdf.connect import ag_connect
 from franz.openrdf.exceptions import RequestError
 from franz.openrdf.model import Literal, Statement, URI
@@ -1224,3 +1227,41 @@ def test_sparql_query_metadata_select(conn):
     md = result.getMetadata()
     assert md
     assert md['time']['total'] > 0
+
+@min_version(7, 1)
+def test_query_option_management(conn):
+    """
+    Test query option management.
+    """
+    # Default set of query options is empty.
+    conn.clearQueryOptions()
+    assert len(conn.getQueryOptions()) == 0
+
+    assert_raises(RequestError, lambda n: conn.setQueryOption(n, ''),
+                  'unknownQueryOption')
+
+    test_options = {
+        'logLineLength': 100,
+        'authorizationBasic': '{}:{}'.format(USER, PASSWORD)
+    }
+
+    for name, value in iteritems(test_options):
+        conn.setQueryOption(name, value)
+    assert len(conn.getQueryOptions()) == len(test_options)
+
+    for name, value in iteritems(test_options):
+        assert value == conn.getQueryOption(name)
+
+    # Try setting a query option that is already set.
+    for name, value in iteritems(test_options):
+        conn.setQueryOption(name, value)
+    assert len(conn.getQueryOptions()) == len(test_options)
+
+    # Remove one of the options.
+    conn.removeQueryOption('logLineLength')
+    assert len(conn.getQueryOptions()) == len(test_options) - 1
+    assert_raises(RequestError, conn.getQueryOption, 'logLineLength')
+
+    # Test clearing all query options.
+    conn.clearQueryOptions()
+    assert len(conn.getQueryOptions()) == 0

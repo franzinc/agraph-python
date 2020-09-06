@@ -1572,6 +1572,63 @@ class RepositoryConnection(object):
         self._get_mini_repository().clearNamespaces(reset)
 
     #############################################################################################
+    ## Server-side implementation of query options
+    #############################################################################################
+
+    def getQueryOptions(self):
+        """
+        Get pairs option/value for all enabled query options.
+
+        The result is a dictionary mapping option names to values.
+
+        :return: A dictionary of query options.
+        :rtype: dict[string,string]
+        """
+        query_options = {}
+        for pair in self._get_mini_repository().listQueryOptions():
+            query_options[pair['name']] = pair['value']
+        return query_options
+
+    def getQueryOption(self, name):
+        """
+        Get the current value for the query option, if any.
+
+        :param name: Query option name.
+        :return: Query option value.
+        :raises RequestError: if the given query option is not set.
+        """
+        return self._get_mini_repository().getQueryOption(name)
+
+    def setQueryOption(self, name, value):
+        """
+        Set a query option value for all queries in this repository for the
+        current user.
+
+        :param name: Query option name.
+        :type name: string
+        :param value: Query option value.
+        :type value: string
+        :raises RequestError: if given option name is not a defined query option.
+        """
+        self._get_mini_repository().setQueryOption(name, '{}'.format(value))
+
+    def removeQueryOption(self, name):
+        """
+        Remove a namespace declaration by removing the association between a
+        prefix and a namespace name.
+
+        :param prefix: Query option name.
+        :type prefix: string
+        """
+        self._get_mini_repository().deleteQueryOption(name)
+
+    def clearQueryOptions(self):
+        """
+        Delete all query options in this repository for the current user.
+        """
+        self._get_mini_repository().clearQueryOptions()
+
+    #############################################################################################
     ## Geo-spatial
     #############################################################################################
 

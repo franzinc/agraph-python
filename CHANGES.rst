@@ -2,10 +2,29 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 101.0.6
+===============
+
+rfe16523: query options API
+---------------------------
+
+``RepositoryConnection`` class now provides a set of methods for
+managing per-user/per-repository SPARQL query options. The methods
+utilize a server-side API that is available in AllegroGraph v7.1.0 and
+later and are similar to the namespace management methods:
+
+  - ``getQueryOptions()``
+  - ``getQueryOption()``
+  - ``setQueryOption()``
+  - ``removeQueryOption()``
+  - ``clearQueryOptions()``
+
+
 Release 101.0.5
 ===============
 
 Fix bug in URI's split function
+-------------------------------
 
 split() was splitting on the wrong character.
 Fix submitted via github.
