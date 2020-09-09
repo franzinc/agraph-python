@@ -42,7 +42,13 @@ policy:
      (and change it back to a .dev version), commit, and submit the
      outstanding commits via gerrit.  This step must be performed
      before any other changes to the agraph-python module are
-     committed.
+     committed.   Note that when you commit and push this change
+     to gerrit with a %submit suffix the submit will fail
+     because you've uploaded two commits and asked to submit the
+     second one.  Maybe this worked at one time but it doesn't now.
+     However if you look at gerrit you'll see the two commits
+     as open gerrit changes.  You'll need to use the gerrit UI to manually
+     submit each commit in turn.
 
      After the changes are merged, ask Kevin to update the
      AllegroGraph documentation website.
@@ -51,9 +57,12 @@ policy:
 
 The following credentials are required by `make publish`
 
-   - passphrase for the franz_inc user on PyPI 
-   - support@franz.com's GPG key 
-   - anaconda account belonging to the franzinc organization.
+   - password for the franz_inc user on PyPI 
+   - support@franz.com's GPG key    This will be on your gpg keyring
+     protected by a passphase you choose.
+   - anaconda account belonging to the franzinc organization.  This can
+     be your personal ananconda account as long as you've been added
+     to the franzinc organization by a current member of that organization.
 
 PyPI credentials can be passed in two ways: 
 
