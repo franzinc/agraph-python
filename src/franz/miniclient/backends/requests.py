@@ -197,7 +197,10 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
     response = obj.session.request(method, url, params=params, data=data, headers=headers, stream=True)
     with contextlib.closing(response):
         if callback is not None:
-            if 200 <= response.status_code < 300:
+            # Not sure it None or "" is better for a 204 response.
+            if response.status_code == 204:
+                callback(response.content)
+            elif 200 <= response.status_code < 300:
                 for chunk in response.iter_content(BUFFER_SIZE):
                     callback_result = callback(chunk)
                     # Simulate curl's behavior

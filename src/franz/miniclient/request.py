@@ -89,7 +89,10 @@ def jsonRequest(obj, method, url, body=None, content_type="application/x-www-for
     if callback is None:
         status, body = makeRequest(obj, method, url, body, accept, content_type,
                                    headers=headers)
-        if status == 200:
+        if status == 204:
+            body = decode_json("{}")
+            return body
+        elif status == 200:
             if accept in ('application/json', 'text/integer', "application/x-quints+json"):
                 body = decode_json(body)
             return body
