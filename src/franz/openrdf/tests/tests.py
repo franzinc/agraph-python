@@ -2658,3 +2658,9 @@ def test_turtle_import_from_string():
     """
     conn.addData(data, RDFFormat.TURTLE, base_uri=base_uri)
     assert conn.size() == 4
+
+def test_root_catalog():
+    "'root' denotes the root catalog."
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
+    catalog = server.openCatalog("root")
+    assert catalog.name is None

@@ -30,6 +30,8 @@ READ_ONLY = 'READ_ONLY'
 
 LEGAL_OPTION_TYPES = {READ_ONLY: bool,}
 
+ROOT_CATALOG_NAME = 'root'
+
 class AllegroGraphServer(object):
     """
     The AllegroGraphServer object represents a remote AllegroGraph server on
@@ -184,9 +186,9 @@ class AllegroGraphServer(object):
         :return: A catalog object.
         :rtype: Catalog
         """
-        # Allow for None and '' (or anything else that evaluates to False) to
-        # mean the root catalog.
-        if not name:
+        # Allow for 'root', None and '' (or anything else that evaluates to
+        # False) to mean the root catalog.
+        if not name or name == ROOT_CATALOG_NAME:
             name = None
 
         cats = self.listCatalogs()
