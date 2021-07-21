@@ -131,7 +131,11 @@ repository by using the :meth:`getAttributeDefinitions` method:
    
 .. testcode:: example17
 
+   # we want to ignore system attributes and only
+   # look for attributes we've added
+   expected = ["tag", "source", "level", "contact"]
    for attr in conn.getAttributeDefinitions():
+       if attr.name not in expected: continue
        print('Name: {0}'.format(attr.name))
        if attr.allowed_values:
            print('Allowed values: {0}'.format(
@@ -148,7 +152,7 @@ practice this value is high enough to be interpreted as 'no limit'.
        
 .. testoutput:: example17
    :options: +SORT
-
+      
     Name: tag
     Min count: 0
     Max count: 1152921504606846975
@@ -176,8 +180,13 @@ later) by calling :meth:`deleteAttributeDefinition`:
 .. testcode:: example17
 
    conn.deleteAttributeDefinition('tag')
+   possible = ["tag", "source", "level", "contact"]	      
    defs = conn.getAttributeDefinitions()
-   print(', '.join(sorted(a.name for a in defs)))
+   # there may be system attributes and we want
+   # to ignore them and only look at the ones
+   # we've added
+   filtered_defs = [attr for attr in defs if attr.name in possible]
+   print(', '.join(sorted(a.name for a in filtered_defs)))
 
 .. testoutput:: example17
 
