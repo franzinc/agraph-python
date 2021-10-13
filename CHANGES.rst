@@ -2,6 +2,20 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 101.0.8
+===============
+
+Allow sparql queries inside a Jupyter notebook
+--------------------------------------------------------
+
+Also
+Allow "root" to denote the root catalog
+Update some module versions
+Fix the specification of a protocol when creating a
+connection.
+
+
+
 Release 101.0.7
 ===============
 
