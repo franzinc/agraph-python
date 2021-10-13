@@ -99,7 +99,7 @@ def ag_connect(repo, catalog=None,
     :return: A :class:`.RepositoryConnection` object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
     """
-    server = AllegroGraphServer(host=host, port=port, protcol=protocol,
+    server = AllegroGraphServer(host=host, port=port, protocol=protocol,
                                 user=user, password=password, sslcert=sslcert,
                                 cainfo=cainfo, verifyhost=verifyhost, verifypeer=verifypeer,
                                 proxy=proxy)
