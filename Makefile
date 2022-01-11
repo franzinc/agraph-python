@@ -180,13 +180,13 @@ TOXDEP=$(TOXENVDIR)/.timestamp
 $(TOXENVDIR): $(TOXDEP)
 
 # At this point we've added the programs in pythons/<version>/bin to
-# PATH so we can't just run python3 or we may end up with a
-# version of python3 that is too old to satisfy toxenv.txt requirements
-# so we hardwire in /usr/bin/python3
+# PATH so we can't just run python3 or we may end up with a version of
+# python3 that is too old (or too new) to satisfy toxenv.txt
+# requirements so we hardwire in python3.7
 $(TOXENVDIR)/.timestamp: $(PY3.7) toxenv.txt
 	@echo Preparing tox environment
 	rm -rf $(TOXENVDIR)
-	/usr/bin/python3 -m venv $(TOXENVDIR)
+	python3.7 -m venv $(TOXENVDIR)
 	source $(TOXENVDIR)/bin/activate && pip install -r toxenv.txt
 	touch $(TOXENVDIR)/.timestamp
 
@@ -235,7 +235,7 @@ events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 # will work correctly without Tox.
 disttest/.timestamp: $(TOXDEP) .venv
 	rm -rf disttest
-        # Use toxenv's virtualenv so we get a recent enough pip	
+        # Use toxenv's virtualenv so we get a recent enough pip
 	$(TOXENVDIR)/bin/virtualenv -p python3 disttest
         # We need sphinx to run the doctests
 	disttest/bin/pip install $(AG_PIP_OPTS) -rdocs-requirements.txt
