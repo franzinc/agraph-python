@@ -2,4 +2,4 @@
 # made.  The pre-release makefile target takes care of stripping the
 # .dev0 out.  The post-release target increments the version and adds
 # .dev0 back.
-__version__ = '101.0.9'
+__version__ = '101.0.10.dev0'
