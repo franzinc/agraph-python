@@ -2,6 +2,13 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 101.0.9
+===============
+
+Make loading the module six an installation requirement
+--------------------------------------------------------
+
+
 Release 101.0.8
 ===============
 

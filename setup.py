@@ -21,7 +21,7 @@ version = franz.__version__
 with open('README.rst', 'rb') as f:
     long_description = f.read().decode('utf-8')
 
-install_requires = ['future>=0.18.2', 'requests>=2.23.0', 'iso8601>=0.1.12' ]
+install_requires = ['future>=0.18.2', 'requests>=2.23.0', 'iso8601>=0.1.12', 'six>=1.10.0' ]
 tests_require = []
 
 setup(name='agraph-python',
