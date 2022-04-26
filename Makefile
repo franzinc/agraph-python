@@ -54,7 +54,7 @@ ifeq ($(USE_NEXUS),y)
     PIP_INDEX ?= $(NEXUS_PYPI)
 
     # Certificate verification for Nexus fails on some boxes
-    PIP_CERT = --cert=$(abspath nexus.ca.crt)
+    PIP_CERT = --cert=$(abspath nexus.ca.crt) --trusted-host=san1.franz.com
 
     CONDA_CHANNEL:=https://san1.franz.com:8443/repository/$(CONDA_CHANNEL)-proxy
 else
