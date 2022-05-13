@@ -1,50 +1,51 @@
 # coding=utf-8
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import with_statement
+from __future__ import (absolute_import, print_function, unicode_literals,
+                        with_statement)
 
 import pytest
 from future import standard_library
 
 standard_library.install_aliases()
 
-from past.builtins import long
-from future.builtins import range, next, object, str
-
+from franz.miniclient.request import backend
+from future.builtins import next, object, range, str
 from future.utils import iteritems, iterkeys
+from nose.tools import assert_raises, eq_, raises
+from past.builtins import long
 
-from ..exceptions import RequestError
-from ..exceptions import ServerException
-from ..sail.allegrographserver import AllegroGraphServer
-from ..repository.repository import Repository
+from ..exceptions import RequestError, ServerException
+from ..model import URI, BNode, Literal, Statement, ValueFactory
+from ..query.dataset import Dataset
 from ..query.query import QueryLanguage
+from ..repository.repository import Repository
+from ..rio.rdfformat import RDFFormat
+from ..rio.rdfwriter import NTriplesWriter
+from ..rio.rdfxmlwriter import RDFXMLWriter
+from ..sail.allegrographserver import AllegroGraphServer
+from ..vocabulary.owl import OWL
 from ..vocabulary.rdf import RDF
 from ..vocabulary.rdfs import RDFS
-from ..vocabulary.owl import OWL
 from ..vocabulary.xmlschema import XMLSchema
-from ..query.dataset import Dataset
-from ..rio.rdfformat import RDFFormat
-from ..rio.rdfwriter import  NTriplesWriter
-from ..rio.rdfxmlwriter import RDFXMLWriter
-from ..model import BNode, Literal, Statement, URI, ValueFactory
 
-from nose.tools import eq_, assert_raises, raises
-
-from franz.miniclient.request import backend
 use_curl = backend.__name__ == 'curl'
 
 if use_curl:
     import pycurl
 
-import os, datetime, locale, io, subprocess, sys, warnings
+import datetime
+import io
+import locale
+import os
+import subprocess
+import sys
+import warnings
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -663,8 +664,8 @@ def test16a():
 
     assert "is not a RepositoryConnection created by Repository.getConnection()" in message
 
-    
-    
+
+
 
 def kennedy_male_names(conn=None):
     conn = test6(conn)
@@ -1884,6 +1885,83 @@ def test_freetext():
         'SELECT ?something WHERE { ?something fti:match "Ross Jekel". }').evaluate()
     assert len(results)
 
+def test_graphql_basic():
+    conn = connect();
+    path = os.path.join(CURRENT_DIRECTORY, "nsw.ttl")
+    conn.addFile(path,format=RDFFormat.TURTLE)
+    actual = conn.evalGraphqlQuery(
+        query="{ Hero { name } }  { Human { name } }",
+        default_prefix="http://example.com/"
+    )
+    import json
+    expected = json.loads("""[
+  {
+    "Hero": [
+      {
+        "name": "Lando Calrissian"
+      },
+      {
+        "name": "Luke Skywalker"
+      },
+      {
+        "name": "R2-D2"
+      }
+    ]
+  },
+  {
+    "Human": [
+      {
+        "name": "Lando Calrissian"
+      },
+      {
+        "name": "Luke Skywalker"
+      }
+    ]
+  }
+]""")
+    assert len(actual) == len(expected)
+    assert len(actual[0]["Hero"]) == len(expected[0]["Hero"])
+    assert len(actual[1]["Human"]) == len(expected[1]["Human"])
+
+def test_graphql_namespaces():
+    conn = connect();
+    path = os.path.join(CURRENT_DIRECTORY, "nsw.ttl")
+    conn.addFile(path,format=RDFFormat.TURTLE)
+    actual = conn.evalGraphqlQuery(
+        query="{ Hero { ex:name } }  { Human { name } }",
+        default_prefix="http://example.com/",
+        namespaces="ex http://example.org/,exs https://example.org/"
+    )
+    import json
+    expected = json.loads("""[
+  {
+    "Hero": [
+      {
+        "name": "Lando Calrissian"
+      },
+      {
+        "name": "Luke Skywalker"
+      },
+      {
+        "name": "R2-D2"
+      }
+    ]
+  },
+  {
+    "Human": [
+      {
+        "name": "Lando Calrissian"
+      },
+      {
+        "name": "Luke Skywalker"
+      }
+    ]
+  }
+]""")
+    assert len(actual) == len(expected)
+    assert len(actual[0]["Hero"]) == len(expected[0]["Hero"])
+    assert len(actual[1]["Human"]) == len(expected[1]["Human"])
+
 def test_javascript():
     conn = connect()
     assert conn.evalJavaScript("1+1") == 2
@@ -2306,7 +2384,7 @@ def test_ssl():
     # This assumes that tests were invoked from the Makefile at the top
     # of the agraph-python module.
     agraph_ssl_dir = "../agraph/lisp/ssl"
-    
+
     server = AllegroGraphServer(AG_HOST, AG_SSLPORT,
         cainfo=os.path.join(agraph_ssl_dir, 'ca.cert'),
         sslcert=os.path.join(agraph_ssl_dir, 'test.cert'),

@@ -1,0 +1,59 @@
+@prefix ex: <http://example.com/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:star-wars rdf:type ex:Movie .
+ex:star-wars ex:episode ex:newhope .
+ex:star-wars ex:episode ex:empire .
+ex:star-wars ex:episode ex:jedi .
+
+ex:newhope rdf:type ex:Episode .
+ex:empire  rdf:type ex:Episode .
+ex:jedi    rdf:type ex:Episode .
+
+ex:star-wars ex:hero ex:r2-d2 .
+ex:star-wars ex:hero ex:Luke .
+ex:star-wars ex:hero ex:Lando .
+
+ex:r2-d2 rdf:type ex:Hero .
+ex:Luke  rdf:type ex:Hero .
+ex:Lando rdf:type ex:Hero .
+
+
+ex:newhope ex:name "Star Wars" .
+ex:newhope ex:date "May 25, 1977"^^<rdfs:date> .
+ex:newhope ex:number 4 .
+
+ex:empire ex:name "The Empire Strikes Back" .
+ex:empire ex:date "May 17, 1980"^^<rdfs:date> .
+ex:empire ex:number 5 .
+
+ex:jedi ex:name "Return of the Jedi" .
+ex:jedi ex:date "May 25, 1983"^^<rdfs:date> .
+ex:jedi ex:number 6 .
+
+ex:r2-d2 ex:name "R2-D2" .
+ex:r2-d2 rdf:type ex:Robot .
+ex:r2-d2 ex:appearsIn ex:newhope .
+ex:r2-d2 ex:appearsIn ex:empire .
+ex:r2-d2 ex:appearsIn ex:jedi .
+ex:r2-d2 <http://purl.org/vocab/relationship/friendOf> ex:Luke .
+ex:r2-d2 ex:owner ex:Luke .
+ex:r2-d2 ex:primaryFunction "Astromech" .
+
+ex:Luke ex:name "Luke Skywalker" .
+ex:Luke rdf:type ex:Human .
+ex:Luke ex:appearsIn ex:newhope .
+ex:Luke ex:appearsIn ex:empire .
+ex:Luke ex:appearsIn ex:jedi .
+ex:Luke <http://purl.org/vocab/relationship/friendOf> ex:Lando .
+ex:Luke <http://purl.org/vocab/relationship/friendOf> ex:r2-d2 .
+ex:Luke ex:height "1.60"^^xsd:double .
+
+ex:Lando ex:name "Lando Calrissian" .
+ex:Lando rdf:type ex:Human .
+ex:Lando ex:appearsIn ex:empire .
+ex:Lando ex:appearsIn ex:jedi .
+ex:Lando <http://purl.org/vocab/relationship/friendOf> ex:Luke .
+ex:Lando <http://purl.org/vocab/relationship/friendOf> ex:r2-d2 .
+ex:Lando ex:height "1.65"^^xsd:double . 

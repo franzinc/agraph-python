@@ -3,42 +3,42 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import with_statement
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals, with_statement
 
+import copy
 import csv
 import string
-import six
-from future.backports import OrderedDict
-from future.builtins import object
-from past.builtins import map, unicode, basestring
+import sys
+import warnings
+from collections import namedtuple
+from contextlib import contextmanager
 
+import six
 from franz.miniclient.agjson import encode_json
 from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.util.contexts import output_to
+from future.backports import OrderedDict
+from future.builtins import object
+from past.builtins import basestring, map, unicode
 
-from .repositoryresult import RepositoryResult
-from .transactions import TransactionSettings, DEFAULT_TRANSACTION_SETTINGS
-from ..exceptions import IllegalOptionException, IllegalArgumentException
-from ..model import Statement, Value, URI
-from ..model.literal import RangeLiteral, GeoCoordinate, GeoSpatialRegion, GeoBox, GeoCircle, GeoPolygon, Literal
+from ..exceptions import IllegalArgumentException, IllegalOptionException
+from ..model import URI, Statement, Value
+from ..model.literal import (GeoBox, GeoCircle, GeoCoordinate, GeoPolygon,
+                             GeoSpatialRegion, Literal, RangeLiteral)
 from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from ..query.query import Query, TupleQuery, UpdateQuery, GraphQuery, BooleanQuery, QueryLanguage
+from ..query.query import (BooleanQuery, GraphQuery, Query, QueryLanguage,
+                           TupleQuery, UpdateQuery)
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
-
-from collections import namedtuple
-
-import copy, sys, warnings
-from contextlib import contextmanager
+from .repositoryresult import RepositoryResult
+from .transactions import DEFAULT_TRANSACTION_SETTINGS, TransactionSettings
 
 
 class PrefixFormat(namedtuple('EncodedIdPrefix', 'prefix format')):
@@ -393,16 +393,16 @@ class RepositoryConnection(object):
         :param includeTriples: warm up the triple indices (default is True).
             Use the indices argument to specify the indices to warm up.
         :type includeTriples: bool
-        :param indices: list of indices to warm up (default is None meaning all indices). 
+        :param indices: list of indices to warm up (default is None meaning all indices).
            indices can be a single string naming an index (e.g. 'spogi') or
            a list of strings (e.g. ['spogi', 'posgi']).
            Note that  includeTriples must True in order for
            any indices be warmed up.
         :type indices: list[str]|str
         """
-        
+
         return self._get_mini_repository().warmup(includeStrings, includeTriples, indices)
-    
+
     def getStatements(self, subject=None, predicate=None,  object=None, contexts=ALL_CONTEXTS, includeInferred=False,
                       limit=None, offset=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX):
         """
@@ -412,7 +412,7 @@ class RepositoryConnection(object):
 
         Return a :class:`RepositoryResult` object that can be used to
         iterate over the resulting statements and filter out
-        duplicates if desired. Alternatively one can write the 
+        duplicates if desired. Alternatively one can write the
         results to a file or stream using the ``output`` parameter.
 
         :param subject: Subject value or ``None`` (no subject filtering).
@@ -421,20 +421,20 @@ class RepositoryConnection(object):
         :type predicate: URI
         :param object: Object value or ``None`` (no object filtering).
         :type object: Value
-        :param contexts: An optional list of graphs to retrieve the 
+        :param contexts: An optional list of graphs to retrieve the
                          statements from.
                          By default statements are taken from all graphs.
         :type contexts: URI|string|Iterable[URI|string]
-        :param includeInferred: If ``True``, include triples inferred through 
+        :param includeInferred: If ``True``, include triples inferred through
                                 RDFS++ reasoning.
                                 The default is ``False``.
         :type includeInferred: bool
         :param limit: Max number of statements to retrieve (optional).
         :type limit: int
-        :param offset: Used in conjunction with ``limit`` to return results 
+        :param offset: Used in conjunction with ``limit`` to return results
                        starting from the nth statement.
         :type offset: int
-        :param tripleIDs: If ``True`` the id field will be filled 
+        :param tripleIDs: If ``True`` the id field will be filled
                           in the returned statements.
         :param output: File path or a file-like object to write
                        the result to.
@@ -444,7 +444,7 @@ class RepositoryConnection(object):
         :param include_attributes: If true the returned statements will
             include triple attributes. The default is false.
         :type include_attributes: bool
-        :return: An iterator over the resulting statements 
+        :return: An iterator over the resulting statements
                  or ``None`` (if ``output`` is used).
         :rtype: RepositoryResult
         """
@@ -654,7 +654,7 @@ class RepositoryConnection(object):
         fmt, ce = RDFFormat.format_for_file_name(filePath)
         format = format or fmt
         content_encoding = content_encoding or ce
-    
+
         self._get_mini_repository().loadFile(
             filePath, format, context=contextString, serverSide=serverSide,
             commitEvery=self.add_commit_size, baseURI=base,
@@ -674,9 +674,9 @@ class RepositoryConnection(object):
         Adds data from a string to the repository.
 
         :param data: Data to be added. Can be a string, a dictionary containing a JSON-LD
-                     document or a list of such dictionaries. In addition to regular 
-                     JSON-serializable values a JSON-LD document might contain URI 
-                     and BNode objects as keys and all kinds of RDF terms (literals, URIs 
+                     document or a list of such dictionaries. In addition to regular
+                     JSON-serializable values a JSON-LD document might contain URI
+                     and BNode objects as keys and all kinds of RDF terms (literals, URIs
                      and BNodes) as values.
         :type data: string|dict|list
         :param rdf_format: Data format - either a RDFFormat or a MIME type (string).
@@ -1261,7 +1261,7 @@ class RepositoryConnection(object):
 
         .. deprecated:: 4.14.1
            Use :meth:`saveResponse` instead.
-        
+
         :param handler: An RDFWriter instance describing the target file and data format.
         :type handler: RDFWriter
         :param contexts: A context or list of contexts (default: all contexts).
@@ -2166,6 +2166,12 @@ class RepositoryConnection(object):
         """
 
         return self._get_mini_repository().evalInServer(code)
+
+    def evalGraphqlQuery(self, query, default_prefix=None, infer=False, namespaces=None, variables=None, aliases=None):
+        """
+        Evaluate the GraphQL query in the server.
+        """
+        return self._get_mini_repository().evalGraphqlQuery(query, default_prefix, infer, namespaces, variables, aliases)
 
     def evalJavaScript(self, code):
         """

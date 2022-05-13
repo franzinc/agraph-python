@@ -2,6 +2,18 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 101.0.10
+================
+
+rfe16865: support graphql queries in python
+-------------------------------------------
+
+New method ``evalGraphqlQuery`` has been added to ``RepositoryConnection``
+class. It is a thin wrapper over the HTTP API:
+https://franz.com/agraph/support/documentation/current/http-reference.html#backend-post-catalogs-repositories-graphql
+
+
+
 Release 101.0.9
 ===============
 
@@ -228,7 +240,7 @@ Pandas support
 --------------
 
 It is now possible to turn a query result into a Pandas DataFrame
-by calling the ``toPandas()`` method of the result object. Note that 
+by calling the ``toPandas()`` method of the result object. Note that
 Pandas must be installed separately for this to work.
 
 Release 100.1.2
@@ -409,7 +421,7 @@ Specifically the following adjustments have been done:
    - Changed the default RDF export format to N-Quads.
    - Fixed a bug where errors returned during export
      caused an encoding error.
-   - Provided a default format (CSV) for tuple queries.  
+   - Provided a default format (CSV) for tuple queries.
    - Value of the output parameter can now be True (stdout)
      or a file descriptor.
 

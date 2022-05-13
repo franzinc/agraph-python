@@ -1,33 +1,34 @@
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 from __future__ import absolute_import, division, with_statement
 
+import copy
+import inspect
+import math
+import re
+import sys
+import threading
+from contextlib import contextmanager
 from datetime import timedelta
 
 import six
-from past.utils import old_div
-from past.builtins import basestring
-
 from franz.miniclient.agjson import encode_json
 from franz.openrdf.model.value import URI
 from franz.openrdf.repository.attributes import AttributeFilter
 from franz.openrdf.rio.formats import Format
-
+from past.builtins import basestring
+from past.utils import old_div
+from six import python_2_unicode_compatible
 from six.moves.urllib.parse import quote, urlparse
 
-import copy, inspect, math, re, threading
-
-from contextlib import contextmanager
-from .request import encode, serialize, decode, deserialize, \
-    jsonRequest, nullRequest, urlenc, RequestError
 from ..openrdf.util.contexts import wrap_context
 from ..openrdf.util.strings import to_native_string
-
-from six import python_2_unicode_compatible
+from .request import (RequestError, decode, deserialize, encode, jsonRequest,
+                      nullRequest, serialize, urlenc)
 
 
 def _split_proxy(proxy):
@@ -363,6 +364,20 @@ class Repository(Service):
                            urlenc(query=query, infer=infer, queryLn="prolog", limit=limit),
                            callback=callback,
                            accept=accept)
+
+    def evalGraphqlQuery(self, query, default_prefix, infer, namespaces, variables, aliases):
+        """Execute a GraphQL query. Returns a JSON object."""
+        api = "/graphql"
+        api_args = "&".join([ name + "=" + arg for name, arg in [
+            ("default-prefix", default_prefix),
+            ("infer", "false" if infer == False else infer),
+            ("namespaces", namespaces), ("variables", variables),
+            ("aliases", aliases)]
+            if arg
+        ])
+        if api_args:
+            api += "?" + api_args
+        return jsonRequest(self, method="POST", url=self.url+api, body=query)
 
     def definePrologFunctors(self, definitions):
         """Add Prolog functors to the environment. Takes a string
@@ -772,7 +787,7 @@ class Repository(Service):
         nullRequest(self, "PUT", "/warmup?" + urlenc(includeStrings=includeStrings,
                                                      includeTriples=includeTriples,
                                                      index=indices))
-           
+
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         if self.sessionAlive:
             # A session is already active.  Do nothing.
