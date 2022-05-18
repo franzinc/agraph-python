@@ -109,7 +109,9 @@ class Statement(object):
     
     def setSubject(self, subject):
         self.subject = subject
-    
+
+    subject = property(getSubject, setSubject)
+
     def getPredicate(self):
         """
         Get the predicate (the second element of the statement).
@@ -124,7 +126,9 @@ class Statement(object):
      
     def setPredicate(self, predicate):
         self.predicate = predicate
-    
+
+    predicate = property(getPredicate, setPredicate)
+
     def getObject(self):
         """
         Get the object (the third element of the statement).
@@ -139,7 +143,9 @@ class Statement(object):
     
     def setObject(self, object):
         self.object = object
-    
+
+    object = property(getObject, setObject)
+
     def getContext(self):
         """
         Get the graph (the fourth, optional element of the statement).
@@ -154,6 +160,8 @@ class Statement(object):
     
     def setContext(self, context):
         self.context = context
+
+    context = property(getContext, setContext)
 
     def getTripleID(self):
         """
