@@ -1886,81 +1886,85 @@ def test_freetext():
     assert len(results)
 
 def test_graphql_basic():
-    conn = connect();
-    path = os.path.join(CURRENT_DIRECTORY, "nsw.ttl")
-    conn.addFile(path,format=RDFFormat.TURTLE)
-    actual = conn.evalGraphqlQuery(
-        query="{ Hero { name } }  { Human { name } }",
-        default_prefix="http://example.com/"
-    )
-    import json
-    expected = json.loads("""[
-  {
-    "Hero": [
-      {
-        "name": "Lando Calrissian"
-      },
-      {
-        "name": "Luke Skywalker"
-      },
-      {
-        "name": "R2-D2"
-      }
-    ]
-  },
-  {
-    "Human": [
-      {
-        "name": "Lando Calrissian"
-      },
-      {
-        "name": "Luke Skywalker"
-      }
-    ]
-  }
-]""")
-    assert len(actual) == len(expected)
-    assert len(actual[0]["Hero"]) == len(expected[0]["Hero"])
-    assert len(actual[1]["Human"]) == len(expected[1]["Human"])
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
+    if server.version >= "7.3.0":
+        conn = connect();
+        path = os.path.join(CURRENT_DIRECTORY, "nsw.ttl")
+        conn.addFile(path,format=RDFFormat.TURTLE)
+        actual = conn.evalGraphqlQuery(
+            query="{ Hero { name } }  { Human { name } }",
+            default_prefix="http://example.com/"
+        )
+        import json
+        expected = json.loads("""[
+    {
+        "Hero": [
+        {
+            "name": "Lando Calrissian"
+        },
+        {
+            "name": "Luke Skywalker"
+        },
+        {
+            "name": "R2-D2"
+        }
+        ]
+    },
+    {
+        "Human": [
+        {
+            "name": "Lando Calrissian"
+        },
+        {
+            "name": "Luke Skywalker"
+        }
+        ]
+    }
+    ]""")
+        assert len(actual) == len(expected)
+        assert len(actual[0]["Hero"]) == len(expected[0]["Hero"])
+        assert len(actual[1]["Human"]) == len(expected[1]["Human"])
 
 def test_graphql_namespaces():
-    conn = connect();
-    path = os.path.join(CURRENT_DIRECTORY, "nsw.ttl")
-    conn.addFile(path,format=RDFFormat.TURTLE)
-    actual = conn.evalGraphqlQuery(
-        query="{ Hero { ex:name } }  { Human { name } }",
-        default_prefix="http://example.com/",
-        namespaces="ex http://example.org/,exs https://example.org/"
-    )
-    import json
-    expected = json.loads("""[
-  {
-    "Hero": [
-      {
-        "name": "Lando Calrissian"
-      },
-      {
-        "name": "Luke Skywalker"
-      },
-      {
-        "name": "R2-D2"
-      }
-    ]
-  },
-  {
-    "Human": [
-      {
-        "name": "Lando Calrissian"
-      },
-      {
-        "name": "Luke Skywalker"
-      }
-    ]
-  }
-]""")
-    assert len(actual) == len(expected)
-    assert len(actual[0]["Hero"]) == len(expected[0]["Hero"])
-    assert len(actual[1]["Human"]) == len(expected[1]["Human"])
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
+    if server.version >= "7.3.0":
+        conn = connect();
+        path = os.path.join(CURRENT_DIRECTORY, "nsw.ttl")
+        conn.addFile(path,format=RDFFormat.TURTLE)
+        actual = conn.evalGraphqlQuery(
+            query="{ Hero { ex:name } }  { Human { name } }",
+            default_prefix="http://example.com/",
+            namespaces="ex http://example.org/,exs https://example.org/"
+        )
+        import json
+        expected = json.loads("""[
+    {
+        "Hero": [
+        {
+            "name": "Lando Calrissian"
+        },
+        {
+            "name": "Luke Skywalker"
+        },
+        {
+            "name": "R2-D2"
+        }
+        ]
+    },
+    {
+        "Human": [
+        {
+            "name": "Lando Calrissian"
+        },
+        {
+            "name": "Luke Skywalker"
+        }
+        ]
+    }
+    ]""")
+        assert len(actual) == len(expected)
+        assert len(actual[0]["Hero"]) == len(expected[0]["Hero"])
+        assert len(actual[1]["Human"]) == len(expected[1]["Human"])
 
 def test_javascript():
     conn = connect()
