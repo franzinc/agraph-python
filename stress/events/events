@@ -28,11 +28,15 @@ from datetime import datetime, timedelta
 import locale, os, pycurl, random, subprocess, sys, time, traceback
 import cProfile
 from functools import wraps
-import inspect
+
+if(sys.version_info.major < 3):
+    from inspect import getargspec as getfullargspec
+else:
+    from inspect import getfullargspec
 
 def profile(output):
     def decorator(func):
-        argnames, varargs_name, kwargs_name, defaults = inspect.getargspec(func)
+        argnames, varargs_name, kwargs_name, defaults = getfullargspec(func)
 
         def run(*args, **kwargs):
             _arg_dict = {}

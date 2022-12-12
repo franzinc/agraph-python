@@ -7,10 +7,15 @@
 from __future__ import absolute_import, division, with_statement
 
 import copy
-import inspect
+import sys
+
+if(sys.version_info.major < 3):
+    from inspect import getargspec as getfullargspec
+else:
+    from inspect import getfullargspec
+
 import math
 import re
-import sys
 import threading
 from contextlib import contextmanager
 from datetime import timedelta
@@ -108,7 +113,7 @@ class Service(object):
         """
         # Copy authentication and other settings
         kwargs = {}
-        for arg_name in inspect.getargspec(subclass.__init__).args:
+        for arg_name in getfullargspec(subclass.__init__).args:
             if hasattr(self, arg_name):
                 kwargs[arg_name] = copy.copy(getattr(self, arg_name))
         # Override URL
