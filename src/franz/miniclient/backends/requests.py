@@ -36,7 +36,7 @@ BUFFER_SIZE = 4096
 retries = Retry(backoff_factor=0.1,
                 connect=10,   # 10 retries for connection-level errors
                 status_forcelist=(),  # Retry only on connection errors
-                method_whitelist=False)  # Retry on all methods, even POST and PUT
+                allowed_methods=None)  # Retry on all methods, even POST and PUT
 
 # We'll want to know if something contains unicode
 if sys.version_info >= (3, 0):
