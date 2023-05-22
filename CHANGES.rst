@@ -2,6 +2,28 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 102.0.0
+================
+
+Drop support for Python 2
+-------------------------
+
+Python 2 was created 23 years ago and sunsetted 3 years ago.
+Python 3 was created 15 years ago and is still current.
+
+The Python 2 compatible code will still exist in the git repo on github
+and can be checked out and built.
+
+Release 101.0.11
+================
+
+use getargspec only for Python 2.7
+----------------------------------
+
+Import "getargspec" and alias it as "getfullargspec" only if it's Python 2.x;
+if it's Python 3.x, we import "getfullargspec" from "inspect" package
+directly.
+
 Release 101.0.10
 ================
 

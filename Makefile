@@ -1,7 +1,7 @@
 # Conda scripts require Bash
 SHELL = /bin/bash
 
-VERSION = $(shell python2 -c 'execfile("src/franz/__init__.py"); print __version__')
+VERSION = $(shell PYTHONPATH=src/ python -c 'import franz; print(franz.__version__)')
 
 DISTDIR = agraph-python-$(VERSION)
 
@@ -96,7 +96,7 @@ TOX := $(TOXENVDIR)/bin/tox
 
 # List of virtual environments created during build (not including .tox ones).
 # stress/env is created by the events test.
-ENVS := $(ENVDIR) $(ENVDIR3) $(TOXENVDIR) stress/env disttest
+ENVS := $(ENVDIR3) $(TOXENVDIR) stress/env disttest
 
 # Note: GPG_PASS_OPTS will only be set in the appropriate target,
 # since a prompt might be required to get the passphrase.
@@ -111,8 +111,8 @@ default: wheel
 # the internet if needed.
 
 # Versions we want to test on
-PYTHONS=2.7 3.5 3.6 3.7
-PYTHONS2=$(filter 2.%,$(PYTHONS))
+PYTHONS=3.5 3.6 3.7
+PYTHONS2=
 PYTHONS3=$(filter 3.%,$(PYTHONS))
 
 # Use this to install all interpreters
@@ -190,43 +190,28 @@ $(TOXENVDIR)/.timestamp: $(PY3.7) toxenv.txt
 	source $(TOXENVDIR)/bin/activate && pip install -r toxenv.txt
 	touch $(TOXENVDIR)/.timestamp
 
-$(ENVDIR)/.timestamp: $(TOXDEP) $(PY2.7) requirements.txt tox.ini
-	@echo Preparing py27-env using tox
-	rm -rf $(ENVDIR)
-	$(TOX) -e py27-env
-	touch $(ENVDIR)/.timestamp
-$(ENVDIR): $(ENVDIR)/.timestamp
-
-$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.6) requirements.txt tox.ini
+$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.8) requirements.txt tox.ini
 	@echo Preparing py36-env using tox
 	rm -rf $(ENVDIR3)
 	$(TOX) -e py36-env
 	touch $(ENVDIR3)/.timestamp
 $(ENVDIR3): $(ENVDIR3)/.timestamp
 
-test-env: $(ENVDIR)
+test-env: $(ENVDIR3)
 
-.PHONY: $(TOXENVDIR) $(ENVDIR) $(ENVDIR3) test-env
+.PHONY: $(TOXENVDIR)  $(ENVDIR3) test-env
 
 # This is used to generate the requirements.txt file(?)
 wheelhouse: $(ENVDIR) $(ENVDIR3)
 	$(ENVDIR)/bin/pip wheel -rrequirements.txt -w wheelhouse
 	$(ENVDIR3)/bin/pip wheel -rrequirements.txt -w wheelhouse
 
-prepush: prepush2 prepush3
-
-prepush2: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS2)) .venv
-	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS2))))
-	$(RUN)
-	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
+prepush: prepush3
 
 prepush3: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS3)) .venv
 	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS3))))
 	$(RUN)
 	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
-
-events: checkPort $(TOXDEP) py$(lastword $(PYTHONS2)) .venv
-	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS2))))
 
 events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS3))))
@@ -272,12 +257,12 @@ publish-jupyter: jupyter
 	tar czf agraph-jupyter.tar.gz jupyter/
 	mv agraph-jupyter.tar.gz /fi/ftp/pub/agraph/python-client
 
-wheel: $(ENVDIR)/.timestamp FORCE
+wheel: $(ENVDIR3)/.timestamp FORCE
 	mkdir -p DIST
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)
-	$(ENVDIR)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
+	$(ENVDIR3)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
         # Also build a source dist
-	$(ENVDIR)/bin/python setup.py sdist -d DIST
+	$(ENVDIR3)/bin/python setup.py sdist -d DIST
 
 .PHONY: wheel
 
@@ -287,8 +272,8 @@ register: $(TOXDEP) wheel
 sign: wheel
 	$(eval GPG_PASS_OPTS=$(shell ./gpg-opts.sh "$(PYPI_GPG_KEY)"))
 	rm -f DIST/$(WHEEL).asc DIST/$(SDIST).asc
-	@$(GPG_SIGN) DIST/$(WHEEL)
-	@$(GPG_SIGN) DIST/$(SDIST)
+	@$(GPG_SIGN) DIST/$(WHEEL) 
+	@$(GPG_SIGN) DIST/$(SDIST) 
 
 publish: $(TOXDEP) wheel sign
 	python version.py verify-not-dev
@@ -296,7 +281,7 @@ publish: $(TOXDEP) wheel sign
 	# Do not use the special nexus.ca.crt CA bundle when performing the
 	# uploads to PyPi and Conda.  It will result in SSL server
 	# certificate validation errors.
-	source $(TOXENVDIR)/bin/activate &&  pip install twine  && deactivate
+	source $(TOXENVDIR)/bin/activate &&  pip install urllib3==1.26.0 twine==3.2.0  && deactivate
 	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 	./conda-upload.sh
 
@@ -308,7 +293,7 @@ clean-envs: FORCE
 
 fix-copyrights: FORCE
 	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE
-	find src -name '*.py' -print0 | xargs -0 python2 fix-header.py
+	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
 # If any of these files change rebuild the virtual environments.
 .venv: setup.py requirements.txt docs-requirements.txt tox.ini $(TOXDEP)
