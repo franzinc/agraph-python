@@ -33,10 +33,10 @@ class Statement(object):
         Strings will be parsed lazily the first time a component is accessed.
         Accessors will always return Value objects.
 
-        :param subject: Subject component - URI, blank node or a string
+        :param subject: Subject component - URI, blank node, QuotedTriple or a string
                         in N-Triples format.
         :type subject: URI|BNode|str
-        :param predicate: Predicate component. Either a URI or a string
+        :param predicate: Predicate component. Either a URI, QuotedTriple or a string
                           in N-Triples format.
         :type predicate: URI|str
         :param object: Subject component. Either a Value or a string

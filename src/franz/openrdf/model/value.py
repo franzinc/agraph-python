@@ -18,15 +18,16 @@ import builtins
 
 import weakref
 from six import python_2_unicode_compatible
-import six
 
-from ..util import uris, strings
+from franz.openrdf.exceptions import IllegalArgumentException
+from franz.openrdf.util import uris, strings
 
 
 # Keys used to establish ordering between different types of terms
 LITERAL_CMP_KEY = 1
 URI_CMP_KEY = 2
 BNODE_CMP_KEY = 3
+QUOTED_TRIPLE_CMP_KEY = 4
 
 
 @python_2_unicode_compatible
@@ -252,3 +253,53 @@ class Namespace(object):
         Return an odd name (that's what the RDF4J code does).
         """
         return self.prefix + " :: " + self.name
+
+
+class QuotedTriple(Resource):
+    """
+    RDF-star quoted triples.
+    """
+    __slots__ = ("_subject", "_predicate", "_object", "_hash")
+
+    _subject: Value
+    _predicate: Value
+    _object: Value
+
+    def __init__(self, subject: Value, predicate: Value, object: Value):
+        self._hash = None
+
+        for arg in (subject, predicate, object):
+            if not isinstance(arg, Value):
+                raise IllegalArgumentException("expecting a Resource, a Literal, or a QuotedTriple, but got: %s" % arg)
+
+        self._subject = subject
+        self._predicate = predicate
+        self._object = object
+
+    def get_cmp_key(self):
+        return QUOTED_TRIPLE_CMP_KEY, \
+            self.getSubject().get_cmp_key() + \
+            self.getPredicate().get_cmp_key() + \
+            self.getObject().get_cmp_key()
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash((self.getSubject(), self.getPredicate(), self.getObject()))
+        return self._hash
+
+    def getSubject(self):
+        return self._subject
+
+    def getPredicate(self):
+        return self._predicate
+
+    def getObject(self):
+        return self._object
+
+    def toNTriples(self):
+        return "<< " + \
+            " ".join([val.toNTriples() for val in (self._subject, self._predicate, self._object)]) + \
+            " >>"
+
+    def __iter__(self):
+        return iter([self._subject, self._predicate, self._object])

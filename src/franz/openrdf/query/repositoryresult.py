@@ -13,6 +13,9 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from future.builtins import next, object
 from past.builtins import unicode
+from franz.openrdf.model.utils import parse_term
+
+from franz.openrdf.model.value import QuotedTriple
 
 from ..model import Statement, Value
 
@@ -56,7 +59,12 @@ class RepositoryResult(object):
         """
         Allocate a Statement and fill it in from 'string_tuple'.
         """
-        return Statement(*string_tuple)
+        return Statement(
+            *[QuotedTriple(*[parse_term(x) for x in term])
+              if isinstance(term, list)
+              else term
+              for term in string_tuple]
+        )
 
     def __iter__(self): return self
 

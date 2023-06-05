@@ -1089,6 +1089,17 @@ class Repository(Service):
     def getGeneration(self):
         return jsonRequest(self, 'GET', '/generation')
 
+    def RDFStarEnabled(self):
+        return jsonRequest(self, 'GET', "/rdf-star")
+
+    def enableRDFStar(self):
+        if not self.RDFStarEnabled():
+            return nullRequest(self, 'PUT', "/rdf-star")
+
+    def disableRDFStar(self):
+        if self.RDFStarEnabled():
+            return nullRequest(self, "DELETE", "/rdf-star")
+
 
 def uri_to_string(uri):
     """

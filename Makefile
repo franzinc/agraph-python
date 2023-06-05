@@ -111,7 +111,7 @@ default: wheel
 # the internet if needed.
 
 # Versions we want to test on
-PYTHONS=3.5 3.6 3.7
+PYTHONS=3.6 3.7
 PYTHONS2=
 PYTHONS3=$(filter 3.%,$(PYTHONS))
 
@@ -209,6 +209,7 @@ wheelhouse: $(ENVDIR) $(ENVDIR3)
 prepush: prepush3
 
 prepush3: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS3)) .venv
+	find . -name "*.pyc" -delete
 	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS3))))
 	$(RUN)
 	AG_FORCE_REQUESTS_BACKEND=y $(RUN)

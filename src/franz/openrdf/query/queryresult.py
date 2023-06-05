@@ -7,6 +7,7 @@
 from __future__ import unicode_literals
 from builtins import range
 from builtins import object
+from franz.openrdf.model.value import QuotedTriple
 
 from future.utils import python_2_unicode_compatible
 from past.builtins import unicode
@@ -174,8 +175,11 @@ class ListBindingSet(object):
         term = self.value_cache[index]
         if not term:
             def convert(x):
-                if isinstance(x, list): return [convert(elt) for elt in x]
-                else: return parse_term(x)
+                if isinstance(x, list):
+                    values = [convert(elt) for elt in x]
+                    return QuotedTriple(*values) if len(x) == 3 else values
+                else:
+                    return parse_term(x)
             term = convert(self.string_tuple[index])
             self.value_cache[index] = term
         return term

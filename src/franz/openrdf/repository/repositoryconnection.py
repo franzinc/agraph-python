@@ -21,6 +21,7 @@ from contextlib import contextmanager
 
 import six
 from franz.miniclient.agjson import encode_json
+from franz.openrdf.model.value import QuotedTriple, Resource
 from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.util.contexts import output_to
@@ -28,7 +29,7 @@ from future.backports import OrderedDict
 from future.builtins import object
 from past.builtins import basestring, map, unicode
 
-from ..exceptions import IllegalArgumentException, IllegalOptionException
+from ..exceptions import IllegalArgumentException, IllegalOptionException, ServerException
 from ..model import URI, Statement, Value
 from ..model.literal import (GeoBox, GeoCircle, GeoCoordinate, GeoPolygon,
                              GeoSpatialRegion, Literal, RangeLiteral)
@@ -1444,6 +1445,23 @@ class RepositoryConnection(object):
         """
         return self.getValueFactory().createBNode(nodeID=nodeID)
 
+    def createQuotedTriple(self, subject, predicate, object):
+        """
+        Create a new quoted triple (not to be confused with the Statement type).
+
+        :param subject: Subject of the new quoted triple.
+        :type subject: Resource
+        :param predicate: Predicate of the new quoted triple.
+        :type predicate: Resource
+        :param object: Object of the new quoted triple.
+        :type object: Resource
+        :return: A Triple value.
+        :rtype: Triple
+        """
+        if not self.RDFStarEnabled():
+            raise ServerException("RDF-Star mode must be enabled from the server side.")
+        return self.getValueFactory().createQuotedTriple(subject, predicate, object)
+
     def createStatement(self, subject, predicate, object, context=None):
         """
         Create a new Statement object.
@@ -1627,6 +1645,28 @@ class RepositoryConnection(object):
         Delete all query options in this repository for the current user.
         """
         self._get_mini_repository().clearQueryOptions()
+
+    #############################################################################################
+    ## RDF-Star
+    #############################################################################################
+
+    def RDFStarEnabled(self):
+        """
+        Return True if RDF-star semantics have been enabled; return False otherwise.
+        """
+        return self._get_mini_repository().RDFStarEnabled()
+
+    def enableRDFStar(self):
+        """
+        Enable the RDF-star semantics for the current Repository.
+        """
+        self._get_mini_repository().enableRDFStar()
+
+    def disableRDFStar(self):
+        """
+        Disable the RDF-star semantics for the current Repository.
+        """
+        self._get_mini_repository().disableRDFStar()
 
     #############################################################################################
     ## Geo-spatial

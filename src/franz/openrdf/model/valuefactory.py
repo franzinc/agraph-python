@@ -13,7 +13,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 from builtins import object
 
-from .value import Value, BNode, URI
+from .value import QuotedTriple, Value, BNode, URI
 from .literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
 from .statement import Statement
 
@@ -65,6 +65,11 @@ class ValueFactory(object):
         else:
             return URI(uri=uri, namespace=namespace, localname=localname, canonical=canonical)
 
+    def createQuotedTriple(self, subject, predicate, object):
+        """
+        See :meth:`.RepositoryConnection.createQuotedTriple`
+        """
+        return QuotedTriple(subject, predicate, object)
 
 #############################################################################
 ## Extension to RDF4J API
