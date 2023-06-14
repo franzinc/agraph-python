@@ -2270,11 +2270,16 @@ def test_users_roles_filters():
     server.changeUserPassword('user-test', 'xyzzy-new')
 
     server_user = AllegroGraphServer(AG_HOST, AG_PORT, 'user-test', 'xyzzy-new')
+
+    # FIXME: uncomment this after change 22700 gets merged in.
+    # assert [] == server_user.listCatalogs()
+
+    server.addUserAccess('user-test', True, True)
+
     assert None in server_user.listCatalogs()
     if CATALOG and CATALOG != '/':
         assert CATALOG in server_user.listCatalogs()
 
-    server.addUserAccess('user-test', True, True)
     access = server.listUserAccess('user-test')
     assert len(access) == 1
     access = access[0]
