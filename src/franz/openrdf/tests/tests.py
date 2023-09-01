@@ -2290,18 +2290,24 @@ def test_users_roles_filters():
     access = access[0]
     assert access['read'] and access['write'] and access['catalog'] == '*' and access['repository'] == '*'
 
+    # Beginning in v7.4.0 new users get the session permission when created
+    # thus to make this test work with all versions of agraph we'll
+    # add the session permission (just in case it's not present)
+    
+    server.addUserPermission('user-test', 'session')
     permission = server.listUserPermissions('user-test')
-    assert len(permission) == 0
+    assert len(permission) == 1
 
     permission = server.listUserEffectivePermissions('user-test')
-    assert len(permission) == 0
+    assert len(permission) == 1
 
     server.addUserPermission('user-test', 'eval')
     server.addUserPermission('user-test', 'replication')
     server.deleteUserPermission('user-test', 'replication')
 
     permission = server.listUserPermissions('user-test')
-    assert len(permission) == 1 and 'eval' in permission
+    assert len(permission) == 2 and 'eval' in permission
+    assert len(permission) == 2 and 'session' in permission
 
     roles = server.listRoles()
     assert len(roles) == 0
