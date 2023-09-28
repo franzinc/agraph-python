@@ -2,6 +2,15 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 102.1.0
+================
+
+Support rdf-star
+-------------------------
+
+Add support for rdf-star.  Requires Allegrograph 8.0.0 or newer.
+
+
 Release 102.0.0
 ================
 
