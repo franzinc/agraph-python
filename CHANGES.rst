@@ -2,6 +2,15 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 102.1.1
+================
+
+Add TriplesBuffer utility
+-------------------------
+
+Add `TriplesBuffer`, a utility class that helps users efficiently add triples in
+batches.
+
 Release 102.1.0
 ================
 
