@@ -317,7 +317,7 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
         curl.setopt(pycurl.WRITEFUNCTION, writefunc)
         curl.setopt(pycurl.HEADERFUNCTION, headerfunc)
         retrying_perform(curl)
-        if status[0] != 200:
+        if not (200 <= status[0] < 300):
             errCallback(curl.getinfo(pycurl.RESPONSE_CODE), "".join(error))
     else:
         buf = io.BytesIO()
