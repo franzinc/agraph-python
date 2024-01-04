@@ -11,7 +11,7 @@ from franz.openrdf.connect import AllegroGraphServer, Repository
 from franz.openrdf.exceptions import IllegalArgumentException, ServerException
 from franz.openrdf.tests.conftest import min_version, ex
 
-pytestmark = min_version(7, 4)
+pytestmark = min_version(8, 0)
 
 def get_file_path(name: str) -> str:
     workdir = Path(__file__).parent
