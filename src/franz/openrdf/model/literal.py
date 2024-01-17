@@ -9,26 +9,21 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
-import iso8601
-from decimal import Decimal
-
-from future.backports import OrderedDict
-from future.utils import python_2_unicode_compatible
-
-from past.builtins import long, unicode
-
-from .value import LITERAL_CMP_KEY, URI, Value
-from ..exceptions import IllegalArgumentException
-from ..vocabulary.xmlschema import XMLSchema
-from ..util import strings
+from __future__ import absolute_import, division, unicode_literals
 
 import datetime
 from collections import defaultdict
+from decimal import Decimal
 
+import iso8601
+from future.backports import OrderedDict
+from future.utils import python_2_unicode_compatible
+from past.builtins import long, unicode
+
+from ..exceptions import IllegalArgumentException
+from ..util import strings
+from ..vocabulary.xmlschema import XMLSchema
+from .value import LITERAL_CMP_KEY, URI, Value
 
 # Needed to temporarily convert times to datetimes to do arithmetic.
 # Python time objects do not support adding/subtracting time deltas,

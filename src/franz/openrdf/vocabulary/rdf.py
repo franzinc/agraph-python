@@ -9,12 +9,11 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from future.builtins import object
-from past.builtins import unicode
+from __future__ import absolute_import, unicode_literals
 
+from future.builtins import object
 from future.utils import iteritems
+from past.builtins import unicode
 
 from ..model.value import URI
 

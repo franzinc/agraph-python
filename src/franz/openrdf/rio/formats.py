@@ -6,9 +6,11 @@
 ################################################################################
 
 from __future__ import unicode_literals
-from builtins import object
-from past.builtins import basestring
+
 import os
+from builtins import object
+
+from past.builtins import basestring
 
 # A metaclass that converts static dicts inside a Format to instances
 from six import add_metaclass

@@ -9,19 +9,21 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from past.builtins import basestring
+from __future__ import absolute_import, unicode_literals
+
 from builtins import object
+
 from future import standard_library
+from past.builtins import basestring
+
 standard_library.install_aliases()
+
+import re
 
 from ..exceptions import IllegalArgumentException
 from ..model import URI, ValueFactory
-from .repositoryconnection import RepositoryConnection
 from ..vocabulary.xmlschema import XMLSchema
-
-import re
+from .repositoryconnection import RepositoryConnection
 
 
 class Repository(object):

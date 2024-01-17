@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
+import csv
 import gzip
 import os
 import tempfile
 
 import pytest
 
-from franz.openrdf.model import Literal, URI
+from franz.openrdf.model import URI, Literal
 from franz.openrdf.repository.repositoryconnection import DocumentKey
 from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.tests.conftest import min_version
 from franz.openrdf.tests.newtests import get_statements, get_triple_attributes
-
-import csv
 
 # Python 2 does not have csv.unix_dialect
 if not hasattr(csv, 'unix_dialect'):

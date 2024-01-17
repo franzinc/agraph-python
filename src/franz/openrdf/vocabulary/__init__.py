@@ -11,12 +11,12 @@
 Classes containing useful URI constants.
 """
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 from future.utils import iteritems
 
 from franz.openrdf.model.value import URI
+
 from .owl import OWL
 from .rdf import RDF
 from .rdfs import RDFS

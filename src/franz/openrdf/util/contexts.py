@@ -8,11 +8,11 @@
 """
 Utilities related to context managers.
 """
-from contextlib import contextmanager
 import doctest
 import io
 import os
 import sys
+from contextlib import contextmanager
 
 from past.builtins import basestring
 

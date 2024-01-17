@@ -21,19 +21,28 @@ from contextlib import contextmanager
 from datetime import timedelta
 
 import six
-from franz.miniclient.agjson import encode_json
-from franz.openrdf.model.value import URI
-from franz.openrdf.repository.attributes import AttributeFilter
-from franz.openrdf.rio.formats import Format
 from past.builtins import basestring
 from past.utils import old_div
 from six import python_2_unicode_compatible
 from six.moves.urllib.parse import quote, urlparse
 
+from franz.miniclient.agjson import encode_json
+from franz.openrdf.model.value import URI
+from franz.openrdf.repository.attributes import AttributeFilter
+from franz.openrdf.rio.formats import Format
+
 from ..openrdf.util.contexts import wrap_context
 from ..openrdf.util.strings import to_native_string
-from .request import (RequestError, decode, deserialize, encode, jsonRequest,
-                      nullRequest, serialize, urlenc)
+from .request import (
+    RequestError,
+    decode,
+    deserialize,
+    encode,
+    jsonRequest,
+    nullRequest,
+    serialize,
+    urlenc,
+)
 
 
 def _split_proxy(proxy):

@@ -6,15 +6,15 @@
 ################################################################################
 from __future__ import print_function
 
+import os
+import re
+import sys
 from itertools import islice
 
 from future.builtins import bytes, next, object, range
-
-from future.utils import iteritems, python_2_unicode_compatible, bchr
-from past.builtins import unicode
+from future.utils import bchr, iteritems, native_str, python_2_unicode_compatible
 from past.builtins import str as old_str
-from future.utils import native_str
-import os, re, sys
+from past.builtins import unicode
 
 # Select the backend (curl or requests).
 if os.environ.get('AG_FORCE_REQUESTS_BACKEND'):
@@ -25,15 +25,16 @@ else:
     except ImportError:
         import franz.miniclient.backends.requests as backend
 
-from franz.openrdf.util.strings import to_native_string
+from franz.miniclient.agjson import JsonDecodeError, decode_json
 from franz.openrdf.util.http import merge_headers
-from franz.miniclient.agjson import decode_json, JsonDecodeError
+from franz.openrdf.util.strings import to_native_string
 
 if sys.version_info[0] > 2:
-    from urllib.parse import quote
     from io import StringIO
+    from urllib.parse import quote
 else:
     from urllib import quote
+
     from cStringIO import StringIO
 
 # Note: this is mocked in some unit tests, be careful when changing the way

@@ -9,19 +9,16 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
-import sys
+from __future__ import absolute_import, unicode_literals
 
 import builtins
-
+import sys
 import weakref
+
 from six import python_2_unicode_compatible
 
 from franz.openrdf.exceptions import IllegalArgumentException
-from franz.openrdf.util import uris, strings
-
+from franz.openrdf.util import strings, uris
 
 # Keys used to establish ordering between different types of terms
 LITERAL_CMP_KEY = 1

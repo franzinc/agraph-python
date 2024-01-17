@@ -5,18 +5,17 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 from __future__ import unicode_literals
-from builtins import range
-from builtins import object
-from franz.openrdf.model.value import QuotedTriple
+
+from builtins import object, range
+from collections import namedtuple
 
 from future.utils import python_2_unicode_compatible
 from past.builtins import unicode
 
+from franz.openrdf.model.value import QuotedTriple
+
 from ..model import Statement, parse_term
 from .repositoryresult import RepositoryResult
-
-from collections import namedtuple
-
 
 try:
     import franz.openrdf.query.pandas_support as pandas

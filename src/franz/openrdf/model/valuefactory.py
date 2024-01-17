@@ -9,13 +9,14 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
+
 from builtins import object
 
-from .value import QuotedTriple, Value, BNode, URI
-from .literal import Literal, CompoundLiteral, RangeLiteral, GeoCoordinate
+from .literal import CompoundLiteral, GeoCoordinate, Literal, RangeLiteral
 from .statement import Statement
+from .value import URI, BNode, QuotedTriple, Value
+
 
 class ValueFactory(object):
     """

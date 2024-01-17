@@ -5,7 +5,9 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ###############################################################################
 from __future__ import unicode_literals
+
 from builtins import object
+
 from future.utils import python_2_unicode_compatible
 from past.builtins import unicode
 

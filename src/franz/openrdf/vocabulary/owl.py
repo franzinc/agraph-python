@@ -9,14 +9,13 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
+
 from future.builtins import object
+from future.utils import iteritems
 from past.builtins import unicode
 
-from future.utils import iteritems
-
-from ..model.value import URI 
+from ..model.value import URI
 
 NS = "http://www.w3.org/2002/07/owl#"
 

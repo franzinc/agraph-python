@@ -8,9 +8,10 @@
 # http://www.eclipse.org/legal/epl-v10.html
 ###############################################################################
 
-from setuptools import find_packages, setup
-import sys
 import subprocess
+import sys
+
+from setuptools import find_packages, setup
 
 # Necessary when running from sources...
 sys.path.append('./src')

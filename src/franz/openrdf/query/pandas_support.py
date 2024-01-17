@@ -1,6 +1,7 @@
+from collections import OrderedDict
+
 import pandas
 from six.moves import zip
-from collections import OrderedDict
 
 from franz.openrdf.model import Literal
 

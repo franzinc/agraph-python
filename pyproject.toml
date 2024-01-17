@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pyright]
+include = ["src"]
+exclude = [
+  "**/node_modules",
+  "**/_pycache__",
+  ".venv/",
+]
+root = "src"
+reportMissingImports = true
+reportMissingTypeStubs = false
+venvPath = "."
+venv = ".venv"
+pythonPlatform = "All"
+verboseOutput = true
+
+[tool.isort]
+atomic = true
+profile = "black"
+src_paths = ["src"]
+extend_skip = ["stress", "docs"]
+filter_files = true
+line_length = 88

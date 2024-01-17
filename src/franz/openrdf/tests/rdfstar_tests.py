@@ -1,15 +1,18 @@
-import pytest
 import itertools
-from pathlib import Path
 import os
+from pathlib import Path
 
-from franz.openrdf.model import QuotedTriple, BNode
-from franz.openrdf.exceptions import RequestError
-from franz.openrdf.model import Literal
-from franz.openrdf.rio.rdfformat import RDFFormat
+import pytest
+
 from franz.openrdf.connect import AllegroGraphServer, Repository
-from franz.openrdf.exceptions import IllegalArgumentException, ServerException
-from franz.openrdf.tests.conftest import min_version, ex
+from franz.openrdf.exceptions import (
+    IllegalArgumentException,
+    RequestError,
+    ServerException,
+)
+from franz.openrdf.model import BNode, Literal, QuotedTriple
+from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.tests.conftest import ex, min_version
 
 pytestmark = min_version(8, 0)
 

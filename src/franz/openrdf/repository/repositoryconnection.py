@@ -20,22 +20,40 @@ from collections import namedtuple
 from contextlib import contextmanager
 
 import six
+from future.backports import OrderedDict
+from future.builtins import object
+from past.builtins import basestring, map, unicode
+
 from franz.miniclient.agjson import encode_json
 from franz.openrdf.model.value import QuotedTriple, Resource
 from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.util.contexts import output_to
-from future.backports import OrderedDict
-from future.builtins import object
-from past.builtins import basestring, map, unicode
 
-from ..exceptions import IllegalArgumentException, IllegalOptionException, ServerException
+from ..exceptions import (
+    IllegalArgumentException,
+    IllegalOptionException,
+    ServerException,
+)
 from ..model import URI, Statement, Value
-from ..model.literal import (GeoBox, GeoCircle, GeoCoordinate, GeoPolygon,
-                             GeoSpatialRegion, Literal, RangeLiteral)
+from ..model.literal import (
+    GeoBox,
+    GeoCircle,
+    GeoCoordinate,
+    GeoPolygon,
+    GeoSpatialRegion,
+    Literal,
+    RangeLiteral,
+)
 from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from ..query.query import (BooleanQuery, GraphQuery, Query, QueryLanguage,
-                           TupleQuery, UpdateQuery)
+from ..query.query import (
+    BooleanQuery,
+    GraphQuery,
+    Query,
+    QueryLanguage,
+    TupleQuery,
+    UpdateQuery,
+)
 from ..rio.rdfformat import RDFFormat
 from ..util import uris
 from .repositoryresult import RepositoryResult

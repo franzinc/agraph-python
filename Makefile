@@ -191,10 +191,11 @@ $(TOXENVDIR)/.timestamp: $(PY3.7) toxenv.txt
 	touch $(TOXENVDIR)/.timestamp
 
 $(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.8) requirements.txt tox.ini
-	@echo Preparing py36-env using tox
+	@echo Preparing py37-env using tox
 	rm -rf $(ENVDIR3)
-	$(TOX) -e py36-env
+	$(TOX) -e py37-env
 	touch $(ENVDIR3)/.timestamp
+	$(ENVDIR3)/bin/pip install --upgrade pip~=23.3
 $(ENVDIR3): $(ENVDIR3)/.timestamp
 
 test-env: $(ENVDIR3)

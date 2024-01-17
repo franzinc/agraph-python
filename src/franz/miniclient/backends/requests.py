@@ -18,13 +18,13 @@ import sys
 
 import requests
 import requests.packages.urllib3 as urllib3
+from pkg_resources import parse_version
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 from requests.packages.urllib3.util.retry import Retry
-from pkg_resources import parse_version
 
-from franz.openrdf.util.strings import to_native_string
 from franz.openrdf.util.http import normalize_headers
+from franz.openrdf.util.strings import to_native_string
 
 # Public symbols
 __all__ = ['makeRequest']

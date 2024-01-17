@@ -6,19 +6,19 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import (absolute_import, print_function, unicode_literals,
-                        with_statement)
+from __future__ import absolute_import, print_function, unicode_literals, with_statement
 
 import pytest
 from future import standard_library
 
 standard_library.install_aliases()
 
-from franz.miniclient.request import backend
 from future.builtins import next, object, range, str
 from future.utils import iteritems, iterkeys
 from nose.tools import assert_raises, eq_, raises
 from past.builtins import long
+
+from franz.miniclient.request import backend
 
 from ..exceptions import RequestError, ServerException
 from ..model import URI, BNode, Literal, Statement, ValueFactory

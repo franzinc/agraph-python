@@ -9,22 +9,26 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from builtins import str
-from builtins import map
-from builtins import object
+from __future__ import absolute_import, unicode_literals
+
+from builtins import map, object, str
+
 from future import standard_library
+
 standard_library.install_aliases()
 
 import os
+import re
+import urllib.error
+import urllib.parse
+import urllib.request
 
+from past.builtins import basestring
+
+from ...miniclient import repository as miniserver
 from ..exceptions import ServerException
 from ..repository.repository import Repository, RepositoryConnection
-from ...miniclient import repository as miniserver
-import re, urllib.request, urllib.parse, urllib.error
 from . import spec
-from past.builtins import basestring
 
 READ_ONLY = 'READ_ONLY'
 

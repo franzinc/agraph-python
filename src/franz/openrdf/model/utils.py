@@ -4,8 +4,8 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-from franz.openrdf.model.value import URI, BNode
 from franz.openrdf.model.literal import Literal
+from franz.openrdf.model.value import URI, BNode
 from franz.openrdf.util import strings
 
 

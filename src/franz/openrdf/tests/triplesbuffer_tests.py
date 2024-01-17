@@ -1,8 +1,9 @@
 import pytest
 
 from franz.openrdf.model import Literal
-from franz.openrdf.util.triples_buffer import TriplesBuffer, buffered_triples
 from franz.openrdf.tests.conftest import conn, ex
+from franz.openrdf.util.triples_buffer import TriplesBuffer, buffered_triples
+
 
 def test_empty_triples_buffer(conn):
     buf = TriplesBuffer(conn)

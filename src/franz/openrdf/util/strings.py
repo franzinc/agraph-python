@@ -9,14 +9,15 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from future.builtins import chr
-from future.types import newbytes
-from future.utils import native_str, isnewbytes
-from past.builtins import unicode
+from __future__ import absolute_import, unicode_literals
+
 import ast
 import sys
+
+from future.builtins import chr
+from future.types import newbytes
+from future.utils import isnewbytes, native_str
+from past.builtins import unicode
 
 """
 A strings utility module for helper functions.

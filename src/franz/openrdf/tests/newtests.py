@@ -6,44 +6,65 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
+import io
 import json
-from datetime import datetime, date, time, timedelta
+import os
+import re
+import sys
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 import pytest
 import requests
-import io
-import os
-import sys
-
-import re
-from six import BytesIO
-
 from future.utils import iteritems, iterkeys
 from nose.tools import assert_raises
+from six import BytesIO
 
+# Imported to allow mocking
+import franz.miniclient.request
 from franz.openrdf.connect import ag_connect
 from franz.openrdf.exceptions import RequestError
-from franz.openrdf.model import Literal, Statement, URI
+from franz.openrdf.model import URI, Literal, Statement
 from franz.openrdf.query.query import QueryLanguage
-from franz.openrdf.repository.attributes import AttributeDefinition, TripleAttribute, UserAttribute, \
-    attribute_filter_to_expr, And, Or, Not, Empty, Overlap, Subset, Superset, Equal, Lt, Le, Eq, Ge, Gt, \
-    attribute_set_to_expr
+from franz.openrdf.repository.attributes import (
+    And,
+    AttributeDefinition,
+    Empty,
+    Eq,
+    Equal,
+    Ge,
+    Gt,
+    Le,
+    Lt,
+    Not,
+    Or,
+    Overlap,
+    Subset,
+    Superset,
+    TripleAttribute,
+    UserAttribute,
+    attribute_filter_to_expr,
+    attribute_set_to_expr,
+)
 from franz.openrdf.repository.transactions import TransactionSettings
 from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.sail import AllegroGraphServer
 from franz.openrdf.tests.conftest import min_version
+from franz.openrdf.tests.tests import (
+    AG_HOST,
+    AG_PORT,
+    AG_PROXY,
+    CATALOG,
+    PASSWORD,
+    STORE,
+    USER,
+)
 from franz.openrdf.tests.tz import MockTimezone
 from franz.openrdf.util.contexts import output_to
 from franz.openrdf.util.http import normalize_headers
 from franz.openrdf.vocabulary import XMLSchema
-
-from franz.openrdf.tests.tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, STORE, USER, PASSWORD
-
-# Imported to allow mocking
-import franz.miniclient.request
 
 common_args = dict(
     host=AG_HOST, port=AG_PORT, catalog=CATALOG,

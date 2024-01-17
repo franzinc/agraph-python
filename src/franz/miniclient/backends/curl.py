@@ -12,19 +12,17 @@ A pycurl-based implementation of HTTP backend.
 
 from __future__ import print_function
 
-import pycurl
-
+import errno
+import io
 import os
 import threading
 import time
-import io
 
-import errno
-
-from past.builtins import unicode, basestring
+import pycurl
 from future.utils import iteritems
+from past.builtins import basestring, unicode
 
-from franz.openrdf.util.strings import to_native_string, to_bytes
+from franz.openrdf.util.strings import to_bytes, to_native_string
 
 # Public symbols
 __all__ = ['makeRequest']

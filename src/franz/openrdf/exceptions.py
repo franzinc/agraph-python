@@ -10,7 +10,9 @@
 ################################################################################
 
 from __future__ import unicode_literals
+
 from franz.miniclient.request import RequestError
+
 
 class IllegalOptionException(Exception):
     pass

@@ -9,22 +9,24 @@
 Test fixtures, moved to a separate file to avoid warnings
 about parameter names shadowing global symbols.
 """
+import contextlib
+import os
 import random
-from collections import MutableMapping
+import threading
 import uuid
+from collections import MutableMapping
 
 import pytest
 import requests
+import six
+from six.moves import BaseHTTPServer
 
 from franz.openrdf.model import URI
 from franz.openrdf.repository import Repository
 from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.sail import AllegroGraphServer
 
-from .tests import AG_HOST, AG_PORT, AG_PROXY, STORE, CATALOG, USER, PASSWORD
-import contextlib, os, threading
-import six
-from six.moves import BaseHTTPServer
+from .tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, PASSWORD, STORE, USER
 
 
 # noinspection PyShadowingNames

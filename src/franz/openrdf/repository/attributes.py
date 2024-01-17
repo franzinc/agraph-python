@@ -2,13 +2,12 @@
 Functions and structures related to triple attributes and attribute filters.
 """
 from __future__ import unicode_literals
+
 from builtins import object, str
-from past.builtins import basestring
-
-
 from typing import List, Union
 
-from six import with_metaclass, python_2_unicode_compatible
+from past.builtins import basestring
+from six import python_2_unicode_compatible, with_metaclass
 
 
 class AttributeDefinition(object):

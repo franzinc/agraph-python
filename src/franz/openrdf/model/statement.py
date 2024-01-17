@@ -9,13 +9,14 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from past.builtins import basestring
+from __future__ import absolute_import, unicode_literals
+
 from future.utils import python_2_unicode_compatible
+from past.builtins import basestring
 
 from franz.openrdf.model.utils import parse_term
-from .value import Value, URI
+
+from .value import URI, Value
 
 
 @python_2_unicode_compatible

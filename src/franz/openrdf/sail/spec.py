@@ -11,11 +11,15 @@ See :meth:`~franz.openrdf.sail.allegrographserver.AllegroGraphServer.openSession
 """
 
 from __future__ import unicode_literals
-from past.builtins import map, unicode
+
 from future import standard_library
+from past.builtins import map, unicode
+
 standard_library.install_aliases()
 
-import urllib.request, urllib.parse, urllib.error
+import urllib.error
+import urllib.parse
+import urllib.request
 
 
 def local(name, catalog=None):

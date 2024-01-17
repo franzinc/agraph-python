@@ -9,16 +9,16 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
-from future.builtins import object
-from past.builtins import basestring
+from __future__ import absolute_import, unicode_literals
 
+from future.builtins import object
 from future.utils import iteritems, python_2_unicode_compatible
+from past.builtins import basestring
 
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.util.contexts import output_to
+
 from ..exceptions import IllegalOptionException, QueryMissingFeatureException
 from .dataset import ALL_CONTEXTS, Dataset
 from .queryresult import GraphQueryResult, TupleQueryResult

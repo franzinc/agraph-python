@@ -7,14 +7,13 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 from .literal import Literal
 from .statement import Statement
-from .value import Value, URI, BNode, QuotedTriple
-from .valuefactory import ValueFactory
 from .utils import parse_term
+from .value import URI, BNode, QuotedTriple, Value
+from .valuefactory import ValueFactory
 
 __all__ = ['BNode', 'Literal', 'Statement', 'URI',
            'Value', 'ValueFactory', 'parse_term', "QuotedTriple"]

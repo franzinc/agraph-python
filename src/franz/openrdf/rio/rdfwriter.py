@@ -9,11 +9,12 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
+
 from builtins import object
 
 from .rdfformat import RDFFormat
+
 
 class RDFWriter(object):
     def __init__(self, rdfFormat, filePath=None):

@@ -2,6 +2,7 @@
 Types and utilities related to transaction settings.
 """
 from collections import namedtuple
+
 try:
     from itertools import zip_longest  # Py3
 except ImportError:

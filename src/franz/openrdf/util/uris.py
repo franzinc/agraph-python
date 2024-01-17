@@ -9,11 +9,12 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
+
 from past.builtins import unicode
 
 from ..exceptions import IllegalArgumentException
+
 
 ## Finds the index of the first local name character in an (non-relative)
 ## URI. This index is determined by the following the following steps:

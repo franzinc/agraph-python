@@ -2,6 +2,7 @@ from contextlib import contextmanager
 
 from franz.openrdf.repository.repositoryconnection import RepositoryConnection
 
+
 class TriplesBuffer:
     def __init__(self, conn: RepositoryConnection, limit: int=1000):
         """
