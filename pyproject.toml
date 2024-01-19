@@ -24,3 +24,14 @@ src_paths = ["src"]
 extend_skip = ["stress", "docs"]
 filter_files = true
 line_length = 88
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
+include = '\.pyi?$'
+extend-exclude = '''
+(
+    ^/stress/
+    | ^/docs/
+)
+'''

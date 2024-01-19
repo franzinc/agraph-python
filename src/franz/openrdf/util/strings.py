@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -36,7 +36,7 @@ def encode_ntriple_string(string):
     canonical encoding rules.
     """
     if not isinstance(string, unicode):
-        string = unicode(string, 'utf-8')
+        string = unicode(string, "utf-8")
 
     for char, replacement in ESCAPES:
         string = string.replace(char, replacement)
@@ -44,12 +44,12 @@ def encode_ntriple_string(string):
 
 
 ESCAPES = [
-    # Replacements will be performed sequentially, so backslash 
+    # Replacements will be performed sequentially, so backslash
     # must be the first character on the list
-    (chr(0x5C), r'\\'),  
-    (chr(0x0A), r'\n'),
-    (chr(0x0D), r'\r'),
-    (chr(0x22), r'\"'),
+    (chr(0x5C), r"\\"),
+    (chr(0x0A), r"\n"),
+    (chr(0x0D), r"\r"),
+    (chr(0x22), r"\""),
 ]
 
 uri_escaped_chars = re.compile(r'[\x00-\x20<>"{}|^`\\]')
@@ -61,18 +61,18 @@ def uri_escape_match(match):
     into an ntriple escape sequence.
     """
     code = ord(match.group())
-    if code <= 0xffff:
-        return '\\u%04x' % code
+    if code <= 0xFFFF:
+        return "\\u%04x" % code
     else:
-        return '\\U%08x' % code
+        return "\\U%08x" % code
 
 
 def encode_ntriple_uri(uri):
     """
     Converts a string URI to ntriples by adding angle brackets
-    and escaping special characters.  
+    and escaping special characters.
     """
-    return '<' + uri_escaped_chars.sub(uri_escape_match, uri) + '>'
+    return "<" + uri_escaped_chars.sub(uri_escape_match, uri) + ">"
 
 
 def ntriples_unescape(text):
@@ -83,7 +83,7 @@ def ntriples_unescape(text):
     """
     if text is None:
         return None
-    return ast.literal_eval(u'u"' + text + u'"')
+    return ast.literal_eval('u"' + text + '"')
 
 
 def uriref(string):
@@ -96,8 +96,9 @@ def uriref(string):
         return None
     return ntriples_unescape(match.group(1))
 
-uri_pattern = r'<(.*)>'
-uriref.pattern = re.compile(uri_pattern + '$')
+
+uri_pattern = r"<(.*)>"
+uriref.pattern = re.compile(uri_pattern + "$")
 
 
 def nodeid(string):
@@ -110,7 +111,8 @@ def nodeid(string):
         return None
     return match.group(1)
 
-nodeid.pattern = re.compile(r'_:([A-Za-z][A-Za-z0-9]*)$')
+
+nodeid.pattern = re.compile(r"_:([A-Za-z][A-Za-z0-9]*)$")
 
 
 def literal(string):
@@ -125,9 +127,10 @@ def literal(string):
     label, lang, dtype = match.groups()
     return ntriples_unescape(label), ntriples_unescape(dtype), lang
 
+
 litvalue = r'"([^"\\]*(?:\\.[^"\\]*)*)"'
-litinfo = r'(?:@([a-z]+(?:-[a-z0-9]+)*)|\^\^' + uri_pattern + r')?'
-literal.pattern = re.compile(litvalue + litinfo + '$')
+litinfo = r"(?:@([a-z]+(?:-[a-z0-9]+)*)|\^\^" + uri_pattern + r")?"
+literal.pattern = re.compile(litvalue + litinfo + "$")
 
 
 def to_bytes(text):
@@ -140,11 +143,12 @@ def to_bytes(text):
     :rtype: bytes
     """
     if isinstance(text, unicode):
-        return text.encode('utf-8')
+        return text.encode("utf-8")
     return text
 
 
 if sys.version_info[0] > 2:
+
     def to_native_string(text):
         """
         Converts text to the native string type of the Python version used.
@@ -155,13 +159,15 @@ if sys.version_info[0] > 2:
         :rtype: str
         """
         if isinstance(text, bytes):
-            return str(text, 'utf-8')
+            return str(text, "utf-8")
         return text
+
 else:
+
     def to_native_string(text):
         if isnewbytes(text):
             return bytes.__str__(text)
         if isinstance(text, native_str):
             return text
         # Must be Unicode...
-        return text.encode('utf-8')
+        return text.encode("utf-8")

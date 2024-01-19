@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -19,6 +19,7 @@ from .repositoryresult import RepositoryResult
 
 try:
     import franz.openrdf.query.pandas_support as pandas
+
     has_pandas = True
 except ImportError:
     has_pandas = False
@@ -29,6 +30,7 @@ class QueryResult(object):
     Super type of all query result types (TupleQueryResult, GraphQueryResult, etc.
     Evaluates as a Python iterator
     """
+
     def close(self):
         """
         Release resources used by this query result.
@@ -42,7 +44,7 @@ class QueryResult(object):
         :return: The next item.
         :raises StopIteration: If there are no more items to return.
         """
-        raise NotImplemented('__next__')
+        raise NotImplemented("__next__")
 
     def __enter__(self):
         return self
@@ -59,10 +61,12 @@ class QueryResult(object):
 ##
 #############################################################################
 
+
 class GraphQueryResult(RepositoryResult, QueryResult):
     """
     A graph query result is an iterator over the Statements.
     """
+
     def __init__(self, string_tuples):
         QueryResult.__init__(self)
         RepositoryResult.__init__(self, string_tuples)
@@ -76,6 +80,7 @@ class TupleQueryResult(QueryResult):
     bindings. Note: take care to always close a TupleQueryResult after use to
     free any resources it keeps hold of.
     """
+
     def __init__(self, variable_names, string_tuples, metadata=None):
         QueryResult.__init__(self)
         if not isinstance(variable_names, list):
@@ -136,7 +141,7 @@ class TupleQueryResult(QueryResult):
 
     def toPandas(self):
         if not has_pandas:
-            raise Exception('Pandas not installed.')
+            raise Exception("Pandas not installed.")
         return pandas.rows_to_pandas(self, self.variable_names)
 
 
@@ -152,6 +157,7 @@ class ListBindingSet(object):
     and a list simultaneously.  The internal datastructure is a pair
     of lists.
     """
+
     def __init__(self, variable_names):
         self.variable_names = variable_names
         self.string_tuple = None
@@ -167,18 +173,23 @@ class ListBindingSet(object):
         if index >= 0 and index < len(self.string_tuple):
             return index
 
-        raise IndexError("Out-of-bounds index passed to BindingSet." +
-                         "  Index must be between 0 and %i, inclusive." % (len(self.string_tuple) - 1))
+        raise IndexError(
+            "Out-of-bounds index passed to BindingSet."
+            + "  Index must be between 0 and %i, inclusive."
+            % (len(self.string_tuple) - 1)
+        )
 
     def _get_ith_value(self, index):
         term = self.value_cache[index]
         if not term:
+
             def convert(x):
                 if isinstance(x, list):
                     values = [convert(elt) for elt in x]
                     return QuotedTriple(*values) if len(x) == 3 else values
                 else:
                     return parse_term(x)
+
             term = convert(self.string_tuple[index])
             self.value_cache[index] = term
         return term
@@ -190,9 +201,10 @@ class ListBindingSet(object):
         try:
             return self._get_ith_value(self.variable_names.index(key))
         except ValueError:
-            raise KeyError(("Illegal key '%s' passed to binding set." +
-                            "\n   Legal keys are %s") % (key, unicode(self.variable_names)))
-
+            raise KeyError(
+                ("Illegal key '%s' passed to binding set." + "\n   Legal keys are %s")
+                % (key, unicode(self.variable_names))
+            )
 
     def iterator(self):
         """
@@ -254,7 +266,8 @@ class ListBindingSet(object):
         d = {}
         for i in range(len(self.variable_names)):
             v = self[i]
-            if strings_dict: v = unicode(v)
+            if strings_dict:
+                v = unicode(v)
             d[self.variable_names[i]] = v
         return d
 
@@ -266,11 +279,13 @@ class ListBindingSet(object):
 ##
 #############################################################################
 
-class Binding(namedtuple('Binding', 'name value')):
+
+class Binding(namedtuple("Binding", "name value")):
     __slots__ = ()
     """
     An implementation of 'Binding'
     """
+
     def getName(self):
         """
         Gets the name of the binding (e.g. the variable name).

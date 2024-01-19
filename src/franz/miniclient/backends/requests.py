@@ -27,16 +27,18 @@ from franz.openrdf.util.http import normalize_headers
 from franz.openrdf.util.strings import to_native_string
 
 # Public symbols
-__all__ = ['makeRequest']
+__all__ = ["makeRequest"]
 
 # size of the buffer used to read responses
 BUFFER_SIZE = 4096
 
 # Configure a retry strategy similar to what the curl backend does
-retries = Retry(backoff_factor=0.1,
-                connect=10,   # 10 retries for connection-level errors
-                status_forcelist=(),  # Retry only on connection errors
-                allowed_methods=False)  # Retry on all methods, even POST and PUT
+retries = Retry(
+    backoff_factor=0.1,
+    connect=10,  # 10 retries for connection-level errors
+    status_forcelist=(),  # Retry only on connection errors
+    allowed_methods=False,
+)  # Retry on all methods, even POST and PUT
 
 # We'll want to know if something contains unicode
 if sys.version_info >= (3, 0):
@@ -44,16 +46,23 @@ if sys.version_info >= (3, 0):
 else:
     unicode_type = unicode
 
+
 # Never check any hostnames
 class HostNameIgnoringAdapter(HTTPAdapter):
     """
     A simple transport adapter that disables hostname verification for SSL.
     """
-    def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
-        self.poolmanager = PoolManager(num_pools=connections,
-                                       maxsize=maxsize,
-                                       block=block,
-                                       assert_hostname=False, **pool_kwargs)
+
+    def init_poolmanager(
+        self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs
+    ):
+        self.poolmanager = PoolManager(
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            assert_hostname=False,
+            **pool_kwargs,
+        )
         # Setup the retry strategy
         self.max_retries = retries
 
@@ -65,8 +74,8 @@ def translate_proxy_scheme(scheme):
     :param scheme: Proxy type in AG format.
     :return: Proxy type in requests format.
     """
-    if scheme == 'socks':
-        scheme = 'socks5'
+    if scheme == "socks":
+        scheme = "socks5"
 
     # In urllib3 1.20 (released 2017-01-19) DNS behavior has changed
     # To make the proxy server do the lookup you now have to use
@@ -74,13 +83,13 @@ def translate_proxy_scheme(scheme):
     # But older versions naturally neither need nor support these values.
     # The updated version of urllib3 is bundled with requests since
     # version 2.13.0 (released 2017-01-24).
-    v1_20 = parse_version('1.20')
+    v1_20 = parse_version("1.20")
     urllib3_version = parse_version(urllib3.__version__)
     if urllib3_version >= v1_20:
-        if scheme == 'socks5':
-            scheme = 'socks5h'
-        if scheme == 'socks4':
-            scheme = 'socks4a'
+        if scheme == "socks5":
+            scheme = "socks5h"
+        if scheme == "socks4":
+            scheme = "socks4a"
     return scheme
 
 
@@ -99,9 +108,12 @@ def create_session(obj):
 
     # Proxy setup
     if obj.proxy is not None:
-        proxy = '%s://%s:%s' % (translate_proxy_scheme(obj.proxy_type),
-                                obj.proxy_host, obj.proxy_port)
-        session.proxies = {'http': proxy, 'https': proxy}
+        proxy = "%s://%s:%s" % (
+            translate_proxy_scheme(obj.proxy_type),
+            obj.proxy_host,
+            obj.proxy_port,
+        )
+        session.proxies = {"http": proxy, "https": proxy}
 
     # Emulate curl's way of handling SSL
     if obj.cainfo is not None:
@@ -115,17 +127,27 @@ def create_session(obj):
         session.verify = False
     if obj.verifyhost is not None and not obj.verifyhost:
         # Check the certificate, but do not verify that the hostname matches it.
-        session.mount('https://', HostNameIgnoringAdapter())
+        session.mount("https://", HostNameIgnoringAdapter())
     else:
         # Setup the retry strategy
-        session.mount('https://', HTTPAdapter(max_retries=retries))
+        session.mount("https://", HTTPAdapter(max_retries=retries))
     # setup retry strategy for http connections
-    session.mount('http://', HTTPAdapter(max_retries=retries))
+    session.mount("http://", HTTPAdapter(max_retries=retries))
 
     return session
 
 
-def makeRequest(obj, method, url, body=None, accept=None, contentType=None, callback=None, errCallback=None, headers=None):
+def makeRequest(
+    obj,
+    method,
+    url,
+    body=None,
+    accept=None,
+    contentType=None,
+    callback=None,
+    errCallback=None,
+    headers=None,
+):
     """
     Send an HTTP request to given URL.
 
@@ -165,16 +187,16 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
     # in the implementation of the Service class.
     if obj.session is None:
         obj.session = create_session(obj)
-        # Unfortunately our current API does not seem to have a good place 
+        # Unfortunately our current API does not seem to have a good place
         # to close that explicitly.
         atexit.register(obj.session.close)
 
     # Encode data as utf-8 if required - requests tries to use ascii now.
     if isinstance(body, unicode_type):
-        body = body.encode('utf-8')
+        body = body.encode("utf-8")
 
     method = method.upper()
-    if method in ('PUT', 'POST'):
+    if method in ("PUT", "POST"):
         data = body
         params = None
     else:
@@ -188,13 +210,15 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
 
     # Note that this will create a copy if necessary, so we're not changing the argument
     headers = normalize_headers(headers)
-    headers['accept'] = accept
+    headers["accept"] = accept
     if contentType:
-        headers['content-type'] = contentType
+        headers["content-type"] = contentType
     if obj.runAsName:
-        headers['x-masquerade-as-user'] = obj.runAsName
+        headers["x-masquerade-as-user"] = obj.runAsName
 
-    response = obj.session.request(method, url, params=params, data=data, headers=headers, stream=True)
+    response = obj.session.request(
+        method, url, params=params, data=data, headers=headers, stream=True
+    )
     with contextlib.closing(response):
         if callback is not None:
             # Not sure it None or "" is better for a 204 response.
@@ -210,10 +234,10 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
                 if errCallback is None:
                     response.raise_for_status()
                 else:
-                    errCallback(response.status_code, 
-                                to_native_string(response.raw.read(
-                                    decode_content=True)))
+                    errCallback(
+                        response.status_code,
+                        to_native_string(response.raw.read(decode_content=True)),
+                    )
         else:
             # Note: no error callback in this case
             return response.status_code, to_native_string(response.content)
-

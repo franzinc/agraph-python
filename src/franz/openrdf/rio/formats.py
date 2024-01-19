@@ -46,13 +46,13 @@ class Format(object):
 
     @classmethod
     def register(cls, fmt):
-        """ Register a format object."""
+        """Register a format object."""
         for ext in fmt.file_extensions:
-            cls._ext_map['.' + ext.lower()] = fmt
+            cls._ext_map["." + ext.lower()] = fmt
 
     @classmethod
     def format_for_file_name(cls, filename):
-        """ 
+        """
         Try to guess appropriate RDF format from a file name.
         Return a pair (format, compression) where format is
         an RDF format or None (if no matching format was found)
@@ -85,13 +85,19 @@ class Format(object):
         :rtype: string
         """
         if output_format is None:
-            raise Exception('Unable to determine file format.')
+            raise Exception("Unable to determine file format.")
         if isinstance(output_format, basestring):
             return output_format
         return output_format.mime_types[0]
 
-    def __init__(self, name, mime_types=None, charset="UTF-8",
-                 file_extensions=None, register=True):
+    def __init__(
+        self,
+        name,
+        mime_types=None,
+        charset="UTF-8",
+        file_extensions=None,
+        register=True,
+    ):
         """
         Initialize a new format object.
 
@@ -120,6 +126,7 @@ class Format(object):
                 # We could use inspect.mro to find
                 # where the thing is really defined,
                 # but it's not worth the effort.
-                return '{cls}.{name}: {display_name}'.format(
-                    cls=cls.__name__, name=name, display_name=self.name)
-        return '<Format: {name}>'.format(name=self.name)
+                return "{cls}.{name}: {display_name}".format(
+                    cls=cls.__name__, name=name, display_name=self.name
+                )
+        return "<Format: {name}>".format(name=self.name)

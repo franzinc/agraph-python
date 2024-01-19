@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -18,6 +18,7 @@ from past.builtins import unicode
 from ..model.value import URI
 
 NS = "http://www.w3.org/2001/XMLSchema#"
+
 
 class XMLSchema(object):
     """
@@ -60,7 +61,7 @@ class XMLSchema(object):
     LONG = URI(namespace=NS, localname="long")
     INT = URI(namespace=NS, localname="int")
     SHORT = URI(namespace=NS, localname="short")
-    NUMBER = URI(namespace=NS, localname="number")        
+    NUMBER = URI(namespace=NS, localname="number")
     BYTE = URI(namespace=NS, localname="byte")
     NON_POSITIVE_INTEGER = URI(namespace=NS, localname="nonPositiveInteger")
     NEGATIVE_INTEGER = URI(namespace=NS, localname="negativeInteger")
@@ -69,5 +70,4 @@ class XMLSchema(object):
     UNSIGNED_LONG = URI(namespace=NS, localname="unsignedLong")
     UNSIGNED_INT = URI(namespace=NS, localname="unsignedInt")
     UNSIGNED_SHORT = URI(namespace=NS, localname="unsignedShort")
-    UNSIGNED_BYTE = URI(namespace=NS, localname="unsignedByte")        
-
+    UNSIGNED_BYTE = URI(namespace=NS, localname="unsignedByte")

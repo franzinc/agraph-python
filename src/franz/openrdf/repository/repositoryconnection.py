@@ -60,19 +60,21 @@ from .repositoryresult import RepositoryResult
 from .transactions import DEFAULT_TRANSACTION_SETTINGS, TransactionSettings
 
 
-class PrefixFormat(namedtuple('EncodedIdPrefix', 'prefix format')):
+class PrefixFormat(namedtuple("EncodedIdPrefix", "prefix format")):
     __slots__ = ()
 
 
 if sys.version_info[0] > 2:
     # Hack for isinstance checks
     import io
+
     file = io.IOBase
 
 # Used instead of None as the default value of optional parameters
 # when we want to distinguish between the caller passing None as
 # the actual value and the parameter not being present in the call.
 NOT_GIVEN = object()
+
 
 class RepositoryConnection(object):
     """
@@ -100,6 +102,7 @@ class RepositoryConnection(object):
     argument may also be ``None``, meaning that the method operates on
     those statements which have no associated context only.
     """
+
     def __init__(self, repository, close_repo=False, is_session=False):
         """
         Call through :meth:`~franz.openrdf.repository.repository.Repository.getConnection`.
@@ -179,11 +182,13 @@ class RepositoryConnection(object):
         return self._add_commit_size
 
     add_commit_size = property(
-        getAddCommitSize, setAddCommitSize,
+        getAddCommitSize,
+        setAddCommitSize,
         doc="""The threshold for commit size during triple add operations.
                Set to 0 (zero) or None to clear size-based autocommit behavior.
                When set to an integer triple_count > 0, a commit will occur every
-               triple_count triples added and at the end of the triples being added.""")
+               triple_count triples added and at the end of the triples being added.""",
+    )
 
     def prepareQuery(self, queryLanguage, queryString, baseURI=None):
         """
@@ -194,8 +199,13 @@ class RepositoryConnection(object):
         query.setConnection(self)
         return query
 
-    def prepareTupleQuery(self, queryLanguage=QueryLanguage.SPARQL,
-                          query=None, baseURI=None, queryString=None):
+    def prepareTupleQuery(
+        self,
+        queryLanguage=QueryLanguage.SPARQL,
+        query=None,
+        baseURI=None,
+        queryString=None,
+    ):
         """
         Parse ``query`` into a tuple query object which can be
         executed against the triple stroe.
@@ -216,8 +226,13 @@ class RepositoryConnection(object):
         query.setConnection(self)
         return query
 
-    def prepareUpdate(self, queryLanguage=QueryLanguage.SPARQL,
-                      query=None, baseURI=None, queryString=None):
+    def prepareUpdate(
+        self,
+        queryLanguage=QueryLanguage.SPARQL,
+        query=None,
+        baseURI=None,
+        queryString=None,
+    ):
         """
         Parse ``query`` into an update query object which can be
         executed against the triple store.
@@ -234,13 +249,17 @@ class RepositoryConnection(object):
         :return: A query object.
         :rtype: UpdateQuery
         """
-        query = UpdateQuery(queryLanguage, query or queryString,
-                            baseURI=baseURI)
+        query = UpdateQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
 
-    def prepareGraphQuery(self, queryLanguage=QueryLanguage.SPARQL,
-                          query=None, baseURI=None, queryString=None):
+    def prepareGraphQuery(
+        self,
+        queryLanguage=QueryLanguage.SPARQL,
+        query=None,
+        baseURI=None,
+        queryString=None,
+    ):
         """
         Parse ``query`` into a graph query object which can be
         executed against the triple store.
@@ -261,8 +280,13 @@ class RepositoryConnection(object):
         query.setConnection(self)
         return query
 
-    def prepareBooleanQuery(self, queryLanguage=QueryLanguage.SPARQL,
-                            query=None, baseURI=None, queryString=None):
+    def prepareBooleanQuery(
+        self,
+        queryLanguage=QueryLanguage.SPARQL,
+        query=None,
+        baseURI=None,
+        queryString=None,
+    ):
         """
         Parse ``query`` into a boolean query object which can be
         executed against the triple store.
@@ -279,8 +303,7 @@ class RepositoryConnection(object):
         :return: A query object.
         :rtype: BooleanQuery
         """
-        query = BooleanQuery(queryLanguage, query or queryString,
-                             baseURI=baseURI)
+        query = BooleanQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
         return query
 
@@ -330,7 +353,7 @@ class RepositoryConnection(object):
         if context == MINI_NULL_CONTEXT:
             return MINI_NULL_CONTEXT
 
-        if context == 'null':
+        if context == "null":
             return MINI_NULL_CONTEXT
 
         if context:
@@ -352,12 +375,16 @@ class RepositoryConnection(object):
         if contexts == ALL_CONTEXTS:
             cxts = None
         elif contexts is None:
-            if none_is_mini_null: cxts = [MINI_NULL_CONTEXT]
-            else: cxts = None
-        elif contexts == 'null':
+            if none_is_mini_null:
+                cxts = [MINI_NULL_CONTEXT]
+            else:
+                cxts = None
+        elif contexts == "null":
             cxts = [MINI_NULL_CONTEXT]
         elif isinstance(contexts, (list, tuple)):
-            cxts = [self._context_to_ntriples(c, none_is_mini_null=True) for c in contexts]
+            cxts = [
+                self._context_to_ntriples(c, none_is_mini_null=True) for c in contexts
+            ]
         else:
             cxts = [self._context_to_ntriples(contexts, none_is_mini_null=True)]
         return cxts
@@ -370,24 +397,36 @@ class RepositoryConnection(object):
         value, ntriplize it, and return a binary tuple.
         TODO: FIGURE OUT HOW COORDINATE PAIRS WILL WORK HERE
         """
-        if isinstance(term, GeoSpatialRegion): return term
+        if isinstance(term, GeoSpatialRegion):
+            return term
         factory = self.getValueFactory()
         if isinstance(term, GeoCoordinate):
             geoType = term.geoType
             miniGeoType = geoType._getMiniGeoType()
             if geoType.system == GeoType.Cartesian:
-                return self._get_mini_repository().createCartesianGeoLiteral(miniGeoType, term.xcoor, term.ycoor)
+                return self._get_mini_repository().createCartesianGeoLiteral(
+                    miniGeoType, term.xcoor, term.ycoor
+                )
             elif geoType.system == GeoType.Spherical:
                 unit = term.unit or term.geoType.unit
-                return self._get_mini_repository().createSphericalGeoLiteral(miniGeoType, term.xcoor, term.ycoor, unit=unit)
+                return self._get_mini_repository().createSphericalGeoLiteral(
+                    miniGeoType, term.xcoor, term.ycoor, unit=unit
+                )
             else:
-                raise IllegalOptionException("Unsupported geo coordinate system", geoType.system)
+                raise IllegalOptionException(
+                    "Unsupported geo coordinate system", geoType.system
+                )
         if isinstance(term, RangeLiteral):
             beginTerm = term.getLowerBound()
             endTerm = term.getUpperBound()
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         elif isinstance(term, (tuple, list)):
-            return [self._convert_term_to_mini_term(t, predicate_for_object=predicate_for_object) for t in term]
+            return [
+                self._convert_term_to_mini_term(
+                    t, predicate_for_object=predicate_for_object
+                )
+                for t in term
+            ]
         ## OBSOLETE: CONVERT LIST TO RANGE LITERAL:
         elif isinstance(term, (tuple, list)):
             factory = self.getValueFactory()
@@ -398,7 +437,9 @@ class RepositoryConnection(object):
             return (self._to_ntriples(beginTerm), self._to_ntriples(endTerm))
         ## END OBSOLETE
         elif predicate_for_object:
-            term = factory.object_position_term_to_openrdf_term(term, predicate=predicate_for_object)
+            term = factory.object_position_term_to_openrdf_term(
+                term, predicate=predicate_for_object
+            )
             return self._to_ntriples(term)
         else:
             return self._to_ntriples(term)
@@ -420,10 +461,23 @@ class RepositoryConnection(object):
         :type indices: list[str]|str
         """
 
-        return self._get_mini_repository().warmup(includeStrings, includeTriples, indices)
+        return self._get_mini_repository().warmup(
+            includeStrings, includeTriples, indices
+        )
 
-    def getStatements(self, subject=None, predicate=None,  object=None, contexts=ALL_CONTEXTS, includeInferred=False,
-                      limit=None, offset=None, tripleIDs=False, output=None, output_format=RDFFormat.NQX):
+    def getStatements(
+        self,
+        subject=None,
+        predicate=None,
+        object=None,
+        contexts=ALL_CONTEXTS,
+        includeInferred=False,
+        limit=None,
+        offset=None,
+        tripleIDs=False,
+        output=None,
+        output_format=RDFFormat.NQX,
+    ):
         """
         Get all statements with a specific subject, predicate and/or
         object from the repository. The result is optionally
@@ -470,7 +524,11 @@ class RepositoryConnection(object):
         # note: so with tripleIDs we'll get triples that are quads consisting of five elements.
         with output_to(output) as out_file:
             callback = None if output is None else out_file.write
-            accept = None if output is None else RDFFormat.mime_type_for_format(output_format)
+            accept = (
+                None
+                if output is None
+                else RDFFormat.mime_type_for_format(output_format)
+            )
 
             subj = self._convert_term_to_mini_term(subject)
             pred = self._convert_term_to_mini_term(predicate)
@@ -478,14 +536,31 @@ class RepositoryConnection(object):
             cxt = self._contexts_to_ntriple_contexts(contexts)
             if isinstance(object, GeoSpatialRegion):
                 if cxt is not None and cxt != ALL_CONTEXTS:
-                    raise ValueError('Geospatial queries cannot be limited to a context.')
-                return self._getStatementsInRegion(subj, pred, obj, limit=limit, offset=offset,
-                                                   accept=accept, callback=callback)
+                    raise ValueError(
+                        "Geospatial queries cannot be limited to a context."
+                    )
+                return self._getStatementsInRegion(
+                    subj,
+                    pred,
+                    obj,
+                    limit=limit,
+                    offset=offset,
+                    accept=accept,
+                    callback=callback,
+                )
             else:
                 result = self._get_mini_repository().getStatements(
-                    subj, pred, obj, cxt,
-                    infer=includeInferred, limit=limit, offset=offset, tripleIDs=tripleIDs,
-                    accept=accept, callback=callback)
+                    subj,
+                    pred,
+                    obj,
+                    cxt,
+                    infer=includeInferred,
+                    limit=limit,
+                    offset=offset,
+                    tripleIDs=tripleIDs,
+                    accept=accept,
+                    callback=callback,
+                )
 
             if output is None:
                 return RepositoryResult(result, tripleIDs=tripleIDs)
@@ -509,51 +584,95 @@ class RepositoryConnection(object):
         """
         with output_to(output) as out_file:
             callback = None if output is None else out_file.write
-            accept = None if output is None else RDFFormat.mime_type_for_format(output_format)
-            result = self._get_mini_repository().getStatementsById(ids, accept=accept, callback=callback)
+            accept = (
+                None
+                if output is None
+                else RDFFormat.mime_type_for_format(output_format)
+            )
+            result = self._get_mini_repository().getStatementsById(
+                ids, accept=accept, callback=callback
+            )
         if output is None:
             return RepositoryResult(result, tripleIDs=False)
         else:
             return False
 
-    def _getStatementsInRegion(self, subject, predicate, region, limit=None, offset=None, accept=None, callback=None):
+    def _getStatementsInRegion(
+        self,
+        subject,
+        predicate,
+        region,
+        limit=None,
+        offset=None,
+        accept=None,
+        callback=None,
+    ):
         geoType = region.geoType
         miniGeoType = geoType._getMiniGeoType()
         common_args = {
-            'limit': limit,
-            'offset': offset,
-            'accept': accept,
-            'callback': callback
+            "limit": limit,
+            "offset": offset,
+            "accept": accept,
+            "callback": callback,
         }
 
         if isinstance(region, GeoBox):
             if geoType.system == GeoType.Cartesian:
                 stringTuples = self._get_mini_repository().getStatementsInsideBox(
-                    miniGeoType, predicate, region.xMin, region.xMax, region.yMin, region.yMax,
-                    **common_args)
+                    miniGeoType,
+                    predicate,
+                    region.xMin,
+                    region.xMax,
+                    region.yMin,
+                    region.yMax,
+                    **common_args,
+                )
             elif geoType.system == GeoType.Spherical:
                 stringTuples = self._get_mini_repository().getStatementsInsideBox(
-                    miniGeoType, predicate, region.yMin, region.yMax, region.xMin, region.xMax,
-                    **common_args)
+                    miniGeoType,
+                    predicate,
+                    region.yMin,
+                    region.yMax,
+                    region.xMin,
+                    region.xMax,
+                    **common_args,
+                )
             else:
-                raise ValueError('Unsupported coordinate system: %s' % geoType.system)
+                raise ValueError("Unsupported coordinate system: %s" % geoType.system)
 
         elif isinstance(region, GeoCircle):
             if geoType.system == GeoType.Cartesian:
-                stringTuples = self._get_mini_repository().getStatementsInsideCircle(miniGeoType, predicate,
-                                        region.x, region.y, region.radius, **common_args)
+                stringTuples = self._get_mini_repository().getStatementsInsideCircle(
+                    miniGeoType,
+                    predicate,
+                    region.x,
+                    region.y,
+                    region.radius,
+                    **common_args,
+                )
             elif geoType.system == GeoType.Spherical:
-                stringTuples = self._get_mini_repository().getStatementsHaversine(miniGeoType, predicate,
-                                        region.x, region.y, region.radius, unit=region.unit,
-                                        **common_args)
+                stringTuples = self._get_mini_repository().getStatementsHaversine(
+                    miniGeoType,
+                    predicate,
+                    region.x,
+                    region.y,
+                    region.radius,
+                    unit=region.unit,
+                    **common_args,
+                )
             else:
-                raise ValueError('Unsupported coordinate system: %s' % geoType.system)
+                raise ValueError("Unsupported coordinate system: %s" % geoType.system)
         elif isinstance(region, GeoPolygon):
-            stringTuples = self._get_mini_repository().getStatementsInsidePolygon(miniGeoType, predicate,
-                                        self._convert_term_to_mini_term(region.getResource()),
-                                        **common_args)
+            stringTuples = self._get_mini_repository().getStatementsInsidePolygon(
+                miniGeoType,
+                predicate,
+                self._convert_term_to_mini_term(region.getResource()),
+                **common_args,
+            )
         else:
-            raise ValueError('Unsupported region type: %s' % type(region))     # can't happen
+            raise ValueError(
+                "Unsupported region type: %s" % type(region)
+            )  # can't happen
 
         if callback is None:
             return RepositoryResult(stringTuples, subjectFilter=subject)
@@ -561,8 +680,17 @@ class RepositoryConnection(object):
             return None
 
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
-    def add(self, arg0, arg1=None, arg2=None, contexts=None, base=None, format=None, serverSide=False,
-            attributes=None):
+    def add(
+        self,
+        arg0,
+        arg1=None,
+        arg2=None,
+        contexts=None,
+        base=None,
+        format=None,
+        serverSide=False,
+        attributes=None,
+    ):
         """
         Calls :meth:`.addTriple`, :meth:`.addStatement`, or :meth:`.addFile`.
 
@@ -598,29 +726,49 @@ class RepositoryConnection(object):
         if isinstance(arg0, (basestring, file)):
             if contexts:
                 if len(contexts) > 1:
-                    raise IllegalArgumentException("Only one context may be specified when loading from a file.")
+                    raise IllegalArgumentException(
+                        "Only one context may be specified when loading from a file."
+                    )
                 context = contexts[0]
             else:
                 context = None
-            return self.addFile(arg0, base=base, format=format, context=context, serverSide=serverSide,
-                                attributes=attributes)
+            return self.addFile(
+                arg0,
+                base=base,
+                format=format,
+                context=context,
+                serverSide=serverSide,
+                attributes=attributes,
+            )
         elif isinstance(arg0, Value):
-            return self.addTriple(arg0, arg1, arg2, contexts=contexts, attributes=attributes)
+            return self.addTriple(
+                arg0, arg1, arg2, contexts=contexts, attributes=attributes
+            )
         elif isinstance(arg0, Statement):
             return self.addStatement(arg0, contexts=contexts, attributes=attributes)
-        elif hasattr(arg0, '__iter__'):
+        elif hasattr(arg0, "__iter__"):
             for s in arg0:
                 self.addStatement(s, contexts=contexts, attributes=attributes)
         else:
-            raise IllegalArgumentException("Illegal first argument to 'add'.  Expected a Value, Statement, File, or string.")
+            raise IllegalArgumentException(
+                "Illegal first argument to 'add'.  Expected a Value, Statement, File, or string."
+            )
 
     # NOTE: 'format' shadows a built-in symbol but it is too late to change the public API
-    def addFile(self, filePath, base=None, format=None, context=None, serverSide=False, content_encoding=None,
-                attributes=None,
-                json_ld_store_source=None,
-                json_ld_context=None,
-                allow_external_references=None,
-                external_reference_timeout=None):
+    def addFile(
+        self,
+        filePath,
+        base=None,
+        format=None,
+        context=None,
+        serverSide=False,
+        content_encoding=None,
+        attributes=None,
+        json_ld_store_source=None,
+        json_ld_context=None,
+        allow_external_references=None,
+        external_reference_timeout=None,
+    ):
         """
         Loads a file into the triple store. Note that a file can be loaded into only one context.
 
@@ -666,7 +814,9 @@ class RepositoryConnection(object):
         """
         if isinstance(context, (list, tuple)):
             if len(context) > 1:
-                raise IllegalArgumentException("Multiple contexts passed to 'addFile': %s" % context)
+                raise IllegalArgumentException(
+                    "Multiple contexts passed to 'addFile': %s" % context
+                )
             context = context[0] if context else None
         contextString = self._context_to_ntriples(context, none_is_mini_null=True)
 
@@ -675,20 +825,32 @@ class RepositoryConnection(object):
         content_encoding = content_encoding or ce
 
         self._get_mini_repository().loadFile(
-            filePath, format, context=contextString, serverSide=serverSide,
-            commitEvery=self.add_commit_size, baseURI=base,
+            filePath,
+            format,
+            context=contextString,
+            serverSide=serverSide,
+            commitEvery=self.add_commit_size,
+            baseURI=base,
             content_encoding=content_encoding,
             attributes=attributes,
             json_ld_store_source=json_ld_store_source,
             json_ld_context=json_ld_context,
             allow_external_references=allow_external_references,
-            external_reference_timeout=external_reference_timeout)
+            external_reference_timeout=external_reference_timeout,
+        )
 
-    def addData(self, data, rdf_format=None, base_uri=None, context=None, attributes=None,
-                json_ld_store_source=None,
-                json_ld_context=None,
-                allow_external_references=None,
-                external_reference_timeout=None):
+    def addData(
+        self,
+        data,
+        rdf_format=None,
+        base_uri=None,
+        context=None,
+        attributes=None,
+        json_ld_store_source=None,
+        json_ld_context=None,
+        allow_external_references=None,
+        external_reference_timeout=None,
+    ):
         """
         Adds data from a string to the repository.
 
@@ -747,20 +909,46 @@ class RepositoryConnection(object):
 
         ctx = self._context_to_ntriples(context, none_is_mini_null=True)
         self._get_mini_repository().loadData(
-            data, rdf_format, base_uri=base_uri, context=ctx, attributes=attributes,
+            data,
+            rdf_format,
+            base_uri=base_uri,
+            context=ctx,
+            attributes=attributes,
             json_ld_store_source=json_ld_store_source,
             json_ld_context=json_ld_context,
             allow_external_references=allow_external_references,
-            external_reference_timeout=external_reference_timeout)
+            external_reference_timeout=external_reference_timeout,
+        )
 
-    def addDocumentFile(self, doc, doc_format=None, base=None, rules=None,
-                        subject=None, keys=None,
-                        prefix=None, rename=None, rdf_type=None, lang=None, skip=None,
-                        transform=None, graph=None, json_store_source=None,
-                        csv_dialect=None, csv_columns=None, csv_separator=None,
-                        csv_quote=None, csv_whitespace=None, csv_double_quote=None,
-                        csv_escape=None, attributes=None, commit=None, context=None,
-                        encoding=None, content_encoding=None):
+    def addDocumentFile(
+        self,
+        doc,
+        doc_format=None,
+        base=None,
+        rules=None,
+        subject=None,
+        keys=None,
+        prefix=None,
+        rename=None,
+        rdf_type=None,
+        lang=None,
+        skip=None,
+        transform=None,
+        graph=None,
+        json_store_source=None,
+        csv_dialect=None,
+        csv_columns=None,
+        csv_separator=None,
+        csv_quote=None,
+        csv_whitespace=None,
+        csv_double_quote=None,
+        csv_escape=None,
+        attributes=None,
+        commit=None,
+        context=None,
+        encoding=None,
+        content_encoding=None,
+    ):
         """
         Convert a JSON or CSV file into triples and add the resulting triples
         into the repository.
@@ -927,22 +1115,44 @@ class RepositoryConnection(object):
         :type content_encoding: str
         """
         args = locals()
-        del args['self']
+        del args["self"]
         fmt, ce = DocFormat.format_for_file_name(doc)
-        args['doc_format'] = doc_format or fmt
+        args["doc_format"] = doc_format or fmt
         content_encoding = content_encoding or ce
-        args['content_encoding'] = content_encoding if content_encoding != 'none' else None
-        with open(doc, 'rb') as f:
-            args['doc'] = f
+        args["content_encoding"] = (
+            content_encoding if content_encoding != "none" else None
+        )
+        with open(doc, "rb") as f:
+            args["doc"] = f
             self._addDocument(**args)
 
-    def addDocumentData(self, doc, doc_format=DocFormat.JSON, base=None, rules=None,
-                        subject=None, keys=None,
-                        prefix=None, rename=None, rdf_type=None, lang=None, skip=None,
-                        transform=None, graph=None, json_store_source=None,
-                        csv_dialect=None, csv_columns=None, csv_separator=None,
-                        csv_quote=None, csv_whitespace=None, csv_double_quote=None,
-                        csv_escape=None, attributes=None, commit=None, context=None):
+    def addDocumentData(
+        self,
+        doc,
+        doc_format=DocFormat.JSON,
+        base=None,
+        rules=None,
+        subject=None,
+        keys=None,
+        prefix=None,
+        rename=None,
+        rdf_type=None,
+        lang=None,
+        skip=None,
+        transform=None,
+        graph=None,
+        json_store_source=None,
+        csv_dialect=None,
+        csv_columns=None,
+        csv_separator=None,
+        csv_quote=None,
+        csv_whitespace=None,
+        csv_double_quote=None,
+        csv_escape=None,
+        attributes=None,
+        commit=None,
+        context=None,
+    ):
         """
         Convert a JSON or CSV document string into triples and add the resulting triples
         into the repository.
@@ -959,31 +1169,59 @@ class RepositoryConnection(object):
         if not doc:
             return
         args = locals()
-        del args['self']
+        del args["self"]
         if isinstance(doc, dict):
-            args['doc'] = encode_json(doc)
-            args['doc_format'] = DocFormat.JSON
+            args["doc"] = encode_json(doc)
+            args["doc_format"] = DocFormat.JSON
         elif isinstance(doc, list):
-            args['doc'] = '\n'.join(encode_json(d) for d in doc)
-            args['doc_format'] = DocFormat.JSON_LINES
+            args["doc"] = "\n".join(encode_json(d) for d in doc)
+            args["doc_format"] = DocFormat.JSON_LINES
         self._addDocument(**args)
 
     # Make sure the arguments here match the two methods above.
-    def _addDocument(self, doc, doc_format=None, base=None, rules=None,
-                     subject=None, keys=None,
-                     prefix=None, rename=None, rdf_type=None, lang=None, skip=None,
-                     transform=None, graph=None, json_store_source=None,
-                     csv_dialect=None, csv_columns=None, csv_separator=None,
-                     csv_quote=None, csv_whitespace=None, csv_double_quote=None,
-                     csv_escape=None, attributes=None, commit=None, context=None,
-                     encoding=None, content_encoding=None):
+    def _addDocument(
+        self,
+        doc,
+        doc_format=None,
+        base=None,
+        rules=None,
+        subject=None,
+        keys=None,
+        prefix=None,
+        rename=None,
+        rdf_type=None,
+        lang=None,
+        skip=None,
+        transform=None,
+        graph=None,
+        json_store_source=None,
+        csv_dialect=None,
+        csv_columns=None,
+        csv_separator=None,
+        csv_quote=None,
+        csv_whitespace=None,
+        csv_double_quote=None,
+        csv_escape=None,
+        attributes=None,
+        commit=None,
+        context=None,
+        encoding=None,
+        content_encoding=None,
+    ):
         args = locals()
 
         # Unpack 'keys' into individual dicts
         augmented = {}
         if keys:
             for name, props in six.iteritems(keys):
-                for prop in ('prefix', 'rename', 'rdf_type', 'lang', 'transform', 'graph'):
+                for prop in (
+                    "prefix",
+                    "rename",
+                    "rdf_type",
+                    "lang",
+                    "transform",
+                    "graph",
+                ):
                     value = getattr(props, prop)
                     if value is not None:
                         if prop not in augmented:
@@ -992,34 +1230,34 @@ class RepositoryConnection(object):
                         if name not in augmented[prop]:
                             augmented[prop][name] = value
                 if props.skip:
-                    if 'skip' not in augmented:
-                        augmented['skip'] = skip[:] if skip else []
-                    augmented['skip'].append(name)
+                    if "skip" not in augmented:
+                        augmented["skip"] = skip[:] if skip else []
+                    augmented["skip"].append(name)
 
         # Unpack the CSV dialect, but existing csv_* arguments have precedence
         if csv_dialect:
             if isinstance(csv_dialect, six.string_types):
                 csv_dialect = csv.get_dialect(csv_dialect)
             if csv_separator is None:
-                augmented['csv_separator'] = csv_dialect.delimiter
+                augmented["csv_separator"] = csv_dialect.delimiter
             if csv_quote is None:
-                augmented['csv_quote'] = csv_dialect.quotechar
+                augmented["csv_quote"] = csv_dialect.quotechar
             if csv_whitespace is None:
                 if csv_dialect.skipinitialspace:
-                    augmented['csv_whitespace'] = string.whitespace
+                    augmented["csv_whitespace"] = string.whitespace
                 else:
                     # The server uses tab and space as defaults
-                    augmented['csv_whitespace'] = ''
+                    augmented["csv_whitespace"] = ""
             if csv_double_quote is None:
-                augmented['csv_double_quote'] = csv_dialect.doublequote
+                augmented["csv_double_quote"] = csv_dialect.doublequote
             if csv_escape is None:
-                augmented['csv_escape'] = csv_dialect.escapechar
+                augmented["csv_escape"] = csv_dialect.escapechar
 
         args.update(augmented)
 
-        del args['csv_dialect']
-        del args['keys']
-        del args['self']
+        del args["csv_dialect"]
+        del args["keys"]
+        del args["self"]
         self._get_mini_repository().loadDocument(**args)
 
     def getGeneration(self):
@@ -1048,11 +1286,18 @@ class RepositoryConnection(object):
         :param attributes: Attributes for the added triple (a mapping from attribute names to values).
         :type attributes: dict[str, str]
         """
-        obj = self.getValueFactory().object_position_term_to_openrdf_term(object, predicate=predicate)
+        obj = self.getValueFactory().object_position_term_to_openrdf_term(
+            object, predicate=predicate
+        )
         cxts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
         for cxt in cxts:
-            self._get_mini_repository().addStatement(self._to_ntriples(subject), self._to_ntriples(predicate),
-                        self._convert_term_to_mini_term(obj), cxt, attributes=attributes)
+            self._get_mini_repository().addStatement(
+                self._to_ntriples(subject),
+                self._to_ntriples(predicate),
+                self._convert_term_to_mini_term(obj),
+                cxt,
+                attributes=attributes,
+            )
 
     def _to_ntriples(self, term):
         """
@@ -1063,12 +1308,14 @@ class RepositoryConnection(object):
         """
         if term is None or isinstance(term, basestring):
             return term
-        elif hasattr(term, 'toNTriples'):
+        elif hasattr(term, "toNTriples"):
             return term.toNTriples()
         else:
             return Literal(term).toNTriples()
 
-    def addTriples(self, triples_or_quads, context=None, ntriples=False, attributes=None):
+    def addTriples(
+        self, triples_or_quads, context=None, ntriples=False, attributes=None
+    ):
         """
         Add the supplied triples or quads to this repository.
 
@@ -1105,7 +1352,9 @@ class RepositoryConnection(object):
                 gs = q[3] if is_quad and q[3] else context
             else:
                 predicate = q[1]
-                obj = self.getValueFactory().object_position_term_to_openrdf_term(q[2], predicate=predicate)
+                obj = self.getValueFactory().object_position_term_to_openrdf_term(
+                    q[2], predicate=predicate
+                )
                 s = self._to_ntriples(q[0])
                 p = self._to_ntriples(predicate)
                 o = self._to_ntriples(obj)
@@ -1117,14 +1366,18 @@ class RepositoryConnection(object):
                 else:
                     quads.append((s, p, o, None))
             else:
-                ntriple_contexts = self._contexts_to_ntriple_contexts(gs, none_is_mini_null=True)
+                ntriple_contexts = self._contexts_to_ntriple_contexts(
+                    gs, none_is_mini_null=True
+                )
                 if quad_attributes:
                     for g in ntriple_contexts:
                         quads.append((s, p, o, g, encode_json(quad_attributes)))
                 else:
                     for g in ntriple_contexts:
                         quads.append((s, p, o, g))
-        self._get_mini_repository().addStatements(quads, commitEvery=self.add_commit_size)
+        self._get_mini_repository().addStatements(
+            quads, commitEvery=self.add_commit_size
+        )
 
     def addStatement(self, statement, contexts=NOT_GIVEN, attributes=None):
         """
@@ -1145,8 +1398,13 @@ class RepositoryConnection(object):
         if contexts is NOT_GIVEN:
             ctx = statement.getContext()
             contexts = [ctx] if ctx is not None else None
-        self.addTriple(statement.getSubject(), statement.getPredicate(), statement.getObject(),
-                       contexts=contexts, attributes=attributes)
+        self.addTriple(
+            statement.getSubject(),
+            statement.getPredicate(),
+            statement.getObject(),
+            contexts=contexts,
+            attributes=attributes,
+        )
 
     def remove(self, arg0, arg1=None, arg2=None, contexts=None):
         """
@@ -1172,13 +1430,17 @@ class RepositoryConnection(object):
         """
         if contexts and not isinstance(contexts, list):
             contexts = [contexts]
-        if isinstance(arg0, Value) or arg0 is None: self.removeTriples(arg0, arg1, arg2, contexts=contexts)
-        elif isinstance(arg0, Statement): self.removeStatement(arg0, contexts=contexts)
-        elif hasattr(arg0, '__iter__'):
+        if isinstance(arg0, Value) or arg0 is None:
+            self.removeTriples(arg0, arg1, arg2, contexts=contexts)
+        elif isinstance(arg0, Statement):
+            self.removeStatement(arg0, contexts=contexts)
+        elif hasattr(arg0, "__iter__"):
             for s in arg0:
                 self.removeStatement(s, contexts=contexts)
         else:
-            raise IllegalArgumentException("Illegal first argument to 'remove'.  Expected a Value, Statement, or iterator.")
+            raise IllegalArgumentException(
+                "Illegal first argument to 'remove'.  Expected a Value, Statement, or iterator."
+            )
 
     def removeTriples(self, subject, predicate, object, contexts=ALL_CONTEXTS):
         """
@@ -1196,13 +1458,19 @@ class RepositoryConnection(object):
         """
         subj = self._to_ntriples(subject)
         pred = self._to_ntriples(predicate)
-        obj = self._to_ntriples(self.getValueFactory().object_position_term_to_openrdf_term(object))
-        ntripleContexts = self._contexts_to_ntriple_contexts(contexts, none_is_mini_null=True)
+        obj = self._to_ntriples(
+            self.getValueFactory().object_position_term_to_openrdf_term(object)
+        )
+        ntripleContexts = self._contexts_to_ntriple_contexts(
+            contexts, none_is_mini_null=True
+        )
         if ntripleContexts is None or len(ntripleContexts) == 0:
             self._get_mini_repository().deleteMatchingStatements(subj, pred, obj, None)
         else:
             for cxt in ntripleContexts:
-                self._get_mini_repository().deleteMatchingStatements(subj, pred, obj, cxt)
+                self._get_mini_repository().deleteMatchingStatements(
+                    subj, pred, obj, cxt
+                )
 
     def removeQuads(self, quads, ntriples=False):
         """
@@ -1228,14 +1496,18 @@ class RepositoryConnection(object):
                 quad[3] = q[3]
             elif isinstance(quad, (list, tuple)):
                 predicate = q[1]
-                obj = self.getValueFactory().object_position_term_to_openrdf_term(q[2], predicate=predicate)
+                obj = self.getValueFactory().object_position_term_to_openrdf_term(
+                    q[2], predicate=predicate
+                )
                 quad[0] = self._to_ntriples(q[0])
                 quad[1] = self._to_ntriples(predicate)
                 quad[2] = self._to_ntriples(obj)
                 quad[3] = self._to_ntriples(q[3])
-            else: # must be a statement
+            else:  # must be a statement
                 predicate = q.getPredicate()
-                obj = self.getValueFactory().object_position_term_to_openrdf_term(q.getObject(), predicate=predicate)
+                obj = self.getValueFactory().object_position_term_to_openrdf_term(
+                    q.getObject(), predicate=predicate
+                )
                 quad[0] = self._to_ntriples(q.getSubject())
                 quad[1] = self._to_ntriples(predicate)
                 quad[2] = self._to_ntriples(obj)
@@ -1262,7 +1534,12 @@ class RepositoryConnection(object):
         :param contexts: An optional list of graphs to remove the statement from.
         :type contexts: Iterable[URI|string]
         """
-        self.removeTriples(statement.getSubject(), statement.getPredicate(), statement.getObject(), contexts=contexts)
+        self.removeTriples(
+            statement.getSubject(),
+            statement.getPredicate(),
+            statement.getObject(),
+            contexts=contexts,
+        )
 
     def clear(self, contexts=ALL_CONTEXTS):
         """
@@ -1286,10 +1563,16 @@ class RepositoryConnection(object):
         :param contexts: A context or list of contexts (default: all contexts).
         :type contexts: Iterable[string|URI]|string|URI
         """
-        warnings.warn("export is deprecated. Use saveResponse instead.", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "export is deprecated. Use saveResponse instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.exportStatements(None, None, None, False, handler, contexts=contexts)
 
-    def exportStatements(self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS):
+    def exportStatements(
+        self, subj, pred, obj, includeInferred, handler, contexts=ALL_CONTEXTS
+    ):
         """
         Export statements to a file.
 
@@ -1310,12 +1593,20 @@ class RepositoryConnection(object):
         :param contexts: A context or list of contexts (default: all contexts).
         :type contexts: Iterable[string|URI]|string|URI
         """
-        warnings.warn("exportStatements is deprecated. Use getStatements(output=...) instead.",
-                      DeprecationWarning, stacklevel=2)
-        self.getStatements(subj, pred, obj, contexts,
-                           output=handler.getFilePath() or sys.stdout,
-                           output_format=handler.getRDFFormat(),
-                           includeInferred=includeInferred)
+        warnings.warn(
+            "exportStatements is deprecated. Use getStatements(output=...) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.getStatements(
+            subj,
+            pred,
+            obj,
+            contexts,
+            output=handler.getFilePath() or sys.stdout,
+            output_format=handler.getRDFFormat(),
+            includeInferred=includeInferred,
+        )
 
     def getSubjectTriplesCacheSize(self):
         """
@@ -1410,7 +1701,9 @@ class RepositoryConnection(object):
 
         See :meth:`.Repository.registerDatatypeMapping`.
         """
-        return self.repository.registerDatatypeMapping(predicate=predicate, datatype=datatype, nativeType=nativeType)
+        return self.repository.registerDatatypeMapping(
+            predicate=predicate, datatype=datatype, nativeType=nativeType
+        )
 
     def createLiteral(self, value, datatype=None, language=None):
         """
@@ -1426,7 +1719,9 @@ class RepositoryConnection(object):
         :param language: Optional language tag.
         :type language: string
         """
-        return self.getValueFactory().createLiteral(value, datatype=datatype, language=language)
+        return self.getValueFactory().createLiteral(
+            value, datatype=datatype, language=language
+        )
 
     def createURI(self, uri=None, namespace=None, localname=None, canonical=True):
         """
@@ -1450,7 +1745,8 @@ class RepositoryConnection(object):
         :rtype: URI
         """
         return self.getValueFactory().createURI(
-            uri=uri, namespace=namespace, localname=localname, canonical=canonical)
+            uri=uri, namespace=namespace, localname=localname, canonical=canonical
+        )
 
     def createBNode(self, nodeID=None):
         """
@@ -1497,7 +1793,9 @@ class RepositoryConnection(object):
         :return: A new statement.
         :rtype: Statement
         """
-        return self.getValueFactory().createStatement(subject, predicate, object, context=context)
+        return self.getValueFactory().createStatement(
+            subject, predicate, object, context=context
+        )
 
     def createRange(self, lowerBound, upperBound):
         """
@@ -1510,7 +1808,9 @@ class RepositoryConnection(object):
         :return: A new literal object.
         :rtype: RangeLiteral
         """
-        return self.getValueFactory().createRange(lowerBound=lowerBound, upperBound=upperBound)
+        return self.getValueFactory().createRange(
+            lowerBound=lowerBound, upperBound=upperBound
+        )
 
     def addRules(self, rules, language=QueryLanguage.PROLOG):
         """
@@ -1531,7 +1831,7 @@ class RepositoryConnection(object):
         """
         del language
         if not self._get_mini_repository().sessionAlive:
-            raise Exception('Prolog rules can only be added in a dedicated session.')
+            raise Exception("Prolog rules can only be added in a dedicated session.")
         self._get_mini_repository().definePrologFunctors(rules)
 
     def loadRules(self, filename, language=QueryLanguage.PROLOG):
@@ -1563,7 +1863,7 @@ class RepositoryConnection(object):
         """
         namespaces = {}
         for pair in self._get_mini_repository().listNamespaces():
-            namespaces[pair['prefix']] = pair['namespace']
+            namespaces[pair["prefix"]] = pair["namespace"]
         return namespaces
 
     def getNamespace(self, prefix):
@@ -1622,7 +1922,7 @@ class RepositoryConnection(object):
         """
         query_options = {}
         for pair in self._get_mini_repository().listQueryOptions():
-            query_options[pair['name']] = pair['value']
+            query_options[pair["name"]] = pair["value"]
         return query_options
 
     def getQueryOption(self, name):
@@ -1646,7 +1946,7 @@ class RepositoryConnection(object):
         :type value: string
         :raises RequestError: if given option name is not a defined query option.
         """
-        self._get_mini_repository().setQueryOption(name, '{}'.format(value))
+        self._get_mini_repository().setQueryOption(name, "{}".format(value))
 
     def removeQueryOption(self, name):
         """
@@ -1690,7 +1990,9 @@ class RepositoryConnection(object):
     ## Geo-spatial
     #############################################################################################
 
-    def createRectangularSystem(self, scale=1, unit=None, xMin=0, xMax=None, yMin=0, yMax=None):
+    def createRectangularSystem(
+        self, scale=1, unit=None, xMin=0, xMax=None, yMin=0, yMax=None
+    ):
         """
         Create a Cartesian coordinate system and use it as the current coordinate system.
 
@@ -1707,12 +2009,28 @@ class RepositoryConnection(object):
         :type yMax: float|int
         :return: The new coordinate system.
         """
-        self.geoType = GeoType(GeoType.Cartesian, scale=scale, unit=unit, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
-                               ##,latMin=None, latMax=None, longMin=None, longMax=None)
+        self.geoType = GeoType(
+            GeoType.Cartesian,
+            scale=scale,
+            unit=unit,
+            xMin=xMin,
+            xMax=xMax,
+            yMin=yMin,
+            yMax=yMax,
+        )
+        ##,latMin=None, latMax=None, longMin=None, longMax=None)
         self.geoType.setConnection(self)
         return self.geoType
 
-    def createLatLongSystem(self, unit='degree', scale=None, latMin=None, latMax=None, longMin=None, longMax=None):
+    def createLatLongSystem(
+        self,
+        unit="degree",
+        scale=None,
+        latMin=None,
+        latMax=None,
+        longMin=None,
+        longMax=None,
+    ):
         """
         Create a spherical coordinate system and use it as the current coordinate system.
 
@@ -1731,7 +2049,15 @@ class RepositoryConnection(object):
         :type latMax: float|int
         :return: The new coordinate system.
         """
-        self.geoType = GeoType(GeoType.Spherical, unit=unit, scale=scale, latMin=latMin, latMax=latMax, longMin=longMin, longMax=longMax)
+        self.geoType = GeoType(
+            GeoType.Spherical,
+            unit=unit,
+            scale=scale,
+            latMin=latMin,
+            latMax=latMax,
+            longMin=longMin,
+            longMax=longMax,
+        )
         self.geoType.setConnection(self)
         return self.geoType
 
@@ -1767,7 +2093,9 @@ class RepositoryConnection(object):
         :return: A literal representing the created point.
         :rtype: Literal
         """
-        return self.geoType.createCoordinate(x=x, y=y, latitude=latitude, longitude=longitude)
+        return self.geoType.createCoordinate(
+            x=x, y=y, latitude=latitude, longitude=longitude
+        )
 
     def createBox(self, xMin=None, xMax=None, yMin=None, yMax=None):
         """
@@ -1826,7 +2154,9 @@ class RepositoryConnection(object):
     ## SNA   Social Network Analysis Methods
     #############################################################################################
 
-    def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, generator_query=None):
+    def registerSNAGenerator(
+        self, name, subjectOf=None, objectOf=None, undirected=None, generator_query=None
+    ):
         """
         Create a new SNA generator named ``name``.
         If one already exists with the same name - redefine it.
@@ -1851,8 +2181,13 @@ class RepositoryConnection(object):
                                 a start node ``?node``.
         """
         miniRep = self._get_mini_repository()
-        miniRep.registerSNAGenerator(name, subjectOf=subjectOf, objectOf=objectOf, undirected=undirected,
-                                     query=generator_query)
+        miniRep.registerSNAGenerator(
+            name,
+            subjectOf=subjectOf,
+            objectOf=objectOf,
+            undirected=undirected,
+            query=generator_query,
+        )
 
     def registerNeighborMatrix(self, name, generator, group_uris, max_depth=2):
         """
@@ -1885,9 +2220,20 @@ class RepositoryConnection(object):
         """
         return self.mini_repository.listFreeTextIndices()
 
-    def createFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
-                            innerChars=None, borderChars=None, tokenizer=None):
+    def createFreeTextIndex(
+        self,
+        name,
+        predicates=None,
+        indexLiterals=None,
+        indexResources=None,
+        indexFields=None,
+        minimumWordSize=None,
+        stopWords=None,
+        wordFilters=None,
+        innerChars=None,
+        borderChars=None,
+        tokenizer=None,
+    ):
         """
         Create a free-text index with the given parameters.
 
@@ -1947,17 +2293,39 @@ class RepositoryConnection(object):
                           and ``borderChars``.
         :type tokenizer: string
         """
-        if predicates: predicates = list(map(uris.asURIString, predicates))
-        if isinstance(indexLiterals, list): indexLiterals = list(map(uris.asURIString, indexLiterals))
-        self.mini_repository.createFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
-                                                 indexResources=indexResources, indexFields=indexFields,
-                                                 minimumWordSize=minimumWordSize, stopWords=stopWords,
-                                                 wordFilters=wordFilters, innerChars=innerChars,
-                                                 borderChars=borderChars, tokenizer=tokenizer)
+        if predicates:
+            predicates = list(map(uris.asURIString, predicates))
+        if isinstance(indexLiterals, list):
+            indexLiterals = list(map(uris.asURIString, indexLiterals))
+        self.mini_repository.createFreeTextIndex(
+            name,
+            predicates=predicates,
+            indexLiterals=indexLiterals,
+            indexResources=indexResources,
+            indexFields=indexFields,
+            minimumWordSize=minimumWordSize,
+            stopWords=stopWords,
+            wordFilters=wordFilters,
+            innerChars=innerChars,
+            borderChars=borderChars,
+            tokenizer=tokenizer,
+        )
 
-    def modifyFreeTextIndex(self, name, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
-                            reIndex=None, innerChars=None, borderChars=None, tokenizer=None):
+    def modifyFreeTextIndex(
+        self,
+        name,
+        predicates=None,
+        indexLiterals=None,
+        indexResources=None,
+        indexFields=None,
+        minimumWordSize=None,
+        stopWords=None,
+        wordFilters=None,
+        reIndex=None,
+        innerChars=None,
+        borderChars=None,
+        tokenizer=None,
+    ):
         """
         Modify parameters of a free-text index.
 
@@ -2009,13 +2377,24 @@ class RepositoryConnection(object):
                           and ``borderChars``.
         :type tokenizer: string
         """
-        if predicates: predicates = list(map(uris.asURIString, predicates))
-        if isinstance(indexLiterals, list): indexLiterals = list(map(uris.asURIString, indexLiterals))
-        self.mini_repository.modifyFreeTextIndex(name, predicates=predicates, indexLiterals = indexLiterals,
-                                                 indexResources=indexResources, indexFields=indexFields,
-                                                 minimumWordSize=minimumWordSize, stopWords=stopWords,
-                                                 wordFilters=wordFilters, reIndex=reIndex, innerChars=innerChars,
-                                                 borderChars=borderChars, tokenizer=tokenizer)
+        if predicates:
+            predicates = list(map(uris.asURIString, predicates))
+        if isinstance(indexLiterals, list):
+            indexLiterals = list(map(uris.asURIString, indexLiterals))
+        self.mini_repository.modifyFreeTextIndex(
+            name,
+            predicates=predicates,
+            indexLiterals=indexLiterals,
+            indexResources=indexResources,
+            indexFields=indexFields,
+            minimumWordSize=minimumWordSize,
+            stopWords=stopWords,
+            wordFilters=wordFilters,
+            reIndex=reIndex,
+            innerChars=innerChars,
+            borderChars=borderChars,
+            tokenizer=tokenizer,
+        )
 
     def deleteFreeTextIndex(self, name):
         """
@@ -2045,7 +2424,9 @@ class RepositoryConnection(object):
             value["indexLiterals"] = list(map(URI, value["indexLiterals"]))
         return value
 
-    def evalFreeTextSearch(self, pattern, infer=False, callback=None, limit=None, offset=None, index=None):
+    def evalFreeTextSearch(
+        self, pattern, infer=False, callback=None, limit=None, offset=None, index=None
+    ):
         """
         Return a list of statements for the given free-text pattern search.
 
@@ -2127,7 +2508,7 @@ class RepositoryConnection(object):
         self.close()
 
     @contextmanager
-    def session(self,  autocommit=False, lifetime=None, loadinitfile=False):
+    def session(self, autocommit=False, lifetime=None, loadinitfile=False):
         """
         A session context manager for use with the ``with`` statement:
 
@@ -2225,11 +2606,21 @@ class RepositoryConnection(object):
 
         return self._get_mini_repository().evalInServer(code)
 
-    def evalGraphqlQuery(self, query, default_prefix=None, infer=False, namespaces=None, variables=None, aliases=None):
+    def evalGraphqlQuery(
+        self,
+        query,
+        default_prefix=None,
+        infer=False,
+        namespaces=None,
+        variables=None,
+        aliases=None,
+    ):
         """
         Evaluate the GraphQL query in the server.
         """
-        return self._get_mini_repository().evalGraphqlQuery(query, default_prefix, infer, namespaces, variables, aliases)
+        return self._get_mini_repository().evalGraphqlQuery(
+            query, default_prefix, infer, namespaces, variables, aliases
+        )
 
     def evalJavaScript(self, code):
         """
@@ -2350,8 +2741,7 @@ class RepositoryConnection(object):
         self._get_mini_repository().disableDuplicateSuppression()
 
     def callStoredProc(self, function, module, *args):
-        return self._get_mini_repository().callStoredProc(function, module,
-            *args)
+        return self._get_mini_repository().callStoredProc(function, module, *args)
 
     def getSpinFunction(self, uri):
         """
@@ -2411,7 +2801,9 @@ class RepositoryConnection(object):
         """
         self._get_mini_repository().deleteSpinMagicProperty(uri)
 
-    def materializeEntailed(self, _with=None, without=None, useTypeSubproperty=False, commit=100000):
+    def materializeEntailed(
+        self, _with=None, without=None, useTypeSubproperty=False, commit=100000
+    ):
         """
         Call to materialize entailed triples to enable reasoning queries without the dynamic query-time reasoner.
         Returns the number of triples added.
@@ -2423,7 +2815,12 @@ class RepositoryConnection(object):
 
         commit indicates the number of triples per commit for the materializer.
         """
-        return self._get_mini_repository().materializeEntailed(_with=_with, without=without, useTypeSubproperty=useTypeSubproperty, commit=commit)
+        return self._get_mini_repository().materializeEntailed(
+            _with=_with,
+            without=without,
+            useTypeSubproperty=useTypeSubproperty,
+            commit=commit,
+        )
 
     def deleteMaterialized(self):
         """
@@ -2455,8 +2852,13 @@ class RepositoryConnection(object):
         """
         return self.getValueFactory().namespace(prefix)
 
-    def executeTupleQuery(self, query, language=QueryLanguage.SPARQL,
-                          output=None, output_format=RDFFormat.TABLE):
+    def executeTupleQuery(
+        self,
+        query,
+        language=QueryLanguage.SPARQL,
+        output=None,
+        output_format=RDFFormat.TABLE,
+    ):
         """
         Prepare and immediately evaluate a query that returns tuples.
 
@@ -2476,9 +2878,13 @@ class RepositoryConnection(object):
         q = self.prepareTupleQuery(language, query)
         return q.evaluate(output=output, output_format=output_format)
 
-
-    def executeGraphQuery(self, query, language=QueryLanguage.SPARQL,
-                          output=None, output_format=RDFFormat.NQX):
+    def executeGraphQuery(
+        self,
+        query,
+        language=QueryLanguage.SPARQL,
+        output=None,
+        output_format=RDFFormat.NQX,
+    ):
         """
         Prepare and immediately evaluate a query that returns RDF.
 
@@ -2497,7 +2903,6 @@ class RepositoryConnection(object):
         """
         q = self.prepareGraphQuery(language, query)
         return q.evaluate(output=output, output_format=output_format)
-
 
     def executeBooleanQuery(self, query, language=QueryLanguage.SPARQL):
         """
@@ -2717,18 +3122,32 @@ class RepositoryConnection(object):
 
 def attribute_definition_from_dict(item):
     return AttributeDefinition(
-        name=item.get('name'),
-        allowed_values=item.get('allowed-values'),
-        ordered=bool(item.get('ordered')),
-        minimum_number=item.get('minimum-number'),
-        maximum_number=item.get('maximum-number')
+        name=item.get("name"),
+        allowed_values=item.get("allowed-values"),
+        ordered=bool(item.get("ordered")),
+        minimum_number=item.get("minimum-number"),
+        maximum_number=item.get("maximum-number"),
     )
 
 
 class GeoType(object):
-    Cartesian = 'CARTESIAN'
-    Spherical = 'SPHERICAL'
-    def __init__(self, system, scale=None, unit=None, xMin=None, xMax=None, yMin=None, yMax=None, latMin=None, latMax=None, longMin=None, longMax=None):
+    Cartesian = "CARTESIAN"
+    Spherical = "SPHERICAL"
+
+    def __init__(
+        self,
+        system,
+        scale=None,
+        unit=None,
+        xMin=None,
+        xMax=None,
+        yMin=None,
+        yMax=None,
+        latMin=None,
+        latMax=None,
+        longMin=None,
+        longMax=None,
+    ):
         self.system = system
         self.connection = None
         self.scale = scale
@@ -2745,26 +3164,49 @@ class GeoType(object):
         if system == GeoType.Cartesian:
             if unit:
                 raise Exception("Units not yet supported for rectangular coordinates.")
-        else: pass  ## can't happen
+        else:
+            pass  ## can't happen
 
-    def setConnection(self, connection): self.connection = connection
+    def setConnection(self, connection):
+        self.connection = connection
 
     def _getMiniGeoType(self):
-        def stringify(term): return unicode(term) if term is not None else None
+        def stringify(term):
+            return unicode(term) if term is not None else None
+
         if not self.miniGeoType:
             if self.system == GeoType.Cartesian:
-                self.miniGeoType = self.connection._get_mini_repository().getCartesianGeoType(stringify(self.scale), stringify(self.xMin), stringify(self.xMax),
-                                                                                stringify(self.yMin), stringify(self.yMax))
+                self.miniGeoType = (
+                    self.connection._get_mini_repository().getCartesianGeoType(
+                        stringify(self.scale),
+                        stringify(self.xMin),
+                        stringify(self.xMax),
+                        stringify(self.yMin),
+                        stringify(self.yMax),
+                    )
+                )
             elif self.system == GeoType.Spherical:
-                self.miniGeoType = self.connection._get_mini_repository().getSphericalGeoType(stringify(self.scale), unit=stringify(self.unit),
-                                latMin=stringify(self.latMin), latMax=stringify(self.latMax), longMin=stringify(self.longMin), longMax=stringify(self.longMax))
+                self.miniGeoType = (
+                    self.connection._get_mini_repository().getSphericalGeoType(
+                        stringify(self.scale),
+                        unit=stringify(self.unit),
+                        latMin=stringify(self.latMin),
+                        latMax=stringify(self.latMax),
+                        longMin=stringify(self.longMin),
+                        longMax=stringify(self.longMax),
+                    )
+                )
         return self.miniGeoType
 
-    def createCoordinate(self, x=None, y=None, latitude=None, longitude=None, unit=None):
+    def createCoordinate(
+        self, x=None, y=None, latitude=None, longitude=None, unit=None
+    ):
         """
         Create an x, y  or lat, long  coordinate for the system defined by this geotype.
         """
-        return GeoCoordinate(x=(x or latitude), y=y or longitude, unit=unit, geoType=self)
+        return GeoCoordinate(
+            x=(x or latitude), y=y or longitude, unit=unit, geoType=self
+        )
 
     def createBox(self, xMin=None, xMax=None, yMin=None, yMax=None, unit=None):
         """
@@ -2787,13 +3229,25 @@ class GeoType(object):
         is a list of x,y pairs. The 'uri' is optional.
         """
         poly = GeoPolygon(vertices, uri=uri, geoType=self)
-        poly.resource = self.connection.createURI(uri) if uri else self.connection.createBNode()
+        poly.resource = (
+            self.connection.createURI(uri) if uri else self.connection.createBNode()
+        )
         miniResource = self.connection._convert_term_to_mini_term(poly.resource)
         miniRep = self.connection._get_mini_repository()
         if self.system == GeoType.Cartesian:
-            miniVertices = [miniRep.createCartesianGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
+            miniVertices = [
+                miniRep.createCartesianGeoLiteral(
+                    self._getMiniGeoType(), coord[0], coord[1]
+                )
+                for coord in poly.vertices
+            ]
         elif self.system == GeoType.Spherical:
-            miniVertices = [miniRep.createSphericalGeoLiteral(self._getMiniGeoType(), coord[0], coord[1]) for coord in poly.vertices]
+            miniVertices = [
+                miniRep.createSphericalGeoLiteral(
+                    self._getMiniGeoType(), coord[0], coord[1]
+                )
+                for coord in poly.vertices
+            ]
         miniRep.createPolygon(miniResource, miniVertices)
         return poly
 
@@ -2809,8 +3263,9 @@ def dump_json_ld(source, sort_keys=False):
     :param sort_keys: if True make sure that metadata keys (@context etc) appear first.
     :return: a JSON-serializable dict.
     """
+
     def fix_value(value):
-        if callable(getattr(value, 'to_json_ld', None)):
+        if callable(getattr(value, "to_json_ld", None)):
             return value.to_json_ld()
         elif isinstance(value, dict):
             return fix_dict(value)
@@ -2819,29 +3274,29 @@ def dump_json_ld(source, sort_keys=False):
         return value
 
     def fix_at_value(value):
-        if callable(getattr(value, 'to_json_ld_key', None)):
+        if callable(getattr(value, "to_json_ld_key", None)):
             return value.to_json_ld_key()
         else:
             return fix_value(value)
 
     def key_priority(key):
-        if key == '@context':
+        if key == "@context":
             return 0
-        elif key == '@id':
+        elif key == "@id":
             return 1
-        elif key == '@value':
+        elif key == "@value":
             return 2
-        elif key.startswith('@'):
+        elif key.startswith("@"):
             return 3
         return 4
 
     def fix_dict(d):
         result = []
         for key, value in six.iteritems(d):
-            if callable(getattr(key, 'to_json_ld_key', None)):
+            if callable(getattr(key, "to_json_ld_key", None)):
                 key = key.to_json_ld_key()
             # Handle @id, @vocab, ...
-            if key.startswith('@'):
+            if key.startswith("@"):
                 value = fix_at_value(value)
             else:
                 value = fix_value(value)
@@ -2854,15 +3309,20 @@ def dump_json_ld(source, sort_keys=False):
     return encode_json(fix_value(source))
 
 
-class DocumentKey(namedtuple('DocumentKey', ('prefix', 'rename', 'rdf_type', 'lang', 'skip', 'transform', 'graph'))):
+class DocumentKey(
+    namedtuple(
+        "DocumentKey",
+        ("prefix", "rename", "rdf_type", "lang", "skip", "transform", "graph"),
+    )
+):
     """
     Describes the way in which value of a single key is translated into a triple (or triples,
     if the value is a list) when importing documents into AG.
 
     See the documentation of :meth:`RepositoryConnection#addDocument` for details.
     """
+
     __slots__ = ()
 
 
 DocumentKey.__new__.__defaults__ = (None,) * len(DocumentKey._fields)
-

@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -18,17 +18,25 @@ class RDFFormat(Format):
     default character encoding. Some formats are able to encode context
     information while others are not; this is indicated by the value of
     supports_contexts field. Similaraly, formats for which the
-    supports_attributes flag is `True` are capable of encoding triple 
+    supports_attributes flag is `True` are capable of encoding triple
     attributes.
     """
+
     # A global dictionary mapping extensions to formats
     # Used by Format.format_for_file_name
     _ext_map = {}
 
-    def __init__(self, name, mime_types=None, charset="UTF-8",
-                 file_extensions=None, supports_namespaces=False,
-                 supports_contexts=False, supports_attributes=False,
-                 register=True):
+    def __init__(
+        self,
+        name,
+        mime_types=None,
+        charset="UTF-8",
+        file_extensions=None,
+        supports_namespaces=False,
+        supports_contexts=False,
+        supports_attributes=False,
+        register=True,
+    ):
         """
         Initialize a new RDF format object.
 
@@ -54,63 +62,76 @@ class RDFFormat(Format):
         self.supports_attributes = supports_attributes
 
     # These will be automatically converted to RDFFormat instances
-        
+
     RDFXML = dict(
         name="RDF/XML",
         mime_types=["application/rdf+xml", "application/xml"],
         file_extensions=["rdf", "rdfs", "owl", "xml"],
-        supports_namespaces=True, supports_contexts=False)
+        supports_namespaces=True,
+        supports_contexts=False,
+    )
 
     NTRIPLES = dict(
         name="N-Triples",
         mime_types=["application/n-triples", "text/plain"],
         file_extensions=["nt", "ntriples"],
-        supports_namespaces=False, supports_contexts=False)
+        supports_namespaces=False,
+        supports_contexts=False,
+    )
 
     NQUADS = dict(
         name="N-Quads",
         mime_types=["application/n-quads"],
         file_extensions=["nq", "nquads"],
-        supports_namespaces=False, supports_contexts=True)
+        supports_namespaces=False,
+        supports_contexts=True,
+    )
 
     NQX = dict(
         name="Extended N-Quads (with attributes)",
         mime_types=["application/x-extended-nquads"],
         file_extensions=["nqx"],
-        supports_namespaces=False, supports_contexts=True,
-        supports_attributes=True)
+        supports_namespaces=False,
+        supports_contexts=True,
+        supports_attributes=True,
+    )
 
     TURTLE = dict(
         name="Turtle",
         mime_types=["text/turtle"],
         file_extensions=["ttl", "turtle"],
         supports_namespaces=True,
-        supports_contexts=False)
+        supports_contexts=False,
+    )
 
     TRIG = dict(
         name="TriG",
         mime_types=["application/trig"],
         file_extensions=["trig"],
         supports_namespaces=True,
-        supports_contexts=True)
+        supports_contexts=True,
+    )
 
     TRIX = dict(
         name="TriX",
         mime_types=["application/trix"],
         file_extensions=["trix"],
         supports_namespaces=True,
-        supports_contexts=True)
+        supports_contexts=True,
+    )
 
     TABLE = dict(
         name="Table",
         mime_types=["text/table"],
         file_extensions=[],
         supports_namespaces=False,
-        supports_contexts=True)
+        supports_contexts=True,
+    )
 
     JSONLD = dict(
         name="JSON-LD",
         mime_types=["application/ld+json"],
         file_extensions=["json", "jsonld"],
         supports_namespaces=True,
-        supports_contexts=True)
+        supports_contexts=True,
+    )

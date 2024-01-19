@@ -15,11 +15,12 @@ class DocFormat(Format):
     Represents a document format. Documents are non-RDF files that
     can be converted to triples using the transform service of AG.
     """
+
     # A global dictionary mapping extensions to formats
     # Used by Format.format_for_file_name
     _ext_map = {}
 
-    def __init__(self, name, mime_types=None,file_extensions=None, register=True):
+    def __init__(self, name, mime_types=None, file_extensions=None, register=True):
         """
         Initialize a new document format object.
 
@@ -35,17 +36,12 @@ class DocFormat(Format):
 
     # These will be automatically converted to DocFormat instances
 
-    CSV = dict(
-        name="CSV",
-        mime_types=["text/csv"],
-        file_extensions=["csv"])
+    CSV = dict(name="CSV", mime_types=["text/csv"], file_extensions=["csv"])
 
-    JSON = dict(
-        name="JSON",
-        mime_types=["application/json"],
-        file_extensions=["json"])
+    JSON = dict(name="JSON", mime_types=["application/json"], file_extensions=["json"])
 
     JSON_LINES = dict(
         name="JSON lines (http://jsonlines.org/)",
         mime_types=["jsonl"],
-        file_extensions=["jsonl"])
+        file_extensions=["jsonl"],
+    )

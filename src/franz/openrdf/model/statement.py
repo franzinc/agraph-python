@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# pylint: disable-msg=C0103 
+# pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -24,7 +24,8 @@ class Statement(object):
     """
     Wraps a triple or a quad. Might also contain an id.
     """
-    __slots__ = ('subject', 'predicate', 'object', 'context', 'id', '_hash')
+
+    __slots__ = ("subject", "predicate", "object", "context", "id", "_hash")
 
     def __init__(self, subject, predicate, object, context=None, id=None):
         """
@@ -65,8 +66,11 @@ class Statement(object):
         # In general the number of different predicates in sets of
         # statements is the smallest, so predicate equality is checked
         # last.
-        if self.getObject() == other.getObject() and self.getSubject() == other.getSubject() \
-                and self.getPredicate() == other.getPredicate():
+        if (
+            self.getObject() == other.getObject()
+            and self.getSubject() == other.getSubject()
+            and self.getPredicate() == other.getPredicate()
+        ):
             if self.context:
                 return self.getContext() == other.getContext()
             else:
@@ -76,25 +80,42 @@ class Statement(object):
 
     def __hash__(self):
         if self._hash is None:
-            self._hash = hash((self.getSubject(), self.getPredicate(), self.getObject(), self.getContext()))
+            self._hash = hash(
+                (
+                    self.getSubject(),
+                    self.getPredicate(),
+                    self.getObject(),
+                    self.getContext(),
+                )
+            )
         return self._hash
 
     def __str__(self):
-        elements = [self.getSubject(), self.getPredicate(), self.getObject(), self.getContext(), self.getTripleID()]
+        elements = [
+            self.getSubject(),
+            self.getPredicate(),
+            self.getObject(),
+            self.getContext(),
+            self.getTripleID(),
+        ]
         while len(elements) > 3 and elements[-1] is None:
             elements.pop()
-        return '(' + ', '.join(map(str, elements)) + ')'
+        return "(" + ", ".join(map(str, elements)) + ")"
 
     def __len__(self):
         return 3 if self.context is None else 4
 
     def __getitem__(self, index):
-        if index == 0: return self.getSubject()
-        elif index == 1: return self.getPredicate()
-        elif index == 2: return self.getObject()
-        elif index == 3: return self.getContext()
+        if index == 0:
+            return self.getSubject()
+        elif index == 1:
+            return self.getPredicate()
+        elif index == 2:
+            return self.getObject()
+        elif index == 3:
+            return self.getContext()
         else:
-            raise IndexError('Illegal index (%d), must be < 4' % index)
+            raise IndexError("Illegal index (%d), must be < 4" % index)
 
     def getSubject(self):
         """
@@ -107,10 +128,10 @@ class Statement(object):
         if isinstance(self.subject, basestring):
             self.subject = parse_term(self.subject)
         return self.subject
-    
+
     def setSubject(self, subject):
         self.subject = subject
-    
+
     def getPredicate(self):
         """
         Get the predicate (the second element of the statement).
@@ -122,10 +143,10 @@ class Statement(object):
         if isinstance(self.predicate, basestring):
             self.predicate = parse_term(self.predicate)
         return self.predicate
-     
+
     def setPredicate(self, predicate):
         self.predicate = predicate
-    
+
     def getObject(self):
         """
         Get the object (the third element of the statement).
@@ -137,10 +158,10 @@ class Statement(object):
         if isinstance(self.object, basestring):
             self.object = parse_term(self.object)
         return self.object
-    
+
     def setObject(self, object):
         self.object = object
-    
+
     def getContext(self):
         """
         Get the graph (the fourth, optional element of the statement).
@@ -152,7 +173,7 @@ class Statement(object):
         if isinstance(self.context, basestring):
             self.context = parse_term(self.context)
         return self.context
-    
+
     def setContext(self, context):
         self.context = context
 
@@ -170,4 +191,3 @@ class Statement(object):
         if isinstance(self.id, basestring):
             self.id = int(self.id)
         return self.id
-

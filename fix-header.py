@@ -16,19 +16,20 @@ import tempfile
 #  - All lines inside the header must be empty or comments.
 #  - A header must contain the word 'Copyright'.
 
+
 def is_horizontal_rule(line):
-    """ Check if a line looks like a horizontal rule."""
+    """Check if a line looks like a horizontal rule."""
     line = line.strip()
-    return all(ch == '#' for ch in line) and len(line) > 10
+    return all(ch == "#" for ch in line) and len(line) > 10
 
 
 def is_comment(line):
-    """ 
+    """
     Check if a line consists only of whitespace and
     (optionally) a comment.
     """
     line = line.strip()
-    return line == '' or line.startswith('#')
+    return line == "" or line.startswith("#")
 
 
 def looks_like_a_license(text):
@@ -38,7 +39,7 @@ def looks_like_a_license(text):
     Note that TEXT does not contain initial /final horizontal rules,
     but does contain comment markers in each non-empty line.
     """
-    return 'Copyright' in text
+    return "Copyright" in text
 
 
 def output_new_header(out_file):
@@ -46,14 +47,14 @@ def output_new_header(out_file):
     Print new header text to OUT_FILE.
     """
     year = str(datetime.datetime.now().year)
-    out_file.write('#' * 80)
-    out_file.write('\n')
-    with open('header.inc', 'rb') as f:
+    out_file.write("#" * 80)
+    out_file.write("\n")
+    with open("header.inc", "rb") as f:
         for line in f:
-            out_file.write('# ')
-            out_file.write(line.replace('|year|', year))
-    out_file.write('#' * 80)
-    out_file.write('\n')
+            out_file.write("# ")
+            out_file.write(line.replace("|year|", year))
+    out_file.write("#" * 80)
+    out_file.write("\n")
 
 
 def fix_file(in_file, out_file):
@@ -66,7 +67,7 @@ def fix_file(in_file, out_file):
     for line in in_file:
         if buffering:
             if is_horizontal_rule(line):
-                text = ''.join(buffer[1:])
+                text = "".join(buffer[1:])
                 hr = buffer[0]
                 # We'll either ignore or output the current buffer.
                 del buffer[:]
@@ -83,7 +84,7 @@ def fix_file(in_file, out_file):
             elif is_comment(line):
                 buffer.append(line)
             else:
-                out_file.write(''.join(buffer))
+                out_file.write("".join(buffer))
                 out_file.write(line)
                 del buffer[:]
                 buffering = False
@@ -97,12 +98,12 @@ def fix_file(in_file, out_file):
 
 def main(args):
     for in_name in args[1:]:
-        with open(in_name, 'rb') as in_file:
+        with open(in_name, "rb") as in_file:
             temp_fd, temp_name = tempfile.mkstemp()
-            with os.fdopen(temp_fd, 'wb') as out_file:
+            with os.fdopen(temp_fd, "wb") as out_file:
                 fix_file(in_file, out_file)
         shutil.move(temp_name, in_name)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv)

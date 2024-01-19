@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -18,6 +18,7 @@ from past.builtins import unicode
 from ..model.value import URI
 
 NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+
 
 class RDF(object):
     """

@@ -4,7 +4,7 @@ from franz.openrdf.repository.repositoryconnection import RepositoryConnection
 
 
 class TriplesBuffer:
-    def __init__(self, conn: RepositoryConnection, limit: int=1000):
+    def __init__(self, conn: RepositoryConnection, limit: int = 1000):
         """
         Cosntruct an instance of TriplesBuffer.
 
@@ -43,8 +43,9 @@ class TriplesBuffer:
     def __len__(self):
         return len(self._buffer)
 
+
 @contextmanager
-def buffered_triples(conn: RepositoryConnection, limit: int=1000):
+def buffered_triples(conn: RepositoryConnection, limit: int = 1000):
     """
     Construct an instance of TriplesBuffer that automatically flushes before
     the end of with statement.

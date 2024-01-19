@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -18,6 +18,7 @@ from past.builtins import unicode
 from ..model.value import URI
 
 NS = "http://www.w3.org/2002/07/owl#"
+
 
 class OWL(object):
     """
@@ -39,8 +40,7 @@ class OWL(object):
     TRANSITIVEPROPERTY = URI(namespace=NS, localname="TransitiveProperty")
     SYMMETRICPROPERTY = URI(namespace=NS, localname="SymmetricProperty")
     FUNCTIONALPROPERTY = URI(namespace=NS, localname="FunctionalProperty")
-    INVERSEFUNCTIONALPROPERTY = URI(namespace=NS,
-	localname="InverseFunctionalProperty")
+    INVERSEFUNCTIONALPROPERTY = URI(namespace=NS, localname="InverseFunctionalProperty")
     RESTRICTION = URI(namespace=NS, localname="Restriction")
     ONPROPERTY = URI(namespace=NS, localname="onProperty")
     ALLVALUESFROM = URI(namespace=NS, localname="allValuesFrom")
@@ -53,8 +53,7 @@ class OWL(object):
     INTERSECTIONOF = URI(namespace=NS, localname="intersectionOf")
     VERSIONINFO = URI(namespace=NS, localname="versionInfo")
     PRIORVERSION = URI(namespace=NS, localname="priorVersion")
-    BACKWARDCOMPATIBLEWITH = URI(namespace=NS,
-	localname="backwardCompatibleWith")
+    BACKWARDCOMPATIBLEWITH = URI(namespace=NS, localname="backwardCompatibleWith")
     INCOMPATIBLEWITH = URI(namespace=NS, localname="incompatibleWith")
     DEPRECATEDCLASS = URI(namespace=NS, localname="DeprecatedClass")
     DEPRECATEDPROPERTY = URI(namespace=NS, localname="DeprecatedProperty")
@@ -66,4 +65,3 @@ class OWL(object):
     DISJOINTWITH = URI(namespace=NS, localname="disjointWith")
     UNIONOF = URI(namespace=NS, localname="unionOf")
     COMPLEMENTOF = URI(namespace=NS, localname="complementOf")
-

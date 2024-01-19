@@ -9,7 +9,7 @@ from __future__ import absolute_import, division, with_statement
 import copy
 import sys
 
-if(sys.version_info.major < 3):
+if sys.version_info.major < 3:
     from inspect import getargspec as getfullargspec
 else:
     from inspect import getfullargspec
@@ -63,8 +63,17 @@ def _split_proxy(proxy):
 
 
 class Service(object):
-    def __init__(self, url, user=None, password=None, cainfo=None, sslcert=None,
-                 verifyhost=None, verifypeer=None, proxy=None):
+    def __init__(
+        self,
+        url,
+        user=None,
+        password=None,
+        cainfo=None,
+        sslcert=None,
+        verifyhost=None,
+        verifypeer=None,
+        proxy=None,
+    ):
         # Note: it is important to save the arguments into fields with identical names.
         # This makes the weird cloning mechanism used by subclasses work.
         # WARNING: The cloning process mentioned above will create a **shallow** copy
@@ -94,21 +103,27 @@ class Service(object):
         if s:
             if s.distributed_transaction_timeout is not None:
                 values.append(
-                    ('distributedTransactionTimeout',
-                     time_in_seconds(s.distributed_transaction_timeout)))
+                    (
+                        "distributedTransactionTimeout",
+                        time_in_seconds(s.distributed_transaction_timeout),
+                    )
+                )
             if s.durability is not None:
-                values.append(('durability', s.durability))
+                values.append(("durability", s.durability))
             if s.transaction_latency_count is not None:
-                values.append(('transactionLatencyCount',
-                               s.transaction_latency_count))
+                values.append(("transactionLatencyCount", s.transaction_latency_count))
             if s.transaction_latency_timeout is not None:
-                values.append(('transactionLatencyTimeout',
-                               time_in_seconds(s.transaction_latency_timeout)))
+                values.append(
+                    (
+                        "transactionLatencyTimeout",
+                        time_in_seconds(s.transaction_latency_timeout),
+                    )
+                )
         result = {}
         if values:
-            result['x-repl-settings'] = ' '.join('%s=%s' % value for value in values)
+            result["x-repl-settings"] = " ".join("%s=%s" % value for value in values)
         if self.user_attributes:
-            result['x-user-attributes'] = encode_json(self.user_attributes)
+            result["x-user-attributes"] = encode_json(self.user_attributes)
         return result or None
 
     def _instance_from_url(self, subclass, url=None):
@@ -127,7 +142,7 @@ class Service(object):
                 kwargs[arg_name] = copy.copy(getattr(self, arg_name))
         # Override URL
         if url is not None:
-            kwargs['url'] = url
+            kwargs["url"] = url
         return subclass(**kwargs)
 
     def copy(self):
@@ -142,8 +157,9 @@ class Catalog(Service):
 
     def createRepository(self, name, indices=None):
         """Ask the server to create a new repository."""
-        nullRequest(self, "PUT", "/repositories/" + quote(name) + "?" +
-            urlenc(index=indices))
+        nullRequest(
+            self, "PUT", "/repositories/" + quote(name) + "?" + urlenc(index=indices)
+        )
         return self.getRepository(name)
 
     def deleteRepository(self, name):
@@ -152,7 +168,9 @@ class Catalog(Service):
 
     def getRepository(self, name):
         """Create an access object for a triple store."""
-        return self._instance_from_url(Repository, to_native_string(self.url) + "/repositories/" + quote(name))
+        return self._instance_from_url(
+            Repository, to_native_string(self.url) + "/repositories/" + quote(name)
+        )
 
 
 class Client(Service):
@@ -160,7 +178,10 @@ class Client(Service):
         return jsonRequest(self, "GET", "/version")
 
     def listCatalogs(self):
-        return [cat["id"] if cat["id"] != "/" else None for cat in jsonRequest(self, "GET", "/catalogs")]
+        return [
+            cat["id"] if cat["id"] != "/" else None
+            for cat in jsonRequest(self, "GET", "/catalogs")
+        ]
 
     def openCatalog(self, uriOrName):
         if re.match("^https?://", uriOrName):
@@ -180,7 +201,7 @@ class Client(Service):
         return jsonRequest(self, "GET", "/initfile")
 
     def setInitfile(self, content=None, restart=True):
-        if (content is None):
+        if content is None:
             nullRequest(self, "DELETE", "/initfile")
         else:
             nullRequest(self, "PUT", "/initfile?" + urlenc(restart=restart), content)
@@ -192,8 +213,7 @@ class Client(Service):
         return jsonRequest(self, "GET", "/scripts")
 
     def addScript(self, module, code):
-        nullRequest(self, "PUT", "/scripts/" + to_native_string(module),
-            body=code)
+        nullRequest(self, "PUT", "/scripts/" + to_native_string(module), body=code)
 
     def getScript(self, module):
         return jsonRequest(self, "GET", "/scripts/" + to_native_string(module))
@@ -202,9 +222,17 @@ class Client(Service):
         nullRequest(self, "DELETE", "/scripts/" + to_native_string(module))
 
     def openSession(self, spec, autocommit=False, lifetime=None, loadinitfile=False):
-        url = jsonRequest(self, "POST", "/session?" +
-                          urlenc(autoCommit=autocommit, lifetime=lifetime,
-                                 loadInitFile=loadinitfile, store=spec))
+        url = jsonRequest(
+            self,
+            "POST",
+            "/session?"
+            + urlenc(
+                autoCommit=autocommit,
+                lifetime=lifetime,
+                loadInitFile=loadinitfile,
+                store=spec,
+            ),
+        )
         rep = self._instance_from_url(Repository, url)
         rep._enableSession(lifetime)
         return rep
@@ -214,7 +242,9 @@ class Client(Service):
 
     def addUser(self, name, password=None):
         assert password is not None or name == "anonymous"
-        nullRequest(self, "PUT", "/users/" + quote(name) + "?" + urlenc(password=password))
+        nullRequest(
+            self, "PUT", "/users/" + quote(name) + "?" + urlenc(password=password)
+        )
 
     def deleteUser(self, name):
         nullRequest(self, "DELETE", "/users/" + quote(name))
@@ -226,12 +256,24 @@ class Client(Service):
         return jsonRequest(self, "GET", "/users/" + quote(name) + "/access")
 
     def addUserAccess(self, name, read, write, catalog, repository):
-        nullRequest(self, "PUT", "/users/" + quote(name) + "/access?" +
-            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+        nullRequest(
+            self,
+            "PUT",
+            "/users/"
+            + quote(name)
+            + "/access?"
+            + urlenc(read=read, write=write, catalog=catalog, repository=repository),
+        )
 
     def deleteUserAccess(self, name, read, write, catalog, repository):
-        nullRequest(self, "DELETE", "/users/" + quote(name) + "/access?" +
-            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+        nullRequest(
+            self,
+            "DELETE",
+            "/users/"
+            + quote(name)
+            + "/access?"
+            + urlenc(read=read, write=write, catalog=catalog, repository=repository),
+        )
 
     def listUserEffectiveAccess(self, name):
         return jsonRequest(self, "GET", "/users/" + quote(name) + "/effectiveAccess")
@@ -240,7 +282,9 @@ class Client(Service):
         return jsonRequest(self, "GET", "/users/" + quote(name) + "/permissions")
 
     def listUserEffectivePermissions(self, name):
-        return jsonRequest(self, "GET", "/users/" + quote(name) + "/effectivePermissions")
+        return jsonRequest(
+            self, "GET", "/users/" + quote(name) + "/effectivePermissions"
+        )
 
     def addUserPermission(self, name, _type):
         nullRequest(self, "PUT", "/users/" + quote(name) + "/permissions/" + _type)
@@ -270,12 +314,24 @@ class Client(Service):
         return jsonRequest(self, "GET", "/roles/" + quote(role) + "/access")
 
     def addRoleAccess(self, role, read, write, catalog, repository):
-        nullRequest(self, "PUT", "/roles/" + quote(role) + "/access?" +
-            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+        nullRequest(
+            self,
+            "PUT",
+            "/roles/"
+            + quote(role)
+            + "/access?"
+            + urlenc(read=read, write=write, catalog=catalog, repository=repository),
+        )
 
     def deleteRoleAccess(self, role, read, write, catalog, repository):
-        nullRequest(self, "DELETE", "/roles/" + quote(role) + "/access?" +
-            urlenc(read=read, write=write, catalog=catalog, repository=repository))
+        nullRequest(
+            self,
+            "DELETE",
+            "/roles/"
+            + quote(role)
+            + "/access?"
+            + urlenc(read=read, write=write, catalog=catalog, repository=repository),
+        )
 
     def listUserRoles(self, name):
         return jsonRequest(self, "GET", "/users/" + quote(name) + "/roles")
@@ -287,51 +343,99 @@ class Client(Service):
         nullRequest(self, "DELETE", "/users/" + quote(name) + "/roles/" + quote(role))
 
     def listUserSecurityFilters(self, name, _type):
-        return jsonRequest(self, "GET", "/users/" + quote(name) + '/security-filters/' + to_native_string(_type))
+        return jsonRequest(
+            self,
+            "GET",
+            "/users/" + quote(name) + "/security-filters/" + to_native_string(_type),
+        )
 
     def addUserSecurityFilter(self, name, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "POST", "/users/" + quote(name) + "/security-filters/" + to_native_string(_type) + "?" +
-            urlenc(s=s, p=p, o=o, g=g))
+        nullRequest(
+            self,
+            "POST",
+            "/users/"
+            + quote(name)
+            + "/security-filters/"
+            + to_native_string(_type)
+            + "?"
+            + urlenc(s=s, p=p, o=o, g=g),
+        )
 
     def deleteUserSecurityFilter(self, name, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "DELETE", "/users/" + quote(name) + "/security-filters/" + to_native_string(_type) + "?" +
-            urlenc(s=s, p=p, o=o, g=g))
+        nullRequest(
+            self,
+            "DELETE",
+            "/users/"
+            + quote(name)
+            + "/security-filters/"
+            + to_native_string(_type)
+            + "?"
+            + urlenc(s=s, p=p, o=o, g=g),
+        )
 
     def listRoleSecurityFilters(self, role, _type):
-        return jsonRequest(self, "GET", "/roles/" + quote(role) + '/security-filters/' + to_native_string(_type))
+        return jsonRequest(
+            self,
+            "GET",
+            "/roles/" + quote(role) + "/security-filters/" + to_native_string(_type),
+        )
 
     def addRoleSecurityFilter(self, role, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "POST", "/roles/" + quote(role) + "/security-filters/" + to_native_string(_type) + "?" +
-            urlenc(s=s, p=p, o=o, g=g))
+        nullRequest(
+            self,
+            "POST",
+            "/roles/"
+            + quote(role)
+            + "/security-filters/"
+            + to_native_string(_type)
+            + "?"
+            + urlenc(s=s, p=p, o=o, g=g),
+        )
 
     def deleteRoleSecurityFilter(self, role, _type, s=None, p=None, o=None, g=None):
-        nullRequest(self, "DELETE", "/roles/" + quote(role) + "/security-filters/" + to_native_string(_type) + "?" +
-            urlenc(s=s, p=p, o=o, g=g))
+        nullRequest(
+            self,
+            "DELETE",
+            "/roles/"
+            + quote(role)
+            + "/security-filters/"
+            + to_native_string(_type)
+            + "?"
+            + urlenc(s=s, p=p, o=o, g=g),
+        )
 
     def getUserData(self, key):
         try:
-            return jsonRequest(self, "GET",
-                               "/users/%s/data/%s" % (quote(self.user, safe=''),
-                                                      quote(key, safe='')),
-                               )
+            return jsonRequest(
+                self,
+                "GET",
+                "/users/%s/data/%s" % (quote(self.user, safe=""), quote(key, safe="")),
+            )
         except RequestError as e:
             if e.status == 404:
                 return None
             raise
 
     def setUserData(self, key, data):
-        nullRequest(self, "PUT", "/users/%s/data/%s" % (quote(self.user, safe=''),
-                                                        quote(key, safe='')),
-                    body=data)
+        nullRequest(
+            self,
+            "PUT",
+            "/users/%s/data/%s" % (quote(self.user, safe=""), quote(key, safe="")),
+            body=data,
+        )
 
     def deleteUserData(self, key):
-        nullRequest(self, "DELETE", "/users/%s/data/%s" % (quote(self.user, safe=''),
-                                                           quote(key, safe='')))
+        nullRequest(
+            self,
+            "DELETE",
+            "/users/%s/data/%s" % (quote(self.user, safe=""), quote(key, safe="")),
+        )
 
     def listUserData(self):
-        entries = jsonRequest(self, "GET",
-                              "/users/%s/data/" % quote(self.user, safe=''))
-        return [entry['id'] for entry in entries]
+        entries = jsonRequest(
+            self, "GET", "/users/%s/data/" % quote(self.user, safe="")
+        )
+        return [entry["id"] for entry in entries]
 
 
 class Repository(Service):
@@ -345,9 +449,23 @@ class Repository(Service):
         """Lists the contexts (named graphs) that are present in this repository."""
         return [t["contextID"] for t in jsonRequest(self, "GET", "/contexts")]
 
-    def evalSparqlQuery(self, query, infer=False, context=None, namedContext=None, callback=None,
-                        bindings=None, planner=None, checkVariables=None, count=False, accept=None, analyze=False,
-                        analysisTechnique=None, analysisTimeout=None, update=False):
+    def evalSparqlQuery(
+        self,
+        query,
+        infer=False,
+        context=None,
+        namedContext=None,
+        callback=None,
+        bindings=None,
+        planner=None,
+        checkVariables=None,
+        count=False,
+        accept=None,
+        analyze=False,
+        analysisTechnique=None,
+        analysisTimeout=None,
+        update=False,
+    ):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
         default context. Return type depends on the query type. ASK
@@ -356,42 +474,73 @@ class Repository(Service):
         of lists representing statements. Callback WILL NOT work on
         ASK queries."""
         if accept is None:
-            accept="text/integer" if count else "application/json"
+            accept = "text/integer" if count else "application/json"
         if analyze:
-            accept="text/plain"
+            accept = "text/plain"
         if bindings is not None:
-            bindings = "".join(["&$" + quote(a) + "=" + quote(b.encode("utf-8")) for a, b in list(bindings.items())])
-        return jsonRequest(self, "POST" if update else "GET", self.url,
-                   urlenc(query=query, infer=infer, context=context, namedContext=namedContext,
-                       planner=planner, checkVariables=checkVariables,
-                       analyzeIndicesUsed=analyze, queryAnalysisTechnique=analysisTechnique,
-                       queryAnalysisTimeout=analysisTimeout,
-                       returnQueryMetadata=True) + (bindings or ""),
-                       callback=callback,
-                       accept=accept)
+            bindings = "".join(
+                [
+                    "&$" + quote(a) + "=" + quote(b.encode("utf-8"))
+                    for a, b in list(bindings.items())
+                ]
+            )
+        return jsonRequest(
+            self,
+            "POST" if update else "GET",
+            self.url,
+            urlenc(
+                query=query,
+                infer=infer,
+                context=context,
+                namedContext=namedContext,
+                planner=planner,
+                checkVariables=checkVariables,
+                analyzeIndicesUsed=analyze,
+                queryAnalysisTechnique=analysisTechnique,
+                queryAnalysisTimeout=analysisTimeout,
+                returnQueryMetadata=True,
+            )
+            + (bindings or ""),
+            callback=callback,
+            accept=accept,
+        )
 
-    def evalPrologQuery(self, query, infer=False, callback=None, limit=None, count=False, accept=None):
+    def evalPrologQuery(
+        self, query, infer=False, callback=None, limit=None, count=False, accept=None
+    ):
         """Execute a Prolog query. Returns a {names, values} object."""
         if accept is None:
-            accept="text/integer" if count else "application/json"
-        return jsonRequest(self, "POST", self.url,
-                           urlenc(query=query, infer=infer, queryLn="prolog", limit=limit),
-                           callback=callback,
-                           accept=accept)
+            accept = "text/integer" if count else "application/json"
+        return jsonRequest(
+            self,
+            "POST",
+            self.url,
+            urlenc(query=query, infer=infer, queryLn="prolog", limit=limit),
+            callback=callback,
+            accept=accept,
+        )
 
-    def evalGraphqlQuery(self, query, default_prefix, infer, namespaces, variables, aliases):
+    def evalGraphqlQuery(
+        self, query, default_prefix, infer, namespaces, variables, aliases
+    ):
         """Execute a GraphQL query. Returns a JSON object."""
         api = "/graphql"
-        api_args = "&".join([ name + "=" + arg for name, arg in [
-            ("default-prefix", default_prefix),
-            ("infer", "false" if infer == False else infer),
-            ("namespaces", namespaces), ("variables", variables),
-            ("aliases", aliases)]
-            if arg
-        ])
+        api_args = "&".join(
+            [
+                name + "=" + arg
+                for name, arg in [
+                    ("default-prefix", default_prefix),
+                    ("infer", "false" if infer == False else infer),
+                    ("namespaces", namespaces),
+                    ("variables", variables),
+                    ("aliases", aliases),
+                ]
+                if arg
+            ]
+        )
         if api_args:
             api += "?" + api_args
-        return jsonRequest(self, method="POST", url=self.url+api, body=query)
+        return jsonRequest(self, method="POST", url=self.url + api, body=query)
 
     def definePrologFunctors(self, definitions):
         """Add Prolog functors to the environment. Takes a string
@@ -401,7 +550,7 @@ class Repository(Service):
 
     def evalJavaScript(self, code):
         """Evaluate JavaScript code in the server."""
-        return jsonRequest(self, "POST", "/eval", code, 'text/javascript')
+        return jsonRequest(self, "POST", "/eval", code, "text/javascript")
 
     def evalInServer(self, code):
         """Evaluate Common Lisp code in the server."""
@@ -424,49 +573,91 @@ class Repository(Service):
     def rollback(self):
         nullRequest(self, "POST", "/rollback")
 
-    def getStatements(self, subj=None, pred=None, obj=None, context=None, infer=False, callback=None,
-                      limit=None, offset=None, accept=None, tripleIDs=False, count=False):
+    def getStatements(
+        self,
+        subj=None,
+        pred=None,
+        obj=None,
+        context=None,
+        infer=False,
+        callback=None,
+        limit=None,
+        offset=None,
+        accept=None,
+        tripleIDs=False,
+        count=False,
+    ):
         """Retrieve all statements matching the given constraints.
         Context can be None or a list of contexts, as in
         evalSparqlQuery."""
-        if subj == [] or pred == [] or obj == [] or context == []: return []
+        if subj == [] or pred == [] or obj == [] or context == []:
+            return []
         subjEnd, predEnd, objEnd = None, None, None
-        if isinstance(subj, tuple): subj, subjEnd = subj
-        if isinstance(pred, tuple): pred, predEnd = pred
-        if isinstance(obj, tuple): obj, objEnd = obj
+        if isinstance(subj, tuple):
+            subj, subjEnd = subj
+        if isinstance(pred, tuple):
+            pred, predEnd = pred
+        if isinstance(obj, tuple):
+            obj, objEnd = obj
 
         if accept is None:
             accept = "application/json"
-            if count: accept = "text/integer"
-            elif tripleIDs: accept = "application/x-quints+json"
-        return jsonRequest(self, "GET", "/statements",
-            urlenc(subj=subj, subjEnd=subjEnd, pred=pred, predEnd=predEnd,
-                obj=obj, objEnd=objEnd, context=context, infer=infer,
-                limit=limit, offset=offset),
-            callback=callback, accept=accept)
+            if count:
+                accept = "text/integer"
+            elif tripleIDs:
+                accept = "application/x-quints+json"
+        return jsonRequest(
+            self,
+            "GET",
+            "/statements",
+            urlenc(
+                subj=subj,
+                subjEnd=subjEnd,
+                pred=pred,
+                predEnd=predEnd,
+                obj=obj,
+                objEnd=objEnd,
+                context=context,
+                infer=infer,
+                limit=limit,
+                offset=offset,
+            ),
+            callback=callback,
+            accept=accept,
+        )
 
     def getStatementsById(self, ids, returnIDs=True, accept=None, callback=None):
         if accept is None and returnIDs:
             accept = "application/x-quints+json" if returnIDs else "application/json"
-        return jsonRequest(self, "GET", "/statements/id", urlenc(id=ids),
-                           accept=accept, callback=callback)
+        return jsonRequest(
+            self,
+            "GET",
+            "/statements/id",
+            urlenc(id=ids),
+            accept=accept,
+            callback=callback,
+        )
 
     def addStatement(self, subj, pred, obj, context=None, attributes=None):
         """Add a single statement to the repository."""
         args = {
-            'subj': subj,
-            'pred': pred,
-            'obj': obj,
-            'context': context,
-            'attributes': attributes and encode_json(attributes)
+            "subj": subj,
+            "pred": pred,
+            "obj": obj,
+            "context": context,
+            "attributes": attributes and encode_json(attributes),
         }
         nullRequest(self, "PUT", "/statement?" + urlenc(**args))
 
     def deleteMatchingStatements(self, subj=None, pred=None, obj=None, context=None):
         """Delete all statements matching the constraints from the
         repository. Context can be None or a single graph name."""
-        nullRequest(self, "DELETE", "/statements",
-                    urlenc(subj=subj, pred=pred, obj=obj, context=context))
+        nullRequest(
+            self,
+            "DELETE",
+            "/statements",
+            urlenc(subj=subj, pred=pred, obj=obj, context=context),
+        )
 
     def addStatements(self, quads, commitEvery=None):
         """Add a collection of statements to the repository. Quads
@@ -474,34 +665,62 @@ class Repository(Service):
         element, the graph name, may be None. The fifth element, if present,
         must be a string with a JSON-encoded dictionary of attribute values.
         """
-        nullRequest(self, "POST", "/statements?" +
-                    urlenc(commit=commitEvery),
-                    encode_json(quads), content_type="application/json")
+        nullRequest(
+            self,
+            "POST",
+            "/statements?" + urlenc(commit=commitEvery),
+            encode_json(quads),
+            content_type="application/json",
+        )
 
-    def loadData(self, data, rdf_format, base_uri=None, context=None,
-                 commit_every=None, content_encoding=None, attributes=None,
-                 json_ld_store_source=None,
-                 json_ld_context=None, allow_external_references=None,
-                 external_reference_timeout=None):
-        nullRequest(self, "POST",
-                    "/statements?" + urlenc(
-                        context=context,
-                        baseURI=base_uri,
-                        commit=commit_every,
-                        attributes=attributes and encode_json(attributes),
-                        jsonLdStoreSource=json_ld_store_source,
-                        jsonLdContext=json_ld_context and fix_json_ld_context(json_ld_context),
-                        externalReferences=allow_external_references,
-                        extermalReferenceTimeout=external_reference_timeout),
-                    data,
-                    content_type=Format.mime_type_for_format(rdf_format),
-                    content_encoding=content_encoding,)
+    def loadData(
+        self,
+        data,
+        rdf_format,
+        base_uri=None,
+        context=None,
+        commit_every=None,
+        content_encoding=None,
+        attributes=None,
+        json_ld_store_source=None,
+        json_ld_context=None,
+        allow_external_references=None,
+        external_reference_timeout=None,
+    ):
+        nullRequest(
+            self,
+            "POST",
+            "/statements?"
+            + urlenc(
+                context=context,
+                baseURI=base_uri,
+                commit=commit_every,
+                attributes=attributes and encode_json(attributes),
+                jsonLdStoreSource=json_ld_store_source,
+                jsonLdContext=json_ld_context and fix_json_ld_context(json_ld_context),
+                externalReferences=allow_external_references,
+                extermalReferenceTimeout=external_reference_timeout,
+            ),
+            data,
+            content_type=Format.mime_type_for_format(rdf_format),
+            content_encoding=content_encoding,
+        )
 
-    def loadFile(self, file, rdf_format, baseURI=None, context=None, serverSide=False,
-                 commitEvery=None, content_encoding=None, attributes=None,
-                 json_ld_store_source=None,
-                 json_ld_context=None, allow_external_references=None,
-                 external_reference_timeout=None):
+    def loadFile(
+        self,
+        file,
+        rdf_format,
+        baseURI=None,
+        context=None,
+        serverSide=False,
+        commitEvery=None,
+        content_encoding=None,
+        attributes=None,
+        json_ld_store_source=None,
+        json_ld_context=None,
+        allow_external_references=None,
+        external_reference_timeout=None,
+    ):
         mime = Format.mime_type_for_format(rdf_format)
 
         if serverSide:
@@ -509,7 +728,7 @@ class Repository(Service):
             body_context = wrap_context(None)
         elif isinstance(file, basestring) and not serverSide:
             # file is a local path, read it and send as body
-            body_context = open(file, 'rb')
+            body_context = open(file, "rb")
             file = None
         else:
             # We were passed a file-like object that we must not close,
@@ -518,30 +737,61 @@ class Repository(Service):
             file = None
 
         with body_context as body:
-            params = urlenc(file=file, context=context, baseURI=baseURI, commit=commitEvery,
-                            attributes=attributes and encode_json(attributes),
-                            jsonLdStoreSource=json_ld_store_source,
-                            jsonLdContext=json_ld_context and fix_json_ld_context(json_ld_context),
-                            externalReferences=allow_external_references,
-                            extermalReferenceTimeout=external_reference_timeout)
-            nullRequest(self, "POST", "/statements?" + params, body,
-                        content_type=mime, content_encoding=content_encoding)
+            params = urlenc(
+                file=file,
+                context=context,
+                baseURI=baseURI,
+                commit=commitEvery,
+                attributes=attributes and encode_json(attributes),
+                jsonLdStoreSource=json_ld_store_source,
+                jsonLdContext=json_ld_context and fix_json_ld_context(json_ld_context),
+                externalReferences=allow_external_references,
+                extermalReferenceTimeout=external_reference_timeout,
+            )
+            nullRequest(
+                self,
+                "POST",
+                "/statements?" + params,
+                body,
+                content_type=mime,
+                content_encoding=content_encoding,
+            )
 
     def getBlankNodes(self, amount=1):
         return jsonRequest(self, "POST", "/blankNodes", urlenc(amount=amount))
 
     def deleteStatements(self, quads):
         """Delete a collection of statements from the repository."""
-        nullRequest(self, "POST", "/statements/delete", encode_json(quads), content_type="application/json")
+        nullRequest(
+            self,
+            "POST",
+            "/statements/delete",
+            encode_json(quads),
+            content_type="application/json",
+        )
 
     def deleteStatementsById(self, ids):
-        nullRequest(self, "POST", "/statements/delete?ids=true", encode_json(ids), content_type="application/json")
+        nullRequest(
+            self,
+            "POST",
+            "/statements/delete?ids=true",
+            encode_json(ids),
+            content_type="application/json",
+        )
 
-    def evalFreeTextSearch(self, pattern, index=None, infer=False, limit=None, offset=None):
+    def evalFreeTextSearch(
+        self, pattern, index=None, infer=False, limit=None, offset=None
+    ):
         """Use free-text indices to search for the given pattern.
         Returns an array of statements."""
-        return jsonRequest(self, "GET", "/freetext",
-                           urlenc(pattern=pattern, infer=infer, limit=limit, offset=offset, index=index))
+        return jsonRequest(
+            self,
+            "GET",
+            "/freetext",
+            urlenc(
+                pattern=pattern, infer=infer, limit=limit, offset=offset, index=index
+            ),
+        )
 
     def listFreeTextIndices(self):
         """List the names of free-text indices defined in this
@@ -554,9 +804,20 @@ class Repository(Service):
         \"minimumWordSize\", \"stopWords\", and \"wordFilters\"."""
         return jsonRequest(self, "GET", "/freetext/indices/" + quote(index))
 
-    def createFreeTextIndex(self, index, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
-                            innerChars=None, borderChars=None, tokenizer=None):
+    def createFreeTextIndex(
+        self,
+        index,
+        predicates=None,
+        indexLiterals=None,
+        indexResources=None,
+        indexFields=None,
+        minimumWordSize=None,
+        stopWords=None,
+        wordFilters=None,
+        innerChars=None,
+        borderChars=None,
+        tokenizer=None,
+    ):
         """Create a free-text index. predicates, if given, should be a
         list of resources. indexLiterals can be True, False, or a list
         of strings, indicating the literal types or langs to index.
@@ -569,39 +830,84 @@ class Repository(Service):
         "innerChars" and "borderChars" can be lists. "tokenizer" is
         a string. See documentation:
 
-        http://www.franz.com/agraph/support/documentation/current/http-protocol.html#put-freetext-index"""
+        http://www.franz.com/agraph/support/documentation/current/http-protocol.html#put-freetext-index
+        """
         # Not passing these at all causes the defaults to be used. So
         # when they are given, they should be passed with an empty
         # value.
-        if stopWords == []: stopWords = ""
-        if indexFields == []: indexFields = ""
-        nullRequest(self, "PUT", "/freetext/indices/" + quote(index),
-                    urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
-                           indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
-                           indexResources=indexResources, indexField=indexFields,
-                           minimumWordSize=minimumWordSize, stopWord=stopWords, wordFilter=wordFilters,
-                           innerChars=innerChars, borderChars=borderChars,
-                           tokenizer=tokenizer))
+        if stopWords == []:
+            stopWords = ""
+        if indexFields == []:
+            indexFields = ""
+        nullRequest(
+            self,
+            "PUT",
+            "/freetext/indices/" + quote(index),
+            urlenc(
+                predicate=predicates,
+                indexLiterals=indexLiterals and True,
+                indexLiteralType=indexLiterals
+                if isinstance(indexLiterals, list)
+                else None,
+                indexResources=indexResources,
+                indexField=indexFields,
+                minimumWordSize=minimumWordSize,
+                stopWord=stopWords,
+                wordFilter=wordFilters,
+                innerChars=innerChars,
+                borderChars=borderChars,
+                tokenizer=tokenizer,
+            ),
+        )
 
-    def modifyFreeTextIndex(self, index, predicates=None, indexLiterals=None, indexResources=None,
-                            indexFields=None, minimumWordSize=None, stopWords=None, wordFilters=None,
-                            reIndex=None, innerChars=None, borderChars=None,
-                            tokenizer=None):
+    def modifyFreeTextIndex(
+        self,
+        index,
+        predicates=None,
+        indexLiterals=None,
+        indexResources=None,
+        indexFields=None,
+        minimumWordSize=None,
+        stopWords=None,
+        wordFilters=None,
+        reIndex=None,
+        innerChars=None,
+        borderChars=None,
+        tokenizer=None,
+    ):
         """Reconfigure a free-text index. Most arguments work as in
         createFreeTextIndex, except that here not passing them means
         'leave the old value'. reIndex controls whether old triples
         are re-indexed."""
-        if stopWords == []: stopWords = ""
-        if predicates == []: predicates = ""
-        if indexFields == []: indexFields = ""
-        if wordFilters == []: wordFilters = ""
-        nullRequest(self, "POST", "/freetext/indices/" + quote(index),
-                    urlenc(predicate=predicates, indexLiterals=indexLiterals and True,
-                           indexLiteralType=indexLiterals if isinstance(indexLiterals, list) else None,
-                           indexResources=indexResources, indexField=indexFields,
-                           minimumWordSize=minimumWordSize, stopWord=stopWords, wordFilter=wordFilters,
-                           reIndex=reIndex, innerChars=innerChars, borderChars=borderChars,
-                           tokenizer=tokenizer))
+        if stopWords == []:
+            stopWords = ""
+        if predicates == []:
+            predicates = ""
+        if indexFields == []:
+            indexFields = ""
+        if wordFilters == []:
+            wordFilters = ""
+        nullRequest(
+            self,
+            "POST",
+            "/freetext/indices/" + quote(index),
+            urlenc(
+                predicate=predicates,
+                indexLiterals=indexLiterals and True,
+                indexLiteralType=indexLiterals
+                if isinstance(indexLiterals, list)
+                else None,
+                indexResources=indexResources,
+                indexField=indexFields,
+                minimumWordSize=minimumWordSize,
+                stopWord=stopWords,
+                wordFilter=wordFilters,
+                reIndex=reIndex,
+                innerChars=innerChars,
+                borderChars=borderChars,
+                tokenizer=tokenizer,
+            ),
+        )
 
     def deleteFreeTextIndex(self, index):
         """Delete the named free-text index."""
@@ -624,8 +930,9 @@ class Repository(Service):
         nullRequest(self, "DELETE", "/namespaces?" + urlenc(reset=reset))
 
     def addNamespace(self, prefix, uri):
-        nullRequest(self, "PUT", "/namespaces/" + quote(prefix),
-                    uri, content_type="text/plain")
+        nullRequest(
+            self, "PUT", "/namespaces/" + quote(prefix), uri, content_type="text/plain"
+        )
 
     def deleteNamespace(self, prefix):
         nullRequest(self, "DELETE", "/namespaces/" + quote(prefix))
@@ -643,8 +950,13 @@ class Repository(Service):
         nullRequest(self, "DELETE", "/query-options")
 
     def setQueryOption(self, name, value):
-        nullRequest(self, "PUT", "/query-options/" + quote(name),
-                    value, content_type="text/plain")
+        nullRequest(
+            self,
+            "PUT",
+            "/query-options/" + quote(name),
+            value,
+            content_type="text/plain",
+        )
 
     def deleteQueryOption(self, name):
         nullRequest(self, "DELETE", "/query-options/" + quote(name))
@@ -668,8 +980,12 @@ class Repository(Service):
         return jsonRequest(self, "GET", "/mapping/predicate")
 
     def addMappedPredicate(self, predicate, encoding):
-        nullRequest(self, "POST", "/mapping/predicate",
-                    urlenc(predicate=predicate, encoding=encoding))
+        nullRequest(
+            self,
+            "POST",
+            "/mapping/predicate",
+            urlenc(predicate=predicate, encoding=encoding),
+        )
 
     def deleteMappedPredicate(self, predicate):
         nullRequest(self, "DELETE", "/mapping/predicate", urlenc(predicate=predicate))
@@ -687,20 +1003,40 @@ class Repository(Service):
         nullRequest(self, "DELETE", "/indices/" + quote(_type))
 
     def optimizeIndices(self, level=None, wait=None):
-        nullRequest(self, "POST", "/indices/optimize?" + urlenc(
-            level=level,wait=wait))
+        nullRequest(self, "POST", "/indices/optimize?" + urlenc(level=level, wait=wait))
 
     def getCartesianGeoType(self, stripWidth, xMin, xMax, yMin, yMax):
         """Retrieve a cartesian geo-spatial literal type."""
-        return jsonRequest(self, "POST", "/geo/types/cartesian?" +
-                           urlenc(stripWidth=stripWidth, xmin=xMin, ymin=yMin, xmax=xMax, ymax=yMax))
+        return jsonRequest(
+            self,
+            "POST",
+            "/geo/types/cartesian?"
+            + urlenc(stripWidth=stripWidth, xmin=xMin, ymin=yMin, xmax=xMax, ymax=yMax),
+        )
 
-
-    def getSphericalGeoType(self, stripWidth, unit="degree", latMin=None, latMax=None, longMin=None, longMax=None):
+    def getSphericalGeoType(
+        self,
+        stripWidth,
+        unit="degree",
+        latMin=None,
+        latMax=None,
+        longMin=None,
+        longMax=None,
+    ):
         """Retrieve a spherical geo-spatial literal type."""
-        return jsonRequest(self, "POST", "/geo/types/spherical?" +
-                           urlenc(stripWidth=stripWidth, unit=unit, latmin=latMin, latmax=latMax,
-                                  longmin=longMin, longmax=longMax))
+        return jsonRequest(
+            self,
+            "POST",
+            "/geo/types/spherical?"
+            + urlenc(
+                stripWidth=stripWidth,
+                unit=unit,
+                latmin=latMin,
+                latmax=latMax,
+                longmin=longMin,
+                longmax=longMax,
+            ),
+        )
 
     def listGeoTypes(self):
         """List the geo-spatial types registered in the store."""
@@ -708,85 +1044,217 @@ class Repository(Service):
 
     def createCartesianGeoLiteral(self, type, x, y):
         """Create a geo-spatial literal of the given type."""
-        return "\"%+g%+g\"^^%s" % (x, y, type)
+        return '"%+g%+g"^^%s' % (x, y, type)
 
     @python_2_unicode_compatible
     class UnsupportedUnitError(Exception):
-        def __init__(self, unit): self.unit = unit
-        def __str__(self): return "'%s' is not a known unit (use km, mile, degree, or radian)." % self.unit
+        def __init__(self, unit):
+            self.unit = unit
+
+        def __str__(self):
+            return (
+                "'%s' is not a known unit (use km, mile, degree, or radian)."
+                % self.unit
+            )
 
     def unitDegreeFactor(self, unit):
-        if unit == "degree": return 1.0
-        elif unit == "radian": return 57.29577951308232
-        elif unit == "km": return 0.008998159
-        elif unit == "mile": return 0.014481134
-        else: raise Repository.UnsupportedUnitError(unit)
+        if unit == "degree":
+            return 1.0
+        elif unit == "radian":
+            return 57.29577951308232
+        elif unit == "km":
+            return 0.008998159
+        elif unit == "mile":
+            return 0.014481134
+        else:
+            raise Repository.UnsupportedUnitError(unit)
 
     def createSphericalGeoLiteral(self, type, lat, longitude, unit="degree"):
         """Create a geo-spatial latitude/longitude literal of the
         given type. Unit can be 'km', 'mile', 'radian', or 'degree'."""
+
         def asISO6709(number, digits):
             sign = "+"
-            if (number < 0):
-                sign= "-"
+            if number < 0:
+                sign = "-"
                 number = -number
             fl = math.floor(number)
-            return sign + (("%%0%dd" % digits) % fl) + (".%07d" % ((number - fl) * 10000000))
+            return (
+                sign
+                + (("%%0%dd" % digits) % fl)
+                + (".%07d" % ((number - fl) * 10000000))
+            )
 
         conv = self.unitDegreeFactor(unit)
-        return "\"%s%s\"^^%s" % (asISO6709(lat * conv, 2), asISO6709(longitude * conv, 3), type)
+        return '"%s%s"^^%s' % (
+            asISO6709(lat * conv, 2),
+            asISO6709(longitude * conv, 3),
+            type,
+        )
 
-    def getStatementsHaversine(self, type, predicate, lat, longitude, radius, unit="km", limit=None, offset=None,
-                               accept=None, callback=None):
+    def getStatementsHaversine(
+        self,
+        type,
+        predicate,
+        lat,
+        longitude,
+        radius,
+        unit="km",
+        limit=None,
+        offset=None,
+        accept=None,
+        callback=None,
+    ):
         """Get all the triples with a given predicate whose object
         lies within radius units from the given latitude/longitude."""
-        return jsonRequest(self, "GET", "/geo/haversine",
-                           urlenc(type=type, predicate=predicate, lat=lat, long=longitude, radius=radius, unit=unit,
-                                  limit=limit, offset=offset),
-                           accept=accept, callback=callback)
+        return jsonRequest(
+            self,
+            "GET",
+            "/geo/haversine",
+            urlenc(
+                type=type,
+                predicate=predicate,
+                lat=lat,
+                long=longitude,
+                radius=radius,
+                unit=unit,
+                limit=limit,
+                offset=offset,
+            ),
+            accept=accept,
+            callback=callback,
+        )
 
-    def getStatementsInsideBox(self, type, predicate, xMin, xMax, yMin, yMax, limit=None, offset=None,
-                               accept=None, callback=None):
+    def getStatementsInsideBox(
+        self,
+        type,
+        predicate,
+        xMin,
+        xMax,
+        yMin,
+        yMax,
+        limit=None,
+        offset=None,
+        accept=None,
+        callback=None,
+    ):
         """Get all the triples with a given predicate whose object
         lies within the specified box."""
-        return jsonRequest(self, "GET", "/geo/box",
-                           urlenc(type=type, predicate=predicate, xmin=xMin, xmax=xMax, ymin=yMin, ymax=yMax,
-                                  limit=limit, offset=offset),
-                           accept=accept, callback=callback)
+        return jsonRequest(
+            self,
+            "GET",
+            "/geo/box",
+            urlenc(
+                type=type,
+                predicate=predicate,
+                xmin=xMin,
+                xmax=xMax,
+                ymin=yMin,
+                ymax=yMax,
+                limit=limit,
+                offset=offset,
+            ),
+            accept=accept,
+            callback=callback,
+        )
 
-    def getStatementsInsideCircle(self, type, predicate, x, y, radius, limit=None, offset=None,
-                                  accept=None, callback=None):
+    def getStatementsInsideCircle(
+        self,
+        type,
+        predicate,
+        x,
+        y,
+        radius,
+        limit=None,
+        offset=None,
+        accept=None,
+        callback=None,
+    ):
         """Get all the triples with a given predicate whose object
         lies within the specified circle."""
-        return jsonRequest(self, "GET", "/geo/circle",
-                           urlenc(type=type, predicate=predicate, x=x, y=y, radius=radius, limit=limit, offset=offset),
-                           accept=accept, callback=callback)
+        return jsonRequest(
+            self,
+            "GET",
+            "/geo/circle",
+            urlenc(
+                type=type,
+                predicate=predicate,
+                x=x,
+                y=y,
+                radius=radius,
+                limit=limit,
+                offset=offset,
+            ),
+            accept=accept,
+            callback=callback,
+        )
 
-    def getStatementsInsidePolygon(self, type, predicate, polygon, limit=None, offset=None, accept=None, callback=None):
+    def getStatementsInsidePolygon(
+        self,
+        type,
+        predicate,
+        polygon,
+        limit=None,
+        offset=None,
+        accept=None,
+        callback=None,
+    ):
         """Get all the triples with a given predicate whose object
         lies within the specified polygon (see createPolygon)."""
-        return jsonRequest(self, "GET", "/geo/polygon",
-                           urlenc(type=type, predicate=predicate, polygon=polygon, limit=limit, offset=offset),
-                           accept=accept, callback=callback)
+        return jsonRequest(
+            self,
+            "GET",
+            "/geo/polygon",
+            urlenc(
+                type=type,
+                predicate=predicate,
+                polygon=polygon,
+                limit=limit,
+                offset=offset,
+            ),
+            accept=accept,
+            callback=callback,
+        )
 
     def createPolygon(self, resource, points):
         """Create a polygon with the given name in the store. points
         should be a list of literals created with createCartesianGeoLiteral."""
-        nullRequest(self, "PUT", "/geo/polygon?" + urlenc(resource=resource, point=points))
+        nullRequest(
+            self, "PUT", "/geo/polygon?" + urlenc(resource=resource, point=points)
+        )
 
-    def registerSNAGenerator(self, name, subjectOf=None, objectOf=None, undirected=None, query=None):
+    def registerSNAGenerator(
+        self, name, subjectOf=None, objectOf=None, undirected=None, query=None
+    ):
         """subjectOf, objectOf, and undirected can be either a single
         predicate or a list of predicates. query should be a prolog
         query in the form (select ?x (q- ?node !<mypredicate> ?x)),
         where ?node always returns to the argument passed to the
         generator."""
-        nullRequest(self, "PUT", "/snaGenerators/" + quote(name) + "?" +
-                    urlenc(subjectOf=subjectOf, objectOf=objectOf, undirected=undirected, query=query))
+        nullRequest(
+            self,
+            "PUT",
+            "/snaGenerators/"
+            + quote(name)
+            + "?"
+            + urlenc(
+                subjectOf=subjectOf,
+                objectOf=objectOf,
+                undirected=undirected,
+                query=query,
+            ),
+        )
 
     def registerNeighborMatrix(self, name, group, generator, depth):
         """group is a list of nodes, generator the name of an SNA generator."""
-        nullRequest(self, "PUT", "/neighborMatrices/" + quote(name) + "?" +
-                    urlenc(group=group, depth=depth, generator=generator))
+        nullRequest(
+            self,
+            "PUT",
+            "/neighborMatrices/"
+            + quote(name)
+            + "?"
+            + urlenc(group=group, depth=depth, generator=generator),
+        )
 
     def getTripleCacheSize(self):
         return jsonRequest(self, "GET", "/tripleCache") or False
@@ -798,17 +1266,30 @@ class Repository(Service):
         nullRequest(self, "PUT", "/tripleCache?" + urlenc(size=size))
 
     def warmup(self, includeStrings, includeTriples, indices):
-        nullRequest(self, "PUT", "/warmup?" + urlenc(includeStrings=includeStrings,
-                                                     includeTriples=includeTriples,
-                                                     index=indices))
+        nullRequest(
+            self,
+            "PUT",
+            "/warmup?"
+            + urlenc(
+                includeStrings=includeStrings,
+                includeTriples=includeTriples,
+                index=indices,
+            ),
+        )
 
     def openSession(self, autocommit=False, lifetime=None, loadinitfile=False):
         if self.sessionAlive:
             # A session is already active.  Do nothing.
             return
         self.oldUrl = self.url
-        self.url = jsonRequest(self, "POST", "/session?" + urlenc(autoCommit=autocommit,
-            lifetime=lifetime, loadInitFile=loadinitfile))
+        self.url = jsonRequest(
+            self,
+            "POST",
+            "/session?"
+            + urlenc(
+                autoCommit=autocommit, lifetime=lifetime, loadInitFile=loadinitfile
+            ),
+        )
         self._enableSession(lifetime)
 
     def _enableSession(self, lifetime):
@@ -824,7 +1305,8 @@ class Repository(Service):
                     # closeSession has been called.  Terminate the loop
                     # (and therefore the thread)
                     return
-                try: nullRequest(self, "GET", "/session/ping")
+                try:
+                    nullRequest(self, "GET", "/session/ping")
                 except Exception:
                     # The ping failed.  Terminate the loop
                     # (and therefore the thread)
@@ -838,13 +1320,17 @@ class Repository(Service):
         pinger.start()
 
     def closeSession(self):
-        if not self.sessionAlive: return
+        if not self.sessionAlive:
+            return
         # Notify pingSession() of session close
         self.sessionAlive.set()
         self.sessionAlive = None
-        try: nullRequest(self, "POST", "/session/close")
-        except Exception: pass
-        if hasattr(self, "oldUrl"): self.url = self.oldUrl
+        try:
+            nullRequest(self, "POST", "/session/close")
+        except Exception:
+            pass
+        if hasattr(self, "oldUrl"):
+            self.url = self.oldUrl
 
     def setAutoCommit(self, on):
         """Only allowed when a session is active."""
@@ -861,20 +1347,29 @@ class Repository(Service):
         self.closeSession()
 
     def registerEncodedIdPrefix(self, prefix, uri_format):
-        return nullRequest(self, "POST", "/encodedIds/prefixes?" +
-                           urlenc(prefix=prefix, format=uri_format))
+        return nullRequest(
+            self,
+            "POST",
+            "/encodedIds/prefixes?" + urlenc(prefix=prefix, format=uri_format),
+        )
 
     def registerEncodedIdPrefixes(self, registrations):
         body = []
         for reg in registrations:
-            body.append({
-                "prefix":
-                    reg.prefix if hasattr(reg, "prefix") else reg[0],
-                "format":
-                    reg.format if hasattr(reg, "format") else reg[1]})
+            body.append(
+                {
+                    "prefix": reg.prefix if hasattr(reg, "prefix") else reg[0],
+                    "format": reg.format if hasattr(reg, "format") else reg[1],
+                }
+            )
 
-        nullRequest(self, "POST", "/encodedIds/prefixes",
-                    content_type="application/json", body=encode_json(body))
+        nullRequest(
+            self,
+            "POST",
+            "/encodedIds/prefixes",
+            content_type="application/json",
+            body=encode_json(body),
+        )
 
     def listEncodedIdPrefixes(self):
         return jsonRequest(self, "GET", "/encodedIds/prefixes")
@@ -883,18 +1378,24 @@ class Repository(Service):
         nullRequest(self, "DELETE", "/encodedIds/prefixes?" + urlenc(prefix=prefix))
 
     def allocateEncodedIds(self, prefix, amount):
-        return jsonRequest(self, "POST", "/encodedIds?" + urlenc(prefix=prefix,
-            amount=amount))
+        return jsonRequest(
+            self, "POST", "/encodedIds?" + urlenc(prefix=prefix, amount=amount)
+        )
 
     def deleteDuplicates(self, mode):
         nullRequest(self, "DELETE", "/statements/duplicates?" + urlenc(mode=mode))
 
     def getDuplicateStatements(self, mode):
         accept = "application/json"
-        return jsonRequest(self, "GET", "/statements/duplicates?" + urlenc(mode=mode), accept=accept)
+        return jsonRequest(
+            self, "GET", "/statements/duplicates?" + urlenc(mode=mode), accept=accept
+        )
 
     def getDuplicateSuppressionPolicy(self):
-        return jsonRequest(self, "GET", "/suppressDuplicates", accept="application/json") or None
+        return (
+            jsonRequest(self, "GET", "/suppressDuplicates", accept="application/json")
+            or None
+        )
 
     def setDuplicateSuppressionPolicy(self, mode):
         nullRequest(self, "PUT", "/suppressDuplicates?" + urlenc(type=mode or "false"))
@@ -904,16 +1405,25 @@ class Repository(Service):
 
     def callStoredProc(self, function, module, *args):
         encoded = encode(serialize(args))
-        return deserialize(decode(jsonRequest(self, "POST", "/custom/"+function,
-            body=urlenc(spargstr=encoded), accept="text/plain",
-            headers=["x-scripts: " + module])))
+        return deserialize(
+            decode(
+                jsonRequest(
+                    self,
+                    "POST",
+                    "/custom/" + function,
+                    body=urlenc(spargstr=encoded),
+                    accept="text/plain",
+                    headers=["x-scripts: " + module],
+                )
+            )
+        )
 
     def getSpinFunction(self, uri):
         """
         Gets the string of the function for the given uri.
          uri - Spin function identifier
         """
-        return jsonRequest(self, "GET", "/spin/function/" + quote(uri, ''))
+        return jsonRequest(self, "GET", "/spin/function/" + quote(uri, ""))
 
     def putSpinFunction(self, uri, sparqlQuery, arguments):
         """
@@ -922,14 +1432,21 @@ class Repository(Service):
          sparqlQuery - Spin function query text
          arguments - names of arguments in the sparqlQuery
         """
-        nullRequest(self, "PUT", "/spin/function/" + quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
+        nullRequest(
+            self,
+            "PUT",
+            "/spin/function/"
+            + quote(uri, "")
+            + "?"
+            + urlenc(query=sparqlQuery, arguments=arguments),
+        )
 
     def deleteSpinFunction(self, uri):
         """
         Deletes the Spin function at the given uri.
          uri - Spin function identifier
         """
-        nullRequest(self, "DELETE", "/spin/function/" + quote(uri, ''))
+        nullRequest(self, "DELETE", "/spin/function/" + quote(uri, ""))
 
     def listSpinFunctions(self):
         """
@@ -944,14 +1461,21 @@ class Repository(Service):
          sparqlQuery
          arguments - names of arguments to the sparqlQuery - must contain the leading question mark
         """
-        nullRequest(self, "PUT", "/spin/magicproperty/" + quote(uri, '') + "?" + urlenc(query=sparqlQuery, arguments=arguments))
+        nullRequest(
+            self,
+            "PUT",
+            "/spin/magicproperty/"
+            + quote(uri, "")
+            + "?"
+            + urlenc(query=sparqlQuery, arguments=arguments),
+        )
 
     def getSpinMagicProperty(self, uri):
         """
         Get the spin magic property for the uri
          uri - spin magic property identifier
         """
-        return jsonRequest(self, "GET", "/spin/magicproperty/" + quote(uri, ''))
+        return jsonRequest(self, "GET", "/spin/magicproperty/" + quote(uri, ""))
 
     def listSpinMagicProperties(self):
         """
@@ -964,9 +1488,11 @@ class Repository(Service):
         Deletes the Spin magic property at the given uri.
          uri - Spin magic property identifier
         """
-        nullRequest(self, "DELETE", "/spin/magicproperty/" + quote(uri, ''))
+        nullRequest(self, "DELETE", "/spin/magicproperty/" + quote(uri, ""))
 
-    def materializeEntailed(self, _with=None, without=None, useTypeSubproperty=False, commit=100000):
+    def materializeEntailed(
+        self, _with=None, without=None, useTypeSubproperty=False, commit=100000
+    ):
         """
         Call to materialize entailed triples to enable reasoning queries without the dynamic query-time reasoner.
         Returns the number of triples added.
@@ -978,7 +1504,12 @@ class Repository(Service):
 
         commit indicates the number of triples per commit for the materializer.
         """
-        args = { "with": _with, "without": without, "useTypeSubproperty": useTypeSubproperty, "commit": commit }
+        args = {
+            "with": _with,
+            "without": without,
+            "useTypeSubproperty": useTypeSubproperty,
+            "commit": commit,
+        }
         return jsonRequest(self, "PUT", "/materializeEntailed?" + urlenc(**args))
 
     def deleteMaterialized(self):
@@ -1011,47 +1542,65 @@ class Repository(Service):
         if isinstance(attribute_filter, AttributeFilter):
             attribute_filter = attribute_filter.to_expr()
         args = urlenc(filter=attribute_filter)
-        return nullRequest(self, 'POST', '/attributes/staticFilter?' + args)
+        return nullRequest(self, "POST", "/attributes/staticFilter?" + args)
 
     def getAttributeFilter(self):
-        return jsonRequest(self, 'GET', '/attributes/staticFilter')
+        return jsonRequest(self, "GET", "/attributes/staticFilter")
 
     def clearAttributeFilter(self):
-        return nullRequest(self, 'DELETE', '/attributes/staticFilter')
+        return nullRequest(self, "DELETE", "/attributes/staticFilter")
 
     def getAttributeDefinitions(self):
-        return jsonRequest(self, 'GET', '/attributes/definitions')
+        return jsonRequest(self, "GET", "/attributes/definitions")
 
     def getAttributeDefinition(self, name):
-        return jsonRequest(
-            self, 'GET', '/attributes/definitions?' + urlenc(name=name))
+        return jsonRequest(self, "GET", "/attributes/definitions?" + urlenc(name=name))
 
     def setAttributeDefinition(self, attr_def):
         args = {
-            'name': attr_def.name,
-            'allowed-values': attr_def.allowed_values,
-            'ordered': attr_def.ordered,
-            'minimum-number': attr_def.minimum_number,
-            'maximum-number': attr_def.maximum_number
+            "name": attr_def.name,
+            "allowed-values": attr_def.allowed_values,
+            "ordered": attr_def.ordered,
+            "minimum-number": attr_def.minimum_number,
+            "maximum-number": attr_def.maximum_number,
         }
-        return nullRequest(
-            self, 'POST', '/attributes/definitions?' + urlenc(**args))
+        return nullRequest(self, "POST", "/attributes/definitions?" + urlenc(**args))
 
     def deleteAttributeDefinition(self, name):
         return jsonRequest(
-            self, 'DELETE', '/attributes/definitions?' + urlenc(name=name))
+            self, "DELETE", "/attributes/definitions?" + urlenc(name=name)
+        )
 
-    def loadDocument(self, doc, doc_format, base=None,
-                     rules=None, subject=None, prefix=None,
-                     rename=None, rdf_type=None, lang=None, skip=None,
-                     transform=None, graph=None, json_store_source=None,
-                     csv_columns=None, csv_separator=None, csv_quote=None,
-                     csv_whitespace=None, csv_double_quote=None, csv_escape=None,
-                     attributes=None, commit=None, context=None,
-                     encoding=None, content_encoding=None):
+    def loadDocument(
+        self,
+        doc,
+        doc_format,
+        base=None,
+        rules=None,
+        subject=None,
+        prefix=None,
+        rename=None,
+        rdf_type=None,
+        lang=None,
+        skip=None,
+        transform=None,
+        graph=None,
+        json_store_source=None,
+        csv_columns=None,
+        csv_separator=None,
+        csv_quote=None,
+        csv_whitespace=None,
+        csv_double_quote=None,
+        csv_escape=None,
+        attributes=None,
+        commit=None,
+        context=None,
+        encoding=None,
+        content_encoding=None,
+    ):
         mime = Format.mime_type_for_format(doc_format)
         if encoding:
-            mime += ';charset=' + encoding
+            mime += ";charset=" + encoding
 
         if prefix is None:
             prefix = {}
@@ -1071,39 +1620,50 @@ class Repository(Service):
             prefix_list.append(uri_to_string(base))
 
         args = {
-            'transform-rules': rules,
-            'tr-id': uri_to_string(subject),
-            'tr-prefix': prefix_list,
-            'tr-rename': dict_to_string_list(rename),
-            'tr-type': uri_dict_to_string_list(rdf_type),
-            'tr-lang':  dict_to_string_list(lang),
-            'tr-skip': skip,
-            'tr-transform':  dict_to_string_list(transform),
-            'tr-graph': ['%s=%s' % (k, URI(str(v)))
-                         for k, v in six.iteritems(graph or {})],
-            'json-store-source': bool(json_store_source),
-            'csv-columns': ','.join(csv_columns) if csv_columns else None,
-            'csv-separator': csv_separator,
-            'csv-quote': csv_quote,
-            'csv-whitespace': ','.join(csv_whitespace) if csv_whitespace is not None else None,
-            'csv-double-quote-p': bool(csv_double_quote) if csv_double_quote is not None else None,
-            'csv-escape': csv_escape,
-            'context': str(URI(str(context))) if context else None,
-            'commit': commit,
-            'attributes': attributes and encode_json(attributes)
+            "transform-rules": rules,
+            "tr-id": uri_to_string(subject),
+            "tr-prefix": prefix_list,
+            "tr-rename": dict_to_string_list(rename),
+            "tr-type": uri_dict_to_string_list(rdf_type),
+            "tr-lang": dict_to_string_list(lang),
+            "tr-skip": skip,
+            "tr-transform": dict_to_string_list(transform),
+            "tr-graph": [
+                "%s=%s" % (k, URI(str(v))) for k, v in six.iteritems(graph or {})
+            ],
+            "json-store-source": bool(json_store_source),
+            "csv-columns": ",".join(csv_columns) if csv_columns else None,
+            "csv-separator": csv_separator,
+            "csv-quote": csv_quote,
+            "csv-whitespace": ",".join(csv_whitespace)
+            if csv_whitespace is not None
+            else None,
+            "csv-double-quote-p": bool(csv_double_quote)
+            if csv_double_quote is not None
+            else None,
+            "csv-escape": csv_escape,
+            "context": str(URI(str(context))) if context else None,
+            "commit": commit,
+            "attributes": attributes and encode_json(attributes),
         }
-        return nullRequest(self, 'POST', '/statements/transform?' + urlenc(**args),
-                           doc, content_type=mime, content_encoding=content_encoding)
+        return nullRequest(
+            self,
+            "POST",
+            "/statements/transform?" + urlenc(**args),
+            doc,
+            content_type=mime,
+            content_encoding=content_encoding,
+        )
 
     def getGeneration(self):
-        return jsonRequest(self, 'GET', '/generation')
+        return jsonRequest(self, "GET", "/generation")
 
     def RDFStarEnabled(self):
-        return jsonRequest(self, 'GET', "/rdf-star")
+        return jsonRequest(self, "GET", "/rdf-star")
 
     def enableRDFStar(self):
         if not self.RDFStarEnabled():
-            return nullRequest(self, 'PUT', "/rdf-star")
+            return nullRequest(self, "PUT", "/rdf-star")
 
     def disableRDFStar(self):
         if self.RDFStarEnabled():
@@ -1136,7 +1696,7 @@ def uri_dict_to_string_list(d):
         return None
     result = []
     for k, v in six.iteritems(d):
-        result.append('%s=%s' % (uri_to_string(k), uri_to_string(v)))
+        result.append("%s=%s" % (uri_to_string(k), uri_to_string(v)))
     return result
 
 
@@ -1145,7 +1705,7 @@ def dict_to_string_list(d):
     Converts a dict to a list of 'key=value' strings. If the input is None
     then None will be returned.
     """
-    return ['%s=%s' % kv for kv in six.iteritems(d)] if d else None
+    return ["%s=%s" % kv for kv in six.iteritems(d)] if d else None
 
 
 def time_in_seconds(t):

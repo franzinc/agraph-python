@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -38,27 +38,30 @@ class QueryLanguage(object):
         return self.name
 
     def __repr__(self):
-        return 'QueryLanguage.' + self.name
+        return "QueryLanguage." + self.name
 
     def getName(self):
         return self.name
 
     @staticmethod
-    def values(): return QueryLanguage.registered_languages[:]
-    
+    def values():
+        return QueryLanguage.registered_languages[:]
+
     @staticmethod
-    def valueOf(name): 
+    def valueOf(name):
         for ql in QueryLanguage.registered_languages:
             if ql.name.lower() == name.lower():
                 return ql
         return None
-    
-QueryLanguage.SPARQL = QueryLanguage('SPARQL')
-QueryLanguage.PROLOG = QueryLanguage('PROLOG')
+
+
+QueryLanguage.SPARQL = QueryLanguage("SPARQL")
+QueryLanguage.PROLOG = QueryLanguage("PROLOG")
 
 #############################################################################
 ##
 #############################################################################
+
 
 class Query(object):
     """
@@ -67,8 +70,14 @@ class Query(object):
     predefine bindings in the query to be able to reuse the same query with
     different bindings.
     """
-    def __init__(self, queryLanguage=QueryLanguage.SPARQL,
-                 query=None, baseURI=None, queryString=None):
+
+    def __init__(
+        self,
+        queryLanguage=QueryLanguage.SPARQL,
+        query=None,
+        baseURI=None,
+        queryString=None,
+    ):
         """
         Initialize a query object.
 
@@ -83,7 +92,7 @@ class Query(object):
         :type queryString: string
         """
         if query is None:
-            raise TypeError('query argument is missing.')
+            raise TypeError("query argument is missing.")
         self.queryLanguage = Query._check_language(queryLanguage)
         self.queryString = query or queryString
         self.baseURI = baseURI
@@ -111,7 +120,7 @@ class Query(object):
         if isinstance(value, basestring):
             value = self._get_connection().createLiteral(value)
         self.bindings[name] = value
-        
+
     def setBindings(self, dict):
         """
         Set multiple variable bindings.
@@ -119,12 +128,13 @@ class Query(object):
         :param dict: A dictionary of bindings.
         :type dict: dict[string, Value]
         """
-        if not dict: return
+        if not dict:
+            return
         for key, value in iteritems(dict):
             self.setBinding(key, value)
 
     def removeBinding(self, name):
-        """ 
+        """
         Removes a previously set binding on the supplied variable. Calling this
         method with an unbound variable name has no effect.
 
@@ -139,7 +149,7 @@ class Query(object):
 
         :return: A dictionary of bindings.
         :rtype: dict[string, Value]
-        """ 
+        """
         return self.bindings
 
     def setDataset(self, dataset):
@@ -149,18 +159,18 @@ class Query(object):
 
         :param dataset: A dataset object.
         :type dataset: Dataset
-        """ 
+        """
         self.dataset = dataset
-     
+
     def getDataset(self):
         """
         Get the dataset against which this query will operate.
 
         :return: Dataset.
         :rtype: Dataset
-        """ 
+        """
         return self.dataset
-    
+
     def setContexts(self, contexts):
         """
         Assert a set of contexts (named graphs) that filter all triples.
@@ -168,13 +178,15 @@ class Query(object):
         :param contexts: List of graph URIs.
         :type contexts: list[URI|string]
         """
-        if not contexts: return
+        if not contexts:
+            return
         ds = Dataset()
         for cxt in contexts:
-            if isinstance(cxt, basestring): cxt = self._get_connection().createURI(cxt)
+            if isinstance(cxt, basestring):
+                cxt = self._get_connection().createURI(cxt)
             ds.addNamedGraph(cxt)
         self.setDataset(ds)
-     
+
     def setIncludeInferred(self, includeInferred):
         """
         Determine whether evaluation results of this query should include inferred
@@ -192,9 +204,9 @@ class Query(object):
         Check whether this query will return inferred statements.
         :return: ``True`` if inferred triples are included, ``False`` otherwise.
         :rtype: bool
-        """ 
+        """
         return self.includeInferred
-    
+
     def setCheckVariables(self, setting):
         """
         Determine whether the presence of variables in the select clause not referenced
@@ -204,19 +216,26 @@ class Query(object):
         :type setting: bool
         """
         self.checkVariables = setting
-    
+
     def setConnection(self, connection):
         """
         Internal call to embed the connection into the query.
         """
         self.connection = connection
-        
+
     def _get_connection(self):
         return self.connection
-    
-    def evaluate_generic_query(self, count=False, accept=None, callback=None,
-                               analyze=False, analysisTechnique=None, analysisTimeout=None,
-                               update=False):
+
+    def evaluate_generic_query(
+        self,
+        count=False,
+        accept=None,
+        callback=None,
+        analyze=False,
+        analysisTechnique=None,
+        analysisTimeout=None,
+        update=False,
+    ):
         """
         Evaluate a SPARQL or PROLOG query, which may be a 'select', 'construct', 'describe'
         or 'ask' query (in the SPARQL case). Return an appropriate response.
@@ -246,55 +265,76 @@ class Query(object):
         """
         conn = self._get_connection()
         namedContexts = conn._contexts_to_ntriple_contexts(
-                        self.dataset.getNamedGraphs() if self.dataset else None)
+            self.dataset.getNamedGraphs() if self.dataset else None
+        )
         regularContexts = conn._contexts_to_ntriple_contexts(
-                self.dataset.getDefaultGraphs() if self.dataset else ALL_CONTEXTS)
+            self.dataset.getDefaultGraphs() if self.dataset else ALL_CONTEXTS
+        )
         bindings = None
         if self.bindings:
             bindings = {}
             for vbl, val in list(self.bindings.items()):
                 bindings[vbl] = conn._convert_term_to_mini_term(val)
         mini = conn._get_mini_repository()
-        if self.queryLanguage == QueryLanguage.SPARQL:  
-            response = mini.evalSparqlQuery(self.queryString, context=regularContexts, namedContext=namedContexts, 
-                                            infer=self.includeInferred, bindings=bindings,
-                                            checkVariables=self.checkVariables, count=count,
-                                            accept=accept, callback=callback,
-                                            analyze=analyze, analysisTechnique=analysisTechnique,
-                                            analysisTimeout=analysisTimeout, update=update)
+        if self.queryLanguage == QueryLanguage.SPARQL:
+            response = mini.evalSparqlQuery(
+                self.queryString,
+                context=regularContexts,
+                namedContext=namedContexts,
+                infer=self.includeInferred,
+                bindings=bindings,
+                checkVariables=self.checkVariables,
+                count=count,
+                accept=accept,
+                callback=callback,
+                analyze=analyze,
+                analysisTechnique=analysisTechnique,
+                analysisTimeout=analysisTimeout,
+                update=update,
+            )
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
-                raise QueryMissingFeatureException("Prolog queries do not support the datasets (named graphs) option.")
+                raise QueryMissingFeatureException(
+                    "Prolog queries do not support the datasets (named graphs) option."
+                )
             if analyze:
-                raise QueryMissingFeatureException("Prolog queries do not support analysis.")
+                raise QueryMissingFeatureException(
+                    "Prolog queries do not support analysis."
+                )
             # evalPrologQuery is already always done as if update=True
-            response = mini.evalPrologQuery(self.queryString,
-                                            infer=self.includeInferred, count=count, accept=accept,
-                                            callback=callback)
+            response = mini.evalPrologQuery(
+                self.queryString,
+                infer=self.includeInferred,
+                count=count,
+                accept=accept,
+                callback=callback,
+            )
         else:
-            raise ValueError('Unsupported query language: %s' % self.queryLanguage)
+            raise ValueError("Unsupported query language: %s" % self.queryLanguage)
         return response
 
     @staticmethod
     def _check_language(queryLanguage):
-        if queryLanguage == 'SPARQL':
+        if queryLanguage == "SPARQL":
             return QueryLanguage.SPARQL
 
-        if queryLanguage == 'PROLOG':
+        if queryLanguage == "PROLOG":
             return QueryLanguage.PROLOG
 
         if not queryLanguage in [QueryLanguage.SPARQL, QueryLanguage.PROLOG]:
-            raise IllegalOptionException("Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
-                                         % queryLanguage)
+            raise IllegalOptionException(
+                "Can't evaluate the query language '%s'.  Options are: SPARQL and PROLOG."
+                % queryLanguage
+            )
         return queryLanguage
-       
-  
+
+
 class TupleQuery(Query):
     """
     A query that returns tuples (i.e. sets of variable bindings).
     """
-    def evaluate(self, count=False, output=None,
-                 output_format=TupleFormat.TABLE):
+
+    def evaluate(self, count=False, output=None, output_format=TupleFormat.TABLE):
         """Execute the embedded query against the RDF store.
 
         Return an iterator that produces for each step a tuple of values
@@ -312,17 +352,22 @@ class TupleQuery(Query):
         :param output_format: Serialization format for ``output``.
                               The default is TABLE.
         :type output_format: RDFFormat
-        :return: Either an iterator over results, 
-                 an integer (the number of results, if ``count`` is used) 
+        :return: Either an iterator over results,
+                 an integer (the number of results, if ``count`` is used)
                  or ``None`` (if ``output`` is used).
         :rtype: TupleQueryResult|int
         """
 
         with output_to(output) as out:
             callback = None if output is None else out.write
-            accept = None if output is None else TupleFormat.mime_type_for_format(output_format)
+            accept = (
+                None
+                if output is None
+                else TupleFormat.mime_type_for_format(output_format)
+            )
             response = self.evaluate_generic_query(
-                count=count, accept=accept, callback=callback)
+                count=count, accept=accept, callback=callback
+            )
 
             if count:
                 return response
@@ -330,7 +375,9 @@ class TupleQuery(Query):
             if output is not None:
                 return None
 
-            return TupleQueryResult(response['names'], response['values'], response.get('queryInfo'))
+            return TupleQueryResult(
+                response["names"], response["values"], response.get("queryInfo")
+            )
 
     def analyze(self, analysisTechnique=None, analysisTimeout=None):
         """
@@ -347,8 +394,11 @@ class TupleQuery(Query):
         :return: Analysis result as a dictionary.
         :rtype: dict
         """
-        response = self.evaluate_generic_query(analyze=True, analysisTechnique=analysisTechnique,
-            analysisTimeout=analysisTimeout)
+        response = self.evaluate_generic_query(
+            analyze=True,
+            analysisTechnique=analysisTechnique,
+            analysisTimeout=analysisTimeout,
+        )
         return response
 
 
@@ -356,6 +406,7 @@ class UpdateQuery(Query):
     """
     An update query.
     """
+
     def evaluate(self):
         """
         Execute the embedded update against the RDF store.
@@ -365,10 +416,12 @@ class UpdateQuery(Query):
         """
         return self.evaluate_generic_query(update=True)
 
+
 class GraphQuery(Query):
     """
     A query that returns statements (see :class:`Statement`).
     """
+
     def evaluate(self, output=None, output_format=RDFFormat.TABLE):
         """
         Execute the embedded query against the RDF store.
@@ -386,7 +439,11 @@ class GraphQuery(Query):
         """
         with output_to(output) as out:
             callback = None if output is None else out.write
-            accept = None if output is None else RDFFormat.mime_type_for_format(output_format)
+            accept = (
+                None
+                if output is None
+                else RDFFormat.mime_type_for_format(output_format)
+            )
             response = self.evaluate_generic_query(accept=accept, callback=callback)
             if output is None:
                 return GraphQueryResult(response)
@@ -398,6 +455,7 @@ class BooleanQuery(Query):
     """
     A query that returns a boolean.
     """
+
     def evaluate(self):
         """
         Execute the embedded query against the RDF store.

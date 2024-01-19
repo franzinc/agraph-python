@@ -21,7 +21,7 @@ def normalize_headers(headers):
         # Assume curl-style sequence of strings
         result = {}
         for line in headers:
-            key, sep, value = line.partition(':')
+            key, sep, value = line.partition(":")
             if sep is None:
                 raise Exception("Internal error - invalid header line (%s)" % line)
             result[key.strip().lower()] = value.strip()

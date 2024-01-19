@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -21,6 +21,7 @@ from ..model import Statement, Value
 
 try:
     import franz.openrdf.query.pandas_support as pandas
+
     has_pandas = True
 except ImportError:
     has_pandas = False
@@ -36,22 +37,23 @@ class RepositoryResult(object):
     over. It keeps an open connection to the backend for lazy
     retrieval of individual results. Additionally it has some utility
     methods to fetch all results and add them to a collection.
-    
+
     By default, a RepositoryResult is not necessarily a (mathematical)
     set: it may contain duplicate objects. Duplicate filtering can be
     enabled using :meth:`enableDuplicateFilter`, but this should not
     be used lightly as the filtering mechanism is potentially
     memory-intensive.
-    
+
     A RepositoryResult needs to be closed using :meth:`close` after use
     to free up any resources (open connections, read locks, etc.) it
     has on the underlying repository.
     """
+
     def __init__(self, string_tuples, subjectFilter=None, tripleIDs=False):
         self.string_tuples = string_tuples
         self.cursor = 0
         self.nonDuplicateSet = None
-        #self.limit = limit
+        # self.limit = limit
         self.subjectFilter = subjectFilter
         self.triple_ids = tripleIDs
 
@@ -60,13 +62,16 @@ class RepositoryResult(object):
         Allocate a Statement and fill it in from 'string_tuple'.
         """
         return Statement(
-            *[QuotedTriple(*[parse_term(x) for x in term])
-              if isinstance(term, list)
-              else term
-              for term in string_tuple]
+            *[
+                QuotedTriple(*[parse_term(x) for x in term])
+                if isinstance(term, list)
+                else term
+                for term in string_tuple
+            ]
         )
 
-    def __iter__(self): return self
+    def __iter__(self):
+        return self
 
     def close(self):
         """
@@ -89,15 +94,15 @@ class RepositoryResult(object):
             try:
                 savedNonDuplicateSet = self.nonDuplicateSet
                 self.nonDuplicateSet = None
-                while (True):
+                while True:
                     stmt = next(self)
                     if not stmt in savedNonDuplicateSet:
                         savedNonDuplicateSet.add(stmt)
                         return stmt
             finally:
                 self.nonDuplicateSet = savedNonDuplicateSet
-#        elif self.limit and self.cursor >= self.limit:
-#            raise StopIteration
+        #        elif self.limit and self.cursor >= self.limit:
+        #            raise StopIteration
         elif self.cursor < len(self.string_tuples):
             stringTuple = self.string_tuples[self.cursor]
             if self.triple_ids:
@@ -105,7 +110,7 @@ class RepositoryResult(object):
             self.cursor += 1
             if self.subjectFilter and not stringTuple[0] == self.subjectFilter:
                 return next(self)
-            return self._createStatement(stringTuple);
+            return self._createStatement(stringTuple)
         else:
             raise StopIteration
 
@@ -119,7 +124,6 @@ class RepositoryResult(object):
         Caution: use of this filtering mechanism is potentially memory-intensive.
         """
         self.nonDuplicateSet = set([])
-
 
     def asList(self):
         """
@@ -147,8 +151,10 @@ class RepositoryResult(object):
         """
         isList = isinstance(collection, list)
         for stmt in self:
-            if isList: collection.append(stmt)
-            else: collection.add(stmt)
+            if isList:
+                collection.append(stmt)
+            else:
+                collection.add(stmt)
 
     def __len__(self):
         return len(self.string_tuples)
@@ -190,7 +196,7 @@ class RepositoryResult(object):
 
     def toPandas(self, include_graph=True):
         if not has_pandas:
-            raise Exception('Pandas not installed.')
+            raise Exception("Pandas not installed.")
         return pandas.rows_to_pandas(
-            self,
-            ['s', 'p', 'o', 'g'] if include_graph else False)
+            self, ["s", "p", "o", "g"] if include_graph else False
+        )

@@ -196,6 +196,7 @@ $(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.8) requirements.txt tox.ini
 	$(TOX) -e py37-env
 	touch $(ENVDIR3)/.timestamp
 	$(ENVDIR3)/bin/pip install --upgrade pip~=23.3
+	$(ENVDIR3)/bin/pip install --no-cache isort~=5.11 black~=23.3
 $(ENVDIR3): $(ENVDIR3)/.timestamp
 
 test-env: $(ENVDIR3)
@@ -209,11 +210,25 @@ wheelhouse: $(ENVDIR) $(ENVDIR3)
 
 prepush: prepush3
 
-prepush3: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS3)) .venv
+prepush3: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS3)) .venv isort-check black-check
 	find . -name "*.pyc" -delete
 	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS3))))
 	$(RUN)
 	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
+
+.PHONY: isort isort-check
+isort: $(ENVDIR3)/.timestamp
+	$(ENVDIR3)/bin/isort --gitignore .
+
+isort-check: $(ENVDIR3)/.timestamp
+	$(ENVDIR3)/bin/isort --gitignore --check . || (echo "Run 'make isort' to fix imports" && exit 1)
+
+.PHONY: black black-check
+black: $(ENVDIR3)/.timestamp
+	$(ENVDIR3)/bin/black .
+
+black-check: $(ENVDIR3)/.timestamp
+	$(ENVDIR3)/bin/black --check . || (echo "Run 'make black' to fix formatting" && exit 1)
 
 events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS3))))

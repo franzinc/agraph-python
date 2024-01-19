@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -38,12 +38,13 @@ class Repository(object):
     collected. Forgetting the latter can result in loss of data (depending
     on the Repository implementation)!
     """
+
     # Modes for Catalog.getRepository()
-    RENEW = 'RENEW'
-    ACCESS = 'ACCESS'
-    OPEN = 'OPEN'
-    CREATE = 'CREATE'
-    REPLACE = 'REPLACE'
+    RENEW = "RENEW"
+    ACCESS = "ACCESS"
+    OPEN = "OPEN"
+    CREATE = "CREATE"
+    REPLACE = "REPLACE"
 
     def __init__(self, catalog, database_name, repository):
         """
@@ -54,12 +55,12 @@ class Repository(object):
         self.catalog = catalog
         # system state fields:
         self.value_factory = None
-         
+
     def getDatabaseName(self):
         """
         Return the name of the database (remote triple store) that this repository is
         interfacing with.
-        """ 
+        """
         return self.database_name
 
     def getSpec(self):
@@ -72,11 +73,15 @@ class Repository(object):
         """
         mini = self.mini_repository
         urlstart = re.match("^https?://", mini.url).group(0)
-        url = "<%s%s:%s@%s>" % (urlstart, mini.user, mini.password,
-            mini.url[len(urlstart):])
+        url = "<%s%s:%s@%s>" % (
+            urlstart,
+            mini.user,
+            mini.password,
+            mini.url[len(urlstart) :],
+        )
 
         return url
-        
+
     def initialize(self):
         """
         Initializes this repository. A repository must be initialized before
@@ -131,33 +136,37 @@ class Repository(object):
         datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
 
         if nativeType is not None and not isinstance(nativeType, basestring):
-            nativeType=nativeType.__name__
+            nativeType = nativeType.__name__
 
         def translate_inlined_type(the_type):
-            if the_type == 'int':
+            if the_type == "int":
                 return XMLSchema.LONG.toNTriples()
-            if the_type == 'datetime':
+            if the_type == "datetime":
                 return XMLSchema.DATETIME.toNTriples()
-            if the_type == 'time':
+            if the_type == "time":
                 return XMLSchema.TIME.toNTriples()
-            if the_type == 'date':
+            if the_type == "date":
                 return XMLSchema.DATE.toNTriples()
             if the_type == "float":
                 return XMLSchema.DOUBLE.toNTriples()
             if the_type == "bool":
                 return XMLSchema.BOOLEAN.toNTriples()
-            raise IllegalArgumentException("Unknown inlined type '%s'\n.  Legal types are "\
-                    "int, float, bool, datetime, time, and date." % the_type)
-            
+            raise IllegalArgumentException(
+                "Unknown inlined type '%s'\n.  Legal types are "
+                "int, float, bool, datetime, time, and date." % the_type
+            )
+
         if predicate:
             if not nativeType:
-                raise IllegalArgumentException("Missing 'nativeType' parameter in call to 'registerDatatypeMapping'")
+                raise IllegalArgumentException(
+                    "Missing 'nativeType' parameter in call to 'registerDatatypeMapping'"
+                )
             xsdType = translate_inlined_type(nativeType)
-            self.mini_repository.addMappedPredicate("<%s>" % predicate, xsdType)            
-        elif datatype: 
+            self.mini_repository.addMappedPredicate("<%s>" % predicate, xsdType)
+        elif datatype:
             xsdType = translate_inlined_type(nativeType or datatype)
             self.mini_repository.addMappedType("<%s>" % datatype, xsdType)
-        
+
     def shutDown(self):
         """
         Shuts the store down, releasing any resources that it keeps hold of.
@@ -224,13 +233,15 @@ class Repository(object):
         return self.mini_repository.getBulkMode()
 
     bulk_mode = property(
-        _get_bulk_mode, _set_bulk_mode,
+        _get_bulk_mode,
+        _set_bulk_mode,
         doc="""Turn BulkMode on with True or off with False.
 
                In bulk mode, all modifications to the triple-store are made without
                writing to the transaction log. There is overhead to switching
                in and out of bulk-mode, and it is a global repository state, so all
-               clients are affected.""")
+               clients are affected.""",
+    )
 
     def __enter__(self):
         self.initialize()

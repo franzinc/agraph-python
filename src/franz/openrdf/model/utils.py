@@ -17,13 +17,13 @@ def parse_term(string_term):
     if not string_term:
         return string_term
 
-    if string_term.startswith('<'):
+    if string_term.startswith("<"):
         return URI(strings.uriref(string_term))
     elif string_term.startswith('"'):
         return Literal(*strings.literal(string_term))
-    elif string_term.startswith('_'):
+    elif string_term.startswith("_"):
         return BNode(strings.nodeid(string_term))
-    elif string_term.startswith('default-graph'):
+    elif string_term.startswith("default-graph"):
         return None
 
     return Literal(string_term)

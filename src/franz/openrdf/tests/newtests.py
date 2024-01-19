@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -67,8 +67,12 @@ from franz.openrdf.util.http import normalize_headers
 from franz.openrdf.vocabulary import XMLSchema
 
 common_args = dict(
-    host=AG_HOST, port=AG_PORT, catalog=CATALOG,
-    user=USER, password=PASSWORD, proxy=AG_PROXY
+    host=AG_HOST,
+    port=AG_PORT,
+    catalog=CATALOG,
+    user=USER,
+    password=PASSWORD,
+    proxy=AG_PROXY,
 )
 
 
@@ -105,7 +109,9 @@ def test_ag_connect_create(non_existing_repo):
 def test_ag_connect_recreate(conn):
     store = conn.repository.database_name
     with conn:
-        conn.addTriple('<http://franz.com/s>', '<http://franz.com/p>', '<http://franz.com/o>')
+        conn.addTriple(
+            "<http://franz.com/s>", "<http://franz.com/p>", "<http://franz.com/o>"
+        )
     with ag_connect(store, clear=True, **common_args) as conn:
         assert conn.size() == 0
 
@@ -121,7 +127,9 @@ def test_ag_connect_create_exists():
 
 
 def test_ag_connect_fail_if_exists_but_not_create(repo_name):
-    with ag_connect(repo_name, create=False, fail_if_exists=True, **common_args) as conn:
+    with ag_connect(
+        repo_name, create=False, fail_if_exists=True, **common_args
+    ) as conn:
         assert conn.size() == 0
 
 
@@ -131,81 +139,84 @@ def test_ag_connect_session(repo_name):
 
 
 def test_server_all_data_in_host(clean_env):
-    server = AllegroGraphServer('https://somehost:4321/and/then/some')
-    assert server.url == 'https://somehost:4321/and/then/some'
+    server = AllegroGraphServer("https://somehost:4321/and/then/some")
+    assert server.url == "https://somehost:4321/and/then/some"
 
 
 def test_server_all_defaults(clean_env):
-    server = AllegroGraphServer('somehost')
-    assert server.url == 'http://somehost:10035'
+    server = AllegroGraphServer("somehost")
+    assert server.url == "http://somehost:10035"
 
 
 def test_server_protocol_as_arg(clean_env):
-    server = AllegroGraphServer('somehost', protocol='https')
-    assert server.url == 'https://somehost:10036'
+    server = AllegroGraphServer("somehost", protocol="https")
+    assert server.url == "https://somehost:10036"
 
 
 def test_server_override_protocol(clean_env):
-    server = AllegroGraphServer('http://somehost', protocol='https')
-    assert server.url == 'https://somehost:10036'
+    server = AllegroGraphServer("http://somehost", protocol="https")
+    assert server.url == "https://somehost:10036"
 
 
 def test_server_port_as_arg(clean_env):
-    server = AllegroGraphServer('somehost', port=4321)
-    assert server.url == 'http://somehost:4321'
+    server = AllegroGraphServer("somehost", port=4321)
+    assert server.url == "http://somehost:4321"
 
 
 def test_server_override_port(clean_env):
-    server = AllegroGraphServer('somehost:1234', port=4321)
-    assert server.url == 'http://somehost:4321'
+    server = AllegroGraphServer("somehost:1234", port=4321)
+    assert server.url == "http://somehost:4321"
 
 
 def test_server_https_if_cainfo(clean_env):
-    server = AllegroGraphServer('somehost', cainfo='/path/to/ca/bundle')
-    assert server.url == 'https://somehost:10036'
+    server = AllegroGraphServer("somehost", cainfo="/path/to/ca/bundle")
+    assert server.url == "https://somehost:10036"
 
 
 def test_server_url_in_env(clean_env):
-    clean_env['AGRAPH_HOST'] = 'somehost'
-    clean_env['AGRAPH_PORT'] = 12345
-    clean_env['AGRAPH_USER'] = 'luser'
-    clean_env['AGRAPH_PASSWORD'] = '1234'
+    clean_env["AGRAPH_HOST"] = "somehost"
+    clean_env["AGRAPH_PORT"] = 12345
+    clean_env["AGRAPH_USER"] = "luser"
+    clean_env["AGRAPH_PASSWORD"] = "1234"
     server = AllegroGraphServer()
-    assert server.url == 'http://somehost:12345'
-    assert server._client.user == 'luser'
-    assert server._client.password == '1234'
+    assert server.url == "http://somehost:12345"
+    assert server._client.user == "luser"
+    assert server._client.password == "1234"
 
 
-@pytest.mark.parametrize("filename, expected_format, expected_compression", [
-    ("somefile.rdf", "RDF/XML", None),
-    ("somefile.rdfs", "RDF/XML", None),
-    ("somefile.owl", "RDF/XML", None),
-    ("somefile.xml", "RDF/XML", None),
-    ("somefile.rdf.gz", "RDF/XML", "gzip"),
-    ("somefile.rdfs.gz", "RDF/XML", "gzip"),
-    ("somefile.owl.gz", "RDF/XML", "gzip"),
-    ("somefile.xml.gz", "RDF/XML", "gzip"),
-    ("somefile.nt", "N-Triples", None),
-    ("somefile.ntriples", "N-Triples", None),
-    ("somefile.nt.gz", "N-Triples", "gzip"),
-    ("somefile.ntriples.gz", "N-Triples", "gzip"),
-    ("somefile.nq", "N-Quads", None),
-    ("somefile.nquads", "N-Quads", None),
-    ("somefile.nq.gz", "N-Quads", "gzip"),
-    ("somefile.nquads.gz", "N-Quads", "gzip"),
-    ("somefile.nqx", "Extended N-Quads (with attributes)", None),
-    ("somefile.nqx.gz", "Extended N-Quads (with attributes)", "gzip"),
-    ("somefile.ttl", "Turtle", None),
-    ("somefile.turtle", "Turtle", None),
-    ("somefile.ttl.gz", "Turtle", "gzip"),
-    ("somefile.turtle.gz", "Turtle", "gzip"),
-    ("somefile.trig", "TriG", None),
-    ("somefile.trig.gz", "TriG", "gzip"),
-    ("somefile.trix", "TriX", None),
-    ("somefile.trix.gz", "TriX", "gzip"),
-    ("sOmEfIlE.tRiX.gZ", "TriX", "gzip"),
-    ("somefile.kaboom", None, None),
-])
+@pytest.mark.parametrize(
+    "filename, expected_format, expected_compression",
+    [
+        ("somefile.rdf", "RDF/XML", None),
+        ("somefile.rdfs", "RDF/XML", None),
+        ("somefile.owl", "RDF/XML", None),
+        ("somefile.xml", "RDF/XML", None),
+        ("somefile.rdf.gz", "RDF/XML", "gzip"),
+        ("somefile.rdfs.gz", "RDF/XML", "gzip"),
+        ("somefile.owl.gz", "RDF/XML", "gzip"),
+        ("somefile.xml.gz", "RDF/XML", "gzip"),
+        ("somefile.nt", "N-Triples", None),
+        ("somefile.ntriples", "N-Triples", None),
+        ("somefile.nt.gz", "N-Triples", "gzip"),
+        ("somefile.ntriples.gz", "N-Triples", "gzip"),
+        ("somefile.nq", "N-Quads", None),
+        ("somefile.nquads", "N-Quads", None),
+        ("somefile.nq.gz", "N-Quads", "gzip"),
+        ("somefile.nquads.gz", "N-Quads", "gzip"),
+        ("somefile.nqx", "Extended N-Quads (with attributes)", None),
+        ("somefile.nqx.gz", "Extended N-Quads (with attributes)", "gzip"),
+        ("somefile.ttl", "Turtle", None),
+        ("somefile.turtle", "Turtle", None),
+        ("somefile.ttl.gz", "Turtle", "gzip"),
+        ("somefile.turtle.gz", "Turtle", "gzip"),
+        ("somefile.trig", "TriG", None),
+        ("somefile.trig.gz", "TriG", "gzip"),
+        ("somefile.trix", "TriX", None),
+        ("somefile.trix.gz", "TriX", "gzip"),
+        ("sOmEfIlE.tRiX.gZ", "TriX", "gzip"),
+        ("somefile.kaboom", None, None),
+    ],
+)
 def test_format_for_ext(filename, expected_format, expected_compression):
     actual_format, actual_compression = RDFFormat.format_for_file_name(filename)
     if actual_format is None:
@@ -215,22 +226,39 @@ def test_format_for_ext(filename, expected_format, expected_compression):
     assert expected_compression == actual_compression
 
 
-@pytest.mark.parametrize("value, expected_text, expected_type", [
-    (u'दुप', u'दुप', None), (b'test', u'test', None),
-    (True, 'true', XMLSchema.BOOLEAN), (False, 'false', XMLSchema.BOOLEAN),
-    (42, '42', XMLSchema.INTEGER), (42.000, '42.0', XMLSchema.DOUBLE),
-    (Decimal('42.000'), '42.000', XMLSchema.DECIMAL),
-    (datetime(1984, 8, 26, 10, 0, 5), '1984-08-26T10:00:05Z', XMLSchema.DATETIME),
-    # TODO: Should we really be converting times to UTC?
-    (datetime(1984, 8, 26, 12, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)),
-     '1984-08-26T10:00:05Z', XMLSchema.DATETIME),
-    (datetime(1984, 8, 27, 1, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)),
-     '1984-08-26T23:00:05Z', XMLSchema.DATETIME),
-    (date(1984, 8, 26), '1984-08-26', XMLSchema.DATE),
-    (time(10, 0, 5), '10:00:05Z', XMLSchema.TIME),
-    (time(12, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)), '10:00:05Z', XMLSchema.TIME),
-    (time(1, 0, 5, tzinfo=MockTimezone('CEST', 2, 1)), '23:00:05Z', XMLSchema.TIME),
-    ([1, 2, 3], "[1, 2, 3]", None)])
+@pytest.mark.parametrize(
+    "value, expected_text, expected_type",
+    [
+        ("दुप", "दुप", None),
+        (b"test", "test", None),
+        (True, "true", XMLSchema.BOOLEAN),
+        (False, "false", XMLSchema.BOOLEAN),
+        (42, "42", XMLSchema.INTEGER),
+        (42.000, "42.0", XMLSchema.DOUBLE),
+        (Decimal("42.000"), "42.000", XMLSchema.DECIMAL),
+        (datetime(1984, 8, 26, 10, 0, 5), "1984-08-26T10:00:05Z", XMLSchema.DATETIME),
+        # TODO: Should we really be converting times to UTC?
+        (
+            datetime(1984, 8, 26, 12, 0, 5, tzinfo=MockTimezone("CEST", 2, 1)),
+            "1984-08-26T10:00:05Z",
+            XMLSchema.DATETIME,
+        ),
+        (
+            datetime(1984, 8, 27, 1, 0, 5, tzinfo=MockTimezone("CEST", 2, 1)),
+            "1984-08-26T23:00:05Z",
+            XMLSchema.DATETIME,
+        ),
+        (date(1984, 8, 26), "1984-08-26", XMLSchema.DATE),
+        (time(10, 0, 5), "10:00:05Z", XMLSchema.TIME),
+        (
+            time(12, 0, 5, tzinfo=MockTimezone("CEST", 2, 1)),
+            "10:00:05Z",
+            XMLSchema.TIME,
+        ),
+        (time(1, 0, 5, tzinfo=MockTimezone("CEST", 2, 1)), "23:00:05Z", XMLSchema.TIME),
+        ([1, 2, 3], "[1, 2, 3]", None),
+    ],
+)
 def test_literals_from_python_values(value, expected_text, expected_type):
     literal = Literal(value)
     assert literal.label == expected_text
@@ -238,8 +266,9 @@ def test_literals_from_python_values(value, expected_text, expected_type):
     assert literal.datatype is expected_type
 
 
-@pytest.mark.skipif(sys.version_info >= (3,),
-                    reason="Long type exists only on Python 2.")
+@pytest.mark.skipif(
+    sys.version_info >= (3,), reason="Long type exists only on Python 2."
+)
 def test_long_literal():
     # This behavior of using LONG as the datatype might be convenient in demos,
     # (you can do ``Literal(42L)``), but has a few drawbacks:
@@ -262,9 +291,9 @@ def test_false_literal():
 
 
 def test_add_data_ascii(conn):
-    base_uri = u'http://franz.com/'
-    expected = conn.createURI(namespace=base_uri, localname='x')
-    conn.addData(u'<x> <x> <x> .', base_uri=base_uri)
+    base_uri = "http://franz.com/"
+    expected = conn.createURI(namespace=base_uri, localname="x")
+    conn.addData("<x> <x> <x> .", base_uri=base_uri)
     actual = conn.getStatements(None, None, None, None).asList()
     assert len(actual) == 1
     assert actual[0].getSubject() == expected
@@ -273,10 +302,10 @@ def test_add_data_ascii(conn):
 
 
 def test_add_data_unicode(conn):
-    """ See bug24405. """
-    base_uri = u'http://franz.com/'
-    expected = conn.createURI(namespace=base_uri, localname=u'दुप')
-    conn.addData(u'<दुप> <दुप> <दुप> .', base_uri=base_uri)
+    """See bug24405."""
+    base_uri = "http://franz.com/"
+    expected = conn.createURI(namespace=base_uri, localname="दुप")
+    conn.addData("<दुप> <दुप> <दुप> .", base_uri=base_uri)
     actual = conn.getStatements(None, None, None, None).asList()
     assert len(actual) == 1
     assert actual[0].getSubject() == expected
@@ -285,8 +314,8 @@ def test_add_data_unicode(conn):
 
 
 def test_get_statements_raw_value(conn):
-    conn.addData('<ex://s1> <ex://p1> true .')
-    conn.addData('<ex://s2> <ex://p2> false .')
+    conn.addData("<ex://s1> <ex://p1> true .")
+    conn.addData("<ex://s2> <ex://p2> false .")
     actual = conn.getStatements(None, None, False, None).asList()
     assert len(actual) == 1
     assert actual[0].getSubject() == conn.createURI("ex://s2")
@@ -294,7 +323,7 @@ def test_get_statements_raw_value(conn):
 
 # See spr43630
 def test_unicode_literal_filter(conn, s, p):
-    o = conn.createLiteral(u'<दुप>')
+    o = conn.createLiteral("<दुप>")
     conn.add(s, p, o)
     conn.getStatements(None, None, o)
 
@@ -310,8 +339,12 @@ def test_remove_statement(conn, s, p, o, x, g):
     remaining = conn.getStatements(None, None, None).asList()
     assert len(remaining) == 4
     for r in remaining:
-        assert r.getSubject() != s or r.getPredicate() != p \
-               or r.getObject() != o or r.getContext() != g
+        assert (
+            r.getSubject() != s
+            or r.getPredicate() != p
+            or r.getObject() != o
+            or r.getContext() != g
+        )
 
 
 def test_no_suppression(conn, s, p, o, o2):
@@ -397,133 +430,153 @@ def test_switch_suppression_before_commit(session, s, p, o, o2, g1, g2):
 
 
 def test_export_ntriples(conn):
-    conn.addData("""<ex://s1> <ex://p1> <ex://o1> .
-                    <ex://s2> <ex://p2> <ex://o2> .""")
+    conn.addData(
+        """<ex://s1> <ex://p1> <ex://o1> .
+                    <ex://s2> <ex://p2> <ex://o2> ."""
+    )
     out = BytesIO()
     conn.getStatements(output=out, output_format=RDFFormat.NTRIPLES)
-    result = sorted(out.getvalue().decode('utf-8').splitlines())
+    result = sorted(out.getvalue().decode("utf-8").splitlines())
     assert result == [
         "<ex://s1> <ex://p1> <ex://o1> .",
-        "<ex://s2> <ex://p2> <ex://o2> ."
+        "<ex://s2> <ex://p2> <ex://o2> .",
     ]
 
 
 def test_export_by_id(conn):
-    conn.addData("""<ex://s1> <ex://p1> <ex://o1> .
-                    <ex://s2> <ex://p2> <ex://o2> .""")
-    ids = [stmt.getTripleID()
-           for stmt in conn.getStatements(subject=conn.createURI('ex://s2'), tripleIDs=True)]
+    conn.addData(
+        """<ex://s1> <ex://p1> <ex://o1> .
+                    <ex://s2> <ex://p2> <ex://o2> ."""
+    )
+    ids = [
+        stmt.getTripleID()
+        for stmt in conn.getStatements(
+            subject=conn.createURI("ex://s2"), tripleIDs=True
+        )
+    ]
 
     out = BytesIO()
     conn.getStatementsById(ids, output=out, output_format=RDFFormat.NTRIPLES)
-    result = sorted(out.getvalue().decode('utf-8').splitlines())
-    assert result == [
-        "<ex://s2> <ex://p2> <ex://o2> ."
-    ]
+    result = sorted(out.getvalue().decode("utf-8").splitlines())
+    assert result == ["<ex://s2> <ex://p2> <ex://o2> ."]
 
 
 def test_export_query_result(conn):
-    conn.addData("""<ex://s1> <ex://p1> <ex://o1> .
-                    <ex://s2> <ex://p2> <ex://o2> .""")
+    conn.addData(
+        """<ex://s1> <ex://p1> <ex://o1> .
+                    <ex://s2> <ex://p2> <ex://o2> ."""
+    )
     query_string = "select ?s { ?s <ex://p1> ?o }"
     query = conn.prepareTupleQuery(QueryLanguage.SPARQL, query_string)
     out = BytesIO()
     query.evaluate(output=out, output_format=TupleFormat.CSV)
-    result = re.sub(r'\s', '', out.getvalue().decode('utf-8'))
+    result = re.sub(r"\s", "", out.getvalue().decode("utf-8"))
     assert result == 's"ex://s1"'
 
 
 def test_export_construct(conn):
-    query = conn.prepareGraphQuery(QueryLanguage.SPARQL, """
+    query = conn.prepareGraphQuery(
+        QueryLanguage.SPARQL,
+        """
         CONSTRUCT {
           <ex://s1> <ex://p1> <ex://o1> .
           <ex://s2> <ex://p2> <ex://o2> .
-        } WHERE {}""")
+        } WHERE {}""",
+    )
     out = BytesIO()
     query.evaluate(output=out, output_format=RDFFormat.NTRIPLES)
-    result = sorted(out.getvalue().decode('utf-8').splitlines())
+    result = sorted(out.getvalue().decode("utf-8").splitlines())
     assert result == [
         "<ex://s1> <ex://p1> <ex://o1> .",
-        "<ex://s2> <ex://p2> <ex://o2> ."
+        "<ex://s2> <ex://p2> <ex://o2> .",
     ]
+
 
 @min_version(6, 6)
 def test_export_query_result_tsv(conn):
-    base_uri = u'http://franz.com/'
-    s = conn.createURI(namespace=base_uri, localname='s')
-    p = conn.createURI(namespace=base_uri, localname='p')
-    o = conn.createURI(namespace=base_uri, localname='aa \t \n \r \\ bb')
+    base_uri = "http://franz.com/"
+    s = conn.createURI(namespace=base_uri, localname="s")
+    p = conn.createURI(namespace=base_uri, localname="p")
+    o = conn.createURI(namespace=base_uri, localname="aa \t \n \r \\ bb")
     conn.add(s, p, o)
     conn.commit()
     query_string = "select ?o { ?s ?p ?o }"
     query = conn.prepareTupleQuery(QueryLanguage.SPARQL, query_string)
     out = BytesIO()
     query.evaluate(output=out, output_format=TupleFormat.TSV)
-    assert out.getvalue().decode('utf-8') == '?o\n<http://franz.com/aa \\t \\n \\r \\\\ bb>\n'
+    assert (
+        out.getvalue().decode("utf-8")
+        == "?o\n<http://franz.com/aa \\t \\n \\r \\\\ bb>\n"
+    )
 
 
 def test_datetime_value_tz():
-    lit = Literal('1984-08-26T10:00:05+02:00', XMLSchema.DATETIME)
+    lit = Literal("1984-08-26T10:00:05+02:00", XMLSchema.DATETIME)
     dt = lit.datetimeValue()
     assert dt.utcoffset() == timedelta(0, 7200)
 
 
 def test_time_value_tz():
-    lit = Literal('1984-08-26T10:00:05+02:00', XMLSchema.DATETIME)
+    lit = Literal("1984-08-26T10:00:05+02:00", XMLSchema.DATETIME)
     t = lit.datetimeValue()
     assert t.utcoffset() == timedelta(0, 7200)
 
 
 def test_datetime_tz_roundtrip(conn, s, p):
-    dt = conn.createLiteral('1984-08-26T10:00:05+02:00', XMLSchema.DATETIME)
+    dt = conn.createLiteral("1984-08-26T10:00:05+02:00", XMLSchema.DATETIME)
     conn.addTriple(s, p, dt)
     actual = conn.getStatements().asList()[0].getObject()
     assert actual == dt
 
 
 def test_time_tz_roundtrip(conn, s, p):
-    t = conn.createLiteral('10:00:05+02:00', XMLSchema.TIME)
+    t = conn.createLiteral("10:00:05+02:00", XMLSchema.TIME)
     conn.addTriple(s, p, t)
     actual = conn.getStatements().asList()[0].getObject()
     assert actual == t
 
 
 def test_invalid_query(conn):
-    query = conn.prepareTupleQuery(QueryLanguage.SPARQL,
-                                   '"; DROP TABLE students;')
-    with open(os.devnull, 'w') as out:
+    query = conn.prepareTupleQuery(QueryLanguage.SPARQL, '"; DROP TABLE students;')
+    with open(os.devnull, "w") as out:
         with pytest.raises(RequestError):
             query.evaluate(output=out)
 
 
 def test_default_rdf_format(conn):
     out = BytesIO()
-    query = conn.prepareGraphQuery(QueryLanguage.SPARQL,"""
-        CONSTRUCT { <ex://s> <ex://p> <ex://o> } WHERE {}""")
+    query = conn.prepareGraphQuery(
+        QueryLanguage.SPARQL,
+        """
+        CONSTRUCT { <ex://s> <ex://p> <ex://o> } WHERE {}""",
+    )
     query.evaluate(output=out)
     assert out.getvalue()
 
 
 def test_default_tuple_format(conn):
     out = BytesIO()
-    query = conn.prepareTupleQuery(QueryLanguage.SPARQL,"""
-        SELECT ?x { BIND(42 as ?x) }""")
+    query = conn.prepareTupleQuery(
+        QueryLanguage.SPARQL,
+        """
+        SELECT ?x { BIND(42 as ?x) }""",
+    )
     query.evaluate(output=out)
     assert out.getvalue()
 
 
 def test_output_to_true(capfd):
     with output_to(True) as f:
-        f.write(b'test')
+        f.write(b"test")
     out, err = capfd.readouterr()
-    assert out == 'test'
+    assert out == "test"
 
 
 def test_output_to_stderr(capfd):
     with output_to(2) as f:
-        f.write(b'test')
+        f.write(b"test")
     out, err = capfd.readouterr()
-    assert err == 'test'
+    assert err == "test"
 
 
 def test_export_to_true(capfd, conn, s, p, o):
@@ -543,21 +596,21 @@ def test_quad_len(s, p, o, g):
 
 def test_stmt_str(ex):
     # This used to raise an error, see bug25079
-    assert 'ex' in str(Statement(ex.s, ex.p, ex.o))
+    assert "ex" in str(Statement(ex.s, ex.p, ex.o))
 
 
 def test_statement_from_strings_subject(ex):
-    stmt = Statement('<ex://s>', '<ex://p>', '<ex://o>')
+    stmt = Statement("<ex://s>", "<ex://p>", "<ex://o>")
     assert stmt.getSubject() == ex.s
 
 
 def test_statement_from_strings_predicate(ex):
-    stmt = Statement('<ex://s>', '<ex://p>', '<ex://o>')
+    stmt = Statement("<ex://s>", "<ex://p>", "<ex://o>")
     assert stmt.getPredicate() == ex.p
 
 
 def test_statement_from_strings_object(ex):
-    stmt = Statement('<ex://s>', '<ex://p>', '<ex://o>')
+    stmt = Statement("<ex://s>", "<ex://p>", "<ex://o>")
     assert stmt.getObject() == ex.o
 
 
@@ -574,16 +627,19 @@ def test_add_triples_statements(conn, ex):
 
 
 def test_conn_namespace(conn):
-    ex = conn.namespace('http://franz.com/example/')
-    assert ex.foo == conn.createURI('http://franz.com/example/foo')
+    ex = conn.namespace("http://franz.com/example/")
+    assert ex.foo == conn.createURI("http://franz.com/example/foo")
+
 
 def test_conn_namespace_array(conn):
-    ex = conn.namespace('http://franz.com/example/')
-    assert ex['bar'] == conn.createURI('http://franz.com/example/bar')
+    ex = conn.namespace("http://franz.com/example/")
+    assert ex["bar"] == conn.createURI("http://franz.com/example/bar")
+
 
 def test_conn_namespace_call(conn):
-    ex = conn.namespace('http://franz.com/example/')
-    assert ex('baz') == conn.createURI('http://franz.com/example/baz')
+    ex = conn.namespace("http://franz.com/example/")
+    assert ex("baz") == conn.createURI("http://franz.com/example/baz")
+
 
 def test_add_with_single_context(conn, s, p, o, g):
     conn.addTriples([(s, p, o)], context=g)
@@ -592,8 +648,10 @@ def test_add_with_single_context(conn, s, p, o, g):
 
 def test_add_with_two_contexts(conn, ex):
     conn.addTriples([(ex.s, ex.p, ex.o)], context=[ex.g1, ex.g2])
-    assert get_statements(conn) == [[ex.s, ex.p, ex.o, ex.g1],
-                                    [ex.s, ex.p, ex.o, ex.g2]]
+    assert get_statements(conn) == [
+        [ex.s, ex.p, ex.o, ex.g1],
+        [ex.s, ex.p, ex.o, ex.g2],
+    ]
 
 
 def test_add_quad_overrides_contexts(conn, ex):
@@ -605,20 +663,20 @@ def test_add_quad_overrides_contexts(conn, ex):
 # the repl header. It also sorts all the settings
 # in the header to make comparisons easier.
 def get_repl_header(conn, ex, mocker):
-    req = mocker.spy(franz.miniclient.request, 'makeRequest')
+    req = mocker.spy(franz.miniclient.request, "makeRequest")
     conn.addTriple(ex.s, ex.p, ex.o)
     # not implemented in Python 2...
     # req.assert_called()
     for _args, kwargs in req.call_args_list:
-        headers = normalize_headers(kwargs.get('headers', {})) or {}
-        return normalize_repl_header(headers.get('x-repl-settings'))
+        headers = normalize_headers(kwargs.get("headers", {})) or {}
+        return normalize_repl_header(headers.get("x-repl-settings"))
 
 
 # Sort values in a repl header
 def normalize_repl_header(header):
     if header is None:
         return None
-    return ' '.join(sorted(header.split()))
+    return " ".join(sorted(header.split()))
 
 
 def test_default_get_transaction_settings(conn):
@@ -647,15 +705,15 @@ def test_settings_object_and_kwargs(conn):
     conn.setTransactionSettings(durability=42)
     conn.setTransactionSettings(
         TransactionSettings(transaction_latency_count=7),
-        transaction_latency_timeout=2000)
+        transaction_latency_timeout=2000,
+    )
     assert conn.getTransactionSettings().transaction_latency_count == 7
     assert conn.getTransactionSettings().transaction_latency_timeout == 2000
     assert conn.getTransactionSettings().durability is None
 
 
 def test_settings_object_and_kwargs_overwrite(conn):
-    conn.setTransactionSettings(
-        TransactionSettings(durability=7), durability=42)
+    conn.setTransactionSettings(TransactionSettings(durability=7), durability=42)
     assert conn.getTransactionSettings().durability == 42
 
 
@@ -729,156 +787,189 @@ def test_temporary_settings_nonlocal_return(conn):
 
 def test_set_durability_header(conn, ex, mocker):
     conn.setTransactionSettings(durability=7)
-    assert get_repl_header(conn, ex, mocker) == 'durability=7'
+    assert get_repl_header(conn, ex, mocker) == "durability=7"
 
 
 def test_set_durability_and_latency_count(conn, ex, mocker):
     conn.setTransactionSettings(durability=7, transaction_latency_count=3)
     settings = get_repl_header(conn, ex, mocker)
-    assert settings == 'durability=7 transactionLatencyCount=3'
+    assert settings == "durability=7 transactionLatencyCount=3"
 
 
 def test_set_all_transaction_settings(conn, ex, mocker):
-    conn.setTransactionSettings(distributed_transaction_timeout=1,
-                                durability=2, transaction_latency_count=3,
-                                transaction_latency_timeout=4)
+    conn.setTransactionSettings(
+        distributed_transaction_timeout=1,
+        durability=2,
+        transaction_latency_count=3,
+        transaction_latency_timeout=4,
+    )
     settings = get_repl_header(conn, ex, mocker)
-    assert settings == ' '.join(('distributedTransactionTimeout=1',
-                                 'durability=2',
-                                 'transactionLatencyCount=3',
-                                 'transactionLatencyTimeout=4'))
+    assert settings == " ".join(
+        (
+            "distributedTransactionTimeout=1",
+            "durability=2",
+            "transactionLatencyCount=3",
+            "transactionLatencyTimeout=4",
+        )
+    )
 
 
 def test_latency_timeout_timedelta(conn, ex, mocker):
     conn.setTransactionSettings(transaction_latency_timeout=timedelta(hours=1))
-    assert get_repl_header(conn, ex, mocker) == 'transactionLatencyTimeout=3600'
+    assert get_repl_header(conn, ex, mocker) == "transactionLatencyTimeout=3600"
 
 
 def test_timeout_timedelta(conn, ex, mocker):
     conn.setTransactionSettings(distributed_transaction_timeout=timedelta(hours=1))
-    assert get_repl_header(conn, ex, mocker) == 'distributedTransactionTimeout=3600'
+    assert get_repl_header(conn, ex, mocker) == "distributedTransactionTimeout=3600"
 
 
 def test_commit_settings(conn, ex, mocker):
-    req = mocker.spy(franz.miniclient.request, 'makeRequest')
+    req = mocker.spy(franz.miniclient.request, "makeRequest")
     conn.addTriple(ex.s, ex.p, ex.o)
-    conn.commit(durability='quorum')
+    conn.commit(durability="quorum")
     # Not available in Python 2
     # req.assert_called()
     args, kwargs = req.call_args
-    headers = normalize_headers(kwargs.get('headers', {})) or {}
-    header = normalize_repl_header(headers.get('x-repl-settings'))
-    assert header == 'durability=quorum'
+    headers = normalize_headers(kwargs.get("headers", {})) or {}
+    header = normalize_repl_header(headers.get("x-repl-settings"))
+    assert header == "durability=quorum"
 
 
 def test_define_attribute(conn):
     attr = AttributeDefinition(
-        name='test', allowed_values=['a', 'b', 'c'],
-        minimum_number=0, maximum_number=1)
+        name="test", allowed_values=["a", "b", "c"], minimum_number=0, maximum_number=1
+    )
     conn.setAttributeDefinition(attr)
-    actual = conn.getAttributeDefinition('test')
-    assert actual.name == 'test'
-    assert sorted(actual.allowed_values) == ['a', 'b', 'c']
+    actual = conn.getAttributeDefinition("test")
+    assert actual.name == "test"
+    assert sorted(actual.allowed_values) == ["a", "b", "c"]
     assert actual.ordered is False
     assert actual.minimum_number == 0
     assert actual.maximum_number == 1
 
 
 def test_get_set_attribute_filter_str(conn, attr):
-    conn.setAttributeFilter('(empty triple.test)')
-    assert conn.getAttributeFilter() == '(empty triple.test)'
+    conn.setAttributeFilter("(empty triple.test)")
+    assert conn.getAttributeFilter() == "(empty triple.test)"
 
 
 def test_attribute_filter_works(conn, ex, attr):
-    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={'test': 'a'})
-    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={'test': 'b'})
-    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={'test': 'c'})
-    conn.setAttributeFilter(TripleAttribute.test == 'b')
+    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={"test": "a"})
+    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={"test": "b"})
+    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={"test": "c"})
+    conn.setAttributeFilter(TripleAttribute.test == "b")
     assert get_statements(conn) == [[ex.s2, ex.p2, ex.o2, None]]
-    
+
 
 def test_attribute_filter_works_with_output(conn, ex, attr):
-    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={'test': 'a'})
-    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={'test': 'b'})
-    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={'test': 'c'})
-    conn.setAttributeFilter(TripleAttribute.test == 'b')
+    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={"test": "a"})
+    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={"test": "b"})
+    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={"test": "c"})
+    conn.setAttributeFilter(TripleAttribute.test == "b")
     buf = io.BytesIO()
-    conn.executeTupleQuery('select ?s { ?s ?p ?o }', 
-                           output=buf, output_format=TupleFormat.CSV)
-    assert buf.getvalue().strip().split() == [b's', b'"ex://s2"']
+    conn.executeTupleQuery(
+        "select ?s { ?s ?p ?o }", output=buf, output_format=TupleFormat.CSV
+    )
+    assert buf.getvalue().strip().split() == [b"s", b'"ex://s2"']
 
 
 def test_attribute_filter_with_user_attributes(conn, ex, attr):
-    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={'test': 'a'})
-    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={'test': 'b'})
-    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={'test': 'c'})
-    conn.setUserAttributes({'test': 'b'})
+    conn.addTriple(ex.s1, ex.p1, ex.o1, attributes={"test": "a"})
+    conn.addTriple(ex.s2, ex.p2, ex.o2, attributes={"test": "b"})
+    conn.addTriple(ex.s3, ex.p3, ex.o3, attributes={"test": "c"})
+    conn.setUserAttributes({"test": "b"})
     conn.setAttributeFilter(TripleAttribute.test == UserAttribute.test)
     assert get_statements(conn) == [[ex.s2, ex.p2, ex.o2, None]]
 
 
-@pytest.mark.parametrize("attr_set, expected_text", [
-    ('raw-value', '"raw-value"'),
-    ('value-with-"-inside', '"value-with-\\"-inside"'),
-    (['a', 'list', 'of', 'strings'], '("a" "list" "of" "strings")'),
-    (UserAttribute.test, 'user.test'),
-    (TripleAttribute.level, 'triple.level')])
+@pytest.mark.parametrize(
+    "attr_set, expected_text",
+    [
+        ("raw-value", '"raw-value"'),
+        ('value-with-"-inside', '"value-with-\\"-inside"'),
+        (["a", "list", "of", "strings"], '("a" "list" "of" "strings")'),
+        (UserAttribute.test, "user.test"),
+        (TripleAttribute.level, "triple.level"),
+    ],
+)
 def test_attr_set_expr(attr_set, expected_text):
     assert expected_text == attribute_set_to_expr(attr_set)
 
 
-@pytest.mark.parametrize("attr_filter, expected_text", [
-    ('(empty ("raw" "string"))', '(empty ("raw" "string"))'),
-    (And('(and)', '(or)'), '(and (and) (or))'),
-    (Or('(and)', '(or)'), '(or (and) (or))'),
-    (And('(and)',Or()), '(and (and) (or))'),
-    (Or(And(), '(or)'), '(or (and) (or))'),
-    (Not('(and)'), '(not (and))'),
-    (Not(Not(Not(And()))), '(not (not (not (and))))'),
-    (Empty([]), '(empty ())'),
-    (Empty(TripleAttribute.restricted), '(empty triple.restricted)'),
-    (Overlap([], ["x"]), '(overlap () ("x"))'),
-    (Overlap(UserAttribute.flags, TripleAttribute.flags),
-     '(overlap user.flags triple.flags)'),
-    (Subset([], ["x"]), '(subset () ("x"))'),
-    (Subset(UserAttribute.flags, TripleAttribute.flags),
-     '(subset user.flags triple.flags)'),
-    (Superset([], ["x"]), '(superset () ("x"))'),
-    (Superset(UserAttribute.flags, TripleAttribute.flags),
-     '(superset user.flags triple.flags)'),
-    (Equal(["y"], ["x"]), '(equal ("y") ("x"))'),
-    (Equal(UserAttribute.color, TripleAttribute.color),
-     '(equal user.color triple.color)'),
-    (Lt(UserAttribute.level, TripleAttribute.level),
-     '(attribute-set< user.level triple.level)'),
-    (Le(UserAttribute.level, TripleAttribute.level),
-     '(attribute-set<= user.level triple.level)'),
-    (Eq(UserAttribute.level, TripleAttribute.level),
-     '(attribute-set= user.level triple.level)'),
-    (Ge(UserAttribute.level, TripleAttribute.level),
-     '(attribute-set>= user.level triple.level)'),
-    (Gt(UserAttribute.level, TripleAttribute.level),
-     '(attribute-set> user.level triple.level)'),
-    (UserAttribute.x < TripleAttribute.x, '(attribute-set< user.x triple.x)'),
-    (UserAttribute.x <= TripleAttribute.x, '(attribute-set<= user.x triple.x)'),
-    (UserAttribute.x == TripleAttribute.x, '(equal user.x triple.x)'),
-    (UserAttribute.x > TripleAttribute.x, '(attribute-set> user.x triple.x)'),
-    (UserAttribute.x >= TripleAttribute.x, '(attribute-set>= user.x triple.x)'),
-    (UserAttribute.x << TripleAttribute.x, '(subset user.x triple.x)'),
-    (UserAttribute.x >> TripleAttribute.x, '(superset user.x triple.x)'),
-    ('a' < TripleAttribute.x, '(attribute-set> triple.x "a")'),
-    ('a' <= TripleAttribute.x, '(attribute-set>= triple.x "a")'),
-    ('a' == TripleAttribute.x, '(equal triple.x "a")'),
-    ('a' > TripleAttribute.x, '(attribute-set< triple.x "a")'),
-    ('a' >= TripleAttribute.x, '(attribute-set<= triple.x "a")'),
-    ('a' << TripleAttribute.x, '(subset "a" triple.x)'),
-    ('a' >> TripleAttribute.x, '(superset "a" triple.x)'),
-    (Empty([]) & '(or)', '(and (empty ()) (or))'),
-    (Empty([]) & Or(), '(and (empty ()) (or))'),
-    (Empty([]) | '(and)', '(or (empty ()) (and))'),
-    (Empty([]) | And(), '(or (empty ()) (and))'),
-    (~Empty([]), '(not (empty ()))')
-])
+@pytest.mark.parametrize(
+    "attr_filter, expected_text",
+    [
+        ('(empty ("raw" "string"))', '(empty ("raw" "string"))'),
+        (And("(and)", "(or)"), "(and (and) (or))"),
+        (Or("(and)", "(or)"), "(or (and) (or))"),
+        (And("(and)", Or()), "(and (and) (or))"),
+        (Or(And(), "(or)"), "(or (and) (or))"),
+        (Not("(and)"), "(not (and))"),
+        (Not(Not(Not(And()))), "(not (not (not (and))))"),
+        (Empty([]), "(empty ())"),
+        (Empty(TripleAttribute.restricted), "(empty triple.restricted)"),
+        (Overlap([], ["x"]), '(overlap () ("x"))'),
+        (
+            Overlap(UserAttribute.flags, TripleAttribute.flags),
+            "(overlap user.flags triple.flags)",
+        ),
+        (Subset([], ["x"]), '(subset () ("x"))'),
+        (
+            Subset(UserAttribute.flags, TripleAttribute.flags),
+            "(subset user.flags triple.flags)",
+        ),
+        (Superset([], ["x"]), '(superset () ("x"))'),
+        (
+            Superset(UserAttribute.flags, TripleAttribute.flags),
+            "(superset user.flags triple.flags)",
+        ),
+        (Equal(["y"], ["x"]), '(equal ("y") ("x"))'),
+        (
+            Equal(UserAttribute.color, TripleAttribute.color),
+            "(equal user.color triple.color)",
+        ),
+        (
+            Lt(UserAttribute.level, TripleAttribute.level),
+            "(attribute-set< user.level triple.level)",
+        ),
+        (
+            Le(UserAttribute.level, TripleAttribute.level),
+            "(attribute-set<= user.level triple.level)",
+        ),
+        (
+            Eq(UserAttribute.level, TripleAttribute.level),
+            "(attribute-set= user.level triple.level)",
+        ),
+        (
+            Ge(UserAttribute.level, TripleAttribute.level),
+            "(attribute-set>= user.level triple.level)",
+        ),
+        (
+            Gt(UserAttribute.level, TripleAttribute.level),
+            "(attribute-set> user.level triple.level)",
+        ),
+        (UserAttribute.x < TripleAttribute.x, "(attribute-set< user.x triple.x)"),
+        (UserAttribute.x <= TripleAttribute.x, "(attribute-set<= user.x triple.x)"),
+        (UserAttribute.x == TripleAttribute.x, "(equal user.x triple.x)"),
+        (UserAttribute.x > TripleAttribute.x, "(attribute-set> user.x triple.x)"),
+        (UserAttribute.x >= TripleAttribute.x, "(attribute-set>= user.x triple.x)"),
+        (UserAttribute.x << TripleAttribute.x, "(subset user.x triple.x)"),
+        (UserAttribute.x >> TripleAttribute.x, "(superset user.x triple.x)"),
+        ("a" < TripleAttribute.x, '(attribute-set> triple.x "a")'),
+        ("a" <= TripleAttribute.x, '(attribute-set>= triple.x "a")'),
+        ("a" == TripleAttribute.x, '(equal triple.x "a")'),
+        ("a" > TripleAttribute.x, '(attribute-set< triple.x "a")'),
+        ("a" >= TripleAttribute.x, '(attribute-set<= triple.x "a")'),
+        ("a" << TripleAttribute.x, '(subset "a" triple.x)'),
+        ("a" >> TripleAttribute.x, '(superset "a" triple.x)'),
+        (Empty([]) & "(or)", "(and (empty ()) (or))"),
+        (Empty([]) & Or(), "(and (empty ()) (or))"),
+        (Empty([]) | "(and)", "(or (empty ()) (and))"),
+        (Empty([]) | And(), "(or (empty ()) (and))"),
+        (~Empty([]), "(not (empty ()))"),
+    ],
+)
 def test_attr_filter_to_expr(attr_filter, expected_text):
     assert expected_text == attribute_filter_to_expr(attr_filter)
 
@@ -900,184 +991,238 @@ def normalize_attributes(d):
 
 def get_triple_attributes(conn, s, p, o, g=None):
     if g is None:
-        qt = '''select ?a { 
+        qt = """select ?a { 
                    ?a <http://franz.com/ns/allegrograph/6.2.0/attributes> (?s ?p ?o) . 
-        }'''
+        }"""
     else:
-        qt = '''select ?a { 
+        qt = """select ?a { 
                    graph ?g {
                        ?a <http://franz.com/ns/allegrograph/6.2.0/attributes> (?s ?p ?o) .
                    } 
-        }'''
+        }"""
     query = conn.prepareTupleQuery(query=qt)
-    query.setBinding('s', s)
-    query.setBinding('p', p)
-    query.setBinding('o', o)
+    query.setBinding("s", s)
+    query.setBinding("p", p)
+    query.setBinding("o", o)
     if g is not None:
-        query.setBinding('g', g)
+        query.setBinding("g", g)
     with query.evaluate() as result:
-        return [normalize_attributes(json.loads(b['a'].label or 'null'))
-                for b in result
-                if b['a'] is not None]
+        return [
+            normalize_attributes(json.loads(b["a"].label or "null"))
+            for b in result
+            if b["a"] is not None
+        ]
 
 
 def test_add_data_with_attributes(conn, ex, attr):
-    conn.addData('<ex://s> <ex://p> <ex://o> .', attributes={'test': 'c'})
-    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s, ex.p, ex.o)
+    conn.addData("<ex://s> <ex://p> <ex://o> .", attributes={"test": "c"})
+    assert [{"test": "c"}] == get_triple_attributes(conn, ex.s, ex.p, ex.o)
 
 
 def test_add_tuples_with_attributes(conn, ex, attr):
-    conn.addTriples([[ex.s1, ex.p1, ex.o1], [ex.s2, ex.p2, ex.o2]],
-                    attributes={'test': 'c'})
-    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
-    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+    conn.addTriples(
+        [[ex.s1, ex.p1, ex.o1], [ex.s2, ex.p2, ex.o2]], attributes={"test": "c"}
+    )
+    assert [{"test": "c"}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{"test": "c"}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
 
 
 def test_add_quints(conn, ex, attr):
-    conn.addTriples([[ex.s1, ex.p1, ex.o1, None, {'test': 'a'}],
-                    [ex.s2, ex.p2, ex.o2, None, {'test': 'b'}]])
-    assert [{'test': 'a'}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
-    assert [{'test': 'b'}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+    conn.addTriples(
+        [
+            [ex.s1, ex.p1, ex.o1, None, {"test": "a"}],
+            [ex.s2, ex.p2, ex.o2, None, {"test": "b"}],
+        ]
+    )
+    assert [{"test": "a"}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{"test": "b"}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
 
 
 def test_add_quints_multiple_values(conn, ex, attr2):
-    conn.addTriples([[ex.s1, ex.p1, ex.o1, None, {'test2': ['a', 'b']}],
-                     [ex.s2, ex.p2, ex.o2, None, {'test2': ['b', 'c']}]])
-    assert [{'test2': ['a', 'b']}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
-    assert [{'test2': ['b', 'c']}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+    conn.addTriples(
+        [
+            [ex.s1, ex.p1, ex.o1, None, {"test2": ["a", "b"]}],
+            [ex.s2, ex.p2, ex.o2, None, {"test2": ["b", "c"]}],
+        ]
+    )
+    assert [{"test2": ["a", "b"]}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{"test2": ["b", "c"]}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
 
 
 def test_add_quints_with_attributes(conn, ex, attr):
-    conn.addTriples([[ex.s1, ex.p1, ex.o1, None, {'test': 'a',}],
-                     [ex.s2, ex.p2, ex.o2],
-                     [ex.s3, ex.p3, ex.o3, None, None],
-                     [ex.s4, ex.p4, ex.o4, None, {}]],
-                    attributes={'test': 'c'})
-    assert [{'test': 'a'}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
-    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
-    assert [{'test': 'c'}] == get_triple_attributes(conn, ex.s3, ex.p3, ex.o3)
+    conn.addTriples(
+        [
+            [
+                ex.s1,
+                ex.p1,
+                ex.o1,
+                None,
+                {
+                    "test": "a",
+                },
+            ],
+            [ex.s2, ex.p2, ex.o2],
+            [ex.s3, ex.p3, ex.o3, None, None],
+            [ex.s4, ex.p4, ex.o4, None, {}],
+        ],
+        attributes={"test": "c"},
+    )
+    assert [{"test": "a"}] == get_triple_attributes(conn, ex.s1, ex.p1, ex.o1)
+    assert [{"test": "c"}] == get_triple_attributes(conn, ex.s2, ex.p2, ex.o2)
+    assert [{"test": "c"}] == get_triple_attributes(conn, ex.s3, ex.p3, ex.o3)
     assert [] == get_triple_attributes(conn, ex.s4, ex.p4, ex.o4)
 
 
 def test_set_user_data(server):
-    server.setUserData('testKey', 'Hello, "World"!')
+    server.setUserData("testKey", 'Hello, "World"!')
     try:
-        assert server.getUserData('testKey') == 'Hello, "World"!'
+        assert server.getUserData("testKey") == 'Hello, "World"!'
     finally:
-        server.deleteUserData('testKey')
+        server.deleteUserData("testKey")
 
 
 def test_user_data_not_found(server):
-    assert server.getUserData('nope') is None
+    assert server.getUserData("nope") is None
 
 
 def test_del_user_data(server):
-    server.setUserData('testKey', 'Hello, "World"!')
-    server.deleteUserData('testKey')
-    assert server.getUserData('testKey') is None
+    server.setUserData("testKey", 'Hello, "World"!')
+    server.deleteUserData("testKey")
+    assert server.getUserData("testKey") is None
 
 
 def test_user_data_fixture(server, user_data):
-    user_data['testKey2'] = 'hello!'
-    assert server.getUserData('testKey2') == 'hello!'
-    del user_data['testKey2']
-    assert server.getUserData('testKey2') is None
+    user_data["testKey2"] = "hello!"
+    assert server.getUserData("testKey2") == "hello!"
+    del user_data["testKey2"]
+    assert server.getUserData("testKey2") is None
 
 
 def test_http_sanity(http_server):
-    http_server.publish('/', b'Hello!')
-    r = requests.get(http_server.url('/'))
-    assert r.text == 'Hello!'
+    http_server.publish("/", b"Hello!")
+    r = requests.get(http_server.url("/"))
+    assert r.text == "Hello!"
 
 
 def test_remote_http_sanity(remote_http_server):
-    remote_http_server.publish('/', 'Hello!')
-    assert remote_http_server.send_request('/') == 'Hello!'
+    remote_http_server.publish("/", "Hello!")
+    assert remote_http_server.send_request("/") == "Hello!"
 
 
 @min_version(6, 5)
 def test_add_json_ld(conn, example):
-    conn.addData('''{
+    conn.addData(
+        """{
       "@context": {
         "@vocab": "http://franz.com/example/"
       },
       "@id": "subject",
       "predicate": { "@id": "object" }
-    }''', rdf_format=RDFFormat.JSONLD, base_uri=example('').uri)
-    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
+    }""",
+        rdf_format=RDFFormat.JSONLD,
+        base_uri=example("").uri,
+    )
+    assert get_statements(conn) == [
+        [example.subject, example.predicate, example.object, None]
+    ]
 
 
 @min_version(6, 5)
 def test_add_json_from_dict(conn, example):
-    conn.addData({
-      "@context": {
-        "@vocab": "http://franz.com/example/"
-      },
-      "@id": "subject",
-      "predicate": {"@id": "object"}
-    }, base_uri=example('').uri)
-    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
+    conn.addData(
+        {
+            "@context": {"@vocab": "http://franz.com/example/"},
+            "@id": "subject",
+            "predicate": {"@id": "object"},
+        },
+        base_uri=example("").uri,
+    )
+    assert get_statements(conn) == [
+        [example.subject, example.predicate, example.object, None]
+    ]
 
 
 @min_version(6, 5)
 def test_add_json_ld_with_context(conn, example):
-    conn.addData('''{
+    conn.addData(
+        """{
       "@id": "subject",
       "predicate": { "@id": "object" }
-    }''', rdf_format=RDFFormat.JSONLD, json_ld_context={
-        "@vocab": "http://franz.com/example/"
-    }, base_uri=example('').uri)
-    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
+    }""",
+        rdf_format=RDFFormat.JSONLD,
+        json_ld_context={"@vocab": "http://franz.com/example/"},
+        base_uri=example("").uri,
+    )
+    assert get_statements(conn) == [
+        [example.subject, example.predicate, example.object, None]
+    ]
 
 
 @min_version(6, 5)
 def test_add_json_ld_with_external_context(conn, example, remote_http_server):
-    url = remote_http_server.publish('/ctx.json', '{"@context": {"@vocab":"http://franz.com/example/"}}')
-    conn.addData('''{
+    url = remote_http_server.publish(
+        "/ctx.json", '{"@context": {"@vocab":"http://franz.com/example/"}}'
+    )
+    conn.addData(
+        """{
       "@id": "subject",
-      "predicate": { "@id": "http://franz.com/example/object" }}''',
-                 rdf_format=RDFFormat.JSONLD,
-                 json_ld_context=url,
-                 allow_external_references=True,
-                 base_uri=example('').uri)
-    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
+      "predicate": { "@id": "http://franz.com/example/object" }}""",
+        rdf_format=RDFFormat.JSONLD,
+        json_ld_context=url,
+        allow_external_references=True,
+        base_uri=example("").uri,
+    )
+    assert get_statements(conn) == [
+        [example.subject, example.predicate, example.object, None]
+    ]
 
 
 @min_version(6, 5)
 def test_add_json_ld_with_external_context_inside(conn, example, remote_http_server):
-    url = remote_http_server.publish('/ctx.json', json.dumps({
-       "@context": {
-           "predicate": {
-               "@id": "http://franz.com/example/predicate",
-               "@type": "@id"
-           }
-       }
-    }))
-    conn.addData('''{
+    url = remote_http_server.publish(
+        "/ctx.json",
+        json.dumps(
+            {
+                "@context": {
+                    "predicate": {
+                        "@id": "http://franz.com/example/predicate",
+                        "@type": "@id",
+                    }
+                }
+            }
+        ),
+    )
+    conn.addData(
+        """{
       "@context": %s,
       "@id": "http://franz.com/example/subject",
-      "predicate": { "@id": "http://franz.com/example/object" }}''' % json.dumps(url),
-                 rdf_format=RDFFormat.JSONLD,
-                 allow_external_references=True)
-    assert get_statements(conn) == [[example.subject, example.predicate, example.object, None]]
+      "predicate": { "@id": "http://franz.com/example/object" }}"""
+        % json.dumps(url),
+        rdf_format=RDFFormat.JSONLD,
+        allow_external_references=True,
+    )
+    assert get_statements(conn) == [
+        [example.subject, example.predicate, example.object, None]
+    ]
 
 
 @min_version(6, 5)
 def test_add_json_ld_keep_source(conn):
-    src = '''{"ex://p": "o"}'''
+    src = """{"ex://p": "o"}"""
     conn.addData(src, rdf_format=RDFFormat.JSONLD, json_ld_store_source=True)
     statements = get_statements(conn)
     assert 2 == len(statements)
     assert statements[0][2].label == src or statements[1][2].label == src
 
+
 @min_version(6, 6)
 def test_add_json_ld_with_root_graph(conn):
-    src = '''{"ex://p": "o"}'''
-    conn.addData(src, rdf_format=RDFFormat.JSONLD, context=':root')
+    src = """{"ex://p": "o"}"""
+    conn.addData(src, rdf_format=RDFFormat.JSONLD, context=":root")
     statements = get_statements(conn)
     assert 1 == len(statements)
     assert statements[0][0] == statements[0][3]
-    
+
 
 @min_version(6, 5)
 def test_add_json_ld_empty_dict(conn):
@@ -1087,147 +1232,155 @@ def test_add_json_ld_empty_dict(conn):
 
 @min_version(6, 5)
 def test_add_json_ld_simple_dict(conn, example):
-    conn.addData({
-        '@context': {
-            '@vocab': 'http://franz.com/example/',
-            '@base': 'http://franz.com/example/'
-        },
-        '@id': 's',
-        'p': {'@id': 'o'}
-    })
+    conn.addData(
+        {
+            "@context": {
+                "@vocab": "http://franz.com/example/",
+                "@base": "http://franz.com/example/",
+            },
+            "@id": "s",
+            "p": {"@id": "o"},
+        }
+    )
     assert [[example.s, example.p, example.o, None]] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_uri_key(conn, example):
-    conn.addData({
-        '@context': {
-            '@vocab': 'http://franz.com/example/',
-            '@base': 'http://franz.com/example/'
-        },
-        '@id': 's',
-        example.p: {'@id': 'o'}
-    })
+    conn.addData(
+        {
+            "@context": {
+                "@vocab": "http://franz.com/example/",
+                "@base": "http://franz.com/example/",
+            },
+            "@id": "s",
+            example.p: {"@id": "o"},
+        }
+    )
     assert [[example.s, example.p, example.o, None]] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_uri_values(conn, example):
-    conn.addData({
-        '@context': {
-            '@vocab': 'http://franz.com/example/',
-            '@base': 'http://franz.com/example/'
-        },
-        '@id': example.s,
-        'p': {'@id': example.o}
-    })
+    conn.addData(
+        {
+            "@context": {
+                "@vocab": "http://franz.com/example/",
+                "@base": "http://franz.com/example/",
+            },
+            "@id": example.s,
+            "p": {"@id": example.o},
+        }
+    )
     assert [[example.s, example.p, example.o, None]] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_literal_value(conn, example):
-    conn.addData({
-        '@context': {
-            '@vocab': 'http://franz.com/example/',
-            '@base': 'http://franz.com/example/'
-        },
-        '@id': 's',
-        example.p: Literal('o')
-    })
-    assert [[example.s, example.p, Literal('o'), None]] == get_statements(conn)
+    conn.addData(
+        {
+            "@context": {
+                "@vocab": "http://franz.com/example/",
+                "@base": "http://franz.com/example/",
+            },
+            "@id": "s",
+            example.p: Literal("o"),
+        }
+    )
+    assert [[example.s, example.p, Literal("o"), None]] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_typed_literal_value(conn, example):
-    conn.addData({
-        '@context': {
-            '@vocab': 'http://franz.com/example/',
-            '@base': 'http://franz.com/example/'
-        },
-        '@id': 's',
-        example.p: Literal('oooo', XMLSchema.BASE64BINARY)
-    })
-    assert [[example.s,
-             example.p,
-             Literal('oooo', XMLSchema.BASE64BINARY),
-             None]] == get_statements(conn)
+    conn.addData(
+        {
+            "@context": {
+                "@vocab": "http://franz.com/example/",
+                "@base": "http://franz.com/example/",
+            },
+            "@id": "s",
+            example.p: Literal("oooo", XMLSchema.BASE64BINARY),
+        }
+    )
+    assert [
+        [example.s, example.p, Literal("oooo", XMLSchema.BASE64BINARY), None]
+    ] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_lang_literal_value(conn, example):
-    conn.addData({
-        '@context': {
-            '@vocab': 'http://franz.com/example/',
-            '@base': 'http://franz.com/example/'
-        },
-        '@id': 's',
-        # A bathtub in Sindarin
-        example.p: Literal('🛀', language='sjn')
-    })
-    assert [[example.s, example.p, Literal('🛀', language='sjn'), None]] == get_statements(conn)
+    conn.addData(
+        {
+            "@context": {
+                "@vocab": "http://franz.com/example/",
+                "@base": "http://franz.com/example/",
+            },
+            "@id": "s",
+            # A bathtub in Sindarin
+            example.p: Literal("🛀", language="sjn"),
+        }
+    )
+    assert [
+        [example.s, example.p, Literal("🛀", language="sjn"), None]
+    ] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_integer_literal_value(conn, example):
-    conn.addData({
-        '@context': {
-            '@vocab': 'http://franz.com/example/',
-            '@base': 'http://franz.com/example/'
-        },
-        '@id': 's',
-        example.p: Literal(42)
-    })
+    conn.addData(
+        {
+            "@context": {
+                "@vocab": "http://franz.com/example/",
+                "@base": "http://franz.com/example/",
+            },
+            "@id": "s",
+            example.p: Literal(42),
+        }
+    )
     assert [[example.s, example.p, Literal(42), None]] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_dict_with_terms(conn, ex):
-    conn.addData({
-        '@id': ex.s,
-        ex.p: ex.o
-    })
+    conn.addData({"@id": ex.s, ex.p: ex.o})
     assert [[ex.s, ex.p, ex.o, None]] == get_statements(conn)
 
 
 @min_version(6, 5)
 def test_add_json_ld_list(conn, ex):
-    conn.addData([{
-        '@id': ex.s,
-        ex.p: ex.o1
-    }, {
-        '@id': ex.s,
-        ex.p: ex.o2
-    }])
-    assert [[ex.s, ex.p, ex.o1, None], 
-            [ex.s, ex.p, ex.o2, None]] == get_statements(conn)
+    conn.addData([{"@id": ex.s, ex.p: ex.o1}, {"@id": ex.s, ex.p: ex.o2}])
+    assert [[ex.s, ex.p, ex.o1, None], [ex.s, ex.p, ex.o2, None]] == get_statements(
+        conn
+    )
 
 
 def test_uri_canonical_true():
-    uri1 = URI('ex://test')
-    uri2 = URI(namespace='ex://', localname='test')
+    uri1 = URI("ex://test")
+    uri2 = URI(namespace="ex://", localname="test")
     assert uri1 is uri2
 
 
 def test_uri_canonical_false():
-    uri1 = URI('ex://test', canonical=False)
-    uri2 = URI('ex://test', canonical=False)
+    uri1 = URI("ex://test", canonical=False)
+    uri2 = URI("ex://test", canonical=False)
     assert uri1 is not uri2
 
 
 def test_uri_canonicalize():
-    uri1 = URI('ex://test', canonical=False)
+    uri1 = URI("ex://test", canonical=False)
     uri2 = URI(uri1)
-    uri3 = URI('ex://test')
+    uri3 = URI("ex://test")
     assert uri2 is not uri1
     assert uri2 is uri3
 
 
 def test_prolog_default_graph(conn, ex):
     conn.addTriple(ex.s, ex.p, ex.o)
-    query = '(select (?s ?p ?o ?g) (q ?s ?p ?o ?g))'
+    query = "(select (?s ?p ?o ?g) (q ?s ?p ?o ?g))"
     with conn.executeTupleQuery(query, QueryLanguage.PROLOG) as result:
         bindings = normalize_query_result(result)
     assert bindings == [[ex.s, ex.p, ex.o, None]]
+
 
 def test_warmup(conn):
     """
@@ -1238,16 +1391,21 @@ def test_warmup(conn):
     conn.warmup()
     conn.warmup(includeStrings=True)
     conn.warmup(includeStrings=False, includeTriples=False)
-    conn.warmup(indices='spogi')
-    conn.warmup(indices=['spogi', 'posgi'], includeTriples=True)
+    conn.warmup(indices="spogi")
+    conn.warmup(indices=["spogi", "posgi"], includeTriples=True)
+
 
 def test_sparql_query_metadata_select(conn):
-    query = conn.prepareTupleQuery(QueryLanguage.SPARQL,"""
-        SELECT (count(*) as ?count) { ?s ?p ?o }""")
+    query = conn.prepareTupleQuery(
+        QueryLanguage.SPARQL,
+        """
+        SELECT (count(*) as ?count) { ?s ?p ?o }""",
+    )
     result = query.evaluate()
     md = result.getMetadata()
     assert md
-    assert md['time']['total'] > 0
+    assert md["time"]["total"] > 0
+
 
 @min_version(7, 1)
 def test_query_option_management(conn):
@@ -1258,12 +1416,13 @@ def test_query_option_management(conn):
     conn.clearQueryOptions()
     assert len(conn.getQueryOptions()) == 0
 
-    assert_raises(RequestError, lambda n: conn.setQueryOption(n, ''),
-                  'unknownQueryOption')
+    assert_raises(
+        RequestError, lambda n: conn.setQueryOption(n, ""), "unknownQueryOption"
+    )
 
     test_options = {
-        'logLineLength': 100,
-        'authorizationBasic': '{}:{}'.format(USER, PASSWORD)
+        "logLineLength": 100,
+        "authorizationBasic": "{}:{}".format(USER, PASSWORD),
     }
 
     for name, value in iteritems(test_options):
@@ -1279,9 +1438,9 @@ def test_query_option_management(conn):
     assert len(conn.getQueryOptions()) == len(test_options)
 
     # Remove one of the options.
-    conn.removeQueryOption('logLineLength')
+    conn.removeQueryOption("logLineLength")
     assert len(conn.getQueryOptions()) == len(test_options) - 1
-    assert_raises(RequestError, conn.getQueryOption, 'logLineLength')
+    assert_raises(RequestError, conn.getQueryOption, "logLineLength")
 
     # Test clearing all query options.
     conn.clearQueryOptions()

@@ -25,24 +25,26 @@ from past.builtins import basestring, unicode
 from franz.openrdf.util.strings import to_bytes, to_native_string
 
 # Public symbols
-__all__ = ['makeRequest']
+__all__ = ["makeRequest"]
 
 # A simple way of checking if we're on pycurl>=7.19.3
-if hasattr(pycurl, 'NOPROXY'):
+if hasattr(pycurl, "NOPROXY"):
     copt = lambda x: x
 else:
+
     def copt(value):
         """
         Convert a value to a type suitable for a curl option.
         This simply means that unicode strings must be encoded
         to byte strings in older versions of curl.
-        """ 
+        """
         if isinstance(value, unicode):
-            return value.encode('ascii')
-        return value          
-    
+            return value.encode("ascii")
+        return value
+
 
 curlPool = None
+
 
 class Pool(object):
     """
@@ -54,6 +56,7 @@ class Pool(object):
     A new connection is created only when there are no connections left
     in the pool.
     """
+
     @staticmethod
     def instance():
         """
@@ -142,7 +145,7 @@ def normalize_headers(headers):
     if headers is None:
         result = []
     elif isinstance(headers, dict):
-        result = ['%s: %s' % entry for entry in iteritems(headers)]
+        result = ["%s: %s" % entry for entry in iteritems(headers)]
     else:
         result = headers[:]
     return [to_native_string(h) for h in result]
@@ -169,13 +172,16 @@ def retrying_perform(curl):
         except pycurl.error as error:
             # Only retry in case of an ECONNRESET happening when
             # the connection is created.
-            if (error.args[0] == pycurl.E_COULDNT_CONNECT and
-                    curl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET and
-                    # Keep retrying until the delay reaches two seconds.
-                    # This gives us 5 sleeps (and thus 6 requests,
-                    # including the initial one) with the total sleep
-                    # time of at most ~3.1 seconds.
-                    retry < 2.0):
+            if (
+                error.args[0] == pycurl.E_COULDNT_CONNECT
+                and curl.getinfo(pycurl.OS_ERRNO) == errno.ECONNRESET
+                and
+                # Keep retrying until the delay reaches two seconds.
+                # This gives us 5 sleeps (and thus 6 requests,
+                # including the initial one) with the total sleep
+                # time of at most ~3.1 seconds.
+                retry < 2.0
+            ):
                 # Retry
                 time.sleep(retry)
                 # The retry period will grow exponentially.
@@ -184,9 +190,10 @@ def retrying_perform(curl):
             # Not ECONNRESET or retry limit exceeded
             raise
 
-# These constants are missing from pycurl <= 7.19.5, 
+
+# These constants are missing from pycurl <= 7.19.5,
 # some systems we want to support have only 7.19.0
-# Note that libcurl itself must be at least 7.19.0 
+# Note that libcurl itself must be at least 7.19.0
 # for this to work.
 PROXYTYPE_SOCKS5_HOSTNAME = 7
 PROXYTYPE_SOCKS4A = 6
@@ -195,14 +202,24 @@ PROXYTYPE_HTTP = 0
 # Maps proxy type names to curl constants
 # TODO: HTTPS proxies (since curl 7.52.0)?
 _proxy_types = {
-    'http': PROXYTYPE_HTTP,
-    'socks': PROXYTYPE_SOCKS5_HOSTNAME,
-    'socks4': PROXYTYPE_SOCKS4A,
-    'socks5': PROXYTYPE_SOCKS5_HOSTNAME,
+    "http": PROXYTYPE_HTTP,
+    "socks": PROXYTYPE_SOCKS5_HOSTNAME,
+    "socks4": PROXYTYPE_SOCKS4A,
+    "socks5": PROXYTYPE_SOCKS5_HOSTNAME,
 }
 
 
-def makeRequest(obj, method, url, body=None, accept=None, contentType=None, callback=None, errCallback=None, headers=None):
+def makeRequest(
+    obj,
+    method,
+    url,
+    body=None,
+    accept=None,
+    contentType=None,
+    callback=None,
+    errCallback=None,
+    headers=None,
+):
     """
     Send a request to the server.
 
@@ -218,7 +235,7 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
     ##curl.setopt(pycurl.VERBOSE, 1)
     ##curl.setopt(pycurl.DEBUGFUNCTION, report)
 
-    #curl.setopt(pycurl.TIMEOUT, 45)
+    # curl.setopt(pycurl.TIMEOUT, 45)
 
     if accept is None:
         accept = "*/*"
@@ -230,11 +247,13 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
         curl.setopt(pycurl.PROXYTYPE, _proxy_types[obj.proxy_type])
     else:
         # Unsetopt doesn't work. As usual.
-        curl.setopt(pycurl.PROXY, '')
+        curl.setopt(pycurl.PROXY, "")
 
     if obj.user is not None and obj.password is not None:
-        curl.setopt(pycurl.USERPWD, "%s:%s" % (to_native_string(obj.user),
-                                               to_native_string(obj.password)))
+        curl.setopt(
+            pycurl.USERPWD,
+            "%s:%s" % (to_native_string(obj.user), to_native_string(obj.password)),
+        )
         curl.setopt(pycurl.HTTPAUTH, pycurl.HTTPAUTH_BASIC)
     else:
         curl.unsetopt(pycurl.USERPWD)
@@ -285,10 +304,15 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
     headers = normalize_headers(headers)
     if headers is None:
         headers = []
-    headers.extend(["Connection: keep-alive", "Accept: " + to_native_string(accept), "Expect:"])
-    if callback: headers.append("Connection: close")
-    if contentType: headers.append("Content-Type: " + to_native_string(contentType))
-    if obj.runAsName: headers.append("x-masquerade-as-user: " + to_native_string(obj.runAsName))
+    headers.extend(
+        ["Connection: keep-alive", "Accept: " + to_native_string(accept), "Expect:"]
+    )
+    if callback:
+        headers.append("Connection: close")
+    if contentType:
+        headers.append("Content-Type: " + to_native_string(contentType))
+    if obj.runAsName:
+        headers.append("x-masquerade-as-user: " + to_native_string(obj.runAsName))
     curl.setopt(pycurl.HTTPHEADER, headers)
     curl.setopt(pycurl.ENCODING, "")  # which means 'any encoding that curl supports'
 
@@ -302,15 +326,17 @@ def makeRequest(obj, method, url, body=None, accept=None, contentType=None, call
         def headerfunc(string):
             if status[0] is None:
                 # Parse the status code if this is the first line.
-                status[0] = int(unicode(string, 'utf-8').split(" ")[1])
+                status[0] = int(unicode(string, "utf-8").split(" ")[1])
             # return input length to indicate "no errors".
             return len(string)
 
         # Called by curl for each block of data received.
         # The argument will be a bytestring.
         def writefunc(string):
-            if status[0] == 200: callback(string)
-            else: error.append(unicode(string, 'utf-8'))
+            if status[0] == 200:
+                callback(string)
+            else:
+                error.append(unicode(string, "utf-8"))
 
         curl.setopt(pycurl.WRITEFUNCTION, writefunc)
         curl.setopt(pycurl.HEADERFUNCTION, headerfunc)

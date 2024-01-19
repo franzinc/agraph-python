@@ -27,8 +27,15 @@ class AttributeDefinition(object):
     :ivar maximum_number: Defines the maximum number of values for this
         attribute that can be associated with each triple.
     """
-    def __init__(self, name, allowed_values=None, ordered=False,
-                 minimum_number=None, maximum_number=None):
+
+    def __init__(
+        self,
+        name,
+        allowed_values=None,
+        ordered=False,
+        minimum_number=None,
+        maximum_number=None,
+    ):
         self.name = name  # type: str
         self.allowed_values = allowed_values  # type: Union[List[str], None]
         self.ordered = ordered  # type: bool
@@ -41,6 +48,7 @@ class ContextAttributeType(type):
     Metaclass for 'context' classes that convert ``Class.something``
     and ``Class['something']`` to ``Class('something')``.
     """
+
     def __getattr__(cls, name):
         return cls(name)
 
@@ -53,13 +61,14 @@ class ContextAttribute(with_metaclass(ContextAttributeType)):
     """
     Superclass for contextual triple attributes used in filters.
     """
-    context = ''  # Subclasses must override this
+
+    context = ""  # Subclasses must override this
 
     def __init__(self, name):
         self.name = name
 
     def __str__(self):
-        return '%s.%s' % (self.context, self.name)
+        return "%s.%s" % (self.context, self.name)
 
     def __lt__(self, other):
         return Lt(self, other)
@@ -106,7 +115,8 @@ class UserAttribute(ContextAttribute):
          is translated as ``equals``, not ``attribute=``.
        - ``<<`` and ``>>`` - meaning 'subset' and 'superset'.
     """
-    context = 'user'
+
+    context = "user"
 
 
 class TripleAttribute(ContextAttribute):
@@ -126,7 +136,8 @@ class TripleAttribute(ContextAttribute):
          is translated as ``equals``, not ``attribute=``.
        - ``<<`` and ``>>`` - meaning 'subset' and 'superset'.
     """
-    context = 'triple'
+
+    context = "triple"
 
 
 def quote_and_escape_value(value):
@@ -134,7 +145,7 @@ def quote_and_escape_value(value):
     """
     Quote a string so it can be read from Lisp.
     """
-    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 def attribute_set_to_expr(attribute_set):
@@ -169,6 +180,7 @@ class AttributeFilter(object):
 
     Objects of this class can be combined using bitwise logical operators.
     """
+
     def to_expr(self):
         """
         Convert this object to an S-expression and return it as a string.
@@ -226,14 +238,15 @@ class SetOp(AttributeFilter):
     An attribute filter created by applying an operator
     to one or more attribute sets.
     """
-    op = ''  # Subclasses must override this
+
+    op = ""  # Subclasses must override this
 
     def __init__(self, *args):
         self.args = args
 
     def to_expr(self):
         sets = " ".join(attribute_set_to_expr(v) for v in self.args)
-        return "(%s%s%s)" % (self.op, ' ' if sets else '', sets)
+        return "(%s%s%s)" % (self.op, " " if sets else "", sets)
 
 
 class FilterOp(AttributeFilter):
@@ -242,7 +255,8 @@ class FilterOp(AttributeFilter):
     to other filters. Note that the arguments can be either
     AttributeFilter instances or strings.
     """
-    op = ''  # Subclasses must override this
+
+    op = ""  # Subclasses must override this
 
     def __init__(self, *args):
         # type: (*AttributeFilter|str) -> None
@@ -250,35 +264,39 @@ class FilterOp(AttributeFilter):
 
     def to_expr(self):
         filters = " ".join(attribute_filter_to_expr(v) for v in self.args)
-        return "(%s%s%s)" % (self.op, ' ' if filters else '', filters)
+        return "(%s%s%s)" % (self.op, " " if filters else "", filters)
 
 
 class And(FilterOp):
     """
     A conjunction of attribute filters.
     """
-    op = 'and'
+
+    op = "and"
 
 
 class Or(FilterOp):
     """
     A disjunction of attribute filters.
     """
-    op = 'or'
+
+    op = "or"
 
 
 class Not(FilterOp):
     """
     Inverse attribute filter (matches whatever the argument does not match).
     """
-    op = 'not'
+
+    op = "not"
 
 
 class Empty(SetOp):
     """
     A filter that matches if the argument is an empty attribute set.
     """
-    op = 'empty'
+
+    op = "empty"
 
 
 class Overlap(SetOp):
@@ -286,7 +304,8 @@ class Overlap(SetOp):
     A filter that matches if attribute sets given as arguments
     have a common value.
     """
-    op = 'overlap'
+
+    op = "overlap"
 
 
 class Subset(SetOp):
@@ -294,7 +313,8 @@ class Subset(SetOp):
     A filter that matches if the first argument is a subset
     of the second argument (both arguments must be attribute sets).
     """
-    op = 'subset'
+
+    op = "subset"
 
 
 class Superset(SetOp):
@@ -302,14 +322,16 @@ class Superset(SetOp):
     A filter that matches if the first argument is a supersset
     of the second argument (both arguments must be attribute sets).
     """
-    op = 'superset'
+
+    op = "superset"
 
 
 class Equal(SetOp):
     """
     A filter that matches if its arguments are identical attribute sets.
     """
-    op = 'equal'
+
+    op = "equal"
 
 
 class OrderedFilter(SetOp):
@@ -317,6 +339,7 @@ class OrderedFilter(SetOp):
     A filter for comparing ordered attributes. Both arguments must be either
     empty or singleton sets representing values of an ordered attribute.
     """
+
     pass
 
 
@@ -325,7 +348,8 @@ class Lt(OrderedFilter):
     An ordered filter that matches if the first argument is less
     than the second.
     """
-    op = 'attribute-set<'
+
+    op = "attribute-set<"
 
 
 class Le(OrderedFilter):
@@ -333,14 +357,16 @@ class Le(OrderedFilter):
     An ordered filter that matches if the first argument is less than
     or equal to the second.
     """
-    op = 'attribute-set<='
+
+    op = "attribute-set<="
 
 
 class Eq(OrderedFilter):
     """
     An ordered filter that matches if the first argument is equal to the second.
     """
-    op = 'attribute-set='
+
+    op = "attribute-set="
 
 
 class Ge(OrderedFilter):
@@ -348,7 +374,8 @@ class Ge(OrderedFilter):
     An ordered filter that matches if the first argument is greater than
     or equal to the second.
     """
-    op = 'attribute-set>='
+
+    op = "attribute-set>="
 
 
 class Gt(OrderedFilter):
@@ -356,4 +383,5 @@ class Gt(OrderedFilter):
     An ordered filter that matches if the first argument is greater than
     the second.
     """
-    op = 'attribute-set>'
+
+    op = "attribute-set>"

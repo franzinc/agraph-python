@@ -10,9 +10,17 @@ except ImportError:
 
 
 # The subclass is created to allow us to provide a docstring for Sphinx.
-class TransactionSettings(namedtuple('TransactionSettings', (
-        'distributed_transaction_timeout', 'durability',
-        'transaction_latency_count', 'transaction_latency_timeout'))):
+class TransactionSettings(
+    namedtuple(
+        "TransactionSettings",
+        (
+            "distributed_transaction_timeout",
+            "durability",
+            "transaction_latency_count",
+            "transaction_latency_timeout",
+        ),
+    )
+):
     """
     A named tuple encapsulating a set of distributed transaction parameters.
 
@@ -82,6 +90,7 @@ class TransactionSettings(namedtuple('TransactionSettings', (
             transaction_Latency_count to be satisfied before throwing an error.
 
     """
+
     __slots__ = ()
 
     def __new__(cls, *args, **kwargs):

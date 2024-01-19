@@ -3,7 +3,7 @@
 # pylint: disable-msg=C0103
 
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -30,11 +30,14 @@ from ..exceptions import ServerException
 from ..repository.repository import Repository, RepositoryConnection
 from . import spec
 
-READ_ONLY = 'READ_ONLY'
+READ_ONLY = "READ_ONLY"
 
-LEGAL_OPTION_TYPES = {READ_ONLY: bool,}
+LEGAL_OPTION_TYPES = {
+    READ_ONLY: bool,
+}
 
-ROOT_CATALOG_NAME = 'root'
+ROOT_CATALOG_NAME = "root"
+
 
 class AllegroGraphServer(object):
     """
@@ -42,11 +45,21 @@ class AllegroGraphServer(object):
     the network. It is used to inventory and access the catalogs of that
     server.
     """
-    def __init__(self, host=None, port=None, user=None, password=None,
-                 cainfo=None, sslcert=None, verifyhost=None, verifypeer=None,
-                 protocol=None,
-                 proxy=os.environ.get('AGRAPH_PROXY'),
-                 **options):
+
+    def __init__(
+        self,
+        host=None,
+        port=None,
+        user=None,
+        password=None,
+        cainfo=None,
+        sslcert=None,
+        verifyhost=None,
+        verifypeer=None,
+        protocol=None,
+        proxy=os.environ.get("AGRAPH_PROXY"),
+        **options,
+    ):
         """
         Define the connection to the AllegroGraph HTTP server.
 
@@ -109,39 +122,46 @@ class AllegroGraphServer(object):
         # Not sure why we accept these, but don't want to change the API at this point.
         del options
 
-        host = host or os.environ.get('AGRAPH_HOST', '127.0.0.1')
+        host = host or os.environ.get("AGRAPH_HOST", "127.0.0.1")
 
         # Check if other arguments were passed as a part of host
-        match = re.match(r'^(?:(?P<protocol>https?)://)?'
-                         r'(?P<host>[^:]*)(?::(?P<port>[0-9]*))?(?P<tail>.*)$',
-                         host)
+        match = re.match(
+            r"^(?:(?P<protocol>https?)://)?"
+            r"(?P<host>[^:]*)(?::(?P<port>[0-9]*))?(?P<tail>.*)$",
+            host,
+        )
         if match:
             if protocol is None:
-                protocol = match.group('protocol')
-            if port is None and match.group('port') is not None:
-                port = int(match.group('port'))
-            host = match.group('host')
-            tail = match.group('tail')
+                protocol = match.group("protocol")
+            if port is None and match.group("port") is not None:
+                port = int(match.group("port"))
+            host = match.group("host")
+            tail = match.group("tail")
         else:
-            tail = ''
+            tail = ""
 
-        has_https_params = cainfo or sslcert or verifyhost is not None or verifypeer is not None
+        has_https_params = (
+            cainfo or sslcert or verifyhost is not None or verifypeer is not None
+        )
         if protocol is None:
-            protocol = 'https' if has_https_params else 'http'
+            protocol = "https" if has_https_params else "http"
 
         if port is None:
-            if 'AGRAPH_PORT' in os.environ:
-                port = int(os.environ.get('AGRAPH_PORT'))
+            if "AGRAPH_PORT" in os.environ:
+                port = int(os.environ.get("AGRAPH_PORT"))
             else:
-                port = 10035 if protocol == 'http' else 10036
+                port = 10035 if protocol == "http" else 10036
 
-        uri = '{protocol}://{host}:{port}{tail}'.format(protocol=protocol, host=host, port=port, tail=tail)
+        uri = "{protocol}://{host}:{port}{tail}".format(
+            protocol=protocol, host=host, port=port, tail=tail
+        )
 
-        user = user or os.environ.get('AGRAPH_USER')
-        password = password or os.environ.get('AGRAPH_PASSWORD')
+        user = user or os.environ.get("AGRAPH_USER")
+        password = password or os.environ.get("AGRAPH_PASSWORD")
 
-        self._client = miniserver.Client(uri, user, password, cainfo, sslcert, verifyhost, verifypeer,
-                                         proxy=proxy)
+        self._client = miniserver.Client(
+            uri, user, password, cainfo, sslcert, verifyhost, verifypeer, proxy=proxy
+        )
 
     @property
     def url(self):
@@ -163,7 +183,7 @@ class AllegroGraphServer(object):
         This is compatible with the way in which the Java client
         parses and compares AG version strings.
         """
-        components = [int(c) for c in re.findall(r'\d+', self.version)]
+        components = [int(c) for c in re.findall(r"\d+", self.version)]
         while components and components[-1] == 0:
             components.pop()
         return tuple(components)
@@ -197,8 +217,9 @@ class AllegroGraphServer(object):
 
         cats = self.listCatalogs()
         if not name in cats:
-            raise ServerException("There is no catalog named '%s' (found %s)"
-                % (name, cats))
+            raise ServerException(
+                "There is no catalog named '%s' (found %s)" % (name, cats)
+            )
 
         return Catalog(name, self, self._client)
 
@@ -246,7 +267,9 @@ class AllegroGraphServer(object):
         :return: A connection to the new session.
         :rtype: RepositoryConnection
         """
-        minirep = self._client.openSession(spec, autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile)
+        minirep = self._client.openSession(
+            spec, autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile
+        )
         return RepositoryConnection(Repository(None, None, minirep), is_session=True)
 
     def listScripts(self):
@@ -337,7 +360,9 @@ class AllegroGraphServer(object):
         """
         return self._client.listUserData()
 
-    def openFederated(self, repositories, autocommit=False, lifetime=None, loadinitfile=False):
+    def openFederated(
+        self, repositories, autocommit=False, lifetime=None, loadinitfile=False
+    ):
         """
         Open a session that federates several repositories. The
         repositories argument must be an array containing store
@@ -358,16 +383,30 @@ class AllegroGraphServer(object):
         :return: A connection to the new session.
         :rtype: RepositoryConnection
         """
+
         def asRepoString(x):
-            if isinstance(x, basestring): return spec.local(x)
-            elif isinstance(x, tuple): return spec.local(x[0], x[1])
-            elif isinstance(x, Repository): return x.getSpec()
-            elif isinstance(x, RepositoryConnection):
-                if (x.repository.database_name == None):
-                    raise ServerException(str(x) + " is not a RepositoryConnection created by Repository.getConnection() and therefore cannot be federated")
+            if isinstance(x, basestring):
+                return spec.local(x)
+            elif isinstance(x, tuple):
+                return spec.local(x[0], x[1])
+            elif isinstance(x, Repository):
                 return x.getSpec()
-            else: raise TypeError(str(x) + " is not a valid repository specification.")
-        return self.openSession(spec.federate(*list(map(asRepoString, repositories))), autocommit, lifetime, loadinitfile)
+            elif isinstance(x, RepositoryConnection):
+                if x.repository.database_name == None:
+                    raise ServerException(
+                        str(x)
+                        + " is not a RepositoryConnection created by Repository.getConnection() and therefore cannot be federated"
+                    )
+                return x.getSpec()
+            else:
+                raise TypeError(str(x) + " is not a valid repository specification.")
+
+        return self.openSession(
+            spec.federate(*list(map(asRepoString, repositories))),
+            autocommit,
+            lifetime,
+            loadinitfile,
+        )
 
     def listUsers(self):
         """
@@ -380,7 +419,7 @@ class AllegroGraphServer(object):
         Create a new user. Expects a password parameter, which specifies the
         user's password (can be left off when creating the anonymous user).
         """
-        assert password is not None or name == 'anonymous'
+        assert password is not None or name == "anonymous"
         self._client.addUser(name, password)
 
     def deleteUser(self, name):
@@ -407,7 +446,7 @@ class AllegroGraphServer(object):
         """
         return self._client.listUserAccess(name)
 
-    def addUserAccess(self, name, read, write, catalog='*', repository='*'):
+    def addUserAccess(self, name, read, write, catalog="*", repository="*"):
         """
         Grant read/write access to a user.
 
@@ -425,7 +464,7 @@ class AllegroGraphServer(object):
         """
         self._client.addUserAccess(name, read, write, catalog, repository)
 
-    def deleteUserAccess(self, name, read, write, catalog='*', repository='*'):
+    def deleteUserAccess(self, name, read, write, catalog="*", repository="*"):
         """
         Takes the same parameters as PUT on this URL, but revokes the access instead of granting it.
         """
@@ -506,14 +545,14 @@ class AllegroGraphServer(object):
         """
         return self._client.listRoleAccess(role)
 
-    def addRoleAccess(self, role, read, write, catalog='*', repository='*'):
+    def addRoleAccess(self, role, read, write, catalog="*", repository="*"):
         """
         Grant read/write access to a role. See here for the parameters
         that are expected.
         """
         return self._client.addRoleAccess(role, read, write, catalog, repository)
 
-    def deleteRoleAccess(self, role, read, write, catalog='*', repository='*'):
+    def deleteRoleAccess(self, role, read, write, catalog="*", repository="*"):
         """
         Revoke read/write access for a role. Accepts the same parameters as above.
         """
@@ -610,6 +649,7 @@ class Catalog(object):
     """
     Container of multiple repositories (triple stores).
     """
+
     def __init__(self, name, server, client):
         self.server = server
         self.mini_catalog = client.openCatalogByName(name)
@@ -639,7 +679,7 @@ class Catalog(object):
     def getRepository(self, name, access_verb):
         """
         Creates or opens a repository.
-        
+
         :param name: Repository name.
         :type name: string
         :param access_verb: Determines mode of operation. Possible values are:
@@ -658,7 +698,7 @@ class Catalog(object):
         """
         access_verb = access_verb.upper()
         name = urllib.parse.quote_plus(name)
-        exists = name in self.listRepositories();
+        exists = name in self.listRepositories()
         if access_verb == Repository.RENEW:
             if exists:
                 self.deleteRepository(name)
@@ -668,13 +708,15 @@ class Catalog(object):
             if exists:
                 raise ServerException(
                     "Can't create triple store named '%s' because a store with that name already exists.",
-                    name)
+                    name,
+                )
             return self.createRepository(name)
 
         if access_verb == Repository.OPEN:
             if not exists:
                 raise ServerException(
-                    "Can't open a triple store named '%s' because there is none.", name)
+                    "Can't open a triple store named '%s' because there is none.", name
+                )
 
             return Repository(self, name, self.mini_catalog.getRepository(name))
 
@@ -696,4 +738,6 @@ class Catalog(object):
         :return: A repository object.
         :rtype: Repository
         """
-        return Repository(self, name, self.mini_catalog.createRepository(name, indices=indices))
+        return Repository(
+            self, name, self.mini_catalog.createRepository(name, indices=indices)
+        )

@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2006-2017 Franz Inc.  
+# Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
@@ -16,13 +16,28 @@ from franz.openrdf.sail import AllegroGraphServer
 
 
 # Note that the default values come from AllegroGraphServer.__init__
-def ag_connect(repo, catalog=None,
-               create=True, fail_if_exists=False, clear=False,
-               session=False, autocommit=False, lifetime=None, loadinitfile=False,
-               host=None, port=None, protocol=None,
-               user=None, password=None, cainfo=None, sslcert=None,
-               verifyhost=None, verifypeer=None, indices=None,
-               proxy=os.environ.get('AGRAPH_PROXY')):
+def ag_connect(
+    repo,
+    catalog=None,
+    create=True,
+    fail_if_exists=False,
+    clear=False,
+    session=False,
+    autocommit=False,
+    lifetime=None,
+    loadinitfile=False,
+    host=None,
+    port=None,
+    protocol=None,
+    user=None,
+    password=None,
+    cainfo=None,
+    sslcert=None,
+    verifyhost=None,
+    verifypeer=None,
+    indices=None,
+    proxy=os.environ.get("AGRAPH_PROXY"),
+):
     """
     Create a connection to an AllegroGraph repository.
 
@@ -99,24 +114,34 @@ def ag_connect(repo, catalog=None,
     :return: A :class:`.RepositoryConnection` object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
     """
-    server = AllegroGraphServer(host=host, port=port, protocol=protocol,
-                                user=user, password=password, sslcert=sslcert,
-                                cainfo=cainfo, verifyhost=verifyhost, verifypeer=verifypeer,
-                                proxy=proxy)
+    server = AllegroGraphServer(
+        host=host,
+        port=port,
+        protocol=protocol,
+        user=user,
+        password=password,
+        sslcert=sslcert,
+        cainfo=cainfo,
+        verifyhost=verifyhost,
+        verifypeer=verifypeer,
+        proxy=proxy,
+    )
     cat_handle = server.openCatalog(catalog)
     repo_exists = repo in cat_handle.listRepositories()
     if not repo_exists:
         if create:
             repo_handle = cat_handle.createRepository(repo, indices)
         else:
-            raise Exception('Store %s does not exist.' % repo)
+            raise Exception("Store %s does not exist." % repo)
     else:
         if fail_if_exists and create:
-            raise Exception('Store %s already exists.' % repo)
+            raise Exception("Store %s already exists." % repo)
         mode = Repository.RENEW if clear else Repository.OPEN
         repo_handle = cat_handle.getRepository(repo, mode)
     conn = RepositoryConnection(repo_handle, close_repo=True)
     if session:
         # conn.close will close it if necessary
-        conn.openSession(autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile)
+        conn.openSession(
+            autocommit=autocommit, lifetime=lifetime, loadinitfile=loadinitfile
+        )
     return conn

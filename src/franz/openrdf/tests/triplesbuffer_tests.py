@@ -9,6 +9,7 @@ def test_empty_triples_buffer(conn):
     buf = TriplesBuffer(conn)
     assert len(buf) == 0
 
+
 def test_triples_buffer_basic(conn, ex):
     limit = 1000
     buf = TriplesBuffer(conn, limit=limit)
@@ -23,12 +24,13 @@ def test_triples_buffer_basic(conn, ex):
 
     assert len(buf) == 0 and conn.size() == limit
 
+
 def test_triples_buffer_above_limit(conn, ex):
     limit = 10
     buf = TriplesBuffer(conn, limit=limit)
     triple = [ex("Alice"), ex("age"), Literal(29)]
 
-    for _ in range(limit*3):
+    for _ in range(limit * 3):
         buf.append(triple)
 
     assert len(buf) == 10 and conn.size() == 20
