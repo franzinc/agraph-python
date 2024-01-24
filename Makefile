@@ -11,7 +11,7 @@ DISTDIR = agraph-python-$(VERSION)
 SDIST = agraph-python-$(VERSION).tar.gz
 
 # Binary distribution (for PyPI).
-WHEEL = agraph_python-$(VERSION)-py2.py3-none-any.whl
+WHEEL = agraph_python-$(VERSION)-py3-none-any.whl
 
 # Using conda-forge instead of the normal "anaconda" because the latter
 # doesn't include the tox package.
@@ -111,7 +111,7 @@ default: wheel
 # the internet if needed.
 
 # Versions we want to test on
-PYTHONS=3.6 3.7
+PYTHONS=3.7
 PYTHONS2=
 PYTHONS3=$(filter 3.%,$(PYTHONS))
 
@@ -190,13 +190,13 @@ $(TOXENVDIR)/.timestamp: $(PY3.7) toxenv.txt
 	source $(TOXENVDIR)/bin/activate && pip install -r toxenv.txt
 	touch $(TOXENVDIR)/.timestamp
 
-$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.8) requirements.txt tox.ini
+$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.8) tox.ini
 	@echo Preparing py37-env using tox
 	rm -rf $(ENVDIR3)
 	$(TOX) -e py37-env
 	touch $(ENVDIR3)/.timestamp
-	$(ENVDIR3)/bin/pip install --upgrade pip~=23.3
-	$(ENVDIR3)/bin/pip install --no-cache isort~=5.11 black~=23.3
+	$(ENVDIR3)/bin/pip install --no-cache --upgrade "pip~=23.3.0" "setuptools>=68" "build>1.0.0"
+	$(ENVDIR3)/bin/pip install --no-cache "isort~=5.11.0" "black~=23.3.0"
 $(ENVDIR3): $(ENVDIR3)/.timestamp
 
 test-env: $(ENVDIR3)
@@ -277,9 +277,7 @@ publish-jupyter: jupyter
 wheel: $(ENVDIR3)/.timestamp FORCE
 	mkdir -p DIST
 	rm -f DIST/$(WHEEL) DIST/$(SDIST)
-	$(ENVDIR3)/bin/pip wheel -e . -w DIST --build-option --universal --no-deps
-        # Also build a source dist
-	$(ENVDIR3)/bin/python setup.py sdist -d DIST
+	$(ENVDIR3)/bin/python -m build -o DIST
 
 .PHONY: wheel
 
@@ -313,7 +311,7 @@ fix-copyrights: FORCE
 	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
 # If any of these files change rebuild the virtual environments.
-.venv: setup.py requirements.txt docs-requirements.txt tox.ini $(TOXDEP)
+.venv: docs-requirements.txt tox.ini $(TOXDEP)
 	rm -rf .tox
 	touch .venv
 

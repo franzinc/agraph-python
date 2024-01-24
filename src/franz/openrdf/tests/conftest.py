@@ -522,11 +522,11 @@ def version():
 # Decorator used to skip tests
 def min_version(*args):
     version = get_version()
-    if version < args:
-        expected = ".".join(str(c) for c in args)
-        actual = ".".join(str(c) for c in version)
-        return pytest.mark.skip("AG server version: %s < %s" % (actual, expected))
-    return lambda x: x
+    expected = ".".join(str(c) for c in args)
+    actual = ".".join(str(c) for c in version)
+    return pytest.mark.skipif(
+        version < args, reason="AG server version: %s < %s" % (actual, expected)
+    )
 
 
 # noinspection PyShadowingNames

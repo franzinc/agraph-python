@@ -71,7 +71,10 @@ def output_to(target):
             yield out
     elif hasattr(target, "write"):
         # If it quacks like a duck and has a write method...
-        yield target
+        if hasattr(target, "buffer"):
+            yield target.buffer
+        else:
+            yield target
     else:
         raise ValueError("Invalid output specification %s" % target)
 

@@ -6,6 +6,6 @@ pluggy==0.13.1
 py==1.10.0
 six==1.14.0
 toml==0.10.0
-tox==3.5.3
+tox<4.0.0
 virtualenv==20.0.10
 zipp==3.1.0

@@ -6,7 +6,7 @@ Release 102.1.2
 ================
 
 Update required version of requests to 2.25.0
--------------------------
+---------------------------------------------
 
 Change required version of `requests` from 2.23.0 to 2.25.0
 This fixes an issue in agraph-python when used on Python 3.10 or 3.11
