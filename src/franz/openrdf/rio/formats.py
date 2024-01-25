@@ -5,15 +5,7 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import unicode_literals
-
 import os
-from builtins import object
-
-from past.builtins import basestring
-
-# A metaclass that converts static dicts inside a Format to instances
-from six import add_metaclass
 
 
 class FormatMeta(type):
@@ -24,8 +16,7 @@ class FormatMeta(type):
                 setattr(cls, attr, cls(**value))
 
 
-@add_metaclass(FormatMeta)
-class Format(object):
+class Format(metaclass=FormatMeta):
     """
     Represents the concept of a data serialization format. Data formats are
     identified by a name and can have one or more associated
@@ -86,7 +77,7 @@ class Format(object):
         """
         if output_format is None:
             raise Exception("Unable to determine file format.")
-        if isinstance(output_format, basestring):
+        if isinstance(output_format, (str, bytes)):
             return output_format
         return output_format.mime_types[0]
 

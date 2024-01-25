@@ -4,19 +4,13 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ###############################################################################
-from __future__ import unicode_literals
 
-from builtins import object
-
-from future.utils import python_2_unicode_compatible
-from past.builtins import unicode
 
 ALL_CONTEXTS = "ALL_CONTEXTS"
 MINI_NULL_CONTEXT = "null"
 
 
-@python_2_unicode_compatible
-class Dataset(object):
+class Dataset:
     """
     Records a set of default and named graphs that can restrict
     the scope of a query.
@@ -84,7 +78,7 @@ class Dataset(object):
         try:
             uriString = uri.uri
         except AttributeError:
-            uriString = unicode(uri)
+            uriString = str(uri)
 
         if len(uriString) > 50:
             sb.append("<" + uriString[:19] + "..")

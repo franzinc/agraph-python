@@ -14,8 +14,6 @@ import os
 import sys
 from contextlib import contextmanager
 
-from past.builtins import basestring
-
 
 @contextmanager
 def wrap_context(value):
@@ -66,7 +64,7 @@ def output_to(target):
     elif isinstance(target, int):
         with os.fdopen(target, "wb") as out:
             yield out
-    elif isinstance(target, basestring):
+    elif isinstance(target, (str, bytes)):
         with open(target, "wb") as out:
             yield out
     elif hasattr(target, "write"):
@@ -80,7 +78,7 @@ def output_to(target):
 
 
 # Used to convert text output streams to binary UTF-8 streams
-class BinWrapper(object):
+class BinWrapper:
     def __init__(self, target):
         self.target = target
 

@@ -4,18 +4,12 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-from __future__ import unicode_literals
 
-from builtins import object, range
 from collections import namedtuple
 
-from future.utils import python_2_unicode_compatible
-from past.builtins import unicode
-
+from franz.openrdf.model import parse_term
 from franz.openrdf.model.value import QuotedTriple
-
-from ..model import Statement, parse_term
-from .repositoryresult import RepositoryResult
+from franz.openrdf.query.repositoryresult import RepositoryResult
 
 try:
     import franz.openrdf.query.pandas_support as pandas
@@ -25,7 +19,7 @@ except ImportError:
     has_pandas = False
 
 
-class QueryResult(object):
+class QueryResult:
     """
     Super type of all query result types (TupleQueryResult, GraphQueryResult, etc.
     Evaluates as a Python iterator
@@ -145,8 +139,7 @@ class TupleQueryResult(QueryResult):
         return pandas.rows_to_pandas(self, self.variable_names)
 
 
-@python_2_unicode_compatible
-class ListBindingSet(object):
+class ListBindingSet:
     """
     A BindingSet is a set of named value bindings, which is used to
     represent a single query solution. Values are indexed by name of
@@ -203,7 +196,7 @@ class ListBindingSet(object):
         except ValueError:
             raise KeyError(
                 ("Illegal key '%s' passed to binding set." + "\n   Legal keys are %s")
-                % (key, unicode(self.variable_names))
+                % (key, str(self.variable_names))
             )
 
     def iterator(self):
@@ -267,12 +260,12 @@ class ListBindingSet(object):
         for i in range(len(self.variable_names)):
             v = self[i]
             if strings_dict:
-                v = unicode(v)
+                v = str(v)
             d[self.variable_names[i]] = v
         return d
 
     def __str__(self):
-        return unicode(self._toDict(strings_dict=True))
+        return str(self._toDict(strings_dict=True))
 
 
 #############################################################################

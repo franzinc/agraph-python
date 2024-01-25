@@ -4,36 +4,17 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-from __future__ import absolute_import, division, with_statement
-
 import copy
-import sys
-
-if sys.version_info.major < 3:
-    from inspect import getargspec as getfullargspec
-else:
-    from inspect import getfullargspec
-
 import math
 import re
 import threading
 from contextlib import contextmanager
 from datetime import timedelta
-
-import six
-from past.builtins import basestring
-from past.utils import old_div
-from six import python_2_unicode_compatible
-from six.moves.urllib.parse import quote, urlparse
+from inspect import getfullargspec
+from urllib.parse import quote, urlparse
 
 from franz.miniclient.agjson import encode_json
-from franz.openrdf.model.value import URI
-from franz.openrdf.repository.attributes import AttributeFilter
-from franz.openrdf.rio.formats import Format
-
-from ..openrdf.util.contexts import wrap_context
-from ..openrdf.util.strings import to_native_string
-from .request import (
+from franz.miniclient.request import (
     RequestError,
     decode,
     deserialize,
@@ -43,6 +24,11 @@ from .request import (
     serialize,
     urlenc,
 )
+from franz.openrdf.model.value import URI
+from franz.openrdf.repository.attributes import AttributeFilter
+from franz.openrdf.rio.formats import Format
+from franz.openrdf.util.contexts import wrap_context
+from franz.openrdf.util.strings import to_native_string
 
 
 def _split_proxy(proxy):
@@ -62,7 +48,7 @@ def _split_proxy(proxy):
         return None, None, None
 
 
-class Service(object):
+class Service:
     def __init__(
         self,
         url,
@@ -726,7 +712,7 @@ class Repository(Service):
         if serverSide:
             # file is a server-side path, body should be empty
             body_context = wrap_context(None)
-        elif isinstance(file, basestring) and not serverSide:
+        elif isinstance(file, (str, bytes)) and not serverSide:
             # file is a local path, read it and send as body
             body_context = open(file, "rb")
             file = None
@@ -1046,7 +1032,6 @@ class Repository(Service):
         """Create a geo-spatial literal of the given type."""
         return '"%+g%+g"^^%s' % (x, y, type)
 
-    @python_2_unicode_compatible
     class UnsupportedUnitError(Exception):
         def __init__(self, unit):
             self.unit = unit
@@ -1300,7 +1285,7 @@ class Repository(Service):
                 # Block until closeSession is called, or until
                 # the polling interval has been reached.
                 # NOTE: wait timeout is specified in seconds.
-                alive.wait(old_div(lifetime, 2) if lifetime else 250)
+                alive.wait(lifetime // 2 if lifetime else 250)
                 if alive.isSet():
                     # closeSession has been called.  Terminate the loop
                     # (and therefore the thread)
@@ -1606,7 +1591,7 @@ class Repository(Service):
             prefix = {}
         if rename is not None:
             # Copy the keys, since we will be changing some renames
-            for k, v in list(six.iteritems(rename)):
+            for k, v in rename.items():
                 if isinstance(v, URI):
                     # To provide a full URI for a key we need to use both 'prefix'
                     # and 'rename' options
@@ -1628,9 +1613,7 @@ class Repository(Service):
             "tr-lang": dict_to_string_list(lang),
             "tr-skip": skip,
             "tr-transform": dict_to_string_list(transform),
-            "tr-graph": [
-                "%s=%s" % (k, URI(str(v))) for k, v in six.iteritems(graph or {})
-            ],
+            "tr-graph": ["%s=%s" % (k, URI(str(v))) for k, v in (graph or {}).items()],
             "json-store-source": bool(json_store_source),
             "csv-columns": ",".join(csv_columns) if csv_columns else None,
             "csv-separator": csv_separator,
@@ -1695,7 +1678,7 @@ def uri_dict_to_string_list(d):
     if d is None:
         return None
     result = []
-    for k, v in six.iteritems(d):
+    for k, v in d.items():
         result.append("%s=%s" % (uri_to_string(k), uri_to_string(v)))
     return result
 
@@ -1705,7 +1688,7 @@ def dict_to_string_list(d):
     Converts a dict to a list of 'key=value' strings. If the input is None
     then None will be returned.
     """
-    return ["%s=%s" % kv for kv in six.iteritems(d)] if d else None
+    return ["%s=%s" % kv for kv in d.items()] if d else None
 
 
 def time_in_seconds(t):

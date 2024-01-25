@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,34 +7,23 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals, with_statement
-
 import copy
 import csv
 import string
 import sys
 import warnings
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 from contextlib import contextmanager
-
-import six
-from future.backports import OrderedDict
-from future.builtins import object
-from past.builtins import basestring, map, unicode
+from io import IOBase as file
 
 from franz.miniclient.agjson import encode_json
-from franz.openrdf.model.value import QuotedTriple, Resource
-from franz.openrdf.repository.attributes import AttributeDefinition
-from franz.openrdf.rio.docformat import DocFormat
-from franz.openrdf.util.contexts import output_to
-
-from ..exceptions import (
+from franz.openrdf.exceptions import (
     IllegalArgumentException,
     IllegalOptionException,
     ServerException,
 )
-from ..model import URI, Statement, Value
-from ..model.literal import (
+from franz.openrdf.model import URI, Statement, Value
+from franz.openrdf.model.literal import (
     GeoBox,
     GeoCircle,
     GeoCoordinate,
@@ -45,8 +32,8 @@ from ..model.literal import (
     Literal,
     RangeLiteral,
 )
-from ..query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
-from ..query.query import (
+from franz.openrdf.query.dataset import ALL_CONTEXTS, MINI_NULL_CONTEXT
+from franz.openrdf.query.query import (
     BooleanQuery,
     GraphQuery,
     Query,
@@ -54,21 +41,24 @@ from ..query.query import (
     TupleQuery,
     UpdateQuery,
 )
-from ..rio.rdfformat import RDFFormat
-from ..util import uris
-from .repositoryresult import RepositoryResult
-from .transactions import DEFAULT_TRANSACTION_SETTINGS, TransactionSettings
+from franz.openrdf.repository.attributes import AttributeDefinition
+from franz.openrdf.repository.repositoryresult import RepositoryResult
+from franz.openrdf.repository.transactions import DEFAULT_TRANSACTION_SETTINGS
+from franz.openrdf.rio.docformat import DocFormat
+from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.util import uris
+from franz.openrdf.util.contexts import output_to
 
 
 class PrefixFormat(namedtuple("EncodedIdPrefix", "prefix format")):
     __slots__ = ()
 
 
-if sys.version_info[0] > 2:
-    # Hack for isinstance checks
-    import io
+# if sys.version_info[0] > 2:
+#     # Hack for isinstance checks
+#     import io
 
-    file = io.IOBase
+#     file = io.IOBase
 
 # Used instead of None as the default value of optional parameters
 # when we want to distinguish between the caller passing None as
@@ -76,7 +66,7 @@ if sys.version_info[0] > 2:
 NOT_GIVEN = object()
 
 
-class RepositoryConnection(object):
+class RepositoryConnection:
     """
     The RepositoryConnection class is the main interface for updating data
     in and performing queries on a
@@ -357,7 +347,9 @@ class RepositoryConnection(object):
             return MINI_NULL_CONTEXT
 
         if context:
-            return context if isinstance(context, basestring) else context.toNTriples()
+            return (
+                context if isinstance(context, (str, bytes)) else context.toNTriples()
+            )
 
         if none_is_mini_null:
             return MINI_NULL_CONTEXT
@@ -723,7 +715,7 @@ class RepositoryConnection(object):
         """
         if contexts and not isinstance(contexts, list):
             contexts = [contexts]
-        if isinstance(arg0, (basestring, file)):
+        if isinstance(arg0, (str, bytes, file)):
             if contexts:
                 if len(contexts) > 1:
                     raise IllegalArgumentException(
@@ -1213,7 +1205,7 @@ class RepositoryConnection(object):
         # Unpack 'keys' into individual dicts
         augmented = {}
         if keys:
-            for name, props in six.iteritems(keys):
+            for name, props in keys.items():
                 for prop in (
                     "prefix",
                     "rename",
@@ -1236,7 +1228,7 @@ class RepositoryConnection(object):
 
         # Unpack the CSV dialect, but existing csv_* arguments have precedence
         if csv_dialect:
-            if isinstance(csv_dialect, six.string_types):
+            if isinstance(csv_dialect, str):
                 csv_dialect = csv.get_dialect(csv_dialect)
             if csv_separator is None:
                 augmented["csv_separator"] = csv_dialect.delimiter
@@ -1306,7 +1298,7 @@ class RepositoryConnection(object):
         If the term is None, return None.
         Otherwise convert `term` to Literal and make a string from that.
         """
-        if term is None or isinstance(term, basestring):
+        if term is None or isinstance(term, (str, bytes)):
             return term
         elif hasattr(term, "toNTriples"):
             return term.toNTriples()
@@ -2294,9 +2286,9 @@ class RepositoryConnection(object):
         :type tokenizer: string
         """
         if predicates:
-            predicates = list(map(uris.asURIString, predicates))
+            predicates = [uris.asURIString(p) for p in predicates]
         if isinstance(indexLiterals, list):
-            indexLiterals = list(map(uris.asURIString, indexLiterals))
+            indexLiterals = [uris.asURIString(l) for l in indexLiterals]
         self.mini_repository.createFreeTextIndex(
             name,
             predicates=predicates,
@@ -2378,9 +2370,9 @@ class RepositoryConnection(object):
         :type tokenizer: string
         """
         if predicates:
-            predicates = list(map(uris.asURIString, predicates))
+            predicates = [uris.asURIString(p) for p in predicates]
         if isinstance(indexLiterals, list):
-            indexLiterals = list(map(uris.asURIString, indexLiterals))
+            indexLiterals = [uris.asURIString(l) for l in indexLiterals]
         self.mini_repository.modifyFreeTextIndex(
             name,
             predicates=predicates,
@@ -2419,9 +2411,9 @@ class RepositoryConnection(object):
         :rtype: dict
         """
         value = self.mini_repository.getFreeTextIndexConfiguration(name)
-        value["predicates"] = list(map(URI, value["predicates"]))
+        value["predicates"] = [URI(p) for p in value["predicates"]]
         if isinstance(value["indexLiterals"], list):
-            value["indexLiterals"] = list(map(URI, value["indexLiterals"]))
+            value["indexLiterals"] = [URI(l) for l in value["indexLiterals"]]
         return value
 
     def evalFreeTextSearch(
@@ -3130,7 +3122,7 @@ def attribute_definition_from_dict(item):
     )
 
 
-class GeoType(object):
+class GeoType:
     Cartesian = "CARTESIAN"
     Spherical = "SPHERICAL"
 
@@ -3172,7 +3164,7 @@ class GeoType(object):
 
     def _getMiniGeoType(self):
         def stringify(term):
-            return unicode(term) if term is not None else None
+            return str(term) if term is not None else None
 
         if not self.miniGeoType:
             if self.system == GeoType.Cartesian:
@@ -3292,7 +3284,7 @@ def dump_json_ld(source, sort_keys=False):
 
     def fix_dict(d):
         result = []
-        for key, value in six.iteritems(d):
+        for key, value in d.items():
             if callable(getattr(key, "to_json_ld_key", None)):
                 key = key.to_json_ld_key()
             # Handle @id, @vocab, ...

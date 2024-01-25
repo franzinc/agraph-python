@@ -1,38 +1,26 @@
-# coding=utf-8
 ################################################################################
 # Copyright (c) 2006-2017 Franz Inc.
 # All rights reserved. This program and the accompanying materials are
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-
-from __future__ import absolute_import, print_function, unicode_literals, with_statement
-
 import pytest
-from future import standard_library
-
-standard_library.install_aliases()
-
-from future.builtins import next, object, range, str
-from future.utils import iteritems, iterkeys
 from nose.tools import assert_raises, eq_, raises
-from past.builtins import long
 
 from franz.miniclient.request import backend
-
-from ..exceptions import RequestError, ServerException
-from ..model import URI, BNode, Literal, Statement, ValueFactory
-from ..query.dataset import Dataset
-from ..query.query import QueryLanguage
-from ..repository.repository import Repository
-from ..rio.rdfformat import RDFFormat
-from ..rio.rdfwriter import NTriplesWriter
-from ..rio.rdfxmlwriter import RDFXMLWriter
-from ..sail.allegrographserver import AllegroGraphServer
-from ..vocabulary.owl import OWL
-from ..vocabulary.rdf import RDF
-from ..vocabulary.rdfs import RDFS
-from ..vocabulary.xmlschema import XMLSchema
+from franz.openrdf.exceptions import RequestError, ServerException
+from franz.openrdf.model import URI, BNode, Literal, Statement, ValueFactory
+from franz.openrdf.query.dataset import Dataset
+from franz.openrdf.query.query import QueryLanguage
+from franz.openrdf.repository.repository import Repository
+from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.rio.rdfwriter import NTriplesWriter
+from franz.openrdf.rio.rdfxmlwriter import RDFXMLWriter
+from franz.openrdf.sail.allegrographserver import AllegroGraphServer
+from franz.openrdf.vocabulary.owl import OWL
+from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.rdfs import RDFS
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 use_curl = backend.__name__ == "curl"
 
@@ -1900,7 +1888,7 @@ def test_delete_mapping():
     )
 
 
-class URIs(object):
+class URIs:
     ## Create URIs for Bob and Robert (and kids)
     robert = URI("http://example.org/people/robert")
     roberta = URI("http://example.org/people/roberta")
@@ -2330,7 +2318,6 @@ def test_roundtrips():
     conn.addTriple("<http:object>", "<http:bool>", True)
     conn.addTriple("<http:object>", "<http:str>", "Me")
     conn.addTriple("<http:object>", "<http:int>", 1234)
-    conn.addTriple("<http:object>", "<http:long>", long(1234))
     conn.addTriple("<http:object>", "<http:date>", now.date())
     conn.addTriple("<http:object>", "<http:datetime>", now)
     conn.addTriple("<http:object>", "<http:time>", now.time())
@@ -2362,7 +2349,6 @@ def test_roundtrips():
     checkit("bool", bool, True)
     checkit("str", str, "Me")
     checkit("int", int, 1234)
-    checkit("long", long, long(1234))
     checkit("date", datetime.date, now.date())
     time_check("datetime", datetime.datetime, now)
     time_check("time", datetime.time, now.time())
@@ -2441,7 +2427,7 @@ def test_namespace_management():
 
     # assert that all namepaces returned by getNamespaces can be gotten individually
     print(namespaces)
-    for namespace, value in iteritems(namespaces):
+    for namespace, value in namespaces.items():
         assert value == conn.getNamespace(namespace)
 
     test_spaces = {
@@ -2452,29 +2438,29 @@ def test_namespace_management():
         "rltv": "http://www.franz.com/simple#",
     }
 
-    for namespace, value in iteritems(test_spaces):
+    for namespace, value in test_spaces.items():
         print("calling setNamespace", namespace, value)
         conn.setNamespace(namespace, value)
 
     assert count + len(test_spaces) == len(conn.getNamespaces())
 
-    for namespace, value in iteritems(test_spaces):
+    for namespace, value in test_spaces.items():
         assert value == conn.getNamespace(namespace)
 
     # Try adding a namespace that already exists
-    for namespace, value in iteritems(test_spaces):
+    for namespace, value in test_spaces.items():
         conn.setNamespace(namespace, value)
 
     assert count + len(test_spaces) == len(conn.getNamespaces())
 
     # Remove the original namespaces
-    for namespace in iterkeys(namespaces):
+    for namespace in namespaces.keys():
         conn.removeNamespace(namespace)
 
     # Assert they are gone
     assert len(test_spaces) == len(conn.getNamespaces())
 
-    for namespace in iterkeys(namespaces):
+    for namespace in namespaces.keys():
         assert_raises(RequestError, conn.getNamespace, namespace)
 
     # Test clearing all namespaces
@@ -2483,7 +2469,7 @@ def test_namespace_management():
     assert len(conn.getNamespaces()) == 0
 
     # Add a bunch back and clear with reset
-    for namespace, value in iteritems(test_spaces):
+    for namespace, value in test_spaces.items():
         conn.setNamespace(namespace, value)
 
     assert len(test_spaces) == len(conn.getNamespaces())
@@ -2565,7 +2551,7 @@ def test_delete_duplicates():
         assert conn.size() == 2
 
 
-class URIs(object):
+class URIs:
     ## Create URIs for Bob and Robert (and kids)
     robert = URI("http://example.org/people/robert")
     roberta = URI("http://example.org/people/roberta")

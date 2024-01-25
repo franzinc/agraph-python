@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import csv
 import gzip
 import os
@@ -11,20 +10,6 @@ from franz.openrdf.repository.repositoryconnection import DocumentKey
 from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.tests.conftest import min_version
 from franz.openrdf.tests.newtests import get_statements, get_triple_attributes
-
-# Python 2 does not have csv.unix_dialect
-if not hasattr(csv, "unix_dialect"):
-
-    class unix_dialect(csv.Dialect):
-        delimiter = ","
-        quotechar = '"'
-        doublequote = True
-        skipinitialspace = False
-        lineterminator = "\n"
-        quoting = csv.QUOTE_ALL
-
-    csv.unix_dialect = unix_dialect
-    csv.register_dialect("unix", unix_dialect)
 
 # Skip all tests on older server versions
 pytestmark = min_version(6, 5)

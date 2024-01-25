@@ -1,16 +1,11 @@
 """
 Functions and structures related to triple attributes and attribute filters.
 """
-from __future__ import unicode_literals
 
-from builtins import object, str
 from typing import List, Union
 
-from past.builtins import basestring
-from six import python_2_unicode_compatible, with_metaclass
 
-
-class AttributeDefinition(object):
+class AttributeDefinition:
     """
     Defines basic properties of an attribute, such as its name,
     cardinality and the set of allowed values.
@@ -56,8 +51,7 @@ class ContextAttributeType(type):
         return cls(index)
 
 
-@python_2_unicode_compatible
-class ContextAttribute(with_metaclass(ContextAttributeType)):
+class ContextAttribute(metaclass=ContextAttributeType):
     """
     Superclass for contextual triple attributes used in filters.
     """
@@ -152,7 +146,7 @@ def attribute_set_to_expr(attribute_set):
     """
     Convert an attribute set (to be used in a filter) to string.
     """
-    if isinstance(attribute_set, basestring):
+    if isinstance(attribute_set, (str, bytes)):
         return quote_and_escape_value(attribute_set)
     elif isinstance(attribute_set, ContextAttribute):
         return "%s.%s" % (attribute_set.context, attribute_set.name)
@@ -171,8 +165,7 @@ def attribute_filter_to_expr(attribute_filter):
     return attribute_filter
 
 
-@python_2_unicode_compatible
-class AttributeFilter(object):
+class AttributeFilter:
     """
     Superclass of objects that can be used as static attribute filters.
 

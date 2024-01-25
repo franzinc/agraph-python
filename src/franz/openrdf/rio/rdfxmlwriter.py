@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,10 +7,9 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
 
-from .rdfformat import RDFFormat
-from .rdfwriter import RDFWriter
+from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.rio.rdfwriter import RDFWriter
 
 
 class RDFXMLWriter(RDFWriter):

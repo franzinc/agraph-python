@@ -5,8 +5,6 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import unicode_literals
-
 from franz.openrdf.rio.formats import Format
 
 

@@ -10,12 +10,6 @@ Helper functions for creating session specification strings.
 See :meth:`~franz.openrdf.sail.allegrographserver.AllegroGraphServer.openSession`
 """
 
-from __future__ import unicode_literals
-
-from future import standard_library
-from past.builtins import map, unicode
-
-standard_library.install_aliases()
 
 import urllib.error
 import urllib.parse
@@ -122,6 +116,6 @@ def graphFilter(store, graphs):
         if x is None:
             return "null"
         else:
-            return unicode(x)
+            return str(x)
 
-    return "%s{%s}" % (store, " ".join(map(asGraph, graphs)))
+    return "%s{%s}" % (store, " ".join([asGraph(g) for g in graphs]))

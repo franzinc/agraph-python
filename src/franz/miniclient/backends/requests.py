@@ -10,18 +10,16 @@
 A requests-based implementation of HTTP backend.
 """
 
-from __future__ import absolute_import
 
 import atexit
 import contextlib
-import sys
 
 import requests
-import requests.packages.urllib3 as urllib3
-from pkg_resources import parse_version
+import urllib3
+from packaging.version import parse as parse_version
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.poolmanager import PoolManager
+from urllib3.util.retry import Retry
 
 from franz.openrdf.util.http import normalize_headers
 from franz.openrdf.util.strings import to_native_string
@@ -39,12 +37,6 @@ retries = Retry(
     status_forcelist=(),  # Retry only on connection errors
     allowed_methods=False,
 )  # Retry on all methods, even POST and PUT
-
-# We'll want to know if something contains unicode
-if sys.version_info >= (3, 0):
-    unicode_type = str
-else:
-    unicode_type = unicode
 
 
 # Never check any hostnames
@@ -158,7 +150,7 @@ def makeRequest(
     :param url: Target address
     :type url: string
     :param body: Request body (for PUT/POST requests) or query string, optional.
-    :type body: basestring|file
+    :type body: str|bytes|file
     :param accept: Value of the accept header (default: */*)
     :type accept: string
     :param contentType: MIME type of the request body, optional.
@@ -192,7 +184,7 @@ def makeRequest(
         atexit.register(obj.session.close)
 
     # Encode data as utf-8 if required - requests tries to use ascii now.
-    if isinstance(body, unicode_type):
+    if isinstance(body, str):
         body = body.encode("utf-8")
 
     method = method.upper()

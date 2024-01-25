@@ -2,20 +2,9 @@
 Prerequisites
 -------------
 
-The tutorial examples can be run on any system which supports Python
-2.6, 2.7 and 3.4+. The tutorial assumes that AllegroGraph and the
-Python client have been installed and configured using the procedure
-described in the :ref:`install` document.
-
-To make the code in this document compatible with Python 2 we need the
-following import statement (not required on Python 3):
-
-.. The line below is duplicated in the global test setup code.
-.. code-block:: python
-
-   from __future__ import print_function
-
-.. _setup:
+The tutorial examples can be run on any system which supports Python 3.7+. The
+tutorial assumes that AllegroGraph and the Python client have been installed and
+configured using the procedure described in the :ref:`install` document.
 
 Setting the environment for the tutorial
 ----------------------------------------

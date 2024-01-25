@@ -21,7 +21,7 @@ import re
 import sys
 from datetime import datetime
 
-on_rtd = os.environ.get('READTHEDOCS') == 'True'
+on_rtd = os.environ.get("READTHEDOCS") == "True"
 
 # RTD doesn't allow C extensions, so we have to mock pycurl.
 # But we only do this on RTD, since running the tutorial
@@ -29,32 +29,29 @@ on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     # RTD will use Python > 3.3, so no need to add a dependency
     from unittest.mock import MagicMock
+
     class Mock(MagicMock):
         @classmethod
         def __getattr__(cls, name):
             return MagicMock()
-    sys.modules.update((('pycurl', Mock()),))
 
-# Don't ask.
-if sys.version_info <= (3,0):
-    reload(sys)
-    sys.setdefaultencoding('UTF-8')
+    sys.modules.update((("pycurl", Mock()),))
 
 # Local extensions
-sys.path.insert(0, os.path.abspath('lib'))
+sys.path.insert(0, os.path.abspath("lib"))
 
 # Source code
-sys.path.insert(0, os.path.abspath('../../src'))
+sys.path.insert(0, os.path.abspath("../../src"))
 
 # Support code for doctests
-sys.path.insert(0, os.path.abspath('tutorial'))
+sys.path.insert(0, os.path.abspath("tutorial"))
+
+# We also need to ensure that other packages are imported
+# in the right order
+import imports
 
 # We need this to get the version number
 import franz
-
-# We also need to ensure that other packages are imported 
-# in the right order
-import imports
 
 # -- General configuration ------------------------------------------------
 
@@ -66,45 +63,45 @@ import imports
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.extlinks',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.mathjax',
-    'sphinxcontrib.jupyter',
-    'hacks'
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.mathjax",
+    "sphinxcontrib.jupyter",
+    "hacks",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 #
 # source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'AllegroGraph Python client'
-copyright = u'%d, Franz Inc.' % datetime.now().year
-author = u'Franz Inc.'
+project = "AllegroGraph Python client"
+copyright = "%d, Franz Inc." % datetime.now().year
+author = "Franz Inc."
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version (strip rc and post tags).
-version = re.match(r'(?:\d+)(?:\.\d+)*', franz.__version__).group()
+version = re.match(r"(?:\d+)(?:\.\d+)*", franz.__version__).group()
 # The full version, including alpha/beta/rc tags.
 release = franz.__version__
 
@@ -149,7 +146,7 @@ exclude_patterns = []
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -168,10 +165,10 @@ todo_include_todos = True
 
 # Use the RTD theme when building on RTD
 if on_rtd:
-    html_theme = 'default'
+    html_theme = "default"
 else:
     # Allow override with an env var to make testing themes easier.
-    html_theme = os.environ.get('theme', 'alabaster')
+    html_theme = os.environ.get("theme", "alabaster")
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -194,18 +191,18 @@ else:
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #
-html_logo = '_static/logo.png'
+html_logo = "_static/logo.png"
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
 #
-html_favicon = '_static/favicon.ico'
+html_favicon = "_static/favicon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -228,12 +225,12 @@ html_static_path = ['_static']
 #
 # From http://alabaster.readthedocs.io/en/latest/installation.html
 html_sidebars = {
-    '**': [
-        'about.html',
-        'navigation.html',
-        'relations.html',
-        'searchbox.html',
-        'donate.html',
+    "**": [
+        "about.html",
+        "navigation.html",
+        "relations.html",
+        "searchbox.html",
+        "donate.html",
     ]
 }
 
@@ -294,42 +291,44 @@ html_sidebars = {
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'AllegroGraphPythonclientdoc'
+htmlhelp_basename = "AllegroGraphPythonclientdoc"
 
 # Alabaster theme settings
 html_theme_options = {
-    'show_related': True,
-    'github_button': True,
-    'github_user': 'franzinc',
-    'github_repo': 'agraph-python',
+    "show_related": True,
+    "github_button": True,
+    "github_user": "franzinc",
+    "github_repo": "agraph-python",
 }
 
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-     # The paper size ('letterpaper' or 'a4paper').
-     #
-     # 'papersize': 'letterpaper',
-
-     # The font size ('10pt', '11pt' or '12pt').
-     #
-     # 'pointsize': '10pt',
-
-     # Additional stuff for the LaTeX preamble.
-     #
-     # 'preamble': '',
-
-     # Latex figure (float) alignment
-     #
-     # 'figure_align': 'htbp',
+    # The paper size ('letterpaper' or 'a4paper').
+    #
+    # 'papersize': 'letterpaper',
+    # The font size ('10pt', '11pt' or '12pt').
+    #
+    # 'pointsize': '10pt',
+    # Additional stuff for the LaTeX preamble.
+    #
+    # 'preamble': '',
+    # Latex figure (float) alignment
+    #
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'AllegroGraphPythonclient.tex', u'AllegroGraph Python client Documentation',
-     u'Franz Inc.', 'manual'),
+    (
+        master_doc,
+        "AllegroGraphPythonclient.tex",
+        "AllegroGraph Python client Documentation",
+        "Franz Inc.",
+        "manual",
+    ),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -370,8 +369,13 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'allegrographpythonclient', u'AllegroGraph Python client Documentation',
-     [author], 1)
+    (
+        master_doc,
+        "allegrographpythonclient",
+        "AllegroGraph Python client Documentation",
+        [author],
+        1,
+    )
 ]
 
 # If true, show URL addresses after external links.
@@ -385,9 +389,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'AllegroGraphPythonclient', u'AllegroGraph Python client Documentation',
-     author, 'AllegroGraphPythonclient', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "AllegroGraphPythonclient",
+        "AllegroGraph Python client Documentation",
+        author,
+        "AllegroGraphPythonclient",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -410,12 +420,16 @@ texinfo_documents = [
 # Intersphinx (we use static inv files, since Sphinx often
 # hangs while retrieving files from the internet).
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/2.7', 'python-2.7.inv'),
-    'python-future': ('http://python-future.org/', 'future.inv')
+    "python": ("https://docs.python.org/2.7", "python-2.7.inv"),
+    "python-future": ("http://python-future.org/", "future.inv"),
 }
 # Simplify external links.
-extlinks = {'docs': ('https://franz.com/agraph/support/documentation/current/%s',
-                     'AllegroGraph documentation: ')}
+extlinks = {
+    "docs": (
+        "https://franz.com/agraph/support/documentation/current/%s",
+        "AllegroGraph documentation: ",
+    )
+}
 
 # --------------------------------------------
 # sphinxcontrib-jupyter Configuration Settings
@@ -437,20 +451,20 @@ jupyter_kernels = {
         "kernelspec": {
             "display_name": "Python",
             "language": "python3",
-            "name": "python3"
-            },
+            "name": "python3",
+        },
         "file_extension": ".py",
     },
 }
 
 # Configure Jupyter headers
 jupyter_headers = {
-    "python_rdf": [
-    ],
+    "python_rdf": [],
 }
 
 # This must be set, yet seems to be ignored...
 jupyter_welcome_block = "jupyter.welcome.block"
+
 
 # This method must be monkey-patched, otherwise it
 # raises an exception and causes the build to fail.
@@ -466,26 +480,33 @@ def depart_list_item(self, node):
     ###############################################################################
     # CHANGED LINE: The build crashes here without the added checks
     ###############################################################################
-    if self.markdown_lines and self.markdown_lines[-1] and self.markdown_lines[-1][-1] == "\n":
+    if (
+        self.markdown_lines
+        and self.markdown_lines[-1]
+        and self.markdown_lines[-1][-1] == "\n"
+    ):
         br_removed_flag = True
         self.markdown_lines[-1] = self.markdown_lines[-1][:-1]
 
     for i in range(list_item_start, len(self.markdown_lines)):
         self.markdown_lines[i] = self.markdown_lines[i].replace(
-            "\n", "\n{}".format(indent))
+            "\n", "\n{}".format(indent)
+        )
 
     # add breakline
     if br_removed_flag:
         self.markdown_lines.append("\n")
 
+
 # Monkey-patch the method defined above.
 from sphinxcontrib.jupyter.writers.translate_all import JupyterTranslator
+
 JupyterTranslator.depart_list_item = depart_list_item
 
 # autodoc config
 
 # Do not taker class documentation from the init method.
-autoclass_content = 'class'
+autoclass_content = "class"
 
 from sphinx.ext.apidoc import main as apidoc_main
 
@@ -511,17 +532,16 @@ rst_epilog = """
 # things like setup specific to our hosts or boring cleanup that we do not
 # want the users to see.
 
-doctest_global_setup="""
-# Py2/3 compatibility. We actually display this line in the docs, but we need 
-# to repeat it here so it is shared by all documents.
-from __future__ import print_function
-
-# Definitions used in multiple tests. The code must be included in the 
+doctest_global_setup = (
+    """
+# Definitions used in multiple tests. The code must be included in the
 # appropriate part of the tutorial, but we need the definitions to be in 
 # a global setup block to make them visible in all documents.
-""" + open('tutorial/doctest_setup.py').read()
+"""
+    + open("tutorial/doctest_setup.py").read()
+)
 
-doctest_global_cleanup="""
+doctest_global_cleanup = """
 # Not all examples have to create conn...
 # Note that multiple calls to close() are safe.
 if 'conn' in vars() and conn is not None:
@@ -529,53 +549,65 @@ if 'conn' in vars() and conn is not None:
 """
 
 import doctest
-doctest_default_flags = doctest.DONT_ACCEPT_TRUE_FOR_1 | doctest.ELLIPSIS | doctest.IGNORE_EXCEPTION_DETAIL | doctest.NORMALIZE_WHITESPACE
+
+doctest_default_flags = (
+    doctest.DONT_ACCEPT_TRUE_FOR_1
+    | doctest.ELLIPSIS
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | doctest.NORMALIZE_WHITESPACE
+)
+
 
 def get_ag_version():
     # Return the server version as a tuple.
     from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 
-    if 'AGRAPH_VERSION' in os.environ:
-        return tuple(int(x) for x in os.environ['AGRAPH_VERSION'].split('.'))
-    
-    if not any(map(os.environ.get, ('AGRAPH_HOST', 'AGRAPH_PORT'))):
+    if "AGRAPH_VERSION" in os.environ:
+        return tuple(int(x) for x in os.environ["AGRAPH_VERSION"].split("."))
+
+    if not any(map(os.environ.get, ("AGRAPH_HOST", "AGRAPH_PORT"))):
         # We need to choose a version anyway...
         return (6, 3, 1)
 
-    host = os.environ.get('AGRAPH_HOST', '127.0.0.1')
-    port = os.environ.get('AGRAPH_PORT', '10035')
-    user = os.environ.get('AGRAPH_USER', 'test')
-    password = os.environ.get('AGRAPH_PASSWORD', 'xyzzy')
-    server = AllegroGraphServer(host=host, port=port,
-                                user=user, password=password)
-    return tuple(int(x) for x in server.version.split('.'))
+    host = os.environ.get("AGRAPH_HOST", "127.0.0.1")
+    port = os.environ.get("AGRAPH_PORT", "10035")
+    user = os.environ.get("AGRAPH_USER", "test")
+    password = os.environ.get("AGRAPH_PASSWORD", "xyzzy")
+    server = AllegroGraphServer(host=host, port=port, user=user, password=password)
+    return tuple(int(x) for x in server.version.split("."))
+
 
 ag_version = get_ag_version()
 
+
 def setup(app):
     # Add custom CSS
-    app.add_stylesheet('custom.css')
+    app.add_stylesheet("custom.css")
     # Make the version number available to ifconfig
-    app.add_config_value('ag_version', ag_version, 'env')
+    app.add_config_value("ag_version", ag_version, "env")
     # Do not generate apidocs for these:
-    exclude = ['franz/miniclient', 'franz/openrdf/tests', 
-               # These are re-exported in franz.openrdf.model
-               'franz/openrdf/model/literal.py', 
-               'franz/openrdf/model/statement.py', 
-               'franz/openrdf/model/value.py', 
-               'franz/openrdf/model/valuefactory.py',
-               # More reexported stuff
-               'franz/openrdf/vocabulary/owl.py',
-               'franz/openrdf/vocabulary/rdf.py',
-               'franz/openrdf/vocabulary/rdfs.py',
-               'franz/openrdf/vocabulary/xmlschema.py',]
-    abs_exclude = [os.path.abspath(os.path.join('../src', path)) 
-                   for path in exclude]
+    exclude = [
+        "franz/miniclient",
+        "franz/openrdf/tests",
+        # These are re-exported in franz.openrdf.model
+        "franz/openrdf/model/literal.py",
+        "franz/openrdf/model/statement.py",
+        "franz/openrdf/model/value.py",
+        "franz/openrdf/model/valuefactory.py",
+        # More reexported stuff
+        "franz/openrdf/vocabulary/owl.py",
+        "franz/openrdf/vocabulary/rdf.py",
+        "franz/openrdf/vocabulary/rdfs.py",
+        "franz/openrdf/vocabulary/xmlschema.py",
+    ]
+    abs_exclude = [os.path.abspath(os.path.join("../src", path)) for path in exclude]
     # Generate apidocs
     # Options:
     #  -f = overwrite old files
     #  -o ... = output directory
     # ../src = path to the sources
     # rest = exclusion patterns
-    apidoc_main(['-f', '-o', os.path.abspath('src/_gen'), 
-                 os.path.abspath('../src')] + abs_exclude)
+    apidoc_main(
+        ["-f", "-o", os.path.abspath("src/_gen"), os.path.abspath("../src")]
+        + abs_exclude
+    )

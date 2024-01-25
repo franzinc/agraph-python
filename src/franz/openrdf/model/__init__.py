@@ -7,13 +7,12 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
 
-from .literal import Literal
-from .statement import Statement
-from .utils import parse_term
-from .value import URI, BNode, QuotedTriple, Value
-from .valuefactory import ValueFactory
+from franz.openrdf.model.literal import Literal
+from franz.openrdf.model.statement import Statement
+from franz.openrdf.model.utils import parse_term
+from franz.openrdf.model.value import URI, BNode, QuotedTriple, Value
+from franz.openrdf.model.valuefactory import ValueFactory
 
 __all__ = [
     "BNode",

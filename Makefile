@@ -181,22 +181,23 @@ $(TOXENVDIR): $(TOXDEP)
 
 # At this point we've added the programs in pythons/<version>/bin to
 # PATH so we can't just run python3 or we may end up with a version of
-# python3 that is too old (or too new) to satisfy toxenv.txt
+# python3 that is too old (or too new) to satisfy "tox<4.0.0"
 # requirements so we hardwire in python3.7
-$(TOXENVDIR)/.timestamp: $(PY3.7) toxenv.txt
+$(TOXENVDIR)/.timestamp: $(PY3.7)
 	@echo Preparing tox environment
 	rm -rf $(TOXENVDIR)
 	python3.7 -m venv $(TOXENVDIR)
-	source $(TOXENVDIR)/bin/activate && pip install -r toxenv.txt
+	$(TOXENVDIR)/bin/pip install --no-cache --upgrade \
+		"pip~=23.3.0" "setuptools>=68" "tox<4.0.0"
 	touch $(TOXENVDIR)/.timestamp
 
-$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.8) tox.ini
+$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.7) tox.ini
 	@echo Preparing py37-env using tox
 	rm -rf $(ENVDIR3)
 	$(TOX) -e py37-env
 	touch $(ENVDIR3)/.timestamp
-	$(ENVDIR3)/bin/pip install --no-cache --upgrade "pip~=23.3.0" "setuptools>=68" "build>1.0.0"
-	$(ENVDIR3)/bin/pip install --no-cache "isort~=5.11.0" "black~=23.3.0"
+	$(ENVDIR3)/bin/pip install --no-cache --upgrade \
+		"pip~=23.3.0" "setuptools>=68" "build>1.0.0" "isort~=5.11.0" "black~=23.3.0"
 $(ENVDIR3): $(ENVDIR3)/.timestamp
 
 test-env: $(ENVDIR3)
@@ -240,7 +241,7 @@ disttest/.timestamp: $(TOXDEP) .venv
         # Use toxenv's virtualenv so we get a recent enough pip
 	$(TOXENVDIR)/bin/virtualenv -p python3 disttest
         # We need sphinx to run the doctests
-	disttest/bin/pip install $(AG_PIP_OPTS) -rdocs-requirements.txt
+	disttest/bin/pip install $(AG_PIP_OPTS) -e ".[dev]"
         # Remember creation time, to detect changes
 	touch disttest/.timestamp
 
@@ -296,7 +297,7 @@ publish: $(TOXDEP) wheel sign
 	# Do not use the special nexus.ca.crt CA bundle when performing the
 	# uploads to PyPi and Conda.  It will result in SSL server
 	# certificate validation errors.
-	source $(TOXENVDIR)/bin/activate &&  pip install -U pip urllib3==1.26.0 twine==3.2.0  && deactivate
+	source $(TOXENVDIR)/bin/activate && pip install -U pip urllib3==1.26.0 twine==3.2.0  && deactivate
 	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
 	./conda-upload.sh
 
@@ -311,14 +312,14 @@ fix-copyrights: FORCE
 	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
 # If any of these files change rebuild the virtual environments.
-.venv: docs-requirements.txt tox.ini $(TOXDEP)
+.venv: tox.ini $(TOXDEP)
 	rm -rf .tox
 	touch .venv
 
 clean: clean-envs
-	rm -rf DIST pythons miniconda2 miniconda3 report.xml build .venv \
-            src/agraph_python.egg-info/ docs/build docs/source/_gen/ \
-            .cache/
+	rm -rf DIST pythons miniconda3 report.xml build .venv \
+		src/agraph_python.egg-info/ docs/build docs/source/_gen/ \
+        .cache/
 	find . -name \*.pyc -delete
 	find . -path '*/__pycache__*' -delete
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,21 +7,17 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, division, unicode_literals
 
 import datetime
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from decimal import Decimal
 
 import iso8601
-from future.backports import OrderedDict
-from future.utils import python_2_unicode_compatible
-from past.builtins import long, unicode
 
-from ..exceptions import IllegalArgumentException
-from ..util import strings
-from ..vocabulary.xmlschema import XMLSchema
-from .value import LITERAL_CMP_KEY, URI, Value
+from franz.openrdf.exceptions import IllegalArgumentException
+from franz.openrdf.model.value import LITERAL_CMP_KEY, URI, Value
+from franz.openrdf.util import strings
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 # Needed to temporarily convert times to datetimes to do arithmetic.
 # Python time objects do not support adding/subtracting time deltas,
@@ -37,24 +31,21 @@ def datatype_from_python(value, datatype):
     If 'value' is not a string, convert it into one, and infer its
     datatype, unless 'datatype' is set (i.e., overrides it).
     """
-    if isinstance(value, unicode):
+    if isinstance(value, str):
         return value, datatype
 
     if isinstance(value, bytes):
-        return unicode(value, "utf-8"), datatype
+        return str(value, "utf-8"), datatype
 
     ## careful: test for 'bool' must precede test for 'int':
     if isinstance(value, bool):
-        return unicode(value).lower(), datatype or XMLSchema.BOOLEAN
+        return str(value).lower(), datatype or XMLSchema.BOOLEAN
 
     if isinstance(value, int):
-        return unicode(value), datatype or XMLSchema.INTEGER
-
-    if isinstance(value, long):
-        return unicode(value), datatype or XMLSchema.LONG
+        return str(value), datatype or XMLSchema.INTEGER
 
     if isinstance(value, float):
-        return unicode(value), datatype or XMLSchema.DOUBLE
+        return str(value), datatype or XMLSchema.DOUBLE
 
     if isinstance(value, datetime.datetime):
         # There is an ambiguity for times that occur twice due to
@@ -78,9 +69,9 @@ def datatype_from_python(value, datatype):
         return value.isoformat(), datatype or XMLSchema.DATE
 
     if isinstance(value, Decimal):
-        return unicode(value), datatype or XMLSchema.DECIMAL
+        return str(value), datatype or XMLSchema.DECIMAL
 
-    return unicode(value), datatype
+    return str(value), datatype
 
 
 class Literal(Value):
@@ -102,8 +93,8 @@ class Literal(Value):
     def setDatatype(self, datatype):
         """Sets the datatype of the value"""
         if isinstance(datatype, bytes):
-            datatype = unicode(datatype, "utf-8")
-        if isinstance(datatype, unicode):
+            datatype = str(datatype, "utf-8")
+        if isinstance(datatype, str):
             if datatype[0] == "<":
                 datatype = datatype[1:-1]
             datatype = URI(datatype)
@@ -152,7 +143,7 @@ class Literal(Value):
 
     def longValue(self):
         """Convert to long"""
-        return long(self._label)
+        return int(self._label)
 
     def floatValue(self):
         """Convert to float"""
@@ -312,7 +303,6 @@ class RangeLiteral(CompoundLiteral):
         return self.upperBound
 
 
-@python_2_unicode_compatible
 class GeoCoordinate(CompoundLiteral):
     """
     Define either a cartesian coordinate or a spherical coordinate.  For the
@@ -333,7 +323,6 @@ class GeoSpatialRegion(CompoundLiteral):
     pass
 
 
-@python_2_unicode_compatible
 class GeoBox(GeoSpatialRegion):
     def __init__(self, xMin, xMax, yMin, yMax, unit=None, geoType=None):
         self.xMin = xMin
@@ -347,7 +336,6 @@ class GeoBox(GeoSpatialRegion):
         return "|Box|%s,%s %s,%s" % (self.xMin, self.xMax, self.yMin, self.yMax)
 
 
-@python_2_unicode_compatible
 class GeoCircle(GeoSpatialRegion):
     def __init__(self, x, y, radius, unit=None, geoType=None):
         self.x = x
@@ -360,7 +348,6 @@ class GeoCircle(GeoSpatialRegion):
         return "|Circle|%i,%i, radius=%i" % (self.x, self.y, self.radius)
 
 
-@python_2_unicode_compatible
 class GeoPolygon(GeoSpatialRegion):
     def __init__(self, vertices, uri=None, geoType=None):
         self.vertices = vertices

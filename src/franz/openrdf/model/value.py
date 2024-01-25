@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,13 +7,8 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
-
 import builtins
-import sys
 import weakref
-
-from six import python_2_unicode_compatible
 
 from franz.openrdf.exceptions import IllegalArgumentException
 from franz.openrdf.util import strings, uris
@@ -27,8 +20,7 @@ BNODE_CMP_KEY = 3
 QUOTED_TRIPLE_CMP_KEY = 4
 
 
-@python_2_unicode_compatible
-class Value(object):
+class Value:
     """
     Top class in the org.openrdf.model interfaces.
     """
@@ -40,9 +32,6 @@ class Value(object):
 
     def __repr__(self):
         result = self.toNTriples()
-        # Return an ascii string on Python 2, otherwise pytest gets confused
-        if sys.version_info < (3,):
-            result = result.encode("unicode-escape")
         return result
 
     def get_cmp_key(self):
@@ -228,8 +217,7 @@ class BNode(Resource):
         return {"@id": self.toNTriples()}
 
 
-@python_2_unicode_compatible
-class Namespace(object):
+class Namespace:
     """ """
 
     def __init__(self, prefix, name):

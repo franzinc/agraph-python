@@ -11,15 +11,9 @@
 Classes containing useful URI constants.
 """
 
-from __future__ import absolute_import, unicode_literals
-
-from future.utils import iteritems
-
-from franz.openrdf.model.value import URI
-
-from .owl import OWL
-from .rdf import RDF
-from .rdfs import RDFS
-from .xmlschema import XMLSchema
+from franz.openrdf.vocabulary.owl import OWL
+from franz.openrdf.vocabulary.rdf import RDF
+from franz.openrdf.vocabulary.rdfs import RDFS
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 __all__ = ["OWL", "RDF", "RDFS", "XMLSchema"]

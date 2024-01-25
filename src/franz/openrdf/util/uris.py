@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,11 +7,8 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
 
-from past.builtins import unicode
-
-from ..exceptions import IllegalArgumentException
+from franz.openrdf.exceptions import IllegalArgumentException
 
 
 ## Finds the index of the first local name character in an (non-relative)
@@ -53,7 +48,7 @@ def getLocalNameIndex(uri):
 
 
 def asURIString(value):
-    value = unicode(value)
+    value = str(value)
     if value.startswith("<"):
         return value
     else:

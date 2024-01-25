@@ -10,17 +10,14 @@ import io
 import json
 import os
 import re
-import sys
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from io import BytesIO
 
 import pytest
 import requests
-from future.utils import iteritems, iterkeys
 from nose.tools import assert_raises
-from six import BytesIO
 
-# Imported to allow mocking
 import franz.miniclient.request
 from franz.openrdf.connect import ag_connect
 from franz.openrdf.exceptions import RequestError
@@ -47,7 +44,6 @@ from franz.openrdf.repository.attributes import (
     attribute_set_to_expr,
 )
 from franz.openrdf.repository.transactions import TransactionSettings
-from franz.openrdf.rio.docformat import DocFormat
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.sail import AllegroGraphServer
@@ -264,22 +260,6 @@ def test_literals_from_python_values(value, expected_text, expected_type):
     assert literal.label == expected_text
     # Well-known types are normalized, so it is safe to use the ``is`` operator here.
     assert literal.datatype is expected_type
-
-
-@pytest.mark.skipif(
-    sys.version_info >= (3,), reason="Long type exists only on Python 2."
-)
-def test_long_literal():
-    # This behavior of using LONG as the datatype might be convenient in demos,
-    # (you can do ``Literal(42L)``), but has a few drawbacks:
-    #    - is incorrect: will map arbitrarily huge values to LONG, which is
-    #      supposed to be 64 bit, while SMALLER values will become INTEGERS
-    #      (which have no size limit).
-    #    - In fact longs start at sys.maxint + 1 == 2 ** 63, i.e. as soon as
-    #      it is no longer valid to hold them in xsd:longs.
-    #    - Python 3 has no 'long' type.
-    literal = Literal(84104105115032109097107101115032110111032115101110115101046)
-    assert literal.datatype is XMLSchema.LONG
 
 
 def test_true_literal():
@@ -1425,15 +1405,15 @@ def test_query_option_management(conn):
         "authorizationBasic": "{}:{}".format(USER, PASSWORD),
     }
 
-    for name, value in iteritems(test_options):
+    for name, value in test_options.items():
         conn.setQueryOption(name, value)
     assert len(conn.getQueryOptions()) == len(test_options)
 
-    for name, value in iteritems(test_options):
+    for name, value in test_options.items():
         assert value == conn.getQueryOption(name)
 
     # Try setting a query option that is already set.
-    for name, value in iteritems(test_options):
+    for name, value in test_options.items():
         conn.setQueryOption(name, value)
     assert len(conn.getQueryOptions()) == len(test_options)
 

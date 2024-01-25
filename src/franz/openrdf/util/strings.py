@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -8,21 +6,12 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-
-from __future__ import absolute_import, unicode_literals
-
-import ast
-import sys
-
-from future.builtins import chr
-from future.types import newbytes
-from future.utils import isnewbytes, native_str
-from past.builtins import unicode
-
 """
 A strings utility module for helper functions.
 """
 
+
+import ast
 import re
 
 ###############################################################################
@@ -35,8 +24,8 @@ def encode_ntriple_string(string):
     Return a unicode string escaped according to N-Triples
     canonical encoding rules.
     """
-    if not isinstance(string, unicode):
-        string = unicode(string, "utf-8")
+    if not isinstance(string, str):
+        string = str(string, "utf-8")
 
     for char, replacement in ESCAPES:
         string = string.replace(char, replacement)
@@ -142,32 +131,20 @@ def to_bytes(text):
     :type text: str|bytes|unicode
     :rtype: bytes
     """
-    if isinstance(text, unicode):
-        return text.encode("utf-8")
+    if isinstance(text, str):
+        return bytes(text, "utf-8")
     return text
 
 
-if sys.version_info[0] > 2:
+def to_native_string(text):
+    """
+    Converts text to the native string type of the Python version used.
+    UTF-8 encoding is used if the text needs to be encoded or decoded.
 
-    def to_native_string(text):
-        """
-        Converts text to the native string type of the Python version used.
-        UTF-8 encoding is used if the text needs to be encoded or decoded.
-
-        :param text: Text to be converted (either Unicode or bytes).
-        :type text: str|bytes|unicode
-        :rtype: str
-        """
-        if isinstance(text, bytes):
-            return str(text, "utf-8")
-        return text
-
-else:
-
-    def to_native_string(text):
-        if isnewbytes(text):
-            return bytes.__str__(text)
-        if isinstance(text, native_str):
-            return text
-        # Must be Unicode...
-        return text.encode("utf-8")
+    :param text: Text to be converted (either Unicode or bytes).
+    :type text: str|bytes|unicode
+    :rtype: str
+    """
+    if isinstance(text, bytes):
+        return str(text, "utf-8")
+    return text

@@ -5,16 +5,7 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import print_function, unicode_literals
-
-import sys
-
-# JSON abstraction layer
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+import simplejson as json
 
 
 class JsonDecodeError(Exception):
@@ -26,8 +17,7 @@ def encode_json(value):
 
 
 def decode_json(text):
-    # JSON on Py3 insists on getting Unicode strings
-    if sys.version_info[0] > 2 and isinstance(text, bytes):
+    if isinstance(text, bytes):
         text = text.decode("utf-8")
     try:
         return json.loads(text)

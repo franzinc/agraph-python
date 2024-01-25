@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,18 +7,13 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
 
-from future.builtins import object
-from future.utils import iteritems
-from past.builtins import unicode
-
-from ..model.value import URI
+from franz.openrdf.model.value import URI
 
 NS = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 
 
-class RDF(object):
+class RDF:
     """
     A 'static' class containing useful RDF URIs.
     """

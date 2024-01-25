@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,15 +7,10 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
 
-from future.builtins import next, object
-from past.builtins import unicode
-
+from franz.openrdf.model import Statement
 from franz.openrdf.model.utils import parse_term
 from franz.openrdf.model.value import QuotedTriple
-
-from ..model import Statement, Value
 
 try:
     import franz.openrdf.query.pandas_support as pandas
@@ -27,7 +20,7 @@ except ImportError:
     has_pandas = False
 
 
-class RepositoryResult(object):
+class RepositoryResult:
     """An iterable collection of statements.
 
     A RepositoryResult is a result collection of objects (for example
@@ -174,7 +167,7 @@ class RepositoryResult(object):
     @staticmethod
     def normalize_quint(stringTuple):
         st = stringTuple
-        return (st[1], st[2], st[3], None if len(st) == 4 else st[4], unicode(st[0]))
+        return (st[1], st[2], st[3], None if len(st) == 4 else st[4], str(st[0]))
 
     @staticmethod
     def normalize_quad(stringTuple):

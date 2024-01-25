@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,13 +7,6 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
-
-from builtins import map, object, str
-
-from future import standard_library
-
-standard_library.install_aliases()
 
 import os
 import re
@@ -23,12 +14,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from past.builtins import basestring
-
-from ...miniclient import repository as miniserver
-from ..exceptions import ServerException
-from ..repository.repository import Repository, RepositoryConnection
-from . import spec
+from franz.miniclient import repository as miniserver
+from franz.openrdf.exceptions import ServerException
+from franz.openrdf.repository.repository import Repository, RepositoryConnection
+from franz.openrdf.sail import spec
 
 READ_ONLY = "READ_ONLY"
 
@@ -39,7 +28,7 @@ LEGAL_OPTION_TYPES = {
 ROOT_CATALOG_NAME = "root"
 
 
-class AllegroGraphServer(object):
+class AllegroGraphServer:
     """
     The AllegroGraphServer object represents a remote AllegroGraph server on
     the network. It is used to inventory and access the catalogs of that
@@ -385,7 +374,7 @@ class AllegroGraphServer(object):
         """
 
         def asRepoString(x):
-            if isinstance(x, basestring):
+            if isinstance(x, (str, bytes)):
                 return spec.local(x)
             elif isinstance(x, tuple):
                 return spec.local(x[0], x[1])
@@ -402,7 +391,7 @@ class AllegroGraphServer(object):
                 raise TypeError(str(x) + " is not a valid repository specification.")
 
         return self.openSession(
-            spec.federate(*list(map(asRepoString, repositories))),
+            spec.federate(*[asRepoString(repo) for repo in repositories]),
             autocommit,
             lifetime,
             loadinitfile,
@@ -645,7 +634,7 @@ class AllegroGraphServer(object):
         self._client.deleteRoleSecurityFilter(role, _type, s, p, o, g)
 
 
-class Catalog(object):
+class Catalog:
     """
     Container of multiple repositories (triple stores).
     """

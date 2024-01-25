@@ -10,8 +10,6 @@
 A pycurl-based implementation of HTTP backend.
 """
 
-from __future__ import print_function
-
 import errno
 import io
 import os
@@ -19,8 +17,6 @@ import threading
 import time
 
 import pycurl
-from future.utils import iteritems
-from past.builtins import basestring, unicode
 
 from franz.openrdf.util.strings import to_bytes, to_native_string
 
@@ -38,7 +34,7 @@ else:
         This simply means that unicode strings must be encoded
         to byte strings in older versions of curl.
         """
-        if isinstance(value, unicode):
+        if isinstance(value, str):
             return value.encode("ascii")
         return value
 
@@ -145,7 +141,7 @@ def normalize_headers(headers):
     if headers is None:
         result = []
     elif isinstance(headers, dict):
-        result = ["%s: %s" % entry for entry in iteritems(headers)]
+        result = ["%s: %s" % entry for entry in headers.items()]
     else:
         result = headers[:]
     return [to_native_string(h) for h in result]
@@ -280,7 +276,7 @@ def makeRequest(
     curl.setopt(pycurl.UPLOAD, 0)
     if body:
         if method in ("POST", "PUT"):
-            if isinstance(body, basestring):
+            if isinstance(body, (str, bytes)):
                 # String
                 body = to_bytes(body)
                 curl.setopt(pycurl.POSTFIELDS, body)
@@ -326,7 +322,7 @@ def makeRequest(
         def headerfunc(string):
             if status[0] is None:
                 # Parse the status code if this is the first line.
-                status[0] = int(unicode(string, "utf-8").split(" ")[1])
+                status[0] = int(str(string, "utf-8").split(" ")[1])
             # return input length to indicate "no errors".
             return len(string)
 
@@ -336,7 +332,7 @@ def makeRequest(
             if status[0] == 200:
                 callback(string)
             else:
-                error.append(unicode(string, "utf-8"))
+                error.append(str(string, "utf-8"))
 
         curl.setopt(pycurl.WRITEFUNCTION, writefunc)
         curl.setopt(pycurl.HEADERFUNCTION, headerfunc)

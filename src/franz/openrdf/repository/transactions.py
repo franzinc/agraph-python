@@ -2,11 +2,7 @@
 Types and utilities related to transaction settings.
 """
 from collections import namedtuple
-
-try:
-    from itertools import zip_longest  # Py3
-except ImportError:
-    from itertools import izip_longest as zip_longest  # Py2
+from itertools import zip_longest
 
 
 # The subclass is created to allow us to provide a docstring for Sphinx.

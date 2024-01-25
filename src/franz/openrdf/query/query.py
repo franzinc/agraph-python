@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,23 +7,19 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
 
-from future.builtins import object
-from future.utils import iteritems, python_2_unicode_compatible
-from past.builtins import basestring
-
+from franz.openrdf.exceptions import (
+    IllegalOptionException,
+    QueryMissingFeatureException,
+)
+from franz.openrdf.query.dataset import ALL_CONTEXTS, Dataset
+from franz.openrdf.query.queryresult import GraphQueryResult, TupleQueryResult
 from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.rio.tupleformat import TupleFormat
 from franz.openrdf.util.contexts import output_to
 
-from ..exceptions import IllegalOptionException, QueryMissingFeatureException
-from .dataset import ALL_CONTEXTS, Dataset
-from .queryresult import GraphQueryResult, TupleQueryResult
 
-
-@python_2_unicode_compatible
-class QueryLanguage(object):
+class QueryLanguage:
     registered_languages = []
     SPARQL = None
     PROLOG = None
@@ -63,7 +57,7 @@ QueryLanguage.PROLOG = QueryLanguage("PROLOG")
 #############################################################################
 
 
-class Query(object):
+class Query:
     """
     A query on a repository that can be formulated in one of the
     supported query languages (for example SeRQL or SPARQL). It allows one to
@@ -115,9 +109,9 @@ class Query(object):
         :type name: string
         :param value: New value for the variable. If a string is passed it will
                       be converted to a literal.
-        :type value: Value|basestring
+        :type value: Value|str|bytes
         """
-        if isinstance(value, basestring):
+        if isinstance(value, (str, bytes)):
             value = self._get_connection().createLiteral(value)
         self.bindings[name] = value
 
@@ -130,7 +124,7 @@ class Query(object):
         """
         if not dict:
             return
-        for key, value in iteritems(dict):
+        for key, value in dict.items():
             self.setBinding(key, value)
 
     def removeBinding(self, name):
@@ -182,7 +176,7 @@ class Query(object):
             return
         ds = Dataset()
         for cxt in contexts:
-            if isinstance(cxt, basestring):
+            if isinstance(cxt, (str, bytes)):
                 cxt = self._get_connection().createURI(cxt)
             ds.addNamedGraph(cxt)
         self.setDataset(ds)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,18 +7,11 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
-
-from future.utils import python_2_unicode_compatible
-from past.builtins import basestring
 
 from franz.openrdf.model.utils import parse_term
 
-from .value import URI, Value
 
-
-@python_2_unicode_compatible
-class Statement(object):
+class Statement:
     """
     Wraps a triple or a quad. Might also contain an id.
     """
@@ -125,7 +116,7 @@ class Statement(object):
         :rtype: Value
         """
         # Lazily parse and replace the value if needed.
-        if isinstance(self.subject, basestring):
+        if isinstance(self.subject, (str, bytes)):
             self.subject = parse_term(self.subject)
         return self.subject
 
@@ -140,7 +131,7 @@ class Statement(object):
         :rtype: URI
         """
         # Lazily parse and replace the value if needed.
-        if isinstance(self.predicate, basestring):
+        if isinstance(self.predicate, (str, bytes)):
             self.predicate = parse_term(self.predicate)
         return self.predicate
 
@@ -155,7 +146,7 @@ class Statement(object):
         :rtype: Value
         """
         # Lazily parse and replace the value if needed.
-        if isinstance(self.object, basestring):
+        if isinstance(self.object, (str, bytes)):
             self.object = parse_term(self.object)
         return self.object
 
@@ -170,7 +161,7 @@ class Statement(object):
         :rtype: URI
         """
         # Lazily parse and replace the value if needed.
-        if isinstance(self.context, basestring):
+        if isinstance(self.context, (str, bytes)):
             self.context = parse_term(self.context)
         return self.context
 
@@ -188,6 +179,6 @@ class Statement(object):
         :rtype: int
         """
         # Lazily parse and replace the value if needed.
-        if isinstance(self.id, basestring):
+        if isinstance(self.id, (str, bytes)):
             self.id = int(self.id)
         return self.id

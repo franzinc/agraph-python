@@ -4,17 +4,17 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-from __future__ import print_function
-
+import array
 import os
 import re
 import sys
+from io import StringIO
 from itertools import islice
+from urllib.parse import quote
 
-from future.builtins import bytes, next, object, range
-from future.utils import bchr, iteritems, native_str, python_2_unicode_compatible
-from past.builtins import str as old_str
-from past.builtins import unicode
+from franz.miniclient.agjson import decode_json
+from franz.openrdf.util.http import merge_headers
+from franz.openrdf.util.strings import to_native_string
 
 # Select the backend (curl or requests).
 if os.environ.get("AG_FORCE_REQUESTS_BACKEND"):
@@ -25,17 +25,6 @@ else:
     except ImportError:
         import franz.miniclient.backends.requests as backend
 
-from franz.miniclient.agjson import JsonDecodeError, decode_json
-from franz.openrdf.util.http import merge_headers
-from franz.openrdf.util.strings import to_native_string
-
-if sys.version_info[0] > 2:
-    from io import StringIO
-    from urllib.parse import quote
-else:
-    from urllib import quote
-
-    from cStringIO import StringIO
 
 # Note: this is mocked in some unit tests, be careful when changing the way
 # the import works.
@@ -69,7 +58,7 @@ def jsonRequest(
     :param url: Target address
     :type url: string
     :param body: Request body (for PUT/POST requests) or query string, optional.
-    :type body: basestring|file
+    :type body: str|bytes|file
     :param accept: Value of the accept header (default: ``"application/json"``)
     :type accept: string
     :param content_type: MIME type of the request body, optional.
@@ -150,7 +139,7 @@ def nullRequest(
     :param url: Target address
     :type url: string
     :param body: Request body (for PUT/POST requests) or query string, optional.
-    :type body: basestring|file
+    :type body: str|bytes|file
     :param content_type: MIME type of the request body, optional.
     :type content_type: string
     """
@@ -187,12 +176,11 @@ else:
 
 
 def mk_unicode(text):
-    if not isinstance(text, unicode):
-        return unicode(text, "utf-8")
+    if not isinstance(text, str):
+        return str(text, "utf-8")
     return text
 
 
-@python_2_unicode_compatible
 class RequestError(Exception):
     code = None
 
@@ -236,19 +224,17 @@ def urlenc(**args):
         elif isinstance(val, list) or isinstance(val, tuple):
             for elt in val:
                 encval(name, elt)
-        elif isinstance(val, native_str):
-            enc(name, val)
-        elif isinstance(val, (old_str, unicode)):
+        elif isinstance(val, (str, bytes)):
             enc(name, to_native_string(val))
         else:
             enc(name, to_native_string(str(val)))
 
-    for arg_name, value in iteritems(args):
+    for arg_name, value in args.items():
         encval(arg_name, value)
     return buf.getvalue()
 
 
-class SerialConstants(object):
+class SerialConstants:
     SO_VECTOR = 1
     SO_STRING = 5
     SO_NULL = 7
@@ -275,12 +261,12 @@ def serialize(obj):
         return ibytes(int_bytes(i))
 
     if obj is None:
-        return bchr(SerialConstants.SO_NULL)
+        return bytes([SerialConstants.SO_NULL])
 
-    if isinstance(obj, unicode):
+    if isinstance(obj, str):
         return b"".join(
             [
-                bchr(SerialConstants.SO_STRING),
+                bytes([SerialConstants.SO_STRING]),
                 serialize_int(len(obj)),
                 bytes(obj, "utf-8"),
             ]
@@ -289,9 +275,9 @@ def serialize(obj):
     if isinstance(obj, int):
         return b"".join(
             [
-                bchr(SerialConstants.SO_POS_INTEGER)
+                bytes([SerialConstants.SO_POS_INTEGER])
                 if obj >= 0
-                else bchr(SerialConstants.SO_NEG_INTEGER),
+                else bytes([SerialConstants.SO_NEG_INTEGER]),
                 serialize_int(obj),
             ]
         )
@@ -301,7 +287,7 @@ def serialize(obj):
         if obj.typecode == b"b":
             return b"".join(
                 [
-                    bchr(SerialConstants.SO_BYTEVECTOR),
+                    bytes([SerialConstants.SO_BYTEVECTOR]),
                     serialize_int(len(obj)),
                     obj.tostring(),
                 ]
@@ -313,7 +299,7 @@ def serialize(obj):
         iobj = iter(obj)
         return b"".join(
             [
-                bchr(SerialConstants.SO_VECTOR),
+                bytes([SerialConstants.SO_VECTOR]),
                 serialize_int(len(obj)),
                 b"".join([serialize(elem) for elem in iobj]),
             ]
@@ -337,15 +323,13 @@ def deserialize(string):
 
         return result
 
-    if isinstance(string, old_str):
+    if isinstance(string, str):
         string = bytes(string)
     chars = iter(string)
     value = next(chars)
 
     if value == SerialConstants.SO_BYTEVECTOR:
         length = posInteger(chars)
-        import array
-
         return array.array(b"b", [ord(next(chars)) for i in range(length)])
 
     if value == SerialConstants.SO_VECTOR or value == SerialConstants.SO_LIST:
@@ -354,7 +338,7 @@ def deserialize(string):
 
     if value == SerialConstants.SO_STRING:
         length = posInteger(chars)
-        return unicode(ibytes(islice(chars, 0, length)), "utf-8")
+        return str(ibytes(islice(chars, 0, length)), "utf-8")
 
     if value == SerialConstants.SO_POS_INTEGER:
         return posInteger(chars)
@@ -406,7 +390,7 @@ def decode(string):
         codes = decode.codes
         state = rem = 0
 
-        if isinstance(string, unicode):
+        if isinstance(string, str):
             string = bytes(string, "utf-8")
         else:
             string = bytes(string)

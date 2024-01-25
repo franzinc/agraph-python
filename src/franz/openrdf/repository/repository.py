@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -8,25 +6,15 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-
-from __future__ import absolute_import, unicode_literals
-
-from builtins import object
-
-from future import standard_library
-from past.builtins import basestring
-
-standard_library.install_aliases()
-
 import re
 
-from ..exceptions import IllegalArgumentException
-from ..model import URI, ValueFactory
-from ..vocabulary.xmlschema import XMLSchema
-from .repositoryconnection import RepositoryConnection
+from franz.openrdf.exceptions import IllegalArgumentException
+from franz.openrdf.model import URI, ValueFactory
+from franz.openrdf.repository.repositoryconnection import RepositoryConnection
+from franz.openrdf.vocabulary.xmlschema import XMLSchema
 
 
-class Repository(object):
+class Repository:
     """
     A repository contains RDF data that can be queried and updated. Access
     to the repository can be acquired by opening a connection to it. This
@@ -135,7 +123,7 @@ class Repository(object):
         predicate = predicate.getURI() if isinstance(predicate, URI) else predicate
         datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
 
-        if nativeType is not None and not isinstance(nativeType, basestring):
+        if nativeType is not None and not isinstance(nativeType, (str, bytes)):
             nativeType = nativeType.__name__
 
         def translate_inlined_type(the_type):

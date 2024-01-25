@@ -4,14 +4,18 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-from __future__ import absolute_import, unicode_literals
-
-from builtins import range
 
 from nose.tools import eq_ as eq
 from nose.tools import with_setup
 
 from franz.miniclient import repository
+from franz.miniclient.request import (
+    RequestError,
+    decode,
+    deserialize,
+    encode,
+    serialize,
+)
 from franz.openrdf.tests.conftest import min_version
 from franz.openrdf.tests.tests import (
     AG_HOST,
@@ -21,8 +25,6 @@ from franz.openrdf.tests.tests import (
     PASSWORD,
     USER,
 )
-
-from .request import RequestError, decode, deserialize, encode, serialize
 
 url = "http://%s:%d" % (AG_HOST, AG_PORT)
 

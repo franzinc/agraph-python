@@ -4,7 +4,4 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
-
-from __future__ import absolute_import, unicode_literals
-
-from .repository import Repository
+from franz.openrdf.repository.repository import Repository

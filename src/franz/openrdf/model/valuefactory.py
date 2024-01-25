@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable-msg=C0103
 
 ################################################################################
@@ -9,16 +7,18 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-from __future__ import absolute_import, unicode_literals
 
-from builtins import object
+from franz.openrdf.model.literal import (
+    CompoundLiteral,
+    GeoCoordinate,
+    Literal,
+    RangeLiteral,
+)
+from franz.openrdf.model.statement import Statement
+from franz.openrdf.model.value import URI, BNode, QuotedTriple, Value
 
-from .literal import CompoundLiteral, GeoCoordinate, Literal, RangeLiteral
-from .statement import Statement
-from .value import URI, BNode, QuotedTriple, Value
 
-
-class ValueFactory(object):
+class ValueFactory:
     """
     A factory for creating URIs, blank nodes, literals and statements.
     """

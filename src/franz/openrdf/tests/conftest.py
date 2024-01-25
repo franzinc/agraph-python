@@ -10,23 +10,29 @@ Test fixtures, moved to a separate file to avoid warnings
 about parameter names shadowing global symbols.
 """
 import contextlib
+import http.server
 import os
 import random
 import threading
 import uuid
-from collections import MutableMapping
+from collections.abc import MutableMapping
 
 import pytest
 import requests
-import six
-from six.moves import BaseHTTPServer
+from packaging.version import parse as parse_version
 
-from franz.openrdf.model import URI
 from franz.openrdf.repository import Repository
 from franz.openrdf.repository.attributes import AttributeDefinition
 from franz.openrdf.sail import AllegroGraphServer
-
-from .tests import AG_HOST, AG_PORT, AG_PROXY, CATALOG, PASSWORD, STORE, USER
+from franz.openrdf.tests.tests import (
+    AG_HOST,
+    AG_PORT,
+    AG_PROXY,
+    CATALOG,
+    PASSWORD,
+    STORE,
+    USER,
+)
 
 
 # noinspection PyShadowingNames
@@ -213,7 +219,7 @@ class UserData(MutableMapping):
         """
         Undo all changes made through this object.
         """
-        for k, v in six.iteritems(self.old_values):
+        for k, v in self.old_values.items():
             if v is None:
                 self.server.deleteUserData(k)
             else:
@@ -246,7 +252,7 @@ class HTTPServer(object):
     """
 
     def __init__(self):
-        class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
+        class Handler(http.server.BaseHTTPRequestHandler):
             def do_DELETE(self):
                 self.send_response(200, "OK")
                 self.send_header("Content-Type", "text/plain")
@@ -272,7 +278,7 @@ class HTTPServer(object):
 
         server_self = self
         self.handlers = handlers = {}
-        self.server = BaseHTTPServer.HTTPServer(("127.0.0.1", 0), Handler)
+        self.server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
         self.keep_running = True
         self.thread = threading.Thread(target=self._run)
         # Do not hang if a server thread refuses to die
@@ -418,7 +424,7 @@ class RemoteHTTPServer(object):
         if params:
             pairs = " ".join(
                 "(%s . %s)" % (lisp_string(k), lisp_string(v))
-                for k, v in six.iteritems(params)
+                for k, v in params.items()
             )
             alist = "'(%s)" % pairs
 
@@ -510,8 +516,8 @@ def get_version():
     global _version
     if _version is None:
         server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
-        _version = server.versionTuple
-    return _version
+        _version = server.version
+    return parse_version(_version)
 
 
 @pytest.fixture(scope="module")
@@ -521,11 +527,11 @@ def version():
 
 # Decorator used to skip tests
 def min_version(*args):
-    version = get_version()
-    expected = ".".join(str(c) for c in args)
-    actual = ".".join(str(c) for c in version)
+    actual = get_version()
+    expected = parse_version(".".join(str(c) for c in args))
     return pytest.mark.skipif(
-        version < args, reason="AG server version: %s < %s" % (actual, expected)
+        actual < expected,
+        reason="AG server version: %s < %s" % (actual, expected),
     )
 
 
