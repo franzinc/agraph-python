@@ -40,3 +40,6 @@ stress/events/phase*
 /docs/src/_gen
 # Generated notebooks are stored here
 /jupyter
+
+python
+.hatch

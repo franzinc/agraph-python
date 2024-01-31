@@ -1,25 +1,8 @@
 # Conda scripts require Bash
 SHELL = /bin/bash
 
-VERSION = $(shell PYTHONPATH=src/ python -c 'import franz; print(franz.__version__)')
-
-DISTDIR = agraph-python-$(VERSION)
-
-# Names of distribution files under DIST
-
-# Source distribution (for PyPI and FTP distribution)
-SDIST = agraph-python-$(VERSION).tar.gz
-
-# Binary distribution (for PyPI).
-WHEEL = agraph_python-$(VERSION)-py3-none-any.whl
-
-# Using conda-forge instead of the normal "anaconda" because the latter
-# doesn't include the tox package.
 CONDA_CHANNEL=conda-forge
-
-# Package repositories on SAN1
-NEXUS_PYPI = https://san1.franz.com:8443/repository/pypi-group/simple
-NEXUS_CONDA = https://san1.franz.com:8443/repository/$(CONDA_CHANNEL)-proxy
+CONDA_OPTS ?= --channel $(CONDA_CHANNEL) --insecure
 
 YEAR := $(shell date +%Y)
 
@@ -37,137 +20,12 @@ export PYCURL_SSL_LIBRARY=nss
 # is quite complex.
 export AG_RUN_SSL_TEST=y
 
-# Prevent virtualenv from downloading stuff from PyPI
-export VIRTUALENV_NO_DOWNLOAD=y
-
-# Used to download packages:
-#  - Inside Franz we want to use Nexus on SAN1
-#  - If that is not available use the default PyPI index / Anaconda channel
-#  - In both cases one can override the choice by setting PIP_INDEX
-#    or CONDA_OPTS.
-ifeq ($(shell domainname),franz.com)
-    USE_NEXUS ?= y
-endif
-
-ifeq ($(USE_NEXUS),y)
-    # Nexus repository on SAN1
-    PIP_INDEX ?= $(NEXUS_PYPI)
-
-    # Certificate verification for Nexus fails on some boxes
-    PIP_CERT = --cert=$(abspath nexus.ca.crt) --trusted-host=san1.franz.com
-
-    CONDA_CHANNEL:=https://san1.franz.com:8443/repository/$(CONDA_CHANNEL)-proxy
-else
-    # Global PyPI index
-    PIP_INDEX ?= https://pypi.python.org/simple
-endif
-
-CONDA_OPTS ?= --channel $(CONDA_CHANNEL) --insecure
-
-# If the index is not available over HTTPS users need to pass --trusted-host
-# --no-cache-dir is another option that can be added here.
-PIP_EXTRA_OPTS ?=
-
-# PyPI server used for uploads.
-PYPI_REPO_URL ?= https://upload.pypi.org/legacy/
-# GPG key used to sign releases
-PYPI_GPG_KEY ?= support@franz.com
-# User credentials for PyPI
-PYPI_USER ?= franz_inc
-
-# Twine options
-ifdef PYPI_REPO
-    # Use a name defined in .pypirc
-    TWINE_ARGS = -r $(PYPI_REPO)
-else
-    # Use a raw URL.
-    TWINE_ARGS = -r $(PYPI_REPO_URL) --repository-url $(PYPI_REPO_URL) -u $(PYPI_USER)
-endif
-
-export AG_PIP_OPTS = --index-url=$(PIP_INDEX) $(PIP_CERT)  $(PIP_EXTRA_OPTS)
-
-# TOXENV will have current tox installed.
-TOXENVDIR := toxenv
-# This dir is used by external tests and benchmarks
-ENVDIR := env
-ENVDIR3 := env3
-
-TOX := $(TOXENVDIR)/bin/tox
-
-# List of virtual environments created during build (not including .tox ones).
-# stress/env is created by the events test.
-ENVS := $(ENVDIR3) $(TOXENVDIR) stress/env disttest
-
-# Note: GPG_PASS_OPTS will only be set in the appropriate target,
-# since a prompt might be required to get the passphrase.
-GPG_SIGN=gpg --batch $(GPG_PASS_OPTS) --detach-sign -a
-
-default: wheel
-
-# Python installation - we use conda to create an environment
-# for each Python version we want to test on.
-# Conda installers and packages needed to create the environments
-# are stored on the SAN, but can be downloaded directly from
-# the internet if needed.
-
-# Versions we want to test on
-PYTHONS=3.7
-PYTHONS2=
-PYTHONS3=$(filter 3.%,$(PYTHONS))
-
-# Use this to install all interpreters
-all-pythons: $(addprefix py,$(PYTHONS))
-
-# To install a single interpreter, call 'make py<VERSION>'.
-$(foreach V,$(PYTHONS),$(eval py$(V): pythons/.python$(V)-timestamp))
-# Use $(PY<V>) in dependencies.
-$(foreach V,$(PYTHONS),$(eval PY$(V)=pythons/.python$(V)-timestamp))
-.PHONY: $(addprefix py,$(PYTHONS))
-
-# Put all binary directories on the path, so tox can find them
-# Note: $(eval) is a hack that allows us to get a literal space.
-export PATH := $(subst $(eval) ,:,$(patsubst %,${CURDIR}/pythons/python-%/bin,$(PYTHONS))):$(PATH)
-
-pythons/.python%-timestamp:
-	mkdir -p pythons/
-	@# $* will be the version number, e.g. 3.7
-	tar -C pythons -x -f /net/san1/disk1/pythons/dist/python-$*.tar.gz
-	touch $@
-
-# End Python installation
-
 # PYTHONPATH can cause problems and it is useless here because
 # we use our own Python interpreters and virtualenvs anyway.
 ifdef PYTHONPATH
   $(warning Unsetting PYTHONPATH)
   unexport PYTHONPATH
 endif
-
-prepare-release: FORCE
-# Make sure we have a dev version.
-	python version.py verify-dev
-# Strip '.dev' from the version
-	python version.py undev
-# Check again.
-	python version.py verify-not-dev
-# Commit the result
-	git add src/franz/__init__.py
-	git commit -m "Release `python version.py`"
-	git tag -f -m "Release `python version.py`" \
-	  -a "release_v`python version.py`"
-
-post-release: FORCE
-# We should be in a release version
-	python version.py verify-not-dev
-# Increment the version and add '.dev'
-	python version.py next
-# Commit the result
-	git add src/franz/__init__.py
-	git commit -m "Next dev version: `python version.py`"
-# Push and submit via gerrit
-	# FIXME: This never works.  Gerrit doesn't like two commits
-	# which modify the same file.
-	git push gerrit 'HEAD:refs/for/master%submit'
 
 checkPort: FORCE
 ifndef AGRAPH_PORT
@@ -176,93 +34,63 @@ ifndef AGRAPH_PORT
 endif
 	@echo Using port $(AGRAPH_PORT)
 
-TOXDEP=$(TOXENVDIR)/.timestamp
-$(TOXENVDIR): $(TOXDEP)
+# $(PYTHON) is only used for installing Hatch, it shall NOT be used for testing or anything else
+# $(PYTHON_DIST_PYTHON_VERSION) MAY be considered to be upgraded, only if the current version is end-of-life
+# A list of actively supported Python versions can be found here: https://endoflife.date/python
+# If you are upgrading it, please be careful with the following:
+# - does it support glic>=2.17? Current yes.
+# - what version of OpenSSL does it use? Currently OpenSSL 3.0.12
+# - See here for more details: https://gregoryszorc.com/docs/python-build-standalone/main/
+PYTHON_DIST_TIMESTAMP=20240107
+PYTHON_DIST_PYTHON_VERSION=3.8.18
+PYTHON_DIST_MACHINE_ARCH=x86_64-unknown-linux-gnu
+PYTHON=python/bin/python3
 
-# At this point we've added the programs in pythons/<version>/bin to
-# PATH so we can't just run python3 or we may end up with a version of
-# python3 that is too old (or too new) to satisfy "tox<4.0.0"
-# requirements so we hardwire in python3.7
-$(TOXENVDIR)/.timestamp: $(PY3.7)
-	@echo Preparing tox environment
-	rm -rf $(TOXENVDIR)
-	python3.7 -m venv $(TOXENVDIR)
-	$(TOXENVDIR)/bin/pip install --no-cache --upgrade \
-		"pip~=23.3.0" "setuptools>=68" "tox<4.0.0"
-	touch $(TOXENVDIR)/.timestamp
+$(PYTHON):
+	@mkdir -p python
+	@curl -L https://github.com/indygreg/python-build-standalone/releases/download/$(PYTHON_DIST_TIMESTAMP)/cpython-$(PYTHON_DIST_PYTHON_VERSION)+$(PYTHON_DIST_TIMESTAMP)-$(PYTHON_DIST_MACHINE_ARCH)-install_only.tar.gz | tar xz
 
-$(ENVDIR3)/.timestamp: $(TOXDEP) $(PY3.7) tox.ini
-	@echo Preparing py37-env using tox
-	rm -rf $(ENVDIR3)
-	$(TOX) -e py37-env
-	touch $(ENVDIR3)/.timestamp
-	$(ENVDIR3)/bin/pip install --no-cache --upgrade \
-		"pip~=23.3.0" "setuptools>=68" "build>1.0.0" "isort~=5.11.0" "black~=23.3.0"
-$(ENVDIR3): $(ENVDIR3)/.timestamp
+HATCH_VERSION=1.9.3
+HATCH=python/bin/hatch
+export HATCH_INTERACTIVE=false
+export HATCH_DATA_DIR=$(shell pwd)/.hatch/data
+export HATCH_CACHE_DIR=$(shell pwd)/.hatch/cache
+export HATCH_BUILD_CLEAN=true
 
-test-env: $(ENVDIR3)
+$(HATCH): $(PYTHON)
+	$(PYTHON) -m pip install --quiet --no-cache hatch==$(HATCH_VERSION)
+	mkdir -p .hatc/data .hatch/cache
 
-.PHONY: $(TOXENVDIR)  $(ENVDIR3) test-env
+.DEFAULT: build
+.PHONY: prepush check-style fix-style events3 tutorial docs jupyter publish-jupyter publish tags FORCE
 
-# This is used to generate the requirements.txt file(?)
-wheelhouse: $(ENVDIR) $(ENVDIR3)
-	$(ENVDIR)/bin/pip wheel -rrequirements.txt -w wheelhouse
-	$(ENVDIR3)/bin/pip wheel -rrequirements.txt -w wheelhouse
+build: $(HATCH)
+	$(HATCH) build -t wheel -t sdist
 
-prepush: prepush3
+prepush: $(HATCH) checkPort check-style
+	$(HATCH) run test:run
 
-prepush3: checkPort $(TOXDEP) $(addprefix py,$(PYTHONS3)) .venv isort-check black-check
-	find . -name "*.pyc" -delete
-	$(eval RUN=$(TOX) $(patsubst %, -e py%-test,$(subst .,,$(PYTHONS3))))
-	$(RUN)
-	AG_FORCE_REQUESTS_BACKEND=y $(RUN)
+check-style: $(HATCH)
+	$(HATCH) run style:check || (echo "Run 'make fix-style' to fix formatting" && exit 1)
 
-.PHONY: isort isort-check
-isort: $(ENVDIR3)/.timestamp
-	$(ENVDIR3)/bin/isort --gitignore .
+fix-style: $(HATCH)
+	$(HATCH) run style:fix
 
-isort-check: $(ENVDIR3)/.timestamp
-	$(ENVDIR3)/bin/isort --gitignore --check . || (echo "Run 'make isort' to fix imports" && exit 1)
-
-.PHONY: black black-check
-black: $(ENVDIR3)/.timestamp
-	$(ENVDIR3)/bin/black .
-
-black-check: $(ENVDIR3)/.timestamp
-	$(ENVDIR3)/bin/black --check . || (echo "Run 'make black' to fix formatting" && exit 1)
-
+# TODO: document or clean up this target
 events3: checkPort $(TOXDEP) py$(lastword $(PYTHONS3)) .venv
 	$(TOX) $(patsubst %,-e py%-events,$(lastword $(subst .,,$(PYTHONS3))))
-
-# This does not use Tox, since the idea is to check if 'pip install'
-# will work correctly without Tox.
-disttest/.timestamp: $(TOXDEP) .venv
-	rm -rf disttest
-        # Use toxenv's virtualenv so we get a recent enough pip
-	$(TOXENVDIR)/bin/virtualenv -p python3 disttest
-        # We need sphinx to run the doctests
-	disttest/bin/pip install $(AG_PIP_OPTS) -e ".[dev]"
-        # Remember creation time, to detect changes
-	touch disttest/.timestamp
-
-disttest: wheel disttest/.timestamp
-        # Install from the release tarball
-        # Make sure pycurl compiles
-	PYCURL_SSL_LIBRARY=nss disttest/bin/pip install $(AG_PIP_OPTS) -U DIST/$(SDIST)
-
-.PHONY: disttest
 
 # runs the examples from the tutorial and compares the actual output
 # to whatever the tutorial claims should be printed.
 # To run just a single example do 'EXAMPLE=example7 make tutorial'.
-tutorial: checkPort disttest
-	cd docs && AGRAPH_USER=test AGRAPH_PASSWORD=xyzzy AGRAPH_PORT=$(AGRAPH_PORT) ../disttest/bin/sphinx-build -b doctest src build/doctest
+tutorial: $(HATCH) checkPort
+	@$(HATCH) run docs:test
 
-docs: $(TOXDEP) .venv FORCE
-	$(TOX) -e doc
+docs: $(HATCH) FORCE
+	$(HATCH) run docs:build-html
 
-jupyter: $(TOXDEP) .venv FORCE
-	$(TOX) -e jupyter
+jupyter: $(HATCH) FORCE
+	$(HATCH) run docs:build-jupyter
 	rm -rf jupyter
 	mkdir -p jupyter
 	for f in docs/build/jupyter/tutorial/*.ipynb ; do \
@@ -275,51 +103,26 @@ publish-jupyter: jupyter
 	tar czf agraph-jupyter.tar.gz jupyter/
 	mv agraph-jupyter.tar.gz /fi/ftp/pub/agraph/python-client
 
-wheel: $(ENVDIR3)/.timestamp FORCE
-	mkdir -p DIST
-	rm -f DIST/$(WHEEL) DIST/$(SDIST)
-	$(ENVDIR3)/bin/python -m build -o DIST
-
-.PHONY: wheel
-
-register: $(TOXDEP) wheel
-	$(TOXENVDIR)/bin/twine register $(TWINE_ARGS) DIST/$(WHEEL)
-
-sign: wheel
-	$(eval GPG_PASS_OPTS=$(shell ./gpg-opts.sh "$(PYPI_GPG_KEY)"))
-	rm -f DIST/$(WHEEL).asc DIST/$(SDIST).asc
-	@$(GPG_SIGN) DIST/$(WHEEL) 
-	@$(GPG_SIGN) DIST/$(SDIST) 
-
-publish: $(TOXDEP) wheel sign
+publish: $(HATCH) build
 	python version.py verify-not-dev
-	cp DIST/$(SDIST) CHANGES.rst /fi/ftp/pub/agraph/python-client/
-	# Do not use the special nexus.ca.crt CA bundle when performing the
-	# uploads to PyPi and Conda.  It will result in SSL server
-	# certificate validation errors.
-	source $(TOXENVDIR)/bin/activate && pip install -U pip urllib3==1.26.0 twine==3.2.0  && deactivate
-	$(TOXENVDIR)/bin/twine upload --skip-existing $(TWINE_ARGS) DIST/$(WHEEL) DIST/$(WHEEL).asc DIST/$(SDIST) DIST/$(SDIST).asc
+	cp dist/agraph-python-$(shell $(HATCH) version).tar.gz CHANGES.rst /fi/ftp/pub/agraph/python-client/
+	# Upload both wheel and sdist to PyPI
+	# The authentication is done through a project-based API Token: https://pypi.org/help/#apitoken
+	# The API Token can be found in 1Password > pypi.python.org (franz_inc)
+	$(HATCH) publish
 	./conda-upload.sh
 
 tags: FORCE
 	etags `find . -name '*.py'`
 
-clean-envs: FORCE
-	rm -rf .tox $(ENVS)
-
 fix-copyrights: FORCE
 	sed -i'' -e "s/$(COPYRIGHT_REGEX)/$(COPYRIGHT_NOW)/i" LICENSE
 	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
-# If any of these files change rebuild the virtual environments.
-.venv: tox.ini $(TOXDEP)
-	rm -rf .tox
-	touch .venv
-
-clean: clean-envs
-	rm -rf DIST pythons miniconda3 report.xml build .venv \
+clean:
+	rm -rf python .hatch dist miniconda3 report.xml build .venv \
 		src/agraph_python.egg-info/ docs/build docs/source/_gen/ \
-        .cache/
+        .*cache/
 	find . -name \*.pyc -delete
 	find . -path '*/__pycache__*' -delete
 
