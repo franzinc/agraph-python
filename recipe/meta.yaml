@@ -1,0 +1,37 @@
+{% set pyproject = load_file_data("/build/agraph-python/pyproject.toml") %}
+{% set project = pyproject["project"] %}
+
+package:
+  name: {{ project["name"] }}
+  version: {{ environ["AGRAPH_PYTHON_VERSION"] }}
+
+source:
+  path: /build/agraph-python
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install -vv --no-deps --ignore-installed .
+
+requires-python: python>={{ project["requires-python"] }}
+
+requirements:
+  host:
+    - python
+    - pip
+    - hatchling
+
+test:
+  imports:
+    - franz
+
+about:
+  home: {{ project["urls"]["homepage"] }}
+  license_family: MIT
+  license_file: /build/agraph-python/LICENSE
+  summary: {{ project["description"] }}
+  doc_url: {{ project["urls"]["documentation"] }}
+
+extra:
+  recipe-maintainers:
+    - franzinc

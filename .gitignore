@@ -43,3 +43,5 @@ stress/events/phase*
 
 python
 .hatch
+recipe/output/
+.env*

@@ -65,7 +65,23 @@ $(HATCH): $(PYTHON)
 .PHONY: prepush check-style fix-style events3 tutorial docs jupyter publish-jupyter publish tags FORCE
 
 build: $(HATCH)
+	@echo "Building wheel and sdist ..."
 	$(HATCH) build -t wheel -t sdist
+	@echo "Building (conda) bdist ..."
+	docker run --rm \
+		-v $(shell pwd):/build/agraph-python \
+		-v $(shell pwd)/recipe:/build/recipe \
+		--env AGRAPH_PYTHON_VERSION="$(shell $(HATCH) version)" \
+		docker.io/condaforge/miniforge3 bash -c "\
+set -e; \
+rm -rf /build/recipe/output; \
+mkdir -p /build/recipe/output; \
+conda config --set anaconda_upload no; \
+mamba install --yes --channel conda-forge conda-build conda-verify; \
+conda build /build/recipe --output-folder /build/recipe/output"
+	@cp recipe/output/noarch/agraph-python-$(shell $(HATCH) version)-py_0.tar.bz2 dist/
+	@echo "All done."
+	@ls -lh dist/
 
 prepush: $(HATCH) checkPort check-style
 	$(HATCH) run test:run
@@ -106,11 +122,28 @@ publish-jupyter: jupyter
 publish: $(HATCH) build
 	python version.py verify-not-dev
 	cp dist/agraph-python-$(shell $(HATCH) version).tar.gz CHANGES.rst /fi/ftp/pub/agraph/python-client/
+ifndef PYPI_API_TOKEN
+	$(error PYPI_API_TOKEN is not set)
+endif
+ifndef ANACONDA_PASSWORD
+	$(error ANACONDA_PASSWORD is not set)
+endif
 	# Upload both wheel and sdist to PyPI
 	# The authentication is done through a project-based API Token: https://pypi.org/help/#apitoken
-	# The API Token can be found in 1Password > pypi.python.org (franz_inc)
-	$(HATCH) publish
-	./conda-upload.sh
+	# The API Token can be found in franzinc.1password.com > Python Dev > pypi.python.org (franz_inc)
+	$(HATCH) publish --user "__token__" --auth $(PYPI_API_TOKEN)
+	# Upload bdist to Anaconda - franzinc channel
+    # The authentication is done through the ANACONDA_USERNAME and ANACONDA_PASSWORD environment variables
+	# The ANACONDA_USERNAME and ANACONDA_PASSWORD should belong to someone with access to the franzinc channel
+    docker run --rm \
+		-v $(shell pwd)/dist:/dist \
+		--env ANACONDA_USERNAME=$(ANACONDA_USERNAME) \
+		--env ANACONDA_PASSWORD=$(ANACONDA_PASSWORD) \
+		docker.io/condaforge/miniforge3 bash -c "\
+set -e; \
+mamba install --yes anaconda-client; \
+anaconda login --username $${ANACONDA_USERNAME} --password $${ANACONDA_PASSWORD}; \
+anaconda upload --channel franzinc --label main /dist/agraph-python-$(shell $(HATCH) version)-py_0.tar.bz2"
 
 tags: FORCE
 	etags `find . -name '*.py'`
@@ -120,7 +153,7 @@ fix-copyrights: FORCE
 	find src -name '*.py' -print0 | xargs -0 python fix-header.py
 
 clean:
-	rm -rf python .hatch dist miniconda3 report.xml build .venv \
+	rm -rf python .hatch recipe/output dist miniconda3 report.xml build .venv \
 		src/agraph_python.egg-info/ docs/build docs/source/_gen/ \
         .*cache/
 	find . -name \*.pyc -delete
