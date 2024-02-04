@@ -2,6 +2,31 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 102.2.0
+===============
+
+Project Management Migration to Hatch
+-------------------------------------
+
+We have migrated from Tox to Hatch for project management. We believe that Hatch
+offers better defaults and more high-level features compared to Tox. As a
+result, all of the project's metadata has been transferred from `setup.py` to
+`pyproject.toml`, which provides self-documentation for metadata as well as
+development-related configurations.
+
+Elimination of Python 2-related Legacy Dependencies and Code
+------------------------------------------------------------
+
+Starting from version 102.0.0, we discontinued support for Python 2. In this
+release, we have thoroughly removed all legacy Python 2-related code and
+compatibility dependencies, such as `six` and `futures`.
+
+Code Formatter Integration
+--------------------------
+
+The entire repository's Python code has been reformatted using `black` and
+`isort`. Both formatters are now integrated and configured in `pyproject.toml`.
+
 Release 102.1.2
 ================
 
