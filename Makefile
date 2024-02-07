@@ -64,24 +64,32 @@ $(HATCH): $(PYTHON)
 .DEFAULT: build
 .PHONY: prepush check-style fix-style events3 tutorial docs jupyter publish-jupyter publish tags FORCE
 
-build: $(HATCH)
-	@echo "Building wheel and sdist ..."
-	$(HATCH) build -t wheel -t sdist
+build: build-wheel build-sdist build-bdist
+	@ls -lh dist/
+
+build-wheel: $(HATCH)
+	@echo "Building wheel ..."
+	$(HATCH) build -t wheel
+
+build-sdist: $(HATCH)
+	@echo "Building sdist ..."
+	$(HATCH) build -t sdist
+
+build-bdist: $(HATCH)
+	@mkdir -p dist
 	@echo "Building (conda) bdist ..."
-	docker run --rm \
+	@docker run --rm \
 		-v $(shell pwd):/build/agraph-python \
 		-v $(shell pwd)/recipe:/build/recipe \
 		--env AGRAPH_PYTHON_VERSION="$(shell $(HATCH) version)" \
 		docker.io/condaforge/miniforge3 bash -c "\
-set -e; \
+set -eu; \
 rm -rf /build/recipe/output; \
 mkdir -p /build/recipe/output; \
 conda config --set anaconda_upload no; \
 mamba install --yes --channel conda-forge conda-build conda-verify; \
 conda build /build/recipe --output-folder /build/recipe/output"
 	@cp recipe/output/noarch/agraph-python-$(shell $(HATCH) version)-py_0.tar.bz2 dist/
-	@echo "All done."
-	@ls -lh dist/
 
 prepush: $(HATCH) checkPort check-style
 	$(HATCH) run test:run
@@ -119,31 +127,41 @@ publish-jupyter: jupyter
 	tar czf agraph-jupyter.tar.gz jupyter/
 	mv agraph-jupyter.tar.gz /fi/ftp/pub/agraph/python-client
 
-publish: $(HATCH) build
+verify-not-dev:
 	python version.py verify-not-dev
-	cp dist/agraph-python-$(shell $(HATCH) version).tar.gz CHANGES.rst /fi/ftp/pub/agraph/python-client/
+
+publish: verify-not-dev publish-pypi publish-anaconda
+	cp dist/agraph_python-$(shell $(HATCH) version).tar.gz CHANGES.rst /fi/ftp/pub/agraph/python-client/
+	@echo "CHANGES.rst and sdist haven been uploaded to the internal FTP server."
+
+publish-pypi: build-wheel build-sdist
+	@echo "Uploading both wheel and sdist to PyPI ..."
+	@echo "The authentication is done through a project-based API Token: https://pypi.org/help/#apitoken"
+	@echo "The API Token can be found in franzinc.1password.com > Python Dev > pypi.python.org (franz_inc)"
 ifndef PYPI_API_TOKEN
 	$(error PYPI_API_TOKEN is not set)
+endif
+	@$(HATCH) publish --user "__token__" --auth "$(PYPI_API_TOKEN)"
+
+publish-anaconda:
+	@echo "Uploading bdist to Anaconda - franzinc channel ..."
+	@echo "The authentication is done through the ANACONDA_USERNAME and ANACONDA_PASSWORD environment variables."
+	@echo "The ANACONDA_USERNAME and ANACONDA_PASSWORD information should belong to someone with access to the franzinc channel."
+ifndef ANACONDA_USERNAME
+	$(error ANACONDA_USERNAME is not set)
 endif
 ifndef ANACONDA_PASSWORD
 	$(error ANACONDA_PASSWORD is not set)
 endif
-	# Upload both wheel and sdist to PyPI
-	# The authentication is done through a project-based API Token: https://pypi.org/help/#apitoken
-	# The API Token can be found in franzinc.1password.com > Python Dev > pypi.python.org (franz_inc)
-	$(HATCH) publish --user "__token__" --auth $(PYPI_API_TOKEN)
-	# Upload bdist to Anaconda - franzinc channel
-    # The authentication is done through the ANACONDA_USERNAME and ANACONDA_PASSWORD environment variables
-	# The ANACONDA_USERNAME and ANACONDA_PASSWORD should belong to someone with access to the franzinc channel
-    docker run --rm \
+	@docker run --rm \
 		-v $(shell pwd)/dist:/dist \
-		--env ANACONDA_USERNAME=$(ANACONDA_USERNAME) \
-		--env ANACONDA_PASSWORD=$(ANACONDA_PASSWORD) \
+		--env ANACONDA_USERNAME="$(ANACONDA_USERNAME)" \
+		--env ANACONDA_PASSWORD="$(ANACONDA_PASSWORD)" \
 		docker.io/condaforge/miniforge3 bash -c "\
-set -e; \
+set -eu; \
 mamba install --yes anaconda-client; \
-anaconda login --username $${ANACONDA_USERNAME} --password $${ANACONDA_PASSWORD}; \
-anaconda upload --channel franzinc --label main /dist/agraph-python-$(shell $(HATCH) version)-py_0.tar.bz2"
+anaconda login --username \"$${ANACONDA_USERNAME}\" --password \"$${ANACONDA_PASSWORD}\"; \
+anaconda upload --channel franzinc --user franzinc --label main /dist/agraph-python-$(shell $(HATCH) version)-py_0.tar.bz2"
 
 tags: FORCE
 	etags `find . -name '*.py'`
