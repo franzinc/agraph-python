@@ -47,27 +47,6 @@ see the discussion :docs:`Session Port Setup
 <server-installation.html#sessionport>` in the :docs:`Server
 Installation <server-installation.html>` document.
 
-If you see an error similar to the following
-
-.. code-block:: text
-
-    ImportError: pycurl: libcurl link-time ssl backend (nss) is
-    different from compile-time ssl backend (none/other)
-
-Perform this procedure (replacing {agraph-version} with the actual
-version)
-
-.. code-block:: bash
-
-    # Uninstall pycurl
-    pip uninstall pycurl
-
-    # Set the required compile-time option for pycurl
-    export PYCURL_SSL_LIBRARY=nss
-
-    # Reinstall, but ignore cached packages (force recompile)
-    pip install --no-cache-dir agraph-{agraph-version}-client-python.tar.gz
-
 Terminology
 -----------
 

@@ -22,8 +22,6 @@ might require installing an additional package (e.g. ``python-pip`` on
 RHEL/CentOS systems). All third-party libraries used by the Python
 client will be downloaded automatically during installation.
 
-See also the `Optional requirements`_ section below. 
-
 Installation
 ------------
 .. important:: It is highly recommended to perform the install in a
@@ -39,16 +37,6 @@ ftp://ftp.franz.com/pub/agraph/python-client/ and installed using `pip`::
 
     pip install agraph-python-<VERSION>.tar.gz
 
-.. warning::
-
-   Python 2.6 users should consider installing the simplejson package::
-
-      pip install simplejson
-
-   since the built-in JSON module in that version of Python offers
-   unsatisfactory performance. The AllegroGraph Python client will
-   detect and use simplejson automatically if it is installed.
-
 Offline installation
 ~~~~~~~~~~~~~~~~~~~~
 If it is not possible to access PyPI_ from the target machine, the
@@ -58,10 +46,6 @@ following steps should be taken:
      access run::
 
         pip wheel agraph-python
-
-   * If desired do the same for optional dependencies::
-
-        pip wheel pycurl simplejson
 
    * This will generate a number of ``.whl`` files in the current
      directory. These files must be transferred to the target machine.
@@ -140,138 +124,8 @@ To run the tests, type::
 
     pytest --pyargs franz.openrdf.tests.tests --pyargs franz.openrdf.tests.newtests
 
-Optional requirements
----------------------
-The Python client can utilize a few additional third-party libraries
-if these are available on the host system:
-
-   * pycurl: can be used as the HTTP backend. It might offer
-     better performance than ``requests`` (the default backend).
-   * simplejson: recommended for Python 2.6 users to significantly
-     improve performance. Has negligible impact on other Python
-     versions.
-
-These can be downloaded and installed from PyPI_::
-
-   pip install pycurl
-   pip install simplejson
-
-Since the packages discussed here use native extensions, it is
-necessary to have a proper development environment set up so that the
-compilation may succeed. This environment must include:
-
-   * A C compiler
-   * Python development headers
-   * libcurl development headers
-
-Below we describe more detailed setup instructions for some of the
-supported systems.
-
-Windows
--------
-The required packages are available in binary form for Windows, so it is not
-necessary to install any compilers or headers.
-
-RHEL 6/7 and compatible systems
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-On RHEL-like systems the requirements mentioned above can be satisfied by
-following these steps (note that root privileges are required):
-
-   * Enable EPEL_ repositories, since some of the required packages
-     are only available there. The detailed instructions can be
-     found `here <https://fedoraproject.org/wiki/EPEL#How_can_I_use_these_extra_packages.3F>`_.
-     On CentOS systems, simply run::
-
-         yum -y install epel-release
-
-   * Install the required packages::
-
-         yum -y install python-devel python-pip libcurl-devel gcc
-
-   * Before installing the AllegroGraph Python client make sure that the
-     following environment variable is set::
-
-         export PYCURL_SSL_LIBRARY=nss
-
-   * To use virtual environments (recommended) an additional package
-     is needed::
-
-        yum -y install python-virtualenv
-
-Ubuntu
-~~~~~~
-The following packages are required to use the client with Python 2::
-
-    apt-get install python-pip libcurl-gnutls libcurl4-gnutls-dev libgnutls28-dev
-
-For Python 3 this becomes::
-
-   apt-get install python3-pip libcurl-gnutls libcurl4-gnutls-dev libgnutls28-dev
-
-.. note:: *Using different SSL backends.*
-
-   Ubuntu offers three variants of curl, built using different SSL
-   libraries. These variants differ in their licensing and SSL related
-   capabilities (see https://curl.haxx.se/docs/ssl-compared.html for
-   more details). The instructions above use the GnuTLS version. In
-   most cases this is an acceptable choice, but it is possible to use
-   a different SSL implementation by installing appropriate packages
-   before installing the AllegroGraph Python client.
-
-   To use the OpenSSL backend in curl::
-
-       apt-get install libcurl4-openssl-dev libssl-dev
-
-   For GnuTLS::
-
-      apt-get install libcurl4-gnutls-dev libgnutls28-dev
-
-   For NSS::
-
-      apt-get install libcurl4-nss-dev libnss3-dev
-
-   Note that if the client has already been installed it is necessary
-   to reinstall the ``pycurl`` package in order to switch SSL
-   backends::
-
-      # Uninstall old package
-      pip uninstall pycurl
-
-      # Reinstall, ignoring PIP cache (to force recompilation)
-      pip install --no-cache-dir pycurl
-
-Arch Linux
-~~~~~~~~~~
-On Arch the following packages are needed to use the client with Python 2::
-
-    pacman -S gcc python2 python2-pip libcurl
-
-For Python 3 use::
-
-    pacman -S gcc python python-pip libcurl
-    
-Troubleshooting
----------------
-If you see an error similar to the following::
-
-    ImportError: pycurl: libcurl link-time ssl backend (nss) is
-    different from compile-time ssl backend (none/other)
-
-Perform this procedure (replacing `<VERSION>` with the actual version)::
-
-    # Uninstall pycurl:
-    pip uninstall pycurl
-
-    # Set the required compile-time option for pycurl
-    export PYCURL_SSL_LIBRARY=nss
-
-    # Reinstall, but ignore cached packages (force recompile)
-    pip install --no-cache-dir agraph-<VERSION>-python-client.tar.gz
-
 .. _PyPI: https://pypi.python.org/
-.. _EPEL: https://fedoraproject.org/wiki/EPEL
 .. _virtualenv: https://virtualenv.pypa.io/
-
 
 .. |build-status| image:: https://img.shields.io/travis/franzinc/agraph-python.svg
    :alt: build status

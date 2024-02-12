@@ -4,10 +4,17 @@
 # made available under the terms of the MIT License which accompanies
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
+import datetime
+import io
+import locale
+import os
+import subprocess
+import sys
+import warnings
+
 import pytest
 from nose.tools import assert_raises, eq_, raises
 
-from franz.miniclient.request import backend
 from franz.openrdf.exceptions import RequestError, ServerException
 from franz.openrdf.model import URI, BNode, Literal, Statement, ValueFactory
 from franz.openrdf.query.dataset import Dataset
@@ -21,19 +28,6 @@ from franz.openrdf.vocabulary.owl import OWL
 from franz.openrdf.vocabulary.rdf import RDF
 from franz.openrdf.vocabulary.rdfs import RDFS
 from franz.openrdf.vocabulary.xmlschema import XMLSchema
-
-use_curl = backend.__name__ == "curl"
-
-if use_curl:
-    import pycurl
-
-import datetime
-import io
-import locale
-import os
-import subprocess
-import sys
-import warnings
 
 locale.setlocale(locale.LC_ALL, "")
 

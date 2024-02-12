@@ -34,7 +34,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-curl = ["pycurl>=7.19.0,<8.0"]
 test = ["pytest~=7.0.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0","nose==1.3.7"]
 style = ["isort~=5.11.0","black~=23.3.0"]
 docs = ["sphinxcontrib-jupyter==0.1.dev20171024"] # for building docs
@@ -70,9 +69,7 @@ env-include = ["AGRAPH*"]
 python = ["3.7"]
 
 [tool.hatch.envs.test.env-vars]
-PYCURL_SSL_LIBRARY = "nss"
 AG_RUN_SSL_TEST = "y"
-AG_FORCE_REQUESTS_BACKEND = "y"
 
 [tool.hatch.envs.test.scripts]
 run = "pytest"

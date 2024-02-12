@@ -5,7 +5,6 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 import array
-import os
 import re
 import sys
 from io import StringIO
@@ -13,22 +12,9 @@ from itertools import islice
 from urllib.parse import quote
 
 from franz.miniclient.agjson import decode_json
+from franz.miniclient.backends.requests import makeRequest
 from franz.openrdf.util.http import merge_headers
 from franz.openrdf.util.strings import to_native_string
-
-# Select the backend (curl or requests).
-if os.environ.get("AG_FORCE_REQUESTS_BACKEND"):
-    import franz.miniclient.backends.requests as backend
-else:
-    try:
-        import franz.miniclient.backends.curl as backend
-    except ImportError:
-        import franz.miniclient.backends.requests as backend
-
-
-# Note: this is mocked in some unit tests, be careful when changing the way
-# the import works.
-makeRequest = backend.makeRequest
 
 
 def jsonRequest(

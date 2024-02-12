@@ -21,7 +21,6 @@ src/.noseids
 /DIST
 /TAGS
 build.out
-!windows-support/curl/__init__.pyc
 certs.db/
 # Used to check if venvs need to be recreated
 /.venv

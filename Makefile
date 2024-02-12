@@ -11,9 +11,6 @@ COPYRIGHT_REGEX := Copyright (c) 2006-[0-9]* Franz Inc.
 # Expected/correct value of that line.
 COPYRIGHT_NOW := Copyright (c) 2006-$(YEAR) Franz Inc.
 
-# Important for building pycurl
-export PYCURL_SSL_LIBRARY=nss
-
 # SSL tests have to be enabled explicitly. The reason is that people running
 # the test suite without this makefile likely do not have access to AG
 # sources and setting up the server with the right certificate and SSL auth

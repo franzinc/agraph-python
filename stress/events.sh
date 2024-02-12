@@ -32,7 +32,7 @@ then
     # Pip sometimes damages itself while updating, this should fix it:
     ${PYTHON} -m pip install -U --force-reinstall pip ${AG_PIP_OPTS}
 fi
-export PYCURL_SSL_LIBRARY=nss
+
 ${PIP} install -r ${BASE_DIR}/requirements.txt ${AG_PIP_OPTS}
 ${PIP} install -r ${BASE_DIR}/requirements2.txt ${AG_PIP_OPTS}
 ${PIP} install -e ${BASE_DIR} ${AG_PIP_OPTS}
