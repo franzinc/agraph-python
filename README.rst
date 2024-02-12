@@ -1,7 +1,7 @@
 AllegroGraph Python API
 =======================
 
-|build-status| |rtd-status| |pypi-status| |conda-status|
+|build-status| |pypi-status| |conda-status|
 
 The AllegroGraph Python API offers convenient and efficient access to
 an AllegroGraph server from a Python-based application. This API
@@ -287,8 +287,3 @@ Perform this procedure (replacing `<VERSION>` with the actual version)::
    :alt: PyPI package
    :scale: 100%
    :target: https://pypi.python.org/pypi/agraph-python
-
-.. |rtd-status| image:: https://img.shields.io/readthedocs/agraph-python.svg
-   :alt: Docs
-   :scale: 100%
-   :target: https://agraph-python.readthedocs.io/en/latest/
