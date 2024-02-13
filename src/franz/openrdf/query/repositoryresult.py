@@ -11,13 +11,7 @@
 from franz.openrdf.model import Statement
 from franz.openrdf.model.utils import parse_term
 from franz.openrdf.model.value import QuotedTriple
-
-try:
-    import franz.openrdf.query.pandas_support as pandas
-
-    has_pandas = True
-except ImportError:
-    has_pandas = False
+from franz.openrdf.query.pandas_support import rows_to_pandas
 
 
 class RepositoryResult:
@@ -188,8 +182,4 @@ class RepositoryResult:
         self.close()
 
     def toPandas(self, include_graph=True):
-        if not has_pandas:
-            raise Exception("Pandas not installed.")
-        return pandas.rows_to_pandas(
-            self, ["s", "p", "o", "g"] if include_graph else False
-        )
+        return rows_to_pandas(self, ["s", "p", "o", "g"] if include_graph else False)

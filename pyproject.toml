@@ -30,7 +30,8 @@ dependencies = [
   "iso8601==0.1.12",
   "packaging~=23.2.0",
   "simplejson~=3.19.0",
-  "pandas~=0.23.0",
+  "pandas>=1.0.0,<2.0.0; python_version < '3.8'",
+  "pandas>=2.0.0; python_version >= '3.8'"
 ]
 
 [project.optional-dependencies]

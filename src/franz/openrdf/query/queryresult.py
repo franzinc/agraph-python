@@ -9,14 +9,8 @@ from collections import namedtuple
 
 from franz.openrdf.model import parse_term
 from franz.openrdf.model.value import QuotedTriple
+from franz.openrdf.query.pandas_support import rows_to_pandas
 from franz.openrdf.query.repositoryresult import RepositoryResult
-
-try:
-    import franz.openrdf.query.pandas_support as pandas
-
-    has_pandas = True
-except ImportError:
-    has_pandas = False
 
 
 class QueryResult:
@@ -134,9 +128,7 @@ class TupleQueryResult(QueryResult):
         return len(self)
 
     def toPandas(self):
-        if not has_pandas:
-            raise Exception("Pandas not installed.")
-        return pandas.rows_to_pandas(self, self.variable_names)
+        return rows_to_pandas(self, self.variable_names)
 
 
 class ListBindingSet:

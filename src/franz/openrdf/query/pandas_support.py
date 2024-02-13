@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-import pandas
+import pandas as pd
 
 from franz.openrdf.model import Literal
 
@@ -15,9 +15,9 @@ def term_to_pandas(term):
         return str(term)
 
 
-def rows_to_pandas(rows, column_names):
+def rows_to_pandas(rows, column_names) -> pd.DataFrame:
     columns = [[] for _ in column_names]
     for row in rows:
         for idx, term in enumerate(row):
             columns[idx].append(term_to_pandas(term))
-    return pandas.DataFrame(OrderedDict(zip(column_names, columns)))
+    return pd.DataFrame(OrderedDict(zip(column_names, columns)))

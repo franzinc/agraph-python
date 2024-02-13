@@ -56,7 +56,7 @@ export HATCH_BUILD_CLEAN=true
 
 $(HATCH): $(PYTHON)
 	$(PYTHON) -m pip install --quiet --no-cache hatch==$(HATCH_VERSION)
-	mkdir -p .hatc/data .hatch/cache
+	mkdir -p .hatch/data .hatch/cache
 
 .DEFAULT: build
 .PHONY: prepush check-style fix-style events3 tutorial docs jupyter publish-jupyter publish tags FORCE
