@@ -13,7 +13,6 @@ import sys
 import warnings
 
 import pytest
-from nose.tools import assert_raises, eq_, raises
 
 from franz.openrdf.exceptions import RequestError, ServerException
 from franz.openrdf.model import URI, BNode, Literal, Statement, ValueFactory
@@ -1845,7 +1844,8 @@ def test_uri_factory():
     )
     assert nss["ex"] == value_factory.createURI(namespace=example_prefix, localname="")
     assert nss["ex:"] == value_factory.createURI(namespace=example_prefix, localname="")
-    assert_raises(AssertionError, lambda n: nss(n), "unknown:unknown")
+    with pytest.raises(AssertionError):
+        nss("unknown:unknown")
 
 
 def test_delete_repository():
@@ -2066,37 +2066,26 @@ def test_session_loadinitfile():
         conn.mini_repository.addStatement(
             "<http:%d>" % (x + 1), "<http:after>", "<http:%d>" % x
         )
-    eq_(
-        [["<http:2>"]],
-        conn.mini_repository.evalPrologQuery(
-            "(select (?x) (q- ?x !<http:before> !<http:3>))"
-        )["values"],
-    )
+    [["<http:2>"]] == conn.mini_repository.evalPrologQuery(
+        "(select (?x) (q- ?x !<http:before> !<http:3>))"
+    )["values"]
     server.setInitfile(
         "(<-- (after-after ?a ?b) (q- ?a !<http:after> ?x) (q- ?x !<http:after> ?b))"
     )
     print(server.getInitfile())
-    eq_(
-        [["<http:5>"]],
-        conn.mini_repository.evalPrologQuery(
-            "(select (?x) (after-after ?x !<http:3>))"
-        )["values"],
-    )
+    assert [["<http:5>"]] == conn.mini_repository.evalPrologQuery(
+        "(select (?x) (after-after ?x !<http:3>))"
+    )["values"]
 
     with conn.session(autocommit=True, loadinitfile=True) as session:
-        eq_(
-            [["<http:5>"]],
+        [["<http:5>"]] == session.mini_repository.evalPrologQuery(
+            "(select (?x) (after-after ?x !<http:3>))"
+        )["values"]
+    with conn.session(autocommit=True, loadinitfile=False) as session:
+        with pytest.raises(RequestError):
             session.mini_repository.evalPrologQuery(
                 "(select (?x) (after-after ?x !<http:3>))"
-            )["values"],
-        )
-
-    with conn.session(autocommit=True, loadinitfile=False) as session:
-        assert_raises(
-            RequestError,
-            session.mini_repository.evalPrologQuery,
-            ("(select (?x) (after-after ?x !<http:3>))",),
-        )
+            )
 
     server.setInitfile(None)
 
@@ -2127,15 +2116,15 @@ def test_freetext():
 
     # config parameter fetching
     preds = conn.getFreeTextIndexConfiguration("index1")["predicates"]
-    eq_(1, len(preds))
-    eq_(str(pred), str(preds[0]))
+    assert 1 == len(preds)
+    assert str(pred) == str(preds[0])
     config = conn.getFreeTextIndexConfiguration("index2")
-    eq_(["object", "predicate"], sorted(config["indexFields"]))
-    eq_(2, config["minimumWordSize"])
-    eq_("short", config["indexResources"])
-    eq_(["alphanumeric"], config["innerChars"])
-    eq_([], config["borderChars"])
-    eq_("default", config["tokenizer"])
+    assert ["object", "predicate"] == sorted(config["indexFields"])
+    assert 2 == config["minimumWordSize"]
+    assert "short" == config["indexResources"]
+    assert ["alphanumeric"] == config["innerChars"]
+    assert [] == config["borderChars"]
+    assert "default" == config["tokenizer"]
     assert len(config["stopWords"])
 
     def contractor(i):
@@ -2148,12 +2137,11 @@ def test_freetext():
     conn.addTriple(contractor(3), pred, "Ed")
 
     search1 = conn.evalFreeTextSearch("Ross", index="index1")
-    eq_(2, len(search1))
-    eq_(
-        set([str(contractor(1)), str(contractor(0))]),
-        set([str(search1[0][0]), str(search1[1][0])]),
+    assert 2 == len(search1)
+    assert set([str(contractor(1)), str(contractor(0))]) == set(
+        [str(search1[0][0]), str(search1[1][0])]
     )
-    eq_(2, len(conn.evalFreeTextSearch("Ross")))
+    assert 2 == len(conn.evalFreeTextSearch("Ross"))
 
     # Test with limit/offset
     search1 = conn.evalFreeTextSearch("Ross", index="index1", limit=1, offset=0)
@@ -2163,12 +2151,12 @@ def test_freetext():
     assert search1[0][0] != search2[0][0]
 
     # min word size
-    eq_(0, len(conn.evalFreeTextSearch("Ed", index="index1")))
-    eq_(1, len(conn.evalFreeTextSearch("Ed", index="index2")))
+    assert 0 == len(conn.evalFreeTextSearch("Ed", index="index1"))
+    assert 1 == len(conn.evalFreeTextSearch("Ed", index="index2"))
 
     # indexing of predicates
-    eq_(0, len(conn.evalFreeTextSearch("has_name", index="index1")))
-    eq_(4, len(conn.evalFreeTextSearch("has_name", index="index2")))
+    assert 0 == len(conn.evalFreeTextSearch("has_name", index="index1"))
+    assert 4 == len(conn.evalFreeTextSearch("has_name", index="index2"))
 
     # sparql
     results = conn.prepareTupleQuery(
@@ -2455,7 +2443,8 @@ def test_namespace_management():
     assert len(test_spaces) == len(conn.getNamespaces())
 
     for namespace in namespaces.keys():
-        assert_raises(RequestError, conn.getNamespace, namespace)
+        with pytest.raises(RequestError):
+            conn.getNamespace(namespace)
 
     # Test clearing all namespaces
     conn.clearNamespaces(reset=False)

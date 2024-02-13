@@ -1286,7 +1286,7 @@ class Repository(Service):
                 # the polling interval has been reached.
                 # NOTE: wait timeout is specified in seconds.
                 alive.wait(lifetime // 2 if lifetime else 250)
-                if alive.isSet():
+                if alive.is_set():
                     # closeSession has been called.  Terminate the loop
                     # (and therefore the thread)
                     return

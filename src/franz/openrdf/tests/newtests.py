@@ -16,7 +16,6 @@ from io import BytesIO
 
 import pytest
 import requests
-from nose.tools import assert_raises
 
 import franz.miniclient.request
 from franz.openrdf.connect import ag_connect
@@ -1396,9 +1395,8 @@ def test_query_option_management(conn):
     conn.clearQueryOptions()
     assert len(conn.getQueryOptions()) == 0
 
-    assert_raises(
-        RequestError, lambda n: conn.setQueryOption(n, ""), "unknownQueryOption"
-    )
+    with pytest.raises(RequestError):
+        conn.setQueryOption("unknownQueryOption", "")
 
     test_options = {
         "logLineLength": 100,
@@ -1420,7 +1418,8 @@ def test_query_option_management(conn):
     # Remove one of the options.
     conn.removeQueryOption("logLineLength")
     assert len(conn.getQueryOptions()) == len(test_options) - 1
-    assert_raises(RequestError, conn.getQueryOption, "logLineLength")
+    with pytest.raises(RequestError):
+        conn.getQueryOption("logLineLength")
 
     # Test clearing all query options.
     conn.clearQueryOptions()
