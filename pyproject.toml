@@ -21,6 +21,10 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
   "Topic :: Database",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -31,7 +35,7 @@ dependencies = [
   "packaging~=23.2.0",
   "simplejson~=3.19.0",
   "pandas>=1.0.0,<2.0.0; python_version < '3.8'",
-  "pandas>=2.0.0; python_version >= '3.8'"
+  "pandas>=2.0.0,<3.0.0; python_version >= '3.8'"
 ]
 
 [project.optional-dependencies]
@@ -67,7 +71,7 @@ features = ["test"]
 env-include = ["AGRAPH*"]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.7"]
+python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
 [tool.hatch.envs.test.env-vars]
 AG_RUN_SSL_TEST = "y"
