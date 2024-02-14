@@ -2,6 +2,9 @@
 Tutorial
 ========
 
+The general AllegroGraph documentation is 
+`Here <https://franz.com/agraph/support/documentation/current/index.html>`_.
+
 This is an introduction to the Python client API to the Python
 Application Programmer's Interface (API) to Franz Inc.'s
 `AllegroGraph`_.
