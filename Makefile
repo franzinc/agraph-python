@@ -53,6 +53,10 @@ export HATCH_INTERACTIVE=false
 export HATCH_DATA_DIR=$(shell pwd)/.hatch/data
 export HATCH_CACHE_DIR=$(shell pwd)/.hatch/cache
 export HATCH_BUILD_CLEAN=true
+export NO_COLOR=1 # Disable color output, so it looks cleaner in Jenkins
+# Use the most portable variant of Python distributions
+# More details: https://hatch.pypa.io/1.9/plugins/environment/virtual/#cpython
+export HATCH_PYTHON_VARIANT_LINUX=v1
 
 $(HATCH): $(PYTHON)
 	$(PYTHON) -m pip install --quiet --no-cache hatch==$(HATCH_VERSION)
