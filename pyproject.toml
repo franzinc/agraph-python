@@ -11,7 +11,7 @@ authors = [
   {name = "Franz Inc.", email = "support@franz.com"}
 ]
 license = {file = "LICENSE"}
-requires-python = ">=3.7,<3.12"
+requires-python = ">=3.8,<3.12"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -20,7 +20,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -34,15 +33,14 @@ dependencies = [
   "iso8601==0.1.12",
   "packaging~=23.2.0",
   "simplejson~=3.19.0",
-  "pandas>=1.0.0,<2.0.0; python_version < '3.8'",
-  "pandas>=2.0.0,<3.0.0; python_version >= '3.8'",
-  "pyarrow~=15.0.0; python_version >= '3.8' and python_version < '3.12' and platform_system != 'Windows'"
+  "pandas>=2.0.0,<3.0.0",
+  "pyarrow~=15.0.0; platform_system != 'Windows'"
 ]
 
 [project.optional-dependencies]
 test = ["pytest~=7.0.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0"]
 style = ["isort~=5.11.0","black~=23.3.0"]
-docs = ["sphinxcontrib-jupyter==0.1.dev20171024"] # for building docs
+docs = ["sphinxcontrib-jupyter~=0.5.0"] # for building docs
 dev = ["agraph-python[test,style,docs]","ipython~=7.34.0"]
 
 [project.urls]
@@ -60,19 +58,15 @@ packages = ["src/franz"]
 [tool.hatch.build.targets.sdist]
 only-include = ["src/franz"]
 
-[tool.hatch.build.targets.conda]
-channels = ["conda-forge"]
-default_numpy_version = "1.22"
-
 [tool.hatch.envs.default]
-python = "3.7"
+python = "3.8"
 
 [tool.hatch.envs.test]
 features = ["test"]
 env-include = ["AGRAPH*"]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.7", "3.8"]
+python = ["3.8"]
 
 [tool.hatch.envs.test.env-vars]
 AG_RUN_SSL_TEST = "y"
@@ -144,7 +138,7 @@ line_length = 88
 
 [tool.black]
 line-length = 88
-target-version = ['py37']
+target-version = ['py38']
 include = '\.pyi?$'
 extend-exclude = '''
 (

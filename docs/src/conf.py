@@ -568,7 +568,7 @@ ag_version = get_ag_version()
 
 def setup(app):
     # Add custom CSS
-    app.add_stylesheet("custom.css")
+    app.add_css_file("custom.css")
     # Make the version number available to ifconfig
     app.add_config_value("ag_version", ag_version, "env")
     # Do not generate apidocs for these:
