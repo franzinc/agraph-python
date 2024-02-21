@@ -11,26 +11,49 @@ source:
 build:
   noarch: python
   number: 0
-  script: python -m pip install -vv --no-deps --ignore-installed .
+  script: "python -m pip install . -vv --no-deps --no-build-isolation"
 
-requires-python: python>={{ project["requires-python"] }}
+requires-python: python {{ project["requires-python"] }}
 
 requirements:
   host:
-    - python
+    - python {{ project["requires-python"] }}
     - pip
     - hatchling
+
+  run:
+    - python {{ project["requires-python"] }}
+{% for package in project["dependencies"] %}
+    - {{ package }}
+{% endfor %}
 
 test:
   imports:
     - franz
+    - franz.miniclient
+    - franz.miniclient.backends
+    - franz.openrdf
+    - franz.openrdf.model
+    - franz.openrdf.query
+    - franz.openrdf.repository
+    - franz.openrdf.rio
+    - franz.openrdf.sail
+    - franz.openrdf.tests
+    - franz.openrdf.util
+    - franz.openrdf.vocabulary
+  requires:
+    - pip
+  commands:
+    - pip check
 
 about:
   home: {{ project["urls"]["homepage"] }}
+  license: MIT
   license_family: MIT
   license_file: /build/agraph-python/LICENSE
   summary: {{ project["description"] }}
   doc_url: {{ project["urls"]["documentation"] }}
+  dev_url: https://github.com/franzinc/agraph-python
 
 extra:
   recipe-maintainers:
