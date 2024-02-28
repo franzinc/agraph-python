@@ -1,7 +1,7 @@
 AllegroGraph Python API
 =======================
 
-|build-status| |pypi-status| |conda-status| |pypi-python_versions|
+|pypi-python-version| |pypi-status| |conda-status|
 
 The AllegroGraph Python API offers convenient and efficient access to
 an AllegroGraph server from a Python-based application. This API
@@ -16,7 +16,7 @@ intuitive than the RDF4J API.
 
 Requirements
 ------------
-Python versions 2.7+ and 3.5+ are supported. The installation method
+Python versions ``>=3.8,<3.12`` are supported. The installation method
 described here uses the pip package manager. On some systems this
 might require installing an additional package (e.g. ``python-pip`` on
 RHEL/CentOS systems). All third-party libraries used by the Python
@@ -95,7 +95,7 @@ installation.  The tests are executed using the ``pytest`` framework
 and also use a few utilities from ``nose``, so these two packages have
 to be installed. We also need the ``pytest-mock`` plugin::
 
-    pip install pytest pytest-mock nose
+    pip install -e ".[test]"
 
 The tests require a running AllegroGraph server instance. The
 configuration of this server is passed to the tests through
@@ -127,22 +127,16 @@ To run the tests, type::
 .. _PyPI: https://pypi.python.org/
 .. _virtualenv: https://virtualenv.pypa.io/
 
-.. |build-status| image:: https://img.shields.io/travis/franzinc/agraph-python.svg
-   :alt: build status
-   :scale: 100%
-   :target: https://travis-ci.org/franzinc/agraph-python
-
-.. |conda-status| image:: https://img.shields.io/conda/v/franzinc/agraph-python.svg
-   :alt: conda package
+.. |conda-status| image:: https://img.shields.io/conda/v/franzinc/agraph-python.svg?logo=anaconda&logoColor=gold
+   :alt: Anaconda package
    :scale: 100%
    :target: https://anaconda.org/franzinc/agraph-python
 
-.. |pypi-status| image:: https://img.shields.io/pypi/v/agraph-python.svg
+.. |pypi-status| image:: https://img.shields.io/pypi/v/agraph-python.svg?logo=python&logoColor=gold
    :alt: PyPI package
    :scale: 100%
    :target: https://pypi.python.org/pypi/agraph-python
-
-.. |pypi-python_versions| image:: https://img.shields.io/pypi/pyversions/agraph-python
+            
+.. |pypi-python-version| image:: https://img.shields.io/pypi/pyversions/agraph-python?logo=python&logoColor=gold
    :alt: PyPI - Python Version
    :scale: 100%
-   :target: https://pypi.python.org/pypi/agraph-python
