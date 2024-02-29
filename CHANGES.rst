@@ -2,8 +2,20 @@
 AllegroGraph Python client release history
 ==========================================
 
-Release 102.2.0
+Release 103.0.0
 ===============
+
+Discontinuation of Support for Python 3.7 and Earlier Versions
+--------------------------------------------------------------
+
+From this release, the minimum required version of Python becomes `3.8`.
+
+Removal of pycurl Dependency
+----------------------------
+
+We have decided to remove `pycurl` from the list of dependencies. This decision
+was influenced by the complex nature of pycurl's installation process and
+concerns regarding its sustainability and upkeep.
 
 Project Management Migration to Hatch
 -------------------------------------
