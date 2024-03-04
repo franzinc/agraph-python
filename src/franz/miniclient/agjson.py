@@ -5,7 +5,7 @@
 # this distribution, and is available at http://opensource.org/licenses/MIT
 ################################################################################
 
-import simplejson as json
+import json
 
 
 class JsonDecodeError(Exception):

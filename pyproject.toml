@@ -32,7 +32,6 @@ dependencies = [
   "requests[socks]==2.26.0",
   "iso8601>=2.1.0,<2.2.0",
   "packaging>=23.2.0,<23.3.0",
-  "simplejson>=3.19.0,<3.20.0",
   "pandas>=2.0.0,<3.0.0",
 ]
 
