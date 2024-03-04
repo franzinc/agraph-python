@@ -31,12 +31,11 @@ classifiers = [
 dependencies = [
   "requests[socks]==2.26.0",
   "iso8601>=2.1.0,<2.2.0",
-  "packaging>=23.2.0,<23.3.0",
   "pandas>=2.0.0,<3.0.0",
 ]
 
 [project.optional-dependencies]
-test = ["pytest~=7.0.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0"]
+test = ["packaging>=23.2.0,<23.3.0","pytest~=7.0.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0"]
 style = ["isort~=5.11.0","black~=23.3.0"]
 docs = ["sphinxcontrib-jupyter~=0.5.0"] # for building docs
 dev = ["agraph-python[test,style,docs]","ipython~=7.34.0"]

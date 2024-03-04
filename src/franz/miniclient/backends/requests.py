@@ -15,8 +15,6 @@ import atexit
 import contextlib
 
 import requests
-import urllib3
-from packaging.version import parse as parse_version
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
 from urllib3.poolmanager import PoolManager
 from urllib3.util.retry import Retry
@@ -69,20 +67,12 @@ def translate_proxy_scheme(scheme):
     if scheme == "socks":
         scheme = "socks5"
 
-    # In urllib3 1.20 (released 2017-01-19) DNS behavior has changed
-    # To make the proxy server do the lookup you now have to use
-    # either 'socks4a' or 'socks5h' as the protocol.
-    # But older versions naturally neither need nor support these values.
-    # The updated version of urllib3 is bundled with requests since
-    # version 2.13.0 (released 2017-01-24).
-    v1_20 = parse_version("1.20")
-    urllib3_version = parse_version(urllib3.__version__)
-    if urllib3_version >= v1_20:
-        if scheme == "socks5":
-            scheme = "socks5h"
-        if scheme == "socks4":
-            scheme = "socks4a"
-    return scheme
+    if scheme == "socks5":
+        return "socks5h"
+    elif scheme == "socks4":
+        return "socks4a"
+    else:
+        return scheme
 
 
 def create_session(obj):
