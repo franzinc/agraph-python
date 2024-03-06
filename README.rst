@@ -57,6 +57,14 @@ following steps should be taken:
      where ``<DIR>`` is the directory containing the ``.whl`` files
      generated in the previous step.
 
+Install by `conda`
+~~~~~~~~~~~~~~~~~~
+Using `conda` to install `agraph-python` is also supported::
+
+  conda create -n myenv python=3.10
+  conda activate myenv
+  conda install -y -c conda-forge -c franzinc agraph-python
+
 Testing
 -------
 To validate the installation make sure that you have access to an
