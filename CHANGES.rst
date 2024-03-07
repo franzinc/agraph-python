@@ -2,6 +2,14 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 103.0.1
+===============
+
+Removal of simplejson Dependency
+--------------------------------
+
+Python's own `json` module will be used for parsing JSON data.
+
 Release 103.0.0
 ===============
 
