@@ -477,7 +477,7 @@ and here is the result: ::
     >>>
 
 Note that the fourth element (graph) of each
-of the triples is <http://franz.com/place1>. If you
+of the triples is ``<http://franz.com/place1>``. If you
 don't add the @id the triples will be put in the default graph.
 
 Here a slightly more complex example: ::
