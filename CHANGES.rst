@@ -2,6 +2,14 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 103.1.0
+===============
+
+add Python 3.12 support
+-----------------------------
+
+To support Python 3.12, the `requests` package has been upgraded to `2.32.3`.
+
 Release 103.0.1
 ===============
 

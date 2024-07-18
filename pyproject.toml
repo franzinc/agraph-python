@@ -24,12 +24,13 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Database",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "requests[socks]==2.26.0",
+  "requests[socks]==2.32.3",
   "iso8601>=2.1.0,<2.2.0",
   "pandas>=2.0.0,<3.0.0",
 ]
@@ -63,7 +64,7 @@ features = ["test"]
 env-include = ["AGRAPH*"]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11"]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.test.env-vars]
 AG_RUN_SSL_TEST = "y"
