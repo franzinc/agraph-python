@@ -3111,6 +3111,78 @@ class RepositoryConnection:
         """
         self._get_mini_repository().clearAttributeFilter()
 
+    def convert_to_vector_store(
+        self, embedder, api_key=None, model=None, supersede=False
+    ):
+        """
+        Convert an existing normal repo to a vector store by setting the embedder
+        and optionally the api-key and model.  Unless supersede is True this
+        function will do nothing if the repo is already a vector store
+        """
+        return self._get_mini_repository().convert_to_vector_store(
+            embedder, api_key, model, supersede
+        )
+
+    def add_objects(self, text, properties={}):
+        """
+        Compute the embedding for the given text string and add it
+        to the repository.  text can be a single string or
+        list of strings to add multiple objects.
+        Each object added has the same properties added to
+        the object.  The params argument looks like
+        {"color" : "red", "size" : "large"}.
+        Existing objects will not be added again.
+        Returns the object identifier of the last object added.
+        """
+        return self._get_mini_repository().add_objects(text, properties)
+
+    def remove_objects(self, text=None, all=False, property=None, value=None):
+        """
+        Remove zero or more objects.
+        If all is True then all objects are removed.
+        otherwise if text is given then it specifies the object to remove.
+        otherwise all objects with the given property having the given
+        value are removed.
+        """
+        return self._get_mini_repository().remove_objects(text, all, property, value)
+
+    def nearest_neighbor(self, text, minScore=0.0, topN=5, selector=None):
+        """
+        An embedding is computed for the given text string and the closest embeddings
+        to that embedding are computed.  embeddings with a matching score less
+        than minScore are ignored. The best topN matches are returned.
+        The return value is a json list of results. Each item in the list
+        is a list of: object id, matching score, text of the object, and then two
+        fields not used.
+        """
+        return self._get_mini_repository().nearest_neighbor(
+            text, minScore, topN, selector
+        )
+
+    def object_property_value(self, object_id, property):
+        """
+        Return the value of the given property of the given object_id.  object_id
+        can be a string like "http://franz.com/vdb/id/5" or it can be a URI object.
+        The value is returned as a string in ntriple syntax.  resources (URI) are
+        surrounded by < and >.  Literals begin with a double quote and in the case
+        of a literal with data type the syntax is "value"^^type
+        """
+        return self._get_mini_repository().object_property_value(object_id, property)
+
+    def object_text(self, object_id):
+        """
+        Return the text of the object denoted by object_id.  object_id
+        can be a string like "http://franz.com/vdb/id/5" or it can be a URI object
+        """
+        return self._get_mini_repository().object_text(object_id)
+
+    def object_embedding(self, object_id):
+        """
+        Return the embedding for the given object_id.  The embedding returned is
+        a list of floating point numbers
+        """
+        return self._get_mini_repository().object_embedding(object_id)
+
 
 def attribute_definition_from_dict(item):
     return AttributeDefinition(

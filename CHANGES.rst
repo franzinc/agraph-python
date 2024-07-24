@@ -2,9 +2,15 @@
 AllegroGraph Python client release history
 ==========================================
 
-Release 103.1.0
+Release 104.0.0
 ===============
 
+Add support for vector repo functions.
+Requires agraph 8.0 or newer
+
+Release 103.1.0
+===============
+	
 add Python 3.12 support
 -----------------------------
 

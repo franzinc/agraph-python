@@ -141,10 +141,24 @@ class Catalog(Service):
         repos = jsonRequest(self, "GET", "/repositories")
         return [repo["id"] for repo in repos]
 
-    def createRepository(self, name, indices=None):
+    def createRepository(
+        self, name, indices=None, vector_store=False, embedder="", api_key="", model=""
+    ):
         """Ask the server to create a new repository."""
+
         nullRequest(
-            self, "PUT", "/repositories/" + quote(name) + "?" + urlenc(index=indices)
+            self,
+            "PUT",
+            "/repositories/"
+            + quote(name)
+            + "?"
+            + urlenc(
+                index=indices,
+                vector__store__p=vector_store,
+                embedder=embedder,
+                embedding__api__key=api_key,
+                model=model,
+            ),
         )
         return self.getRepository(name)
 
@@ -1651,6 +1665,79 @@ class Repository(Service):
     def disableRDFStar(self):
         if self.RDFStarEnabled():
             return nullRequest(self, "DELETE", "/rdf-star")
+
+    def convert_to_vector_store(
+        self, embedder, api_key=None, model=None, supersede=False
+    ):
+        return nullRequest(
+            self,
+            "PUT",
+            "/convert-to-vts?"
+            + urlenc(
+                embedder=embedder,
+                embedding__api__key=api_key,
+                model=model,
+                supersede=supersede,
+            ),
+        )
+
+    def add_objects(self, text, properties={}):
+        # conn.add_object("frob",{"propa" : "vala" , "propb" : "valb"})
+        def add_object_single(text, params):
+            sexpr = "("
+            for item in params:
+                sexpr = sexpr + '"{0}" "{1}"'.format(item, params[item])
+            sexpr = sexpr + ")"
+
+            return jsonRequest(
+                self, "PUT", "/add-object?" + urlenc(text=text, properties=sexpr)
+            )
+
+        lastret = "none"
+
+        if isinstance(text, list) or isinstance(text, tuple):
+            for elt in text:
+                lastret = add_object_single(elt, properties)
+        else:
+            lastret = add_object_single(text, properties)
+
+        return lastret
+
+    def remove_objects(self, text=None, all=False, property=None, value=None):
+        return jsonRequest(
+            self,
+            "PUT",
+            "/delete-objects?"
+            + urlenc(text=text, all=all, property=property, value=value),
+        )
+
+    def nearest_neighbor(self, text, minScore=0.0, topN=5, selector=None):
+        return jsonRequest(
+            self,
+            "GET",
+            "/nearest-neighbor?"
+            + urlenc(text=text, min__score=minScore, top__n=topN, selector=selector),
+        )
+
+    def object_property_value(self, object_id, property):
+        return jsonRequest(
+            self,
+            "GET",
+            "/object-property-value?"
+            + urlenc(object__id=uri_to_string(object_id), property=property),
+        )
+
+    def object_text(self, object_id):
+        return jsonRequest(
+            self, "GET", "/object-text?" + urlenc(object__id=uri_to_string(object_id))
+        )
+
+    def object_embedding(self, object_id):
+        return jsonRequest(
+            self,
+            "GET",
+            "/object-embedding?" + urlenc(object__id=uri_to_string(object_id)),
+        )
 
 
 def uri_to_string(uri):

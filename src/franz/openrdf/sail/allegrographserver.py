@@ -715,7 +715,9 @@ class Catalog:
 
         return Repository(self, name, self.mini_catalog.getRepository(name))
 
-    def createRepository(self, name, indices=None):
+    def createRepository(
+        self, name, indices=None, vector_store=False, embedder="", api_key="", model=""
+    ):
         """
         Creates a new repository with the given name.
 
@@ -728,5 +730,14 @@ class Catalog:
         :rtype: Repository
         """
         return Repository(
-            self, name, self.mini_catalog.createRepository(name, indices=indices)
+            self,
+            name,
+            self.mini_catalog.createRepository(
+                name,
+                indices=indices,
+                vector_store=vector_store,
+                embedder=embedder,
+                api_key=api_key,
+                model=model,
+            ),
         )

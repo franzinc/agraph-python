@@ -199,6 +199,22 @@ maintain, search, and delete triple stores.
 
    ~RepositoryConnection.add_commit_size
 
+Vector Repository Methods
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These methods operation on vector triple stores
+
+.. extautosummary::
+   :nosignatures: 
+   
+   ~RepositoryConnection.add_objects
+   ~RepositoryConnection.convert_to_vector_store
+   ~RepositoryConnection.nearest_neighbor
+   ~RepositoryConnection.object_embedding
+   ~RepositoryConnection.object_property_value
+   ~RepositoryConnection.object_text
+   ~RepositoryConnection.remove_objects
+
 Triple Index Methods
 ~~~~~~~~~~~~~~~~~~~~
 

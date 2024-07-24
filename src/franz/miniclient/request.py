@@ -199,6 +199,8 @@ def urlenc(**args):
         buf.write(quote(to_native_string(val)))
 
     def encval(name, val):
+        # we represent a hypen in a parameter name with double underscores
+        name = name.replace("__", "-")
         if val is None:
             pass
         elif isinstance(val, bool):

@@ -37,6 +37,10 @@ def ag_connect(
     verifypeer=None,
     indices=None,
     proxy=os.environ.get("AGRAPH_PROXY"),
+    vector_store=False,
+    embedder=None,
+    api_key=None,
+    model=None,
 ):
     """
     Create a connection to an AllegroGraph repository.
@@ -111,6 +115,15 @@ def ag_connect(
                   The default value is taken from the AGRAPH_PROXY environment
                   variable.
     :type proxy: string
+    :param vector_store: True to create a vector store
+    :type vector_store:bool
+    :param embedder: name of service to create embeddings
+    :type embedder: string
+    :param api_key: embedding service api key if required
+    :type api_key: string
+    :param model: name of embedding model (default varies by embedder)
+    :type model: string
+
     :return: A :class:`.RepositoryConnection` object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
     """
@@ -130,7 +143,9 @@ def ag_connect(
     repo_exists = repo in cat_handle.listRepositories()
     if not repo_exists:
         if create:
-            repo_handle = cat_handle.createRepository(repo, indices)
+            repo_handle = cat_handle.createRepository(
+                repo, indices, vector_store, embedder, api_key, model
+            )
         else:
             raise Exception("Store %s does not exist." % repo)
     else:
