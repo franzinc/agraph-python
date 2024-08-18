@@ -12,10 +12,9 @@ from franz.openrdf.exceptions import RequestError
 from franz.openrdf.tests.conftest import min_version
 
 # vector dbs started in ag 8.0
-# 8.3 is the first version where an unsupport-operation-error
-# won't cause a backtrace in agraph.log which then is considered
-# a prepush failure
-pytestmark = min_version(8, 0)
+# but much more working in 8.3 and some of
+# these tests won't work in versions earlier than 8.3
+pytestmark = min_version(8, 3)
 
 
 globals_dict = {"size0": 0, "triples_per_object": 0}
