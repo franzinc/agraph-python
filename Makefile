@@ -144,7 +144,7 @@ ifndef PYPI_API_TOKEN
 endif
 	@$(HATCH) publish --user "__token__" --auth "$(PYPI_API_TOKEN)"
 
-publish-anaconda:
+publish-anaconda: build-bdist
 	@echo "Uploading bdist to Anaconda - franzinc channel ..."
 	@echo "The authentication is done through the ANACONDA_USERNAME and ANACONDA_PASSWORD environment variables."
 	@echo "The ANACONDA_USERNAME and ANACONDA_PASSWORD information should belong to someone with access to the franzinc channel."
