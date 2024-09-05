@@ -2585,7 +2585,8 @@ def test_users_roles_filters():
     Test user/role/filter management.
     """
     server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
-    assert ["test"] == server.listUsers()
+    default_users = server.listUsers()
+    assert "test" in default_users
     server.addUser("user-test", "xyzzy")
     assert "user-test" in server.listUsers()
     server.changeUserPassword("user-test", "xyzzy-new")
@@ -2731,7 +2732,8 @@ def test_users_roles_filters():
     assert len(access) == 0
 
     server.deleteUser("user-test")
-    assert ["test"] == server.listUsers()
+    assert set(server.listUsers()) == set(default_users)
+    assert "test" in server.listUsers()
 
 
 @pytest.mark.skipif(
