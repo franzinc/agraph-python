@@ -2,6 +2,11 @@
 AllegroGraph Python client release history
 ==========================================
 
+
+Release 104.1.0
+===============
+ Added dimensions argument to vector store repo creation funcions.
+
 Release 104.0.0
 ===============
 

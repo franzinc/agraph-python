@@ -41,6 +41,7 @@ def ag_connect(
     embedder=None,
     api_key=None,
     model=None,
+    dimensions=None,
 ):
     """
     Create a connection to an AllegroGraph repository.
@@ -123,6 +124,8 @@ def ag_connect(
     :type api_key: string
     :param model: name of embedding model (default varies by embedder)
     :type model: string
+    :param dimensions: size of the embedding vector
+    :type dimensions: integer
 
     :return: A :class:`.RepositoryConnection` object.
     :rtype: franz.openrdf.repositoryconnection.RepositoryConnection
@@ -144,7 +147,13 @@ def ag_connect(
     if not repo_exists:
         if create:
             repo_handle = cat_handle.createRepository(
-                repo, indices, vector_store, embedder, api_key, model
+                repo,
+                indices,
+                vector_store,
+                embedder,
+                api_key,
+                model,
+                dimensions=dimensions,
             )
         else:
             raise Exception("Store %s does not exist." % repo)

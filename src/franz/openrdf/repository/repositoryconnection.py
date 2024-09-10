@@ -3112,7 +3112,7 @@ class RepositoryConnection:
         self._get_mini_repository().clearAttributeFilter()
 
     def convert_to_vector_store(
-        self, embedder, api_key=None, model=None, supersede=False
+        self, embedder, api_key=None, model=None, supersede=False, dimensions=None
     ):
         """
         Convert an existing normal repo to a vector store by setting the embedder
@@ -3120,7 +3120,7 @@ class RepositoryConnection:
         function will do nothing if the repo is already a vector store
         """
         return self._get_mini_repository().convert_to_vector_store(
-            embedder, api_key, model, supersede
+            embedder, api_key, model, supersede, dimensions
         )
 
     def add_objects(self, text, properties={}):

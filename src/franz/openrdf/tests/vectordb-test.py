@@ -65,7 +65,9 @@ def conn(server, repo_name, repo_catalog):
 
 def test_create_repo(server, repo_name, repo_catalog, globals):
     catalog = server.openCatalog(repo_catalog)
-    catalog.createRepository(name=repo_name, vector_store=True, embedder="demo")
+    catalog.createRepository(
+        name=repo_name, vector_store=True, embedder="demo", dimensions=500
+    )
 
 
 def test_add_objects(conn, globals):
@@ -138,7 +140,7 @@ def test_object_embedding(conn):
     objecta = conn.add_objects("fooembedded")
 
     # demo embedding is 1000 elements long
-    assert len(conn.object_embedding(objecta)) == 1000
+    assert len(conn.object_embedding(objecta)) == 500
 
 
 def test_convert(server):
@@ -148,7 +150,7 @@ def test_convert(server):
     conn = repo.getConnection()
 
     size0 = conn.size()
-    conn.convert_to_vector_store("demo", api_key="not needed")
+    conn.convert_to_vector_store("demo", api_key="not needed", dimensions=600)
     size1 = conn.size()
 
     assert size1 > size0
@@ -181,6 +183,7 @@ def test_ag_connect(server):
         password=os.environ.get("AGRAPH_PASSWORD", "xyzzy"),
         vector_store=True,
         embedder="demo",
+        dimensions=700,
     )
     conn.remove_objects(all=True)
     size1 = conn.size()

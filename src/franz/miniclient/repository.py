@@ -142,7 +142,14 @@ class Catalog(Service):
         return [repo["id"] for repo in repos]
 
     def createRepository(
-        self, name, indices=None, vector_store=False, embedder="", api_key="", model=""
+        self,
+        name,
+        indices=None,
+        vector_store=False,
+        embedder="",
+        api_key="",
+        model="",
+        dimensions=None,
     ):
         """Ask the server to create a new repository."""
 
@@ -158,6 +165,7 @@ class Catalog(Service):
                 embedder=embedder,
                 embedding__api__key=api_key,
                 model=model,
+                dimensions=dimensions,
             ),
         )
         return self.getRepository(name)
@@ -1667,7 +1675,7 @@ class Repository(Service):
             return nullRequest(self, "DELETE", "/rdf-star")
 
     def convert_to_vector_store(
-        self, embedder, api_key=None, model=None, supersede=False
+        self, embedder, api_key=None, model=None, supersede=False, dimensions=None
     ):
         return nullRequest(
             self,
@@ -1678,6 +1686,7 @@ class Repository(Service):
                 embedding__api__key=api_key,
                 model=model,
                 supersede=supersede,
+                dimensions=dimensions,
             ),
         )
 

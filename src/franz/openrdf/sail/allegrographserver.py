@@ -716,7 +716,14 @@ class Catalog:
         return Repository(self, name, self.mini_catalog.getRepository(name))
 
     def createRepository(
-        self, name, indices=None, vector_store=False, embedder="", api_key="", model=""
+        self,
+        name,
+        indices=None,
+        vector_store=False,
+        embedder="",
+        api_key="",
+        model="",
+        dimensions=None,
     ):
         """
         Creates a new repository with the given name.
@@ -726,6 +733,14 @@ class Catalog:
         :param indices: If provided, creates a store with the given indices.
                         (e.g. ``["spogi, "gspoi", ...]``)
         :type indices: list[string]
+        :param vector_store: true to create vector store
+        :type vector_store: boolean
+        :param embedder: name of the embedder if vector store
+        :type embedder: string
+        :param api_key: api key if required and vector store
+        :type api_key: string
+        :param dimensions: size of embedding if vector store
+        :type dimensions: integer
         :return: A repository object.
         :rtype: Repository
         """
@@ -739,5 +754,6 @@ class Catalog:
                 embedder=embedder,
                 api_key=api_key,
                 model=model,
+                dimensions=dimensions,
             ),
         )
