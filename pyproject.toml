@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "agraph-python"
 dynamic = ["version"]
 description = "AllegroGraph Python client"
-readme = "README.rst"
+readme = "README.md"
 authors = [
   {name = "Franz Inc.", email = "support@franz.com"}
 ]
