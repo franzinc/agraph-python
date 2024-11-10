@@ -47,7 +47,7 @@ $(PYTHON):
 	@mkdir -p python
 	@curl -L https://github.com/indygreg/python-build-standalone/releases/download/$(PYTHON_DIST_TIMESTAMP)/cpython-$(PYTHON_DIST_PYTHON_VERSION)+$(PYTHON_DIST_TIMESTAMP)-$(PYTHON_DIST_MACHINE_ARCH)-install_only.tar.gz | tar xz
 
-HATCH_VERSION=1.9.3
+HATCH_VERSION=1.9.4
 HATCH=python/bin/hatch
 export HATCH_INTERACTIVE=false
 export HATCH_DATA_DIR=$(shell pwd)/.hatch/data
