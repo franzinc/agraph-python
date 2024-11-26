@@ -2,6 +2,11 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 104.1.1
+===============
+
+Fixed `hatch` (`hatchling`) and supported Python's version specifier in
+`pyproject.toml`.
 
 Release 104.1.0
 ===============
