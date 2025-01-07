@@ -1778,6 +1778,58 @@ class Repository(Service):
             "/object-embedding?" + urlenc(object__id=uri_to_string(object_id)),
         )
 
+    def execute_nl_query(
+        self,
+        prompt: str,
+        vdb_spec: str,
+        with_fti: bool = True,
+        asterisk_in_select_clause: bool = False,
+    ):
+        return jsonRequest(
+            self,
+            "GET",
+            "/exec-nl-query?"
+            + urlenc(
+                prompt=prompt,
+                vdb__spec=vdb_spec,
+                with__fti=with_fti,
+                asterisk__in__select__clause=asterisk_in_select_clause,
+            ),
+        )
+
+    def store_nl_query_pair(self, nl_query: str, sparql_query: str):
+        q = str({"nl-query": nl_query, "sparql-query": sparql_query})
+        return nullRequest(self, "POST", "/nl-queries?" + urlenc(q=q))
+
+    def delete_nl_query_pairs(self, example_ids: list):
+        return nullRequest(self, "DELETE", "/nl-queries?" + urlenc(subj=example_ids))
+
+    def get_nl_query_pairs(
+        self,
+        offset: int = 0,
+        limit: int = 100,
+        neighbor_search: str = "",
+        neighbor_search_limit: int = 10,
+        neighbor_search_min_score: float = 0.5,
+    ):
+        if neighbor_search != "":
+            return jsonRequest(
+                self,
+                "GET",
+                "/nl-queries?"
+                + urlenc(
+                    offset=offset,
+                    limit=limit,
+                    neighbor__search=neighbor_search,
+                    neighbor__search__limit=neighbor_search_limit,
+                    neighbor__search__min__score=neighbor_search_min_score,
+                ),
+            )
+        else:
+            return jsonRequest(
+                self, "GET", "/nl-queries?" + urlenc(offset=offset, limit=limit)
+            )
+
 
 def uri_to_string(uri):
     """

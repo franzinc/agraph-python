@@ -3218,6 +3218,63 @@ class RepositoryConnection:
         """
         return self._get_mini_repository().object_embedding(object_id)
 
+    def execute_nl_query(
+        self,
+        prompt: str,
+        vdb_spec,
+        with_fti: bool = True,
+        asterisk_in_select_clause: bool = False,
+    ):
+        """
+        Executes a natural language query for the given prompt, using the
+        specified vdb_spec for examples. If with_fti is True then the query
+        can include a free_text_index clause. If asterisk_in_select_clause
+        is True then the select clause can use * to select all variables.
+        """
+        return self._get_mini_repository().execute_nl_query(
+            prompt,
+            vdb_spec,
+            with_fti=with_fti,
+            asterisk_in_select_clause=asterisk_in_select_clause,
+        )
+
+    def store_nl_query_pair(self, nl_query: str, sparql_query: str):
+        """
+        Stores the natural language query prompt and sparql query.
+        This assumes the connection object is the vdb, not the repository
+        that was queried.
+        """
+        return self._get_mini_repository().store_nl_query_pair(nl_query, sparql_query)
+
+    def delete_nl_query_pairs(self, example_ids: list):
+        """
+        Deletes the natural language query prompt and sparql query pairs
+        for the given example ids
+        """
+        return self._get_mini_repository().delete_nl_query_pairs(example_ids)
+
+    def get_nl_query_pairs(
+        self,
+        offset: int = 0,
+        limit: int = 100,
+        neighbor_search: str = "",
+        neighbor_search_limit: int = 10,
+        neighbor_search_min_score: float = 0.5,
+    ):
+        """
+        Returns a list of natural language query prompt and sparql query pairs.
+        If neighbor search includes a value, then the query will run a nearest
+        neighbor search on that text and return the closest matches from the
+        vector store.
+        """
+        return self._get_mini_repository().get_nl_query_pairs(
+            offset=offset,
+            limit=limit,
+            neighbor_search=neighbor_search,
+            neighbor_search_limit=neighbor_search_limit,
+            neighbor_search_min_score=neighbor_search_min_score,
+        )
+
 
 def attribute_definition_from_dict(item):
     return AttributeDefinition(

@@ -2,6 +2,12 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 104.2.0
+===============
+
+Adding support for natural language queries
+requires agraph 8.3.0
+
 Release 104.1.1
 ===============
 

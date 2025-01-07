@@ -44,3 +44,7 @@ python
 .hatch
 recipe/output/
 .env*
+
+#vs code options
+agraph-python.code-workspace
+.vscode/
