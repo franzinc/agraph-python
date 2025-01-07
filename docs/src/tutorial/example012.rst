@@ -58,10 +58,10 @@ We can view the index configuration using the
 
    config = conn.getFreeTextIndexConfiguration("index1")
    for key, value in config.items():
+       if key == 'graphs' or key == 'types':
+           continue
        if isinstance(value, list):
            value = ', '.join(str(x) for x in value)
-       elif key == 'graphs':
-           continue
        print('{key}: {value}'.format(key=key, value=value))
 
 .. testoutput:: example12
