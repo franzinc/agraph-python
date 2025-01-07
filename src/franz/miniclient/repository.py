@@ -807,8 +807,8 @@ class Repository(Service):
         return jsonRequest(self, "GET", "/freetext/indices")
 
     def getFreeTextIndexConfiguration(self, index):
-        """Returns a dictionary with fields \"predicates\",
-        \"indexLiterals\", \"indexResources\", \"indexFields\",
+        """Returns a dictionary with fields \"predicates\", \"graphs\",
+        \"types\", \"indexLiterals\", \"indexResources\", \"indexFields\",
         \"minimumWordSize\", \"stopWords\", and \"wordFilters\"."""
         return jsonRequest(self, "GET", "/freetext/indices/" + quote(index))
 
@@ -816,6 +816,8 @@ class Repository(Service):
         self,
         index,
         predicates=None,
+        graphs=None,
+        types=None,
         indexLiterals=None,
         indexResources=None,
         indexFields=None,
@@ -826,8 +828,10 @@ class Repository(Service):
         borderChars=None,
         tokenizer=None,
     ):
-        """Create a free-text index. predicates, if given, should be a
-        list of resources. indexLiterals can be True, False, or a list
+        """Create a free-text index. predicates and types, if given, should be
+        lists of resources. graphs, if given, should be a list of resources
+        or a string \"default\" denoting default graph.
+        indexLiterals can be True, False, or a list
         of strings, indicating the literal types or langs to index.
         indexResources can be True, False, or \"short\". indexFields
         can be a list containing any combination of the elements
@@ -853,6 +857,8 @@ class Repository(Service):
             "/freetext/indices/" + quote(index),
             urlenc(
                 predicate=predicates,
+                graph=graphs,
+                type=types,
                 indexLiterals=indexLiterals and True,
                 indexLiteralType=indexLiterals
                 if isinstance(indexLiterals, list)
@@ -872,6 +878,8 @@ class Repository(Service):
         self,
         index,
         predicates=None,
+        graphs=None,
+        types=None,
         indexLiterals=None,
         indexResources=None,
         indexFields=None,
@@ -891,6 +899,10 @@ class Repository(Service):
             stopWords = ""
         if predicates == []:
             predicates = ""
+        if graphs == []:
+            graphs = ""
+        if predicates == []:
+            predicates = ""
         if indexFields == []:
             indexFields = ""
         if wordFilters == []:
@@ -901,6 +913,8 @@ class Repository(Service):
             "/freetext/indices/" + quote(index),
             urlenc(
                 predicate=predicates,
+                graph=graphs,
+                type=types,
                 indexLiterals=indexLiterals and True,
                 indexLiteralType=indexLiterals
                 if isinstance(indexLiterals, list)
@@ -925,9 +939,25 @@ class Repository(Service):
         """List the predicates that are used for free-text indexing."""
         return jsonRequest(self, "GET", "/freetext/predicates")
 
+    def listFreeTextGraphs(self):
+        """List the graphs that are used for free-text indexing."""
+        return jsonRequest(self, "GET", "/freetext/graphs")
+
+    def listFreeTextTypes(self):
+        """List the RDF types that are used for free-text indexing."""
+        return jsonRequest(self, "GET", "/freetext/types")
+
     def registerFreeTextPredicate(self, predicate):
         """Add a predicate for free-text indexing."""
         nullRequest(self, "POST", "/freetext/predicates", urlenc(predicate=predicate))
+
+    def registerFreeTextGraph(self, graph):
+        """Add a graph for free-text indexing."""
+        nullRequest(self, "POST", "/freetext/graphs", urlenc(graph=graph))
+
+    def registerFreeTextType(self, graph):
+        """Add an RDF type for free-text indexing."""
+        nullRequest(self, "POST", "/freetext/types", urlenc(graph=graph))
 
     def clearNamespaces(self, reset=True):
         """

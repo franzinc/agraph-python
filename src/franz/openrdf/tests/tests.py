@@ -2094,8 +2094,12 @@ def test_freetext():
     """
     Test registering a free text predicate, then doing a SPARQL query on it.
     """
+    server = AllegroGraphServer(AG_HOST, AG_PORT, USER, PASSWORD, proxy=AG_PROXY)
     conn = connect()
     pred = URI("http://www.franz.com/has_name")
+    graph1 = URI("http://www.franz.com/graph1")
+    graph2 = URI("http://www.franz.com/graph2")
+    rdftype = URI("http://www.franz.com/Person")
     conn.createFreeTextIndex("index1", predicates=[pred])
     conn.createFreeTextIndex(
         "index2",
@@ -2113,26 +2117,42 @@ def test_freetext():
         innerChars="alphanumeric",
         tokenizer="default",
     )
+    if server.version >= "8.4.0":
+        conn.createFreeTextIndex("index3", graphs=[graph1, "default"])
+        conn.createFreeTextIndex("index4", types=[rdftype])
 
     # config parameter fetching
-    preds = conn.getFreeTextIndexConfiguration("index1")["predicates"]
-    assert 1 == len(preds)
-    assert str(pred) == str(preds[0])
-    config = conn.getFreeTextIndexConfiguration("index2")
-    assert ["object", "predicate"] == sorted(config["indexFields"])
-    assert 2 == config["minimumWordSize"]
-    assert "short" == config["indexResources"]
-    assert ["alphanumeric"] == config["innerChars"]
-    assert [] == config["borderChars"]
-    assert "default" == config["tokenizer"]
-    assert len(config["stopWords"])
+    config1 = conn.getFreeTextIndexConfiguration("index1")
+    assert 1 == len(config1["predicates"])
+    assert str(pred) == str(config1["predicates"][0])
+
+    config2 = conn.getFreeTextIndexConfiguration("index2")
+    assert ["object", "predicate"] == sorted(config2["indexFields"])
+    assert 2 == config2["minimumWordSize"]
+    assert "short" == config2["indexResources"]
+    assert ["alphanumeric"] == config2["innerChars"]
+    assert [] == config2["borderChars"]
+    assert "default" == config2["tokenizer"]
+    assert len(config2["stopWords"])
+
+    if server.version >= "8.4.0":
+        config3 = conn.getFreeTextIndexConfiguration("index3")
+        assert 2 == len(config3["graphs"])
+        assert "default" in config3["graphs"]
+        assert graph1 in config3["graphs"]
+
+        config4 = conn.getFreeTextIndexConfiguration("index4")
+        assert 1 == len(config4["types"])
+        assert rdftype in config4["types"]
 
     def contractor(i):
         return URI("http://www.franz.com/contractor#" + str(i))
 
-    conn.addTriple(contractor(0), pred, "Betty Ross")
-    conn.addTriple(contractor(1), pred, "Ross Jekel")
+    conn.addTriple(contractor(0), pred, "Betty Ross", contexts=[graph1])
+    conn.addTriple(contractor(0), RDF.TYPE, rdftype)
+    conn.addTriple(contractor(1), pred, "Ross Jekel", contexts=[graph2])
     conn.addTriple(contractor(2), pred, "Marijn Haverbeke")
+    conn.addTriple(contractor(2), RDF.TYPE, rdftype)
     conn.addTriple(contractor(2), URI("http://www.franz.com/lives_in"), "Berlin")
     conn.addTriple(contractor(3), pred, "Ed")
 
@@ -2157,6 +2177,15 @@ def test_freetext():
     # indexing of predicates
     assert 0 == len(conn.evalFreeTextSearch("has_name", index="index1"))
     assert 4 == len(conn.evalFreeTextSearch("has_name", index="index2"))
+
+    if server.version >= "8.4.0":
+        # graph filtering
+        assert 1 == len(conn.evalFreeTextSearch("Ross", index="index3"))
+        assert 1 == len(conn.evalFreeTextSearch("Marijn", index="index3"))
+
+        # RDF type filtering
+        assert 1 == len(conn.evalFreeTextSearch("Ross", index="index4"))
+        assert 1 == len(conn.evalFreeTextSearch("Marijn", index="index4"))
 
     # sparql
     results = conn.prepareTupleQuery(

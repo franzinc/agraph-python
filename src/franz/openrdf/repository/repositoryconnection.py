@@ -2216,6 +2216,8 @@ class RepositoryConnection:
         self,
         name,
         predicates=None,
+        graphs=None,
+        types=None,
         indexLiterals=None,
         indexResources=None,
         indexFields=None,
@@ -2242,6 +2244,13 @@ class RepositoryConnection:
         :param predicates: A list of predicates to be indexed. If not given all
                            triples will be indexed regardless of predicate.
         :type predicates: list[string|URI]
+        :param graphs: A list of graphs to be indexed. If not given all
+                       triples will be indexed regardless of graph.
+                       ``"default"`` can be used to denote default graph.
+        :type graphs: list[string|URI]
+        :param types: A list of RDF types to restrict indexing only to statements
+                      with subjects of these types.
+        :type types: list[string|URI]
         :param indexLiterals: Determines which literals to index. It can be``True``
                               (the default), ``False``, or a list of strings,
                               indicating the literal types or langs that should be indexed.
@@ -2287,11 +2296,17 @@ class RepositoryConnection:
         """
         if predicates:
             predicates = [uris.asURIString(p) for p in predicates]
+        if graphs:
+            graphs = [g if g == "default" else uris.asURIString(g) for g in graphs]
+        if types:
+            types = [uris.asURIString(t) for t in types]
         if isinstance(indexLiterals, list):
             indexLiterals = [uris.asURIString(l) for l in indexLiterals]
         self.mini_repository.createFreeTextIndex(
             name,
             predicates=predicates,
+            graphs=graphs,
+            types=types,
             indexLiterals=indexLiterals,
             indexResources=indexResources,
             indexFields=indexFields,
@@ -2307,6 +2322,8 @@ class RepositoryConnection:
         self,
         name,
         predicates=None,
+        graphs=None,
+        types=None,
         indexLiterals=None,
         indexResources=None,
         indexFields=None,
@@ -2326,6 +2343,13 @@ class RepositoryConnection:
         :param predicates: A list of predicates to be indexed. If not given all
                            triples will be indexed regardless of predicate.
         :type predicates: list[string|URI]
+        :param graphs: A list of graphs to be indexed. If not given all
+                       triples will be indexed regardless of graph.
+                       ``"default"`` can be used to denote default graph.
+        :type graphs: list[string|URI]
+        :param types: A list of RDF types to restrict indexing only to statements
+                      with subjects of these types.
+        :type types: list[string|URI]
         :param indexLiterals: Determines which literals to index. It can be``True``
                               (the default), ``False``, or a list of strings,
                               indicating the literal types or langs that should be indexed.
@@ -2371,11 +2395,17 @@ class RepositoryConnection:
         """
         if predicates:
             predicates = [uris.asURIString(p) for p in predicates]
+        if graphs:
+            graphs = [g if g == "default" else uris.asURIString(g) for g in graphs]
+        if types:
+            types = [uris.asURIString(t) for t in types]
         if isinstance(indexLiterals, list):
             indexLiterals = [uris.asURIString(l) for l in indexLiterals]
         self.mini_repository.modifyFreeTextIndex(
             name,
             predicates=predicates,
+            graphs=graphs,
+            types=types,
             indexLiterals=indexLiterals,
             indexResources=indexResources,
             indexFields=indexFields,
@@ -2412,6 +2442,11 @@ class RepositoryConnection:
         """
         value = self.mini_repository.getFreeTextIndexConfiguration(name)
         value["predicates"] = [URI(p) for p in value["predicates"]]
+        value["graphs"] = [
+            "default" if g in ["default", None] else URI(g)
+            for g in value.get("graphs", [])
+        ]
+        value["types"] = [URI(t) for t in value.get("types", [])]
         if isinstance(value["indexLiterals"], list):
             value["indexLiterals"] = [URI(l) for l in value["indexLiterals"]]
         return value

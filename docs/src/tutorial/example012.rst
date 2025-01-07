@@ -58,8 +58,6 @@ We can view the index configuration using the
 
    config = conn.getFreeTextIndexConfiguration("index1")
    for key, value in config.items():
-       if key == 'graphs' or key == 'types':
-           continue
        if isinstance(value, list):
            value = ', '.join(str(x) for x in value)
        print('{key}: {value}'.format(key=key, value=value))
@@ -68,6 +66,8 @@ We can view the index configuration using the
    :options: +ELLIPSIS +SORT
 
    tokenizer: default
+   graphs: 
+   types: 
    indexLiterals: True
    minimumWordSize: 3
    indexFields: object
