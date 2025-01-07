@@ -60,6 +60,8 @@ We can view the index configuration using the
    for key, value in config.items():
        if isinstance(value, list):
            value = ', '.join(str(x) for x in value)
+       elif key == 'graphs':
+           continue
        print('{key}: {value}'.format(key=key, value=value))
 
 .. testoutput:: example12
