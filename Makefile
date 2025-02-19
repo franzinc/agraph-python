@@ -88,9 +88,10 @@ set -eu; \
 rm -rf /build/recipe/output; \
 mkdir -p /build/recipe/output; \
 conda config --set anaconda_upload no; \
-mamba install --yes --channel conda-forge conda-build conda-verify; \
+conda install --yes python=3.11; \
+mamba install --yes --channel conda-forge conda-build=25.1.2 conda-verify=3.4.2; \
 conda build /build/recipe --output-folder /build/recipe/output"
-	@cp recipe/output/noarch/agraph-python-$(shell $(HATCH) version)-py_0.tar.bz2 dist/
+	@cp recipe/output/noarch/agraph-python-$(shell $(HATCH) version)-py_0.conda dist/
 
 prepush: $(HATCH) checkPort check-style
 	$(HATCH) run test:run
@@ -164,7 +165,7 @@ endif
 set -eu; \
 mamba install --yes anaconda-client; \
 anaconda login --username \"$${ANACONDA_USERNAME}\" --password \"$${ANACONDA_PASSWORD}\"; \
-anaconda upload --channel franzinc --user franzinc --label main /dist/agraph-python-$(shell $(HATCH) version)-py_0.tar.bz2"
+anaconda upload --channel franzinc --user franzinc --label main /dist/agraph-python-$(shell $(HATCH) version)-py_0.conda"
 
 tags: FORCE
 	etags `find . -name '*.py'`
