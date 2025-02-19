@@ -131,7 +131,9 @@ publish-jupyter: jupyter
 verify-not-dev:
 	python version.py verify-not-dev
 
-publish: verify-not-dev publish-pypi publish-anaconda
+publish: verify-not-dev publish-pypi publish-anaconda publish-ftp
+
+publish-ftp: build-sdist
 	cp dist/agraph_python-$(shell $(HATCH) version).tar.gz CHANGES.rst /fi/ftp/pub/agraph/python-client/
 	@echo "CHANGES.rst and sdist haven been uploaded to the internal FTP server."
 
