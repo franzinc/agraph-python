@@ -30,7 +30,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "requests[socks]==2.32.3",
+  "requests[socks]==2.32.4",
   "iso8601>=2.1.0,<2.2.0",
   "pandas>=2.0.0,<3.0.0",
 ]
