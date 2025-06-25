@@ -11,7 +11,7 @@ authors = [
   {name = "Franz Inc.", email = "support@franz.com"}
 ]
 license = {file = "LICENSE"}
-requires-python = ">=3.8,<3.13"
+requires-python = ">=3.8,<3.14"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -25,6 +25,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Database",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -64,7 +65,7 @@ features = ["test"]
 env-include = ["AGRAPH*"]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
 
 [tool.hatch.envs.test.env-vars]
 AG_RUN_SSL_TEST = "y"

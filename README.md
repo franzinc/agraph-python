@@ -14,7 +14,7 @@ make it easier and more intuitive than the RDF4J API.
 
 ## Requirements
 
-Python versions `>=3.8,<=3.12` are supported. The installation method described
+Python versions `>=3.8,<=3.13` are supported. The installation method described
 here uses the pip package manager. On some systems this might require installing
 an additional package (e.g. `python-pip` on RHEL/CentOS systems). All
 third-party libraries used by the Python client will be downloaded automatically
@@ -79,7 +79,7 @@ from franz.openrdf.connect import ag_connect
                     user='USER', password='PASS') as conn:
     print (conn.size())
 ```
-    
+
 Substitute appropriate values for the HOST/PORT/USER/PASS placeholders. If the
 script runs successfully a new repository named `repo` will be created.
 
