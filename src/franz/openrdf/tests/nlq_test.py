@@ -56,27 +56,16 @@ if "OPENAI_API_KEY" in os.environ:
     )
     vdb_conn.convert_to_vector_store(EMBEDDER, api_key=API_KEY, model=EMBEDDING_MODEL)
 
-    # create a linking repo (just connect if it already exists)
-    connect_conn = ag_connect(
-        "nlq-to-store-relationship", user=USER, password=PASSWORD, host=HOST, port=PORT
+    # register NLQ VDB
+    requests.put(
+        f"http://{USER}:{PASSWORD}@{HOST}:{PORT}/repositories/test/nlq-vdbs",
+        params={"vdb-spec": "test_vdb"},
     )
-
-    # add linking data
-    connect_conn.executeUpdate(
-        """
-        insert data {
-            <http://franz.com/test_example> <http://franz.com/vdb/gen/catalog> "/" ;
-            <http://franz.com/vdb/gen/repository> "test" ;
-            <http://franz.com/vdb/gen/nlq-vdb> "test_vdb" . }
-        """
-    )
-    connect_conn.deleteDuplicates(mode="spo")
 
     # get shacl data
-    url = (
+    response = requests.get(
         f"http://{USER}:{PASSWORD}@{HOST}:{PORT}/repositories/test/data-generator/shacl"
     )
-    response = requests.get(url)
 
     # add shacl data to conn
     conn.addData(response.json())
@@ -87,7 +76,7 @@ if "OPENAI_API_KEY" in os.environ:
 
 #######END SETUP OF NLQ VDB CONNECTIONS########
 
-pytestmark = min_version(8, 3)
+pytestmark = min_version(8, 5)
 
 
 @pytest.fixture
