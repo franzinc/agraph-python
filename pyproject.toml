@@ -11,7 +11,7 @@ authors = [
   {name = "Franz Inc.", email = "support@franz.com"}
 ]
 license = {file = "LICENSE"}
-requires-python = ">=3.8,<3.14"
+requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -20,8 +20,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -37,10 +35,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [ "mcp~=1.24.0" ]
 test = ["packaging>=23.2.0,<23.3.0","pytest~=7.0.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0"]
 style = ["isort~=5.11.0","black~=23.3.0"]
 docs = ["sphinxcontrib-jupyter~=0.5.0"] # for building docs
-dev = ["agraph-python[test,style,docs]","ipython~=7.34.0"]
+dev = ["agraph-python[mcp,test,style,docs]","ipython~=7.34.0"]
 
 [project.urls]
 homepage = "https://github.com/franzinc/agraph-python"
@@ -58,14 +57,14 @@ packages = ["src/franz"]
 only-include = ["src/franz"]
 
 [tool.hatch.envs.default]
-python = "3.8"
+python = "3.10"
 
 [tool.hatch.envs.test]
 features = ["test"]
 env-include = ["AGRAPH*"]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+python = ["3.10", "3.11", "3.12", "3.13"]
 
 [tool.hatch.envs.test.env-vars]
 AG_RUN_SSL_TEST = "y"
@@ -119,13 +118,27 @@ exclude = [
   "**/_pycache__",
   ".venv/",
 ]
-root = "src"
+executionEnvironments = [
+    { root = "src" }
+]
 reportMissingImports = true
 reportMissingTypeStubs = false
 venvPath = "."
 venv = ".venv"
 pythonPlatform = "All"
 verboseOutput = true
+
+[tool.ty.environment]
+python-platform = "all"
+root = [ "./src" ]
+
+[tool.ty.src]
+include = ["./src"]
+exclude = [
+  "**/node_modules",
+  "**/_pycache__",
+  ".venv/",
+]
 
 [tool.isort]
 atomic = true
@@ -137,7 +150,7 @@ line_length = 88
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py310']
 include = '\.pyi?$'
 extend-exclude = '''
 (
