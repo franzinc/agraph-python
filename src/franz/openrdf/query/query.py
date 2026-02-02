@@ -405,7 +405,9 @@ class UpdateQuery(Query):
         """
         Execute the embedded update against the RDF store.
 
-        :return: ``True`` if the query changed the store, ``False`` otherwise.
+        :return: ``True`` if the query was considered a ``success`` as described
+                 in https://www.w3.org/TR/2013/REC-sparql11-update-20130321/
+                 or ``False`` if the result was considered a ``failure``.
         :rtype: bool
         """
         return self.evaluate_generic_query(update=True)
