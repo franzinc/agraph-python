@@ -11,6 +11,7 @@ import copy
 import csv
 import string
 import sys
+import typing
 import warnings
 from collections import OrderedDict, namedtuple
 from contextlib import contextmanager
@@ -1844,31 +1845,58 @@ class RepositoryConnection:
     ## Server-side implementation of namespaces
     #############################################################################################
 
-    def getNamespaces(self):
+    def getNamespaces(
+        self, scope: typing.Literal["user", "repository", "default", "any"] = "user"
+    ) -> dict[str, str]:
         """
         Get all declared prefix/namespace pairs.
 
         The result is a dictionary mapping prefixes to namespace URIs.
 
+        :param scope: Scope of the namespace declaration. Possible values are
+            ``"user"`` (default), ``"repository"``, and ``"default"``.
+            Additionally, "any" can be specified to return all namespaces.
+        :type scope: string
         :return: A dictionary of namespaces.
         :rtype: dict[string,string]
         """
+        if scope not in ("user", "repository", "default", "any"):
+            raise ValueError(
+                'Scope of the namespace declaration must be "user", "repository", "default" or "any"'
+            )
+
         namespaces = {}
-        for pair in self._get_mini_repository().listNamespaces():
+        for pair in self._get_mini_repository().listNamespaces(scope):
             namespaces[pair["prefix"]] = pair["namespace"]
         return namespaces
 
-    def getNamespace(self, prefix):
+    def getNamespace(
+        self,
+        prefix: str,
+        scope: typing.Literal["user", "repository", "default"] = "user",
+    ) -> str:
         """
         Get the namespace that is associated with the specified prefix, if any.
 
         :param prefix: Namespace prefix.
+        :param scope: Scope of the namespace declaration. Possible values are
+            ``"user"`` (default), ``"repository"``, and ``"default"``.
+        :type scope: string
         :return: Namespace URI.
         :raises RequestError: if there is no namespace with given prefix.
         """
-        return self._get_mini_repository().getNamespace(prefix)
+        if scope not in ("user", "repository", "default"):
+            raise ValueError(
+                'Scope of the namespace declaration must be "user", "repository" or "default"'
+            )
+        return self._get_mini_repository().getNamespace(prefix, scope)
 
-    def setNamespace(self, prefix, name):
+    def setNamespace(
+        self,
+        prefix: str,
+        name: str,
+        scope: typing.Literal["user", "repository", "default"] = "user",
+    ) -> None:
         """
         Define or redefine a namespace mapping in the repository.
 
@@ -1876,28 +1904,58 @@ class RepositoryConnection:
         :type prefix: string
         :param name: Namespace URI.
         :type name: string
+        :param scope: Scope of the namespace declaration. Possible values are
+            ``"user"`` (default), ``"repository"``, and ``"default"``.
+        :type scope: string
         """
-        self._get_mini_repository().addNamespace(prefix, name)
+        if scope not in ("user", "repository", "default"):
+            raise ValueError(
+                'Scope of the namespace declaration must be "user", "repository" or "default"'
+            )
+        self._get_mini_repository().addNamespace(prefix, name, scope)
 
-    def removeNamespace(self, prefix):
+    def removeNamespace(
+        self,
+        prefix: str,
+        scope: typing.Literal["user", "repository", "default"] = "user",
+    ) -> None:
         """
         Remove a namespace declaration by removing the association between a
         prefix and a namespace name.
 
         :param prefix: Namespace prefix.
         :type prefix: string
+        :param scope: Scope of the namespace declaration. Possible values are
+            ``"user"`` (default), ``"repository"``, and ``"default"``.
+        :type scope: string
         """
-        self._get_mini_repository().deleteNamespace(prefix)
+        if scope not in ("user", "repository", "default"):
+            raise ValueError(
+                'Scope of the namespace declaration must be "user", "repository" or "default"'
+            )
+        self._get_mini_repository().deleteNamespace(prefix, scope)
 
-    def clearNamespaces(self, reset=True):
+    def clearNamespaces(
+        self,
+        scope: typing.Literal["user", "repository", "default"] = "user",
+        reset: bool = True,
+    ) -> None:
         """
-        Delete all namespaces in this repository for the current user.
+        Deletes all namespaces of the specified type.
 
-        :param reset: If ``True`` (default) the user's namespaces are reset
-                      to the default set of namespaces, otherwise all namespaces
-                      are cleared.
+        :param scope: Scope of the namespace declaration. Possible values are
+            ``"user"`` (default), ``"repository"``, and ``"default"``.
+        :type scope: string
+        :param reset: If specified and true, all namespaces on the specified level are removed,
+            unshadowing the definitions on the previous level. The definitions on the default
+            level are reset to the default namespaces.
+        :type reset: bool
         """
-        self._get_mini_repository().clearNamespaces(reset)
+        if scope not in ("user", "repository", "default"):
+            raise ValueError(
+                'Scope of the namespace declaration must be "user", "repository" or "default"'
+            )
+        self._get_mini_repository().clearNamespaces(scope, reset)
 
     #############################################################################################
     ## Server-side implementation of query options

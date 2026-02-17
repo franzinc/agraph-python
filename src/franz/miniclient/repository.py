@@ -959,27 +959,35 @@ class Repository(Service):
         """Add an RDF type for free-text indexing."""
         nullRequest(self, "POST", "/freetext/types", urlenc(graph=graph))
 
-    def clearNamespaces(self, reset=True):
+    def clearNamespaces(self, type="user", reset=True):
         """
         Deletes all namespaces in this repository for the current user. If a
         `reset` argument of `True` is passed, the user's namespaces are reset
         to the default set of namespaces, otherwise all namespaces are cleared.
         """
-        nullRequest(self, "DELETE", "/namespaces?" + urlenc(reset=reset))
+        nullRequest(self, "DELETE", "/namespaces?" + urlenc(type=type, reset=reset))
 
-    def addNamespace(self, prefix, uri):
+    def addNamespace(self, prefix, uri, type="user"):
         nullRequest(
-            self, "PUT", "/namespaces/" + quote(prefix), uri, content_type="text/plain"
+            self,
+            "PUT",
+            "/namespaces/" + quote(prefix) + "?" + urlenc(type=type),
+            uri,
+            content_type="text/plain",
         )
 
-    def deleteNamespace(self, prefix):
-        nullRequest(self, "DELETE", "/namespaces/" + quote(prefix))
+    def deleteNamespace(self, prefix, type="user"):
+        nullRequest(
+            self, "DELETE", "/namespaces/" + quote(prefix) + "?" + urlenc(type=type)
+        )
 
-    def listNamespaces(self):
-        return jsonRequest(self, "GET", "/namespaces")
+    def listNamespaces(self, type="user"):
+        return jsonRequest(self, "GET", "/namespaces" + "?" + urlenc(type=type))
 
-    def getNamespace(self, prefix):
-        return jsonRequest(self, "GET", "/namespaces/" + quote(prefix))
+    def getNamespace(self, prefix, type="user"):
+        return jsonRequest(
+            self, "GET", "/namespaces/" + quote(prefix) + "?" + urlenc(type=type)
+        )
 
     def clearQueryOptions(self):
         """
