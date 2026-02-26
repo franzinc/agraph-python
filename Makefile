@@ -59,6 +59,7 @@ export NO_COLOR=1 # Disable color output, so it looks cleaner in Jenkins
 export HATCH_PYTHON_VARIANT_LINUX=v1
 
 $(HATCH): $(PYTHON)
+	$(PYTHON) -m pip install --quiet --no-cache "virtualenv<21"
 	$(PYTHON) -m pip install --quiet --no-cache hatch==$(HATCH_VERSION)
 	mkdir -p .hatch/data .hatch/cache
 
