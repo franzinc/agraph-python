@@ -1847,7 +1847,7 @@ class RepositoryConnection:
 
     def getNamespaces(
         self, scope: typing.Literal["user", "repository", "default", "any"] = "user"
-    ) -> dict[str, str]:
+    ) -> typing.Dict[str, str]:
         """
         Get all declared prefix/namespace pairs.
 
