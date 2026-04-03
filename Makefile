@@ -1,5 +1,5 @@
 # Conda scripts require Bash
-SHELL = /bin/bash
+SHELL := $(shell command -v bash)
 
 CONDA_CHANNEL=conda-forge
 CONDA_OPTS ?= --channel $(CONDA_CHANNEL) --insecure
@@ -35,8 +35,8 @@ endif
 # $(PYTHON_DIST_PYTHON_VERSION) MAY be considered to be upgraded, only if the current version is end-of-life
 # A list of actively supported Python versions can be found here: https://endoflife.date/python
 # If you are upgrading it, please be careful with the following:
-# - does it support glic>=2.17? Current yes.
-# - what version of OpenSSL does it use? Currently OpenSSL 3.0.12
+# - does it support glic>=2.28? Current yes.
+# - what version of OpenSSL does it use? Currently OpenSSL 3.5.5
 # - See here for more details: https://gregoryszorc.com/docs/python-build-standalone/main/
 PYTHON_DIST_TIMESTAMP=20260127
 PYTHON_DIST_PYTHON_VERSION=3.10.19
@@ -47,7 +47,7 @@ $(PYTHON):
 	@mkdir -p python
 	@curl -L https://github.com/indygreg/python-build-standalone/releases/download/$(PYTHON_DIST_TIMESTAMP)/cpython-$(PYTHON_DIST_PYTHON_VERSION)+$(PYTHON_DIST_TIMESTAMP)-$(PYTHON_DIST_MACHINE_ARCH)-install_only.tar.gz | tar xz
 
-HATCH_VERSION=1.9.4
+HATCH_VERSION=1.16.0
 HATCH=python/bin/hatch
 export HATCH_INTERACTIVE=false
 export HATCH_DATA_DIR=$(shell pwd)/.hatch/data
@@ -55,12 +55,12 @@ export HATCH_CACHE_DIR=$(shell pwd)/.hatch/cache
 export HATCH_BUILD_CLEAN=true
 export NO_COLOR=1 # Disable color output, so it looks cleaner in Jenkins
 # Use the most portable variant of Python distributions
-# More details: https://hatch.pypa.io/1.9/plugins/environment/virtual/#cpython
+# More details: https://hatch.pypa.io/1.13/plugins/environment/virtual/#cpython
 export HATCH_PYTHON_VARIANT_LINUX=v1
 
 $(HATCH): $(PYTHON)
 	$(PYTHON) -m pip install --quiet --no-cache "virtualenv<21"
-	$(PYTHON) -m pip install --quiet --no-cache hatch==$(HATCH_VERSION)
+	$(PYTHON) -m pip install --quiet --no-cache hatch~=$(HATCH_VERSION)
 	mkdir -p .hatch/data .hatch/cache
 
 .DEFAULT: build
