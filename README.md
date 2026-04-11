@@ -14,7 +14,7 @@ make it easier and more intuitive than the RDF4J API.
 
 ## Requirements
 
-Python versions `>=3.8,<=3.13` are supported. The installation method described
+Python versions `>=3.10,<=3.14` are supported. The installation method described
 here uses the pip package manager. On some systems this might require installing
 an additional package (e.g. `python-pip` on RHEL/CentOS systems). All
 third-party libraries used by the Python client will be downloaded automatically

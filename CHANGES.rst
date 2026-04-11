@@ -2,6 +2,36 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 104.4.0
+===============
+
+From this release, we have dropped the support of Python 3.8 and 3.9 which are
+now past their end-of-life dates and no longer receive security updates. The
+minimum required version of Python is now ``3.10``.
+
+MCP Server Module
+-----------------
+
+Added a new MCP (Model Context Protocol) server module that exposes
+AllegroGraph RDF database functionality to Claude and other AI applications.
+The module can be installed as an optional dependency:
+
+.. code-block:: bash
+
+   pip install "agraph-python[mcp]"
+
+Support for Specifying Namespace Types
+--------------------------------------
+
+Added support for specifying namespace types when managing namespaces.
+The ``addNamespace()`` and related methods on ``RepositoryConnection``
+now accept an optional ``namespace_type`` parameter.
+
+Update `requests` to 2.33.0
+----------------------------
+
+The `requests` package dependency has been upgraded to `2.33.0`.
+
 Release 104.3.0
 ===============
 
