@@ -163,6 +163,48 @@ def nullRequest(
         raise RequestError(status, body)
 
 
+def textRequest(
+    obj,
+    method,
+    url,
+    body=None,
+    content_type="application/x-www-form-urlencoded",
+    content_encoding=None,
+):
+    """
+    Create a request that expects a text body in response
+
+    Raise an exception if the returned status is not in the 2XX range.
+
+    :param obj: Service object with connection information (e.g. credentials).
+    :type obj: franz.openrdf.miniclient.repository.Service
+    :param method: Request method (``"GET"``, ``"POST"``, ...).
+    :type method: string
+    :param url: Target address
+    :type url: string
+    :param body: Request body (for PUT/POST requests) or query string, optional.
+    :type body: str|bytes|file
+    :param content_type: MIME type of the request body, optional.
+    :type content_type: string
+    """
+    headers = None
+    if content_encoding is not None:
+        headers = ["Content-Encoding: " + content_encoding]
+    status, body = makeRequest(
+        obj,
+        method,
+        url,
+        body,
+        "text/plain",
+        content_type,
+        headers=merge_headers(obj.getHeaders(), headers),
+    )
+    if status < 200 or status > 204:
+        raise RequestError(status, body)
+
+    return body
+
+
 if sys.version_info[0] == 2:
     # Workaround for a bug in python-future
     def ibytes(x):

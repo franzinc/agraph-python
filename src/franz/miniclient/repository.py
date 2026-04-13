@@ -23,6 +23,7 @@ from franz.miniclient.request import (
     locationRequest,
     nullRequest,
     serialize,
+    textRequest,
     urlenc,
 )
 from franz.openrdf.model.value import URI
@@ -175,24 +176,26 @@ class Catalog(Service):
         api_key="",
         model="",
         dimensions=None,
+        compact_embeddings=False,
     ):
         """Ask the server to create a new repository."""
 
-        nullRequest(
-            self,
-            "PUT",
-            "/repositories/"
-            + quote(name)
-            + "?"
-            + urlenc(
-                index=indices,
-                vector__store__p=vector_store,
-                embedder=embedder,
-                embedding__api__key=api_key,
-                model=model,
-                dimensions=dimensions,
-            ),
-        )
+        params = {
+            "index": indices,
+            "vector__store__p": vector_store,
+            "embedder": embedder,
+            "embedding__api__key": api_key,
+            "model": model,
+            "dimensions": dimensions,
+        }
+
+        # this parameter is supported in >= v8.5.1 but can't
+        # be passed to earlier versions
+
+        if compact_embeddings:
+            params["compact__embeddings"] = compact_embeddings
+
+        nullRequest(self, "PUT", f"/repositories/{quote(name)}?{urlenc(**params)}")
         return self.getRepository(name)
 
     def deleteRepository(self, name):
@@ -482,6 +485,18 @@ class Client(Service):
             self, "GET", "/users/%s/data/" % quote(self.user, safe="")
         )
         return [entry["id"] for entry in entries]
+
+    def defineFedshards(self, definitions="", file=None, supersede=False):
+        if file:
+            definitions = get_file_contents(file)
+
+        return jsonRequest(
+            self, "PUT", f"/fedshard/define?supersede={supersede}", definitions
+        )
+
+    def deleteFedshardDefinition(self, repo):
+        retval = jsonRequest(self, "DELETE", f"/fedshard/define?{urlenc(repo=repo)}")
+        return retval
 
 
 class Repository(Service):
@@ -1840,6 +1855,9 @@ class Repository(Service):
             "/object-embedding?" + urlenc(object__id=uri_to_string(object_id)),
         )
 
+    def isVectorStore(self):
+        return jsonRequest(self, "GET", "/vector-store-p")
+
     def execute_nl_query(
         self,
         prompt: str,
@@ -1891,6 +1909,149 @@ class Repository(Service):
             return jsonRequest(
                 self, "GET", "/nl-queries?" + urlenc(offset=offset, limit=limit)
             )
+
+    def splitFedshard(self, fromshard, toservers):
+        """
+        toservers has the form:  [1 2 3 4]
+
+        """
+        return jsonRequest(
+            self,
+            "PUT",
+            self.url
+            + "/split-shard?"
+            + urlenc(
+                shard__number=fromshard, to__servers=to_integer_sequence(toservers)
+            ),
+        )
+
+    def llm_index(self, definition, file):
+        if file:
+            definition = get_file_contents(file)
+
+        return jsonRequest(self, "PUT", self.url + "/llm-index", definition)
+
+    def update_index(self, sync=False):
+        return jsonRequest(self, "PUT", self.url + "/update-index?" + urlenc(sync=sync))
+
+    def create_MMR_cluster(
+        self, host, port, instanceName, user, password, scheme, ifExists
+    ):
+        return jsonRequest(
+            self,
+            "PUT",
+            self.url
+            + "/repl/createCluster?"
+            + urlenc(
+                host=host,
+                port=port,
+                instanceName=instanceName,
+                user=user,
+                password=password,
+                scheme=scheme,
+                ifExists=ifExists,
+            ),
+        )
+
+    def grow_MMR_cluster(
+        self, scheme, host, port, name, catalog, user, password, instanceName
+    ):
+        return textRequest(
+            self,
+            "PUT",
+            self.url
+            + "/repl/growCluster?"
+            + urlenc(
+                scheme=scheme,
+                host=host,
+                port=port,
+                name=name,
+                catalog=catalog,
+                user=user,
+                password=password,
+                instanceName=instanceName,
+            ),
+        )
+
+    def stop_MMR_instance(self, timeout, force, instanceName, undo_repl):
+        return textRequest(
+            self,
+            "PUT",
+            self.url
+            + "/repl/stop?"
+            + urlenc(
+                timeout=timeout,
+                force=force,
+                instanceName=instanceName,
+                undo__repl=undo_repl,
+            ),
+        )
+
+    def start_MMR_instance(self, instanceName):
+        return textRequest(
+            self, "PUT", self.url + "/repl/start?" + urlenc(instanceName=instanceName)
+        )
+
+    def remove_MMR_instance(self, instanceName, timeout, force, undo_repl):
+        return textRequest(
+            self,
+            "PUT",
+            self.url
+            + "/repl/remove?"
+            + urlenc(
+                instanceName=instanceName,
+                timeout=timeout,
+                force=force,
+                undo__repl=undo_repl,
+            ),
+        )
+
+    def set_MMR_controlling_instance(self, instanceName, force):
+        return textRequest(
+            self,
+            "PUT",
+            self.url
+            + "/repl/controllingInstance?"
+            + urlenc(instanceName=instanceName, force=force),
+        )
+
+    def get_MMR_status(self, form, if_after, hide):
+        if form == "json":
+            return jsonRequest(
+                self,
+                "GET",
+                self.url
+                + "/repl/status?"
+                + urlenc(form=form, if__after=if_after, hide=hide),
+            )
+
+        return textRequest(
+            self,
+            "GET",
+            self.url
+            + "/repl/status?"
+            + urlenc(form=form, if__after=if_after, hide=hide),
+        )
+
+    def set_MMR_parameters(
+        self,
+        transactionLatencyCount,
+        distributedTransactionTimeout,
+        durability,
+        transactionLatencyTimeout,
+    ):
+        return textRequest(
+            self,
+            "POST",
+            self.url
+            + "/repl/settings?"
+            + urlenc(
+                transactionLatencyCount=transactionLatencyCount,
+                distributedTransactionTimeout=distributedTransactionTimeout,
+                durability=durability,
+                transactionLatencyTimeout=transactionLatencyTimeout,
+            ),
+        )
 
 
 def uri_to_string(uri):
@@ -1963,3 +2124,23 @@ def fix_json_ld_context(context):
     if not isinstance(context, dict) or "@context" not in context:
         context = {"@context": context}
     return encode_json(context)
+
+
+def get_file_contents(file_path):
+    with open(file_path, "r", encoding="utf-8") as file:
+        return file.read()
+
+
+def to_integer_sequence(py_list):
+    """
+    Converts a Python list of numbers
+    to a string like "1 2 3 4".
+    An empty string returned is ok.
+    """
+    if not isinstance(py_list, list):
+        # If it's a string, we might want to keep it as is,
+        # or wrap in quotes if it's a LISP string.
+        return str(py_list)
+
+    # Recursively process elements and join them with spaces
+    return f"{' '.join([str(item) for item in py_list])}"

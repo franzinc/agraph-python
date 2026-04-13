@@ -3340,6 +3340,12 @@ class RepositoryConnection:
         """
         return self._get_mini_repository().object_embedding(object_id)
 
+    def is_vector_store(self):
+        """
+        Return true if the connection is to a vector store.
+        """
+        return self._get_mini_repository().isVectorStore()
+
     def execute_nl_query(
         self,
         prompt: str,
@@ -3395,6 +3401,122 @@ class RepositoryConnection:
             neighbor_search=neighbor_search,
             neighbor_search_limit=neighbor_search_limit,
             neighbor_search_min_score=neighbor_search_min_score,
+        )
+
+    def splitFedshard(self, fromshard, toservers=[]):
+        return self._get_mini_repository().splitFedshard(fromshard, toservers)
+
+    def llm_index(self, definition=None, file=None):
+        return self._get_mini_repository().llm_index(definition, file)
+
+    def update_index(self, sync=False):
+        return self._get_mini_repository().update_index(sync)
+
+    ## mmr/repl
+
+    def create_MMR_cluster(
+        self,
+        host="127.1",
+        port=10035,
+        instanceName=None,
+        user="",
+        password="",
+        scheme="http",
+        ifExists="supersede",
+    ):
+        """
+        Convert the repository to a cluster instance.
+        """
+        return self._get_mini_repository().create_MMR_cluster(
+            host, port, instanceName, user, password, scheme, ifExists
+        )
+
+    def grow_MMR_cluster(
+        self,
+        host,
+        port,
+        name,
+        user,
+        password,
+        catalog=None,
+        scheme="http",
+        instanceName=None,
+    ):
+        """
+        Duplicate this repository to create a new instance of
+        the cluster.
+        """
+        return self._get_mini_repository().grow_MMR_cluster(
+            scheme, host, port, name, catalog, user, password, instanceName
+        )
+
+    def stop_MMR_instance(
+        self, timeout=180, force=False, instanceName=None, undo_repl=False
+    ):
+        """
+        Stop the instance named instanceName from receiving updates from
+        other instances but keep it associated with the cluster
+        so it can rejoin.
+        Only the controlling instance can stop an instance.
+        """
+        return self._get_mini_repository().stop_MMR_instance(
+            timeout, force, instanceName, undo_repl
+        )
+
+    def start_MMR_instance(self, instanceName=None):
+        """
+        Start the instance named instanceName which was previously stopped.
+        Only the controlling instance can start an instance.
+        """
+        return self._get_mini_repository().start_MMR_instance(instanceName)
+
+    def remove_MMR_instance(
+        self, instanceName, timeout=180, force=False, undo_repl=False
+    ):
+        """
+        If the instance named instanceName is running stop
+        it first and then remove it from the cluster.
+        It can't rejoin after removal.
+        Only the controlling instance can remove an instance.
+        """
+        return self._get_mini_repository().remove_MMR_instance(
+            instanceName, timeout, force, undo_repl
+        )
+
+    def set_MMR_controlling_instance(self, instanceName, force=False):
+        """
+        Make the instance named instanceName be the controlling
+        instance.  Only the controlling instance can specify
+        a new instance to be the controlling instance.  If the
+        force argument is true then any instance can specify
+        the instance to become the controlling instance
+        """
+        return self._get_mini_repository().set_MMR_controlling_instance(
+            instanceName, force
+        )
+
+    def get_MMR_status(self, form="text", if_after=0, hide=False):
+        """
+        Return the status of the cluster.  The form can be "text"
+        or "json"
+        """
+        return self._get_mini_repository().get_MMR_status(form, if_after, hide)
+
+    def set_MMR_parameters(
+        self,
+        transactionLatencyCount=None,
+        distributedTransactionTimeout=None,
+        durability=None,
+        transactionLatencyTimeout=None,
+    ):
+        """
+        Set the parameters that control the behavior of the cluster
+        """
+        return self._get_mini_repository().set_MMR_parameters(
+            transactionLatencyCount,
+            distributedTransactionTimeout,
+            durability,
+            transactionLatencyTimeout,
         )
 
 

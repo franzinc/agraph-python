@@ -198,6 +198,7 @@ maintain, search, and delete triple stores.
    ~RepositoryConnection.warmup
 
    ~RepositoryConnection.add_commit_size
+   ~RepositoryConnection.splitFedshard
 
 GraphTalker
 ~~~~~~~~~~~
@@ -228,6 +229,10 @@ These methods operation on vector triple stores
    ~RepositoryConnection.object_property_value
    ~RepositoryConnection.object_text
    ~RepositoryConnection.remove_objects
+   ~RepositoryConnection.is_vector_store
+   ~RepositoryConnection.llm_index
+   ~RepositoryConnection.update_index
+
 
 Triple Index Methods
 ~~~~~~~~~~~~~~~~~~~~
@@ -265,6 +270,25 @@ Note that text search is implemented through a SPARQL query using a
 "magic" predicate called ``fti:search``. See the :doc:`AllegroGraph
 Python API Tutorial <tutorial>` for an example of how to set up this
 search.
+
+
+Multi-Master Methods
+~~~~~~~~~~~~~~~~~~~~
+
+These |RepositoryConnection| methods support the creation manipulation
+of  Multi-Master Repository clusters
+
+.. extautosummary::
+   :nosignatures: 
+
+   ~RepositoryConnection.create_MMR_cluster
+   ~RepositoryConnection.grow_MMR_cluster
+   ~RepositoryConnection.stop_MMR_instance
+   ~RepositoryConnection.start_MMR_instance
+   ~RepositoryConnection.remove_MMR_instance
+   ~RepositoryConnection.set_MMR_controlling_instance
+   ~RepositoryConnection.get_MMR_status
+   ~RepositoryConnection.set_MMR_parameters
 
 Prolog Rule Inference Methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

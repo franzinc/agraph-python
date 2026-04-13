@@ -9,11 +9,13 @@ import pytest
 
 from franz.openrdf.connect import AllegroGraphServer, Repository, ag_connect
 from franz.openrdf.exceptions import RequestError
+from franz.openrdf.rio.rdfformat import RDFFormat
 from franz.openrdf.tests.conftest import min_version
 
 # vector dbs started in ag 8.0
 # but much more working in 8.3 and some of
 # these tests won't work in versions earlier than 8.3
+# compact_embeddings param supported in 9.0
 pytestmark = min_version(8, 3)
 
 
@@ -185,6 +187,9 @@ def test_ag_connect(server):
         embedder="demo",
         dimensions=700,
     )
+
+    assert conn.is_vector_store()
+
     conn.remove_objects(all=True)
     size1 = conn.size()
 
@@ -205,7 +210,7 @@ def test_ag_connect(server):
 def test_add_objects_normal_repo(server, repo_catalog):
     # try to add an object to a normal repo
     # this will fail
-    name = "normal-repo"
+    name = "compact-embeddings"
     catalog = server.openCatalog(repo_catalog)
     repo = catalog.createRepository(name=name)
 
@@ -213,3 +218,117 @@ def test_add_objects_normal_repo(server, repo_catalog):
 
     with pytest.raises(RequestError):
         conn.add_objects("foo")
+
+
+@min_version(9, 0)
+def test_ag_connect_compact(server):
+    #
+    # verify that ag_connect can be used to create
+    # a vector database
+    #
+
+    name = "vdb-ag-con"
+    catalog = "tests"
+
+    conn = ag_connect(
+        name,
+        catalog=catalog,
+        create=True,
+        host=os.environ.get("AGRAPH_HOST", "localhost"),
+        port=int(os.environ.get("AGRAPH_PORT", "10035")),
+        user=os.environ.get("AGRAPH_USER", "test"),
+        password=os.environ.get("AGRAPH_PASSWORD", "xyzzy"),
+        vector_store=True,
+        embedder="demo",
+        dimensions=700,
+        compact_embeddings=True,
+    )
+
+    assert conn.is_vector_store()
+
+    conn.remove_objects(all=True)
+    size1 = conn.size()
+
+    #
+    # if this is vector database the this add_objects
+    # will work
+    #
+    conn.add_objects("foo")
+    size2 = conn.size()
+
+    assert size2 > size1
+
+    conn.close()
+
+    server.openCatalog(catalog).deleteRepository(name)
+
+
+indexdef = """
+embed
+ embedder "demo"
+ vector-database-name *
+ include-predicates <urn:label> 
+ property fooprop fooval
+ property barprop barval
+"""
+
+
+def test_vector_index(server):
+    dbname = "vt-index-sample"
+
+    # this does not cause an exception if the repo does not exist
+    AllegroGraphServer(
+        host=os.environ.get("AGRAPH_HOST", "localhost"),
+        port=int(os.environ.get("AGRAPH_PORT", "10035")),
+        user=os.environ.get("AGRAPH_USER", "test"),
+        password=os.environ.get("AGRAPH_PASSWORD", "xyzzy"),
+    ).openCatalog().deleteRepository(dbname)
+
+    # it's not possible to create an empty repo with just the
+    # triples for the vector database in it if the repo already
+    # is populated.   clear=True removes the vector db triples
+    conn = ag_connect(
+        "vt-index-sample",
+        host=os.environ.get("AGRAPH_HOST", "localhost"),
+        port=int(os.environ.get("AGRAPH_PORT", "10035")),
+        user=os.environ.get("AGRAPH_USER", "test"),
+        password=os.environ.get("AGRAPH_PASSWORD", "xyzzy"),
+        create=True,
+        vector_store=True,
+        embedder="demo",
+    )
+
+    vsize = conn.size()  # get initial size
+
+    conn.addData(
+        """
+ <urn:a> <urn:label> "fred" .
+ <urn:b> <urn:label> "sam" .
+ <urn:c> <urn:label> "zach" .
+""",
+        RDFFormat.NTRIPLES,
+    )
+
+    assert vsize + 3 == conn.size()
+
+    assert "done" == conn.llm_index(indexdef)
+    assert vsize + 31 == conn.size()
+
+    conn.addData(
+        """
+ <urn:x> <urn:label> "mary" .
+ <urn:y> <urn:label> "jane" .
+""",
+        RDFFormat.NTRIPLES,
+    )
+
+    assert vsize + 33 == conn.size()
+
+    assert "2 items considered for update" == conn.update_index(True)
+    assert vsize + 47 == conn.size()
+
+    conn.removeTriples("<urn:b>", None, None)
+    assert vsize + 46 == conn.size()
+
+    print("update2: " + conn.update_index(True))
+    assert vsize + 39 == conn.size()

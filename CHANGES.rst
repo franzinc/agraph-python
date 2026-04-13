@@ -2,6 +2,28 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 105.1.0
+===============
+
+ Added methods for vector stores, fedshard definition, and MMR
+ cluster creation:
+
+      franz.openrdf.sail.AllegroGraphServer.defineFedshards()
+      franz.openrdf.sail.AllegroGraphServer.deleteFedshardDefinition()
+      franz.openrdf.repository.RepositoryConnection.is_vector_store()
+      franz.openrdf.repository.RepositoryConnection.splitFedshard()
+      franz.openrdf.repository.RepositoryConnection.llm_index()
+      franz.openrdf.repository.RepositoryConnection.update_index()
+      franz.openrdf.repository.RepositoryConnection.create_MMR_cluster()
+      franz.openrdf.repository.RepositoryConnection.grow_MMR_cluster()
+      franz.openrdf.repository.RepositoryConnection.stop_MMR_instance()
+      franz.openrdf.repository.RepositoryConnection.start_MMR_instance()
+      franz.openrdf.repository.RepositoryConnection.remove_MMR_instance()
+      franz.openrdf.repository.RepositoryConnection.set_MMR_controlling_instance()
+      franz.openrdf.repository.RepositoryConnection.get_MMR_status()
+      franz.openrdf.repository.RepositoryConnection.set_MMR_parameters()
+
+
 Release 105.0.0
 ===============
 

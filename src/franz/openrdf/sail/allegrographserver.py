@@ -662,6 +662,21 @@ class AllegroGraphServer:
         """
         self._client.deleteRoleSecurityFilter(role, _type, s, p, o, g)
 
+    def defineFedshards(self, definitions="", file=None, supersede=False):
+        """
+        Define one or more fedshards.
+        You can pass either a string containing the definitions or
+        a filename of a file containing the definitions.
+        """
+        return self._client.defineFedshards(definitions, file, supersede)
+
+    def deleteFedshardDefinition(self, repo):
+        """
+        Delete a fedshard definition but not the contents of the repositories
+        in the fedshard.   repo is a string naming a defined fedshard.
+        """
+        return self._client.deleteFedshardDefinition(repo)
+
 
 class Catalog:
     """
@@ -753,6 +768,7 @@ class Catalog:
         api_key="",
         model="",
         dimensions=None,
+        compact_embeddings=False,
     ):
         """
         Creates a new repository with the given name.
@@ -772,6 +788,8 @@ class Catalog:
         :type dimensions: integer
         :return: A repository object.
         :rtype: Repository
+        :param compact_embeddings: convert to smaller embeddings
+        :type compact_embeddings: boolean
         """
         return Repository(
             self,
@@ -784,5 +802,6 @@ class Catalog:
                 api_key=api_key,
                 model=model,
                 dimensions=dimensions,
+                compact_embeddings=compact_embeddings,
             ),
         )
