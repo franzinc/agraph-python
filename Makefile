@@ -150,23 +150,24 @@ endif
 
 publish-anaconda: build-bdist
 	@echo "Uploading bdist to Anaconda - franzinc channel ..."
-	@echo "The authentication is done through the ANACONDA_USERNAME and ANACONDA_PASSWORD environment variables."
-	@echo "The ANACONDA_USERNAME and ANACONDA_PASSWORD information should belong to someone with access to the franzinc channel."
-ifndef ANACONDA_USERNAME
-	$(error ANACONDA_USERNAME is not set)
-endif
-ifndef ANACONDA_PASSWORD
-	$(error ANACONDA_PASSWORD is not set)
+	@echo "The authentication is done through the ANACONDA_ACCESS_TOKEN environment variable."
+	@echo "The ANACONDA_ACCESS_TOKEN information should belong to someone with access to the franzinc channel."
+	@echo "The token can be created from either anaconda.org or the Anaconda CLI, and it needs two scopes: api:read and api:write"
+	@echo "For more information, visit: https://www.anaconda.com/docs/anaconda-platform/cloud/user/tokens:
+ifndef ANACONDA_ACCESS_TOKEN
+	$(error ANACONDA_ACCESS_TOKEN is not set)
 endif
 	@docker run --rm \
 		-v $(shell pwd)/dist:/dist \
-		--env ANACONDA_USERNAME="$(ANACONDA_USERNAME)" \
-		--env ANACONDA_PASSWORD="$(ANACONDA_PASSWORD)" \
+		--env ANACONDA_ACCESS_TOKEN="$(ANACONDA_ACCESS_TOKEN)" \
 		docker.io/condaforge/miniforge3 bash -c "\
 set -eu; \
 mamba install --yes anaconda-client; \
-anaconda login --username \"$${ANACONDA_USERNAME}\" --password \"$${ANACONDA_PASSWORD}\"; \
-anaconda upload --channel franzinc --user franzinc --label main /dist/agraph-python-$(shell $(HATCH) version)-py_0.conda"
+anaconda -t $${ANACONDA_ACCESS_TOKEN} upload \
+	--channel franzinc \
+	--user franzinc \
+	--label main \
+	/dist/agraph-python-$(shell $(HATCH) version)-py_0.conda"
 
 tags: FORCE
 	etags `find . -name '*.py'`
