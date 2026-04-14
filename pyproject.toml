@@ -67,10 +67,8 @@ env-include = ["AGRAPH*"]
 [[tool.hatch.envs.test.matrix]]
 python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
-[tool.hatch.envs.test.overrides.matrix.python]
-env-vars = [
-  {key = "AG_RUN_SSL_TEST", value = "y", if = ["3.10", "3.11", "3.12"]},
-]
+[tool.hatch.envs.test.env-vars]
+AG_RUN_SSL_TEST = "y"
 
 [tool.hatch.envs.test.scripts]
 run = "pytest"
