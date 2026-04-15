@@ -199,6 +199,20 @@ maintain, search, and delete triple stores.
 
    ~RepositoryConnection.add_commit_size
 
+GraphTalker
+~~~~~~~~~~~
+
+:meth:`~RepositoryConnection.startGraphTalker` starts an AI-powered
+GraphTalker process for this repository and returns a ready-to-use
+:class:`~franz.graphtalker.GraphTalkerClient`.  The process is
+managed by AllegroGraph and communicates through a proxy URL, so no
+separate connection setup is required.
+
+.. extautosummary::
+   :nosignatures:
+
+   ~RepositoryConnection.startGraphTalker
+
 Vector Repository Methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -581,6 +595,135 @@ convenience of users porting an application from Eclipse RDF4J.
    ~ValueFactory.createURI
 
 
+GraphTalkerClient class
+-----------------------
+
+.. currentmodule:: franz.graphtalker.client
+
+.. autoclass:: GraphTalkerClient
+   :noindex:
+
+   The recommended way to obtain a :class:`.GraphTalkerClient` is through
+   :meth:`~franz.openrdf.repository.repositoryconnection.RepositoryConnection.startGraphTalker`,
+   which starts the GraphTalker process and returns a pre-configured
+   client.  The client is a context manager, so it can be used in a
+   ``with`` statement — this ensures the server process is shut down
+   when the block exits:
+
+   .. code:: python
+
+      with repo.getConnection() as conn:
+          with conn.startGraphTalker() as client:
+              result = client.claude_query("What data is in this repository?")
+              print(result.answer)
+
+Setup
+~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.connect
+   ~GraphTalkerClient.test_connection
+   ~GraphTalkerClient.is_anthropic_key_set
+   ~GraphTalkerClient.set_anthropic_key
+   ~GraphTalkerClient.health_check
+   ~GraphTalkerClient.stop
+   ~GraphTalkerClient.close
+
+Querying
+~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.claude_query
+   ~GraphTalkerClient.claude_ask
+   ~GraphTalkerClient.generate_sparql
+   ~GraphTalkerClient.sparql_query
+   ~GraphTalkerClient.sparql_update
+   ~GraphTalkerClient.abort_query
+
+Configuration
+~~~~~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.set_model
+   ~GraphTalkerClient.set_api_key
+   ~GraphTalkerClient.set_prompt_caching
+   ~GraphTalkerClient.set_query_library
+   ~GraphTalkerClient.set_meta_schema_repository
+   ~GraphTalkerClient.set_repository
+   ~GraphTalkerClient.set_max_iterations
+   ~GraphTalkerClient.load_config
+   ~GraphTalkerClient.get_variable
+   ~GraphTalkerClient.set_variable
+
+Query Library
+~~~~~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.store_query
+   ~GraphTalkerClient.search_queries
+   ~GraphTalkerClient.list_all_queries
+   ~GraphTalkerClient.delete_query
+
+Visualizations
+~~~~~~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.get_pending_visualization
+   ~GraphTalkerClient.get_visualizations
+   ~GraphTalkerClient.store_visualization
+
+Conversation Management
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.clear_conversation
+   ~GraphTalkerClient.condense_conversation
+   ~GraphTalkerClient.start_conversation
+   ~GraphTalkerClient.show_conversation_history
+
+Session Management
+~~~~~~~~~~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.save_session
+   ~GraphTalkerClient.list_sessions
+   ~GraphTalkerClient.restore_session
+   ~GraphTalkerClient.delete_session
+
+Token Usage & Cost
+~~~~~~~~~~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.get_token_cost_stats
+   ~GraphTalkerClient.reset_context_stats
+
+Utilities
+~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.execute_tool
+   ~GraphTalkerClient.show_available_tools
+   ~GraphTalkerClient.eval
+
+
 .. Links
-   
+
 .. _AllegroGraph: http://franz.com/agraph/allegrograph/

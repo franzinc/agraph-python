@@ -20,6 +20,7 @@ from franz.miniclient.request import (
     deserialize,
     encode,
     jsonRequest,
+    locationRequest,
     nullRequest,
     serialize,
     urlenc,
@@ -46,6 +47,30 @@ def _split_proxy(proxy):
         return url.scheme.lower(), url.hostname, url.port
     else:
         return None, None, None
+
+
+def _parse_graphtalker_port(location):
+    """
+    Extract the GraphTalker port number from a redirect ``Location`` header.
+
+    AllegroGraph redirects to a path of the form ``/graphtalker/PORT/``,
+    where ``PORT`` is the TCP port the new GraphTalker process is listening on.
+
+    :param location: Value of the ``Location`` header, e.g. ``"/graphtalker/8080/"``.
+    :type location: string
+    :return: GraphTalker port number.
+    :rtype: int
+    :raises ValueError: If the location does not match the expected pattern.
+    """
+    import re
+
+    match = re.search(r"/graphtalker/(\d+)(?:/|$)", location)
+    if not match:
+        raise ValueError(
+            "Unexpected GraphTalker redirect location: %r "
+            "(expected a path like /graphtalker/PORT/)" % location
+        )
+    return int(match.group(1))
 
 
 class Service:
@@ -184,6 +209,19 @@ class Catalog(Service):
 class Client(Service):
     def getVersion(self):
         return jsonRequest(self, "GET", "/version")
+
+    def startGraphTalker(self):
+        """Start a server-level GraphTalker instance and return its port number.
+
+        Calls ``GET /graphtalker`` on the AllegroGraph server, which starts a
+        new GraphTalker process and responds with a redirect to
+        ``/graphtalker/PORT/``.  The port number is extracted and returned.
+
+        :return: TCP port the new GraphTalker process is listening on.
+        :rtype: int
+        """
+        location = locationRequest(self, "GET", "/graphtalker")
+        return _parse_graphtalker_port(location)
 
     def listCatalogs(self):
         return [
@@ -448,6 +486,20 @@ class Client(Service):
 
 class Repository(Service):
     sessionAlive = None
+
+    def startGraphTalker(self):
+        """Start a repository-level GraphTalker instance and return its port number.
+
+        Calls ``GET /graphtalker`` relative to this repository's URL, which
+        starts a new GraphTalker process pre-configured for this repository
+        and responds with a redirect to ``/graphtalker/PORT/``.  The port
+        number is extracted and returned.
+
+        :return: TCP port the new GraphTalker process is listening on.
+        :rtype: int
+        """
+        location = locationRequest(self, "GET", "/graphtalker")
+        return _parse_graphtalker_port(location)
 
     def getSize(self, context=None):
         """Returns the amount of triples in the repository."""

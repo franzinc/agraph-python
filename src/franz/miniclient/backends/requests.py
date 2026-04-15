@@ -23,7 +23,7 @@ from franz.openrdf.util.http import normalize_headers
 from franz.openrdf.util.strings import to_native_string
 
 # Public symbols
-__all__ = ["makeRequest"]
+__all__ = ["makeRequest", "redirectRequest"]
 
 # size of the buffer used to read responses
 BUFFER_SIZE = 4096
@@ -223,3 +223,50 @@ def makeRequest(
         else:
             # Note: no error callback in this case
             return response.status_code, to_native_string(response.content)
+
+
+def redirectRequest(obj, method, url):
+    """
+    Send a request that is expected to respond with an HTTP redirect and
+    return the value of the ``Location`` response header.
+
+    Unlike :func:`makeRequest`, this function does **not** follow redirects
+    automatically so that the caller can inspect the redirect destination.
+
+    :param obj: A service object containing auth and config information.
+    :type obj: franz.miniclient.repository.Service
+    :param method: Request method (``"GET"``, ``"POST"``, ...).
+    :type method: string
+    :param url: Target address (relative paths are resolved against ``obj.url``).
+    :type url: string
+    :return: The value of the ``Location`` header from the redirect response.
+    :rtype: string
+    :raises ValueError: If the server does not respond with a redirect.
+    :raises requests.HTTPError: If the server responds with a 4xx or 5xx status.
+    """
+    if obj.session is None:
+        obj.session = create_session(obj)
+        atexit.register(obj.session.close)
+
+    url = to_native_string(url)
+    if not url.startswith("http:") and not url.startswith("https:"):
+        url = to_native_string(obj.url) + to_native_string(url)
+
+    headers = normalize_headers(obj.getHeaders())
+    if obj.runAsName:
+        headers["x-masquerade-as-user"] = obj.runAsName
+
+    response = obj.session.request(method, url, headers=headers, allow_redirects=False)
+    with contextlib.closing(response):
+        if 300 <= response.status_code < 400:
+            location = response.headers.get("Location")
+            if location is None:
+                raise ValueError(
+                    "Server returned redirect status %d but no Location header"
+                    % response.status_code
+                )
+            return location
+        response.raise_for_status()
+        raise ValueError(
+            "Expected a redirect response but got HTTP %d" % response.status_code
+        )

@@ -43,8 +43,8 @@ class GraphTalkerClient:
     evaluate arbitrary Lisp expressions.
 
     Args:
-        host: Eval server hostname.
-        port: Eval server port.
+        host: Eval server hostname. Ignored when ``base_url`` is provided.
+        port: Eval server port. Ignored when ``base_url`` is provided.
         api_key: API key for authentication (None for no auth).
         timeout: Default request timeout in seconds.
         default_query_timeout: Default timeout for Claude query methods
@@ -54,10 +54,27 @@ class GraphTalkerClient:
         username: Optional username tag for session management.
             When set, save_session() and list_sessions() use this
             as the default owner/filter. Not a security boundary.
+        base_url: Full base URL for the GraphTalker eval server. When
+            provided it is used directly, overriding the ``http://host:port``
+            default.  Use this when connecting through an AllegroGraph proxy,
+            e.g. ``"http://ag-host:10035/graphtalker/8080"``.
+        auth: ``(username, password)`` tuple for HTTP Basic Auth.  Used when
+            connecting through an AllegroGraph proxy, which requires the same
+            credentials as the AG server itself.
 
-    Example::
+    Example — direct connection::
 
         client = GraphTalkerClient(port=8080, api_key="my-key")
+        client.connect("http", "localhost", 10035, "", "hr-analytics", "test", "xyzzy")
+        result = client.claude_query("Show me all the classes")
+        print(result.answer)
+
+    Example — AllegroGraph proxy connection::
+
+        client = GraphTalkerClient(
+            base_url="http://localhost:10035/graphtalker/8080",
+            api_key="my-key",
+        )
         client.connect("http", "localhost", 10035, "", "hr-analytics", "test", "xyzzy")
         result = client.claude_query("Show me all the classes")
         print(result.answer)
@@ -71,6 +88,8 @@ class GraphTalkerClient:
         timeout: float = 30.0,
         default_query_timeout: float = 300.0,
         username: Optional[str] = None,
+        base_url: Optional[str] = None,
+        auth: Optional[tuple] = None,
     ):
         self._host = host
         self._port = port
@@ -78,14 +97,23 @@ class GraphTalkerClient:
         self._timeout = timeout
         self._default_query_timeout = default_query_timeout
         self._username = username
-        self._base_url = f"http://{host}:{port}"
+        if base_url is not None:
+            self._base_url = base_url.rstrip("/")
+        else:
+            self._base_url = f"http://{host}:{port}"
         self._session = requests.Session()
         self._session.headers["Content-Type"] = "application/json"
         if api_key:
             self._session.headers["Authorization"] = f"Bearer {api_key}"
+        if auth is not None:
+            self._session.auth = auth
 
     def close(self):
-        """Close the underlying HTTP session."""
+        """Stop the GraphTalker server and close the underlying HTTP session."""
+        try:
+            self.stop()
+        except Exception:
+            pass
         self._session.close()
 
     def __enter__(self):
@@ -176,6 +204,19 @@ class GraphTalkerClient:
             return response.status_code == 200
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(f"Cannot connect to {self._base_url}: {e}") from e
+
+    def stop(self) -> None:
+        """Shut down the GraphTalker eval server process.
+
+        Calls ``(stop-eval-server)`` on the server, which unpublishes all
+        HTTP endpoints and terminates the process.  After this call the
+        client is no longer usable.
+
+        Raises:
+            ConnectionError: Cannot reach the eval server.
+            AuthenticationError: Invalid or missing API key.
+        """
+        self.eval("(stop-eval-server)")
 
     def abort_query(self) -> bool:
         """Abort the currently running query on the eval server.

@@ -177,6 +177,35 @@ class AllegroGraphServer:
             components.pop()
         return tuple(components)
 
+    def startGraphTalker(self, api_key=None):
+        """Start a GraphTalker instance on this server and return a client for it.
+
+        Calls ``GET /graphtalker`` on the AllegroGraph server, which starts a
+        new GraphTalker process and redirects to ``/graphtalker/PORT/``.  A
+        :class:`~franz.graphtalker.GraphTalkerClient` connected to that port is
+        returned.
+
+        The returned client is **not** yet associated with a specific
+        repository.  Call :meth:`~franz.graphtalker.GraphTalkerClient.connect`
+        on it (or use
+        :meth:`~franz.openrdf.repository.repositoryconnection.RepositoryConnection.startGraphTalker`
+        instead) to point it at a repository before issuing queries.
+
+        :param api_key: API key passed to the GraphTalker client (optional).
+        :type api_key: str | None
+        :return: A :class:`~franz.graphtalker.GraphTalkerClient` instance.
+        :rtype: franz.graphtalker.GraphTalkerClient
+        """
+        from urllib.parse import urlparse
+
+        from franz.graphtalker import GraphTalkerClient
+
+        gt_port = self._client.startGraphTalker()
+        parsed = urlparse(self._client.url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}/graphtalker/{gt_port}"
+        auth = (self._client.user, self._client.password) if self._client.user else None
+        return GraphTalkerClient(base_url=base_url, api_key=api_key, auth=auth)
+
     def listCatalogs(self):
         """
         Get the list of catalogs on this server.

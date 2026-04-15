@@ -121,6 +121,40 @@ class RepositoryConnection:
         """
         return self.repository.getSpec()
 
+    def startGraphTalker(self, api_key=None, anthropic_api_key=None):
+        """Start a GraphTalker instance for this repository and return a client for it.
+
+        Calls ``GET /graphtalker`` relative to this repository's URL on the
+        AllegroGraph server, which starts a new GraphTalker process pre-configured
+        for this repository and redirects to ``/graphtalker/PORT/``.  A
+        :class:`~franz.graphtalker.GraphTalkerClient` is returned that is
+        immediately ready to use — AllegroGraph sets up the repository connection
+        internally when starting the process.
+
+        :param api_key: API key for authenticating with the GraphTalker server (optional).
+        :type api_key: str | None
+        :param anthropic_api_key: Anthropic API key to inject into the GraphTalker
+            process if one is not already set.  When GraphTalker is started by
+            AllegroGraph the process environment is controlled by AG, so this is
+            the only reliable way to supply the key.
+        :type anthropic_api_key: str | None
+        :return: A :class:`~franz.graphtalker.GraphTalkerClient` instance.
+        :rtype: franz.graphtalker.GraphTalkerClient
+        """
+        from urllib.parse import urlparse
+
+        from franz.graphtalker import GraphTalkerClient
+
+        mini = self.mini_repository
+        parsed = urlparse(mini.url)
+        gt_port = mini.startGraphTalker()
+        base_url = f"{parsed.scheme}://{parsed.netloc}/graphtalker/{gt_port}"
+        auth = (mini.user, mini.password) if mini.user else None
+        client = GraphTalkerClient(base_url=base_url, api_key=api_key, auth=auth)
+        if anthropic_api_key and not client.is_anthropic_key_set():
+            client.set_anthropic_key(anthropic_api_key)
+        return client
+
     # By default the mini-client might be shared with other connections to the same repository,
     # but when opening a session or changing connection settings we need to have our own client.
     def _get_mini_repository(self, dedicated=False):

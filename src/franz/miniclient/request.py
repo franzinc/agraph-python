@@ -12,7 +12,7 @@ from itertools import islice
 from urllib.parse import quote
 
 from franz.miniclient.agjson import decode_json
-from franz.miniclient.backends.requests import makeRequest
+from franz.miniclient.backends.requests import makeRequest, redirectRequest
 from franz.openrdf.util.http import merge_headers
 from franz.openrdf.util.strings import to_native_string
 
@@ -103,6 +103,24 @@ def jsonRequest(
             errCallback=raiseErr,
             headers=headers,
         )
+
+
+def locationRequest(obj, method, url):
+    """
+    Make a request that is expected to respond with an HTTP redirect.
+
+    Returns the value of the ``Location`` response header.
+
+    :param obj: Service object with connection information (e.g. credentials).
+    :type obj: franz.openrdf.miniclient.repository.Service
+    :param method: Request method (``"GET"``, ``"POST"``, ...).
+    :type method: string
+    :param url: Target address.
+    :type url: string
+    :return: The ``Location`` header from the redirect response.
+    :rtype: string
+    """
+    return redirectRequest(obj, method, url)
 
 
 def nullRequest(
