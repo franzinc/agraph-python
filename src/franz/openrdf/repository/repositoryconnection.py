@@ -230,6 +230,7 @@ class RepositoryConnection:
         query=None,
         baseURI=None,
         queryString=None,
+        uuid=None,
     ):
         """
         Parse ``query`` into a tuple query object which can be
@@ -243,12 +244,16 @@ class RepositoryConnection:
         :type baseURI: string|URI
         :param queryString: Legacy name of the ``query`` parameter.
         :type queryString: string
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: A query object.
         :rtype: TupleQuery
         """
         query = TupleQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
+        if uuid is not None:
+            query.setUUID(uuid)
         return query
 
     def prepareUpdate(
@@ -257,6 +262,7 @@ class RepositoryConnection:
         query=None,
         baseURI=None,
         queryString=None,
+        uuid=None,
     ):
         """
         Parse ``query`` into an update query object which can be
@@ -270,12 +276,16 @@ class RepositoryConnection:
         :type baseURI: string|URI
         :param queryString: Legacy name of the ``query`` parameter.
         :type queryString: string
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: A query object.
         :rtype: UpdateQuery
         """
         query = UpdateQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
+        if uuid is not None:
+            query.setUUID(uuid)
         return query
 
     def prepareGraphQuery(
@@ -284,6 +294,7 @@ class RepositoryConnection:
         query=None,
         baseURI=None,
         queryString=None,
+        uuid=None,
     ):
         """
         Parse ``query`` into a graph query object which can be
@@ -297,12 +308,16 @@ class RepositoryConnection:
         :type baseURI: string|URI
         :param queryString: Legacy name of the ``query`` parameter.
         :type queryString: string
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: A query object.
         :rtype: GraphQuery
         """
         query = GraphQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
+        if uuid is not None:
+            query.setUUID(uuid)
         return query
 
     def prepareBooleanQuery(
@@ -311,6 +326,7 @@ class RepositoryConnection:
         query=None,
         baseURI=None,
         queryString=None,
+        uuid=None,
     ):
         """
         Parse ``query`` into a boolean query object which can be
@@ -324,12 +340,16 @@ class RepositoryConnection:
         :type baseURI: string|URI
         :param queryString: Legacy name of the ``query`` parameter.
         :type queryString: string
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: A query object.
         :rtype: BooleanQuery
         """
         query = BooleanQuery(queryLanguage, query or queryString, baseURI=baseURI)
         query.setConnection(self)
+        if uuid is not None:
+            query.setUUID(uuid)
         return query
 
     def getContextIDs(self):
@@ -2977,6 +2997,7 @@ class RepositoryConnection:
         language=QueryLanguage.SPARQL,
         output=None,
         output_format=RDFFormat.TABLE,
+        uuid=None,
     ):
         """
         Prepare and immediately evaluate a query that returns tuples.
@@ -2990,11 +3011,13 @@ class RepositoryConnection:
         :type output: str|file
         :param output_format: Serialization format for ``output``.
         :type output_format: RDFFormat
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: Query result, or ``None`` if ``output`` is used.
         :rtype: TupleQueryResult
         """
-        q = self.prepareTupleQuery(language, query)
+        q = self.prepareTupleQuery(language, query, uuid=uuid)
         return q.evaluate(output=output, output_format=output_format)
 
     def executeGraphQuery(
@@ -3003,6 +3026,7 @@ class RepositoryConnection:
         language=QueryLanguage.SPARQL,
         output=None,
         output_format=RDFFormat.NQX,
+        uuid=None,
     ):
         """
         Prepare and immediately evaluate a query that returns RDF.
@@ -3016,14 +3040,16 @@ class RepositoryConnection:
         :type output: str|file
         :param output_format: Serialization format for ``output``.
         :type output_format: RDFFormat
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: Query result, or ``None`` if ``output`` is used.
         :rtype: RepositoryResult|None
         """
-        q = self.prepareGraphQuery(language, query)
+        q = self.prepareGraphQuery(language, query, uuid=uuid)
         return q.evaluate(output=output, output_format=output_format)
 
-    def executeBooleanQuery(self, query, language=QueryLanguage.SPARQL):
+    def executeBooleanQuery(self, query, language=QueryLanguage.SPARQL, uuid=None):
         """
         Prepare and immediately evaluate a query that returns
         a boolean.
@@ -3032,24 +3058,28 @@ class RepositoryConnection:
         :type query: str
         :param language: Query language, the default is SPARQL.
         :type language: QueryLanguage
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: Query result.
         :rtype: bool
         """
-        q = self.prepareBooleanQuery(language, query)
+        q = self.prepareBooleanQuery(language, query, uuid=uuid)
         return q.evaluate()
 
-    def executeUpdate(self, query):
+    def executeUpdate(self, query, uuid=None):
         """
         Prepare and immediately evaluate a SPARQL update query.
 
         :param query: Query text.
         :type query: str
+        :param uuid: An optional job ID. Can be used to identify or cancel a running query.
+        :type uuid: string|None
 
         :return: Query result (true iff the store has been modified).
         :rtype: bool
         """
-        q = self.prepareUpdate(QueryLanguage.SPARQL, query)
+        q = self.prepareUpdate(QueryLanguage.SPARQL, query, uuid=uuid)
         return q.evaluate()
 
     def setTransactionSettings(self, settings=None, **kwargs):

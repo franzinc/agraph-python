@@ -525,6 +525,7 @@ class Repository(Service):
         analysisTechnique=None,
         analysisTimeout=None,
         update=False,
+        uuid=None,
     ):
         """Execute a SPARQL query. Context can be None or a list of
         contexts -- strings in "http://foo.com" form or "null" for the
@@ -559,6 +560,7 @@ class Repository(Service):
                 queryAnalysisTechnique=analysisTechnique,
                 queryAnalysisTimeout=analysisTimeout,
                 returnQueryMetadata=True,
+                uuid=uuid,
             )
             + (bindings or ""),
             callback=callback,

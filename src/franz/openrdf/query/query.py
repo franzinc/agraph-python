@@ -95,6 +95,7 @@ class Query:
         self.bindings = {}
         self.connection = None
         self.checkVariables = False
+        self.uuid = None
         ## CommonLogic parameters:
         self.preferred_execution_language = None
         self.actual_execution_language = None
@@ -211,6 +212,15 @@ class Query:
         """
         self.checkVariables = setting
 
+    def setUUID(self, uuid):
+        """
+        Set a job ID (UUID) for this query. Can be used to identify or cancel a running query.
+
+        :param uuid: A UUID string, or ``None`` to clear any previously set ID.
+        :type uuid: string|None
+        """
+        self.uuid = uuid
+
     def setConnection(self, connection):
         """
         Internal call to embed the connection into the query.
@@ -285,6 +295,7 @@ class Query:
                 analysisTechnique=analysisTechnique,
                 analysisTimeout=analysisTimeout,
                 update=update,
+                uuid=self.uuid,
             )
         elif self.queryLanguage == QueryLanguage.PROLOG:
             if namedContexts:
