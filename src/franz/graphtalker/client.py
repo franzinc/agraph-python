@@ -216,7 +216,13 @@ class GraphTalkerClient:
             ConnectionError: Cannot reach the eval server.
             AuthenticationError: Invalid or missing API key.
         """
-        self.eval("(stop-eval-server)")
+        # Note this will raise ServerError exception on success
+        # because the GT process exists before it had the chance to
+        # write the response.
+        try:
+            self.eval("(progn (stop-eval-server) (excl:exit 0))")
+        except ServerError:
+            pass
 
     def abort_query(self) -> bool:
         """Abort the currently running query on the eval server.
