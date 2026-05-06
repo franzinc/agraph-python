@@ -13,6 +13,7 @@ from franz.graphtalker import (
     ConnectionError,
     EvalError,
     GraphTalkerClient,
+    GraphTalkerError,
     QueryAbortedError,
     ServerError,
     TokenCostStats,
@@ -21,6 +22,7 @@ from franz.graphtalker import (
 EVAL_URL = "http://localhost:8080/eval"
 ABORT_URL = "http://localhost:8080/abort"
 HEALTH_URL = "http://localhost:8080/health"
+AG_VERSION_URL = "http://localhost:10035/version"
 
 
 def eval_response(result="NIL", stdout="", error=None):
@@ -179,6 +181,12 @@ class TestConnection:
     @responses.activate
     def test_connect(self, client):
         responses.add(
+            responses.GET,
+            AG_VERSION_URL,
+            json="9.0.0",
+            status=200,
+        )
+        responses.add(
             responses.POST,
             EVAL_URL,
             json=eval_response(stdout="Connected to http://localhost:10035"),
@@ -187,12 +195,23 @@ class TestConnection:
         msg = client.connect("http", "localhost", 10035, "", "hr", "test", "pass")
         assert "Connected" in msg
 
-        body = json.loads(responses.calls[0].request.body)
+        body = json.loads(responses.calls[1].request.body)
         expr = body["expression"]
         assert "initialize-agraph-connection" in expr
         assert '"http"' in expr
         assert '"localhost"' in expr
         assert "10035" in expr
+
+    @responses.activate
+    def test_connect_rejects_old_ag_version(self, client):
+        responses.add(
+            responses.GET,
+            AG_VERSION_URL,
+            json="8.3.1",
+            status=200,
+        )
+        with pytest.raises(GraphTalkerError, match="8.3.1"):
+            client.connect("http", "localhost", 10035, "", "hr", "test", "pass")
 
     @responses.activate
     def test_test_connection_success(self, client):

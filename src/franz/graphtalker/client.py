@@ -27,6 +27,7 @@ from franz.graphtalker.models import (
     TokenCostStats,
     Visualization,
 )
+from franz.openrdf.sail.allegrographserver import AllegroGraphServer
 
 # Sentinel object used to distinguish "use client's default username"
 # from "explicitly pass no username filter".
@@ -298,7 +299,19 @@ class GraphTalkerClient:
 
         Returns:
             Connection confirmation message.
+
+        Raises:
+            GraphTalkerError: If the AllegroGraph server version is below 9.0.
         """
+        server = AllegroGraphServer(
+            protocol=protocol, host=host, port=port, user=user, password=password
+        )
+        if server.versionTuple < (9,):
+            raise GraphTalkerError(
+                f"AllegroGraph server version {server.version} is not supported; "
+                "version 9.0 or later is required."
+            )
+
         expr = _lisp.lisp_call(
             "initialize-agraph-connection",
             _lisp.lisp_string(protocol),
