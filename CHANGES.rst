@@ -2,6 +2,31 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 105.0.0
+===============
+
+GraphTalker Python Client
+-------------------------
+
+Added a new ``franz.graphtalker`` package providing a high-level Pythonic API
+for AI-powered AllegroGraph RDF queries via Claude. The ``GraphTalkerClient``
+class offers methods including ``claude_query()``, ``claude_ask()``,
+``generate_sparql()``, and ``sparql_query()``, as well as store/search query
+management and session controls. Requires AllegroGraph 9.0.0 or newer.
+
+GraphTalker can be started directly from a repository connection using the new
+``startGraphTalker()`` method on ``RepositoryConnection``, which returns a
+pre-configured ``GraphTalkerClient`` ready to use.
+
+UUID Parameter for Queries
+--------------------------
+
+A ``uuid`` parameter has been added to all query preparation and execution
+methods (``prepareTupleQuery()``, ``prepareUpdate()``, ``prepareGraphQuery()``,
+``prepareBooleanQuery()``, ``executeTupleQuery()``, ``executeGraphQuery()``,
+``executeBooleanQuery()``, ``executeUpdate()``) to allow assigning job IDs for
+identifying and cancelling running queries.
+
 Release 104.4.0
 ===============
 
