@@ -273,6 +273,7 @@ embed
 """
 
 
+@min_version(9, 0)  # depends on vdb namespace being defined
 def test_vector_index(server):
     dbname = "vt-index-sample"
 
