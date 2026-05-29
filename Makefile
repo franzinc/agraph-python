@@ -40,7 +40,7 @@ endif
 # - See here for more details: https://gregoryszorc.com/docs/python-build-standalone/main/
 PYTHON_DIST_TIMESTAMP=20260127
 PYTHON_DIST_PYTHON_VERSION=3.10.19
-PYTHON_DIST_MACHINE_ARCH=x86_64-unknown-linux-gnu
+PYTHON_DIST_MACHINE_ARCH=$(shell uname -m)-unknown-linux-gnu
 PYTHON=python/bin/python3
 
 $(PYTHON):
