@@ -1082,7 +1082,7 @@ class GraphTalkerClient:
         return result.stdout
 
     def execute_tool(self, tool_name: str, **params: Any) -> str:
-        """Execute a named tool directly (bypasses Claude).
+        r"""Execute a named tool directly (bypasses Claude).
 
         This is a lower-level API for calling any of the 30+ tools directly.
         Parameter values are automatically converted to Lisp representations.

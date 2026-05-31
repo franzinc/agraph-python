@@ -134,10 +134,10 @@ def test1(accessMode=Repository.RENEW):
     """
     Tests getting the repository up.
     """
-    return connect(accessMode)
+    connect(accessMode=Repository.RENEW)
 
 
-def test2():
+def setup2():
     conn = connect()
     ## create some resources and literals to make statements out of
     alice = conn.createURI("http://example.org/people/alice")
@@ -169,8 +169,12 @@ def test2():
     return conn
 
 
+def test2():
+    setup2()
+
+
 def test3():
-    conn = test2()
+    conn = setup2()
     try:
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
@@ -189,7 +193,7 @@ def test3():
 
 
 def test4():
-    conn = test2()
+    conn = setup2()
     alice = conn.createURI("http://example.org/people/alice")
     #    statements = conn.getStatements(alice, None, None, tripleIDs=True)
     print("Searching for Alice using getStatements():")
@@ -316,12 +320,12 @@ def test5():
         print("%s %s" % (s, p))
 
 
-def test6(conn=None):
+def setup3(conn=None):
     if conn is None:
         conn = connect()
     else:
         conn.clear()
-    print("Starting example test6().")
+    print("Starting example setup3().")
     # The following paths are relative to os.getcwd(), the working directory.
     print("Default working directory is '%s'" % (CURRENT_DIRECTORY))
     # If you get a "file not found" error, use os.chdir("your directory path") to
@@ -349,8 +353,12 @@ def test6(conn=None):
     return conn
 
 
+def test6():
+    setup3()
+
+
 def test7():
-    conn = test6()
+    conn = setup3()
     print("Match all and print subjects and contexts")
     result = conn.getStatements(None, None, None, None, limit=25, tripleIDs=True)
     assert len(result) == 25
@@ -377,7 +385,7 @@ def test7():
 
 
 def test8():
-    conn = test6()
+    conn = setup3()
     context = conn.createURI("http://example.org#vcards")
     warnings.simplefilter("ignore")
     try:
@@ -388,7 +396,7 @@ def test8():
 
 
 def test9():
-    conn = test6()
+    conn = setup3()
     warnings.simplefilter("ignore")
     try:
         conn.exportStatements(None, RDF.TYPE, None, False, RDFXMLWriter(None))
@@ -574,7 +582,7 @@ def test13():
     """
     Ask, Construct, and Describe queries
     """
-    conn = test2()
+    conn = setup2()
     conn.setNamespace("ex", "http://example.org/people/")
     conn.setNamespace("ont", "http://example.org/ontology/")
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
@@ -610,7 +618,7 @@ def test14():
     """
     Parametric queries
     """
-    conn = test2()
+    conn = setup2()
     alice = conn.createURI("http://example.org/people/alice")
     bob = conn.createURI("http://example.org/people/bob")
     queryString = """select ?s ?p ?o where { ?s ?p ?o} """
@@ -764,7 +772,7 @@ def test16a():
 
 
 def kennedy_male_names(conn=None):
-    conn = test6(conn)
+    conn = setup3(conn)
     conn.setNamespace("kdy", "http://www.franz.com/simple#")
     rules1 = """
     (<-- (woman ?person) ;; IF
@@ -806,7 +814,7 @@ def test18():
     #        for row in result:
     #            print row
     with connect().session() as conn:
-        test6(conn)
+        setup3(conn)
         conn.setNamespace("kdy", "http://www.franz.com/simple#")
         conn.setNamespace("rltv", "http://www.franz.com/simple#")
         path = os.path.join(CURRENT_DIRECTORY, "relative_rules.txt")
@@ -1649,7 +1657,7 @@ def testSNA_bug23323():
 
 
 def test_getStatements():
-    conn = test6()
+    conn = setup3()
     rows = conn.getStatements(None, None, None, tripleIDs=False)
 
     for row in rows:
@@ -1662,7 +1670,7 @@ def test_getStatements():
 
 
 def test_result_as_list():
-    conn = test6()
+    conn = setup3()
     rows = conn.getStatements(None, None, None)
     triples = rows.asList()
     assert triples is not None
@@ -1874,7 +1882,7 @@ def test_enable_spogi_cache():
 
 
 def test_delete_mapping():
-    conn = test1()
+    conn = connect(accessMode=Repository.RENEW)
     conn.repository.mini_repository.deleteMappedType(XMLSchema.DATETIME)
     a_time = conn.createLiteral("1984-12-06T09:00:00.250", datatype=XMLSchema.DATETIME)
     conn.addTriple(
@@ -1899,8 +1907,8 @@ class URIs:
     pointBlank = URI("http://example.org/ontology/pointBlank")
 
 
-def setup():
-    conn = test1()
+def setup1():
+    conn = connect(accessMode=Repository.RENEW)
 
     ## Bob is the same person as Robert
     conn.add(URIs.bob, OWL.SAMEAS, URIs.robert)
@@ -1939,7 +1947,7 @@ def test_uri_split():
 
 def test_query_blank_node():
     """Try using blank node from one query in a second query."""
-    conn = setup()
+    conn = setup1()
     trace("Finding blank node subjects...")
     query = conn.prepareTupleQuery(
         QueryLanguage.SPARQL,
@@ -1966,7 +1974,7 @@ def test_query_blank_node():
 
 def test_setInferencing():
     """prepareTupleQuery/setInferencing usage"""
-    conn = setup()
+    conn = setup1()
     query = conn.prepareTupleQuery(
         QueryLanguage.SPARQL,
         "SELECT * WHERE { %s %s ?child . }" % (URIs.robert, URIs.fatherOf.toNTriples()),
@@ -1991,7 +1999,7 @@ def test_setInferencing():
 
 def test_json_xml_response():
     """Test JSON and other result formats from SPARQL"""
-    conn = setup()
+    conn = setup1()
     query = conn.prepareQuery(
         QueryLanguage.SPARQL,
         "SELECT * WHERE { %s %s ?child . }" % (URIs.robert, URIs.fatherOf.toNTriples()),
@@ -2030,7 +2038,7 @@ def test_json_xml_response():
 
 def test_construct_query():
     """Test whether Construct Query"""
-    conn = setup()
+    conn = setup1()
     query = conn.prepareGraphQuery(
         "SPARQL",
         "CONSTRUCT { ?p %s ?child . } WHERE { ?p ?relationship ?child . }"
@@ -2524,7 +2532,7 @@ def test_indices_on_create():
 
 
 def test_optimize_indices():
-    conn = test6()
+    conn = setup3()
     # Need a bigger store to test for real, just test the call for now
     conn.optimizeIndices(wait=True)
 
@@ -2597,7 +2605,7 @@ def test_analyze_query():
     """
     Tests query analysis on a SPARQL Tuple Query.
     """
-    conn = test2()
+    conn = setup2()
     try:
         queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
         tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
@@ -2814,7 +2822,7 @@ def test_save_response():
     """
     Tests saving the response object.
     """
-    conn = test2()
+    conn = setup2()
     buf = io.BytesIO()
     queryString = "SELECT ?s ?p ?o  WHERE {?s ?p ?o .}"
     tupleQuery = conn.prepareTupleQuery("SPARQL", queryString)
@@ -2907,7 +2915,7 @@ def test_spin():
 
     with connect().session() as conn:
         conn.setNamespace("ex", baseuri)
-        test6(conn)
+        setup3(conn)
 
         def check_function():
             try:
