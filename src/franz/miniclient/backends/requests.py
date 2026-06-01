@@ -169,8 +169,6 @@ def makeRequest(
     # in the implementation of the Service class.
     if obj.session is None:
         obj.session = create_session(obj)
-        # Unfortunately our current API does not seem to have a good place
-        # to close that explicitly.
         atexit.register(obj.session.close)
 
     # Encode data as utf-8 if required - requests tries to use ascii now.

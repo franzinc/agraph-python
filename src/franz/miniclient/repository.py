@@ -160,6 +160,11 @@ class Service:
     def copy(self):
         return self._instance_from_url(type(self))
 
+    def close(self):
+        if self.session is not None:
+            self.session.close()
+            self.session = None
+
 
 class Catalog(Service):
     def listRepositories(self):

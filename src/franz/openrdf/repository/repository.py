@@ -170,7 +170,9 @@ class Repository:
                # No need to call initialize or shutDown inside.
                ...
         """
-        self.mini_repository = None
+        if self.mini_repository is not None:
+            self.mini_repository.close()
+            self.mini_repository = None
 
     def isWritable(self):
         """
