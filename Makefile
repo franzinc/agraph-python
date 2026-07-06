@@ -77,15 +77,16 @@ build-sdist: $(HATCH)
 	@echo "Building sdist ..."
 	$(HATCH) build -t sdist
 
+DOCKER ?= podman
 build-bdist: $(HATCH)
 	@mkdir -p dist
 	@echo "Building (conda) bdist ..."
-	@docker run --rm \
+	@$(DOCKER) run --rm \
 		-v $(shell pwd):/build/agraph-python \
 		-v $(shell pwd)/recipe:/build/recipe \
 		--env AGRAPH_PYTHON_VERSION="$(shell $(HATCH) version)" \
 		docker.io/condaforge/miniforge3 bash -c "\
-set -eu; \
+set -euo pipefail; \
 rm -rf /build/recipe/output; \
 mkdir -p /build/recipe/output; \
 conda config --set anaconda_upload no; \
@@ -135,9 +136,20 @@ verify-not-dev:
 
 publish: verify-not-dev publish-pypi publish-anaconda publish-ftp
 
+FI_HOME ?= freon
 publish-ftp: build-sdist
-	cp dist/agraph_python-$(shell $(HATCH) version).tar.gz CHANGES.rst /fi/ftp/pub/agraph/python-client/
-	@echo "CHANGES.rst and sdist haven been uploaded to the internal FTP server."
+	@if [ -w /fi/ftp/pub/agraph/python-client/ ]; then \
+		cp dist/agraph_python-$(shell $(HATCH) version).tar.gz CHANGES.rst /fi/ftp/pub/agraph/python-client/; \
+		echo "CHANGES.rst and sdist copied to local FTP server."; \
+	else \
+		if [ -z "$(FI_HOME)" ]; then \
+			echo "Error: /fi/ not writable and FI_HOME not set"; exit 1; \
+		elif ! ssh -o ConnectTimeout=5 -o BatchMode=yes -q $(FI_HOME) exit 2>/dev/null; then \
+			echo "Error: cannot reach $(FI_HOME) via ssh"; exit 1; \
+		fi; \
+		scp dist/agraph_python-$(shell $(HATCH) version).tar.gz CHANGES.rst $(FI_HOME):/fi/ftp/pub/agraph/python-client/; \
+		echo "CHANGES.rst and sdist uploaded to $(FI_HOME):/fi/ftp/pub/agraph/python-client/"; \
+	fi
 
 publish-pypi: build-wheel build-sdist
 	@echo "Uploading both wheel and sdist to PyPI ..."
@@ -153,17 +165,17 @@ publish-anaconda: build-bdist
 	@echo "The authentication is done through the ANACONDA_ACCESS_TOKEN environment variable."
 	@echo "The ANACONDA_ACCESS_TOKEN information should belong to someone with access to the franzinc channel."
 	@echo "The token can be created from either anaconda.org or the Anaconda CLI, and it needs two scopes: api:read and api:write"
-	@echo "For more information, visit: https://www.anaconda.com/docs/anaconda-platform/cloud/user/tokens:
+	@echo "For more information, visit: https://www.anaconda.com/docs/anaconda-platform/cloud/user/tokens"
 ifndef ANACONDA_ACCESS_TOKEN
 	$(error ANACONDA_ACCESS_TOKEN is not set)
 endif
-	@docker run --rm \
+	@$(DOCKER) run --rm \
 		-v $(shell pwd)/dist:/dist \
-		--env ANACONDA_ACCESS_TOKEN="$(ANACONDA_ACCESS_TOKEN)" \
+		--env ANACONDA_ACCESS_TOKEN \
 		docker.io/condaforge/miniforge3 bash -c "\
-set -eu; \
+set -euo pipefail; \
 mamba install --yes anaconda-client; \
-anaconda -t $${ANACONDA_ACCESS_TOKEN} upload \
+anaconda -t \"$${ANACONDA_ACCESS_TOKEN}\" upload \
 	--channel franzinc \
 	--user franzinc \
 	--label main \
