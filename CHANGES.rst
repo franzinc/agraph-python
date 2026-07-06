@@ -2,6 +2,20 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 105.2.0
+===============
+
+MCP server console scripts
+--------------------------
+
+The AllegroGraph MCP server can now be started through the new
+``mcp-allegro-graph`` console script (or its shorter alias ``mcp-agraph``),
+making it possible to launch the server directly with ``uvx``::
+
+    uvx --from "agraph-python[mcp]" mcp-allegro-graph
+
+The previous invocation, ``python -m franz.mcp.server``, continues to work.
+
 Release 105.1.0
 ===============
 

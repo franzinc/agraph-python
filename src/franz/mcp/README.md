@@ -8,11 +8,31 @@ to query, manage, and analyze RDF data stored in AllegroGraph repositories.
 
 The MCP server is included in
 [agraph-python](https://github.com/franzinc/agraph-python) as an optional
-dependency:
+dependency.
+
+### Run with uvx (recommended, no installation)
+
+With [uv](https://docs.astral.sh/uv/) installed, the server can be started
+directly, without installing the package first:
+
+```bash
+uvx --from "agraph-python[mcp]" mcp-allegro-graph
+```
+
+`mcp-agraph` is a shorter alias for the same command:
+
+```bash
+uvx --from "agraph-python[mcp]" mcp-agraph
+```
+
+### Install with pip
 
 ```bash
 pip install "agraph-python[mcp]"
 ```
+
+This installs the `mcp-allegro-graph` and `mcp-agraph` commands into the
+environment.
 
 ## Configuration
 
@@ -36,8 +56,8 @@ Add this to your Claude Desktop MCP configuration file:
 {
   "mcpServers": {
     "allegrograph": {
-      "command": "python",
-      "args": ["-m", "franz.mcp.server"],
+      "command": "uvx",
+      "args": ["--from", "agraph-python[mcp]", "mcp-allegro-graph"],
       "env": {
         "AGRAPH_PROTOCOL": "https",
         "AGRAPH_HOST": "your-server.example.com",
@@ -50,11 +70,22 @@ Add this to your Claude Desktop MCP configuration file:
 }
 ```
 
+If `agraph-python[mcp]` is pip-installed in an environment, `"command"` can
+instead point at the installed script (`mcp-allegro-graph`) or use
+`"command": "python", "args": ["-m", "franz.mcp.server"]`.
+
 ## Running the Server
 
-Start the server directly:
+Start the server with uvx (no installation needed):
 
 ```bash
+uvx --from "agraph-python[mcp]" mcp-allegro-graph
+```
+
+Or, in an environment where `agraph-python[mcp]` is installed:
+
+```bash
+mcp-allegro-graph     # or the short alias: mcp-agraph
 python -m franz.mcp.server
 ```
 

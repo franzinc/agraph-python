@@ -430,5 +430,9 @@ def get_freetext_index_config(
         return conn.getFreeTextIndexConfiguration(index_name)
 
 
-if __name__ == "__main__":
+def main() -> None:
     mcp.run()
+
+
+if __name__ == "__main__":
+    main()

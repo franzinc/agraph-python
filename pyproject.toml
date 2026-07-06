@@ -42,6 +42,10 @@ style = ["isort~=5.11.0","black~=23.3.0"]
 docs = ["sphinxcontrib-jupyter~=0.5.0","setuptools<81"] # for building docs
 dev = ["agraph-python[mcp,test,style,docs]","ipython~=7.34.0"]
 
+[project.scripts]
+mcp-allegro-graph = "franz.mcp.server:main"
+mcp-agraph = "franz.mcp.server:main"
+
 [project.urls]
 homepage = "https://github.com/franzinc/agraph-python"
 documentation = "https://franz.com/agraph/support/documentation/current/python/"
