@@ -60,7 +60,10 @@ class Repository:
         :rtype: string
         """
         mini = self.mini_repository
-        urlstart = re.match("^https?://", mini.url).group(0)
+        assert mini is not None
+        urlstart_match = re.match("^https?://", mini.url)
+        assert urlstart_match is not None
+        urlstart = urlstart_match.group(0)
         url = "<%s%s:%s@%s>" % (
             urlstart,
             mini.user,
@@ -120,6 +123,7 @@ class Repository:
         :param nativeType: may be ``int``, ``datetime``, or ``float``.
         :type nativeType: string|type
         """
+        assert self.mini_repository is not None
         predicate = predicate.getURI() if isinstance(predicate, URI) else predicate
         datatype = datatype.getURI() if isinstance(datatype, URI) else datatype
 
@@ -217,9 +221,11 @@ class Repository:
         return self.value_factory
 
     def _set_bulk_mode(self, on):
+        assert self.mini_repository is not None
         self.mini_repository.setBulkMode(on)
 
     def _get_bulk_mode(self):
+        assert self.mini_repository is not None
         return self.mini_repository.getBulkMode()
 
     bulk_mode = property(

@@ -37,7 +37,7 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = [ "mcp~=1.24.0" ]
-test = ["packaging>=23.2.0,<23.3.0","pytest~=8.4.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0","pytest-cov~=7.1.0","responses>=0.23.0"]
+test = ["packaging>=23.2.0,<23.3.0","pytest~=8.4.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0","pytest-cov~=7.1.0","responses>=0.23.0","ty~=0.0.56"]
 style = ["isort~=5.11.0","black~=23.3.0"]
 docs = ["sphinxcontrib-jupyter~=0.5.0","setuptools<81"] # for building docs
 dev = ["agraph-python[mcp,test,style,docs]","ipython~=7.34.0"]
@@ -65,7 +65,7 @@ only-include = ["src/franz"]
 python = "3.10"
 
 [tool.hatch.envs.test]
-features = ["test"]
+features = ["test", "mcp"]
 env-include = ["AGRAPH*"]
 
 [[tool.hatch.envs.test.matrix]]
@@ -76,6 +76,12 @@ AG_RUN_SSL_TEST = "y"
 
 [tool.hatch.envs.test.scripts]
 run = "pytest"
+
+[tool.hatch.envs.typechecker]
+features = ["test", "mcp"]
+
+[tool.hatch.envs.typechecker.scripts]
+run = "ty check"
 
 [tool.hatch.envs.docs]
 features = ["docs"]
@@ -136,6 +142,7 @@ verboseOutput = true
 
 [tool.ty.environment]
 python-platform = "all"
+python-version = "3.10"
 root = [ "./src" ]
 
 [tool.ty.src]
@@ -144,6 +151,9 @@ exclude = [
   "**/node_modules",
   "**/_pycache__",
   ".venv/",
+  "stress/",
+  "src/franz/openrdf/tests/",
+  "src/franz/graphtalker/tests/",
 ]
 
 [tool.isort]

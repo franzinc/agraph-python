@@ -137,7 +137,7 @@ class AllegroGraphServer:
 
         if port is None:
             if "AGRAPH_PORT" in os.environ:
-                port = int(os.environ.get("AGRAPH_PORT"))
+                port = int(os.environ["AGRAPH_PORT"])
             else:
                 port = 10035 if protocol == "http" else 10036
 

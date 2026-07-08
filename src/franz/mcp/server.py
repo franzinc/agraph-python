@@ -35,7 +35,7 @@ def get_ag_server() -> AllegroGraphServer:
 def ag_connect(
     repo: str,
     catalog: str,
-    access_verb: Literal["RENEW", "ACCESS", "OPEN", "CREATE", "REPLACE"],
+    access_verb: str,
 ) -> Generator[RepositoryConnection, None, None]:
     if not repo:
         raise ValueError("Empty repository name is not allowed!")

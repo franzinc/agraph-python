@@ -11,6 +11,7 @@
 import datetime
 from collections import OrderedDict, defaultdict
 from decimal import Decimal
+from typing import cast
 
 import iso8601
 
@@ -57,9 +58,9 @@ def datatype_from_python(value, datatype):
         return str_value, datatype or XMLSchema.DATETIME
 
     if isinstance(value, datetime.time):
-        if value.utcoffset() is not None:
+        if (offset := value.utcoffset()) is not None:
             dt = datetime.datetime.combine(RANDOM_DAY, value)
-            dt -= value.utcoffset()
+            dt = dt - cast(datetime.timedelta, offset)
             # Note: this will strip TZ
             value = dt.time()
         str_value = value.isoformat() + "Z"

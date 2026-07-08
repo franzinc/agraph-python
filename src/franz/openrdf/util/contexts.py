@@ -54,7 +54,7 @@ def output_to(target):
         if hasattr(sys.stdout, "buffer"):
             yield sys.stdout.buffer
         # Doctest checker only accepts strings, not bytes...
-        elif isinstance(sys.stdout, doctest._SpoofOut):
+        elif isinstance(sys.stdout, getattr(doctest, "_SpoofOut", ())):
             yield BinWrapper(sys.stdout)
         # io.TextIOBase only accepts strings, not bytes...
         elif isinstance(sys.stdout, io.TextIOBase):

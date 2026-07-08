@@ -95,11 +95,14 @@ mamba install --yes --channel conda-forge conda-build=25.1.2 conda-verify=3.4.2;
 conda build /build/recipe --output-folder /build/recipe/output"
 	@cp recipe/output/noarch/agraph-python-$(shell $(HATCH) version)-py_0.conda dist/
 
-prepush: $(HATCH) checkPort check-style
+prepush: $(HATCH) checkPort check-style typecheck
 	$(HATCH) run test:run
 
 check-style: $(HATCH)
 	$(HATCH) run style:check || (echo "Run 'make fix-style' to fix formatting" && exit 1)
+
+typecheck: $(HATCH)
+	$(HATCH) run typechecker:run
 
 fix-style: $(HATCH)
 	$(HATCH) run style:fix

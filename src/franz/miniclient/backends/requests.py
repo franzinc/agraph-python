@@ -33,7 +33,9 @@ retries = Retry(
     backoff_factor=0.1,
     connect=10,  # 10 retries for connection-level errors
     status_forcelist=(),  # Retry only on connection errors
-    allowed_methods=False,
+    allowed_methods=frozenset(
+        {"GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS", "TRACE", "PATCH"}
+    ),
 )  # Retry on all methods, even POST and PUT
 
 

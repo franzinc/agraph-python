@@ -459,6 +459,7 @@ class Client(Service):
         )
 
     def getUserData(self, key):
+        assert self.user is not None
         try:
             return jsonRequest(
                 self,
@@ -471,6 +472,7 @@ class Client(Service):
             raise
 
     def setUserData(self, key, data):
+        assert self.user is not None
         nullRequest(
             self,
             "PUT",
@@ -479,6 +481,7 @@ class Client(Service):
         )
 
     def deleteUserData(self, key):
+        assert self.user is not None
         nullRequest(
             self,
             "DELETE",
@@ -486,6 +489,7 @@ class Client(Service):
         )
 
     def listUserData(self):
+        assert self.user is not None
         entries = jsonRequest(
             self, "GET", "/users/%s/data/" % quote(self.user, safe="")
         )

@@ -80,14 +80,14 @@ def uriref(string):
     If `string` is a valid NTriples URI reference, extract and return the URI (as a string).
     Otherwise return `None`.
     """
-    match = uriref.pattern.match(string)
+    match = _URIREF_PATTERN.match(string)
     if not match:
         return None
     return ntriples_unescape(match.group(1))
 
 
 uri_pattern = r"<(.*)>"
-uriref.pattern = re.compile(uri_pattern + "$")
+_URIREF_PATTERN = re.compile(uri_pattern + "$")
 
 
 def nodeid(string):
@@ -95,13 +95,13 @@ def nodeid(string):
     If `string` is a valid NTriples BNode reference, extract and return the node id.
     Otherwise return `None`.
     """
-    match = nodeid.pattern.match(string)
+    match = _NODEID_PATTERN.match(string)
     if not match:
         return None
     return match.group(1)
 
 
-nodeid.pattern = re.compile(r"_:([A-Za-z][A-Za-z0-9]*)$")
+_NODEID_PATTERN = re.compile(r"_:([A-Za-z][A-Za-z0-9]*)$")
 
 
 def literal(string):
@@ -110,7 +110,7 @@ def literal(string):
     Use `None` if there is no language tag or no datatype.
     If `string` is not a valid literal return `None`.
     """
-    match = literal.pattern.match(string)
+    match = _LITERAL_PATTERN.match(string)
     if not match:
         return None
     label, lang, dtype = match.groups()
@@ -119,7 +119,7 @@ def literal(string):
 
 litvalue = r'"([^"\\]*(?:\\.[^"\\]*)*)"'
 litinfo = r"(?:@([a-z]+(?:-[a-z0-9]+)*)|\^\^" + uri_pattern + r")?"
-literal.pattern = re.compile(litvalue + litinfo + "$")
+_LITERAL_PATTERN = re.compile(litvalue + litinfo + "$")
 
 
 def to_bytes(text):

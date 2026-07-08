@@ -151,8 +151,11 @@ class RepositoryConnection:
         base_url = f"{parsed.scheme}://{parsed.netloc}/graphtalker/{gt_port}"
         auth = (mini.user, mini.password) if mini.user else None
         client = GraphTalkerClient(base_url=base_url, api_key=api_key, auth=auth)
-        if anthropic_api_key and not client.is_anthropic_key_set():
-            client.set_anthropic_key(anthropic_api_key)
+        if (
+            anthropic_api_key
+            and not getattr(client, "is_anthropic_key_set", lambda: False)()
+        ):
+            getattr(client, "set_anthropic_key", lambda k: None)(anthropic_api_key)
         return client
 
     # By default the mini-client might be shared with other connections to the same repository,
@@ -1258,7 +1261,7 @@ class RepositoryConnection:
         args = locals()
 
         # Unpack 'keys' into individual dicts
-        augmented = {}
+        augmented: dict[str, typing.Any] = {}
         if keys:
             for name, props in keys.items():
                 for prop in (
@@ -3571,6 +3574,8 @@ class GeoType:
         self.connection = connection
 
     def _getMiniGeoType(self):
+        assert self.connection is not None
+
         def stringify(term):
             return str(term) if term is not None else None
 
@@ -3628,6 +3633,7 @@ class GeoType:
         Define a polygonal region with the specified vertices.  'vertices'
         is a list of x,y pairs. The 'uri' is optional.
         """
+        assert self.connection is not None
         poly = GeoPolygon(vertices, uri=uri, geoType=self)
         poly.resource = (
             self.connection.createURI(uri) if uri else self.connection.createBNode()

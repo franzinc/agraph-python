@@ -32,7 +32,7 @@ class QueryResult:
         :return: The next item.
         :raises StopIteration: If there are no more items to return.
         """
-        raise NotImplemented("__next__")
+        raise NotImplementedError("__next__")
 
     def __enter__(self):
         return self
@@ -145,7 +145,7 @@ class ListBindingSet:
 
     def __init__(self, variable_names):
         self.variable_names = variable_names
-        self.string_tuple = None
+        self.string_tuple: tuple | None = None
         self.value_cache = [None] * len(variable_names)
 
     def _reset(self, string_tuple):
@@ -155,6 +155,7 @@ class ListBindingSet:
             value_cache[i] = None
 
     def _validate_index(self, index):
+        assert self.string_tuple is not None
         if index >= 0 and index < len(self.string_tuple):
             return index
 
@@ -165,6 +166,7 @@ class ListBindingSet:
         )
 
     def _get_ith_value(self, index):
+        assert self.string_tuple is not None
         term = self.value_cache[index]
         if not term:
 

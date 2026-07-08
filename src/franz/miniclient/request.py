@@ -378,7 +378,7 @@ def deserialize(string):
 
     if value == SerialConstants.SO_BYTEVECTOR:
         length = posInteger(chars)
-        return array.array(b"b", [ord(next(chars)) for i in range(length)])
+        return array.array("b", [next(chars) for i in range(length)])
 
     if value == SerialConstants.SO_VECTOR or value == SerialConstants.SO_LIST:
         length = posInteger(chars)
@@ -405,7 +405,7 @@ def deserialize(string):
 
 def encode(string):
     def convert(string):
-        codes = encode.codes
+        codes = _ENCODE_CODES
         state = rem = 0
 
         for byte in bytes(string):
@@ -428,14 +428,14 @@ def encode(string):
     return ibytes(convert(string))
 
 
-encode.codes = bytes(
+_ENCODE_CODES = bytes(
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789*+"
 )
 
 
 def decode(string):
     def convert(string):
-        codes = decode.codes
+        codes = _DECODE_CODES
         state = rem = 0
 
         if isinstance(string, str):
@@ -464,7 +464,7 @@ def decode(string):
     return ibytes(convert(string))
 
 
-decode.codes = [
+_DECODE_CODES = [
     0,
     0,
     0,
