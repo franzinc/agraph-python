@@ -420,9 +420,9 @@ class TestAbortQuery:
         assert elapsed < 15, f"Abort took too long: {elapsed:.1f}s"
 
         # Should have gotten an abort error, not a successful sleep
-        assert (
-            "aborted" in error_holder
-        ), f"Expected QueryAbortedError, got: {error_holder}"
+        assert "aborted" in error_holder, (
+            f"Expected QueryAbortedError, got: {error_holder}"
+        )
 
     def test_server_healthy_after_abort(self, integration_client):
         """Server should still work after an abort."""

@@ -518,14 +518,11 @@ rst_epilog = """
 # things like setup specific to our hosts or boring cleanup that we do not
 # want the users to see.
 
-doctest_global_setup = (
-    """
+doctest_global_setup = """
 # Definitions used in multiple tests. The code must be included in the
 # appropriate part of the tutorial, but we need the definitions to be in 
 # a global setup block to make them visible in all documents.
-"""
-    + open("tutorial/doctest_setup.py").read()
-)
+""" + open("tutorial/doctest_setup.py").read()
 
 doctest_global_cleanup = """
 # Not all examples have to create conn...

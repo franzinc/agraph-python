@@ -115,9 +115,7 @@ class Literal(Value):
 
     def setLanguage(self, language):
         """Set the language for this Literal"""
-        self._language = (
-            language.lower() if language else None
-        )  # pylint: disable-msg=W0201
+        self._language = language.lower() if language else None  # pylint: disable-msg=W0201
 
     language = property(getLanguage, setLanguage)
 

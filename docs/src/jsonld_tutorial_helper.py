@@ -137,9 +137,9 @@ def retrieve(conn, where, printResult=False):
                      ?this <http://franz.com/ns/allegrograph/6.4/load-meta#source> ?source . """
     pos = where.find("{")
     assert pos != -1, """The query block needs a '{' in the pattern"""
-    assert (
-        where.find("?this") != -1
-    ), """The query block needs to include the variable ?this"""
+    assert where.find("?this") != -1, (
+        """The query block needs to include the variable ?this"""
+    )
     pos = pos + 1
     where = thisString + where[pos:]
     result = runSparql(conn, where)

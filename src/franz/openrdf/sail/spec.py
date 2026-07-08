@@ -10,7 +10,6 @@ Helper functions for creating session specification strings.
 See :meth:`~franz.openrdf.sail.allegrographserver.AllegroGraphServer.openSession`
 """
 
-
 import urllib.error
 import urllib.parse
 import urllib.request

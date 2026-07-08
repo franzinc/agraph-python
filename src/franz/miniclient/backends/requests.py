@@ -10,7 +10,6 @@
 A requests-based implementation of HTTP backend.
 """
 
-
 import atexit
 import contextlib
 

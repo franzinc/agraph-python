@@ -9,6 +9,7 @@
 Test fixtures, moved to a separate file to avoid warnings
 about parameter names shadowing global symbols.
 """
+
 import contextlib
 import http.server
 import os

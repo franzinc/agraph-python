@@ -8,6 +8,7 @@
 """
 Helper function for opening connections.
 """
+
 import os
 
 from franz.openrdf.repository import Repository

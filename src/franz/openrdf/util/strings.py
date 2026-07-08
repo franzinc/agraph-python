@@ -10,7 +10,6 @@
 A strings utility module for helper functions.
 """
 
-
 import ast
 import re
 

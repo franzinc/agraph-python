@@ -1,6 +1,7 @@
 """
 Types and utilities related to transaction settings.
 """
+
 from collections import namedtuple
 from itertools import zip_longest
 
