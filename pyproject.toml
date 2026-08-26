@@ -11,7 +11,7 @@ authors = [
   {name = "Franz Inc.", email = "support@franz.com"}
 ]
 license = {file = "LICENSE"}
-requires-python = ">=3.10, <3.15"
+requires-python = ">=3.11, <3.15"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -20,7 +20,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -30,16 +29,16 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-  "requests[socks]~=2.33.0",
+  "requests[socks]>=2.34.2,<2.35.0",
   "iso8601>=2.1.0,<2.2.0",
-  "pandas>=2.0.0,<3.0.0",
+  "pandas>=3.0.0,<3.1.0",
 ]
 
 [project.optional-dependencies]
 mcp = [ "mcp~=1.24.0" ]
 test = ["packaging>=23.2.0,<23.3.0","pytest~=8.4.0","pytest-timeout~=2.2.0","pytest-mock~=3.11.0","pytest-cov~=7.1.0","responses>=0.23.0","ty~=0.0.56"]
 style = ["ruff~=0.15.0"]
-docs = ["sphinxcontrib-jupyter~=0.5.0","setuptools<81"] # for building docs
+docs = ["sphinx<9","sphinxcontrib-jupyter~=0.5.0","setuptools<81"] # for building docs
 dev = ["agraph-python[mcp,test,style,docs]","ipython~=7.34.0"]
 
 [project.scripts]
@@ -62,14 +61,14 @@ packages = ["src/franz"]
 only-include = ["src/franz"]
 
 [tool.hatch.envs.default]
-python = "3.10"
+python = "3.11"
 
 [tool.hatch.envs.test]
 features = ["test", "mcp"]
 env-include = ["AGRAPH*"]
 
 [[tool.hatch.envs.test.matrix]]
-python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+python = ["3.11", "3.12", "3.13", "3.14"]
 
 [tool.hatch.envs.test.env-vars]
 AG_RUN_SSL_TEST = "y"
@@ -141,7 +140,7 @@ verboseOutput = true
 
 [tool.ty.environment]
 python-platform = "all"
-python-version = "3.10"
+python-version = "3.11"
 root = [ "./src" ]
 
 [tool.ty.src]
@@ -157,7 +156,7 @@ exclude = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 exclude = ["stress/"]
 
 [tool.ruff.lint]

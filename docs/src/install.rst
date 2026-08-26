@@ -51,7 +51,7 @@ Install by `conda`
 ~~~~~~~~~~~~~~~~~~
 Using `conda` to install `agraph-python` is also supported::
 
-  conda create -n myenv python=3.10
+  conda create -n myenv python=3.11
   conda activate myenv
   conda install -y -c conda-forge -c franzinc agraph-python
 
