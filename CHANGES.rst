@@ -2,6 +2,19 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 105.3.0
+===============
+
+From this release, the minimum required version of Python is ``3.11``.
+Support for Python 3.10 has been dropped because the upgraded ``pandas``
+dependency requires Python 3.11 or newer.
+
+Update `requests` and `pandas`
+------------------------------
+
+The `requests` package dependency has been upgraded to `2.34.2` and the
+`pandas` package dependency has been upgraded to `3.0`.
+
 Release 105.2.0
 ===============
 
