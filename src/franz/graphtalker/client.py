@@ -397,6 +397,15 @@ class GraphTalkerClient:
         expr = _lisp.lisp_setf("*anthropic-api-key*", _lisp.lisp_string(api_key))
         self.eval(expr)
 
+    def is_anthropic_key_set(self) -> bool:
+        """Check whether an Anthropic API key is set on the server.
+
+        Returns:
+            True if a key is set, False otherwise.
+        """
+        result = self.eval("(if *anthropic-api-key* t nil)")
+        return result.parsed is True
+
     def set_model(self, model: str) -> None:
         """Set the Claude model to use.
 

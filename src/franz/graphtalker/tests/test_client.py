@@ -4,6 +4,7 @@ These tests mock the eval server so no running server is needed.
 """
 
 import json
+from types import SimpleNamespace
 
 import pytest
 import responses
@@ -18,11 +19,13 @@ from franz.graphtalker import (
     ServerError,
     TokenCostStats,
 )
+from franz.openrdf.repository.repositoryconnection import RepositoryConnection
 
 EVAL_URL = "http://localhost:8080/eval"
 ABORT_URL = "http://localhost:8080/abort"
 HEALTH_URL = "http://localhost:8080/health"
 AG_VERSION_URL = "http://localhost:10035/version"
+GT_PROXY_EVAL_URL = "http://localhost:10035/graphtalker/8080/eval"
 
 
 def eval_response(result="NIL", stdout="", error=None):
@@ -271,6 +274,28 @@ class TestConnection:
         assert "setf *anthropic-api-key*" in body["expression"]
 
     @responses.activate
+    def test_is_anthropic_key_set_true(self, client):
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result="T"),
+            status=200,
+        )
+        assert client.is_anthropic_key_set() is True
+        body = json.loads(responses.calls[0].request.body)
+        assert "*anthropic-api-key*" in body["expression"]
+
+    @responses.activate
+    def test_is_anthropic_key_set_false(self, client):
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result="NIL"),
+            status=200,
+        )
+        assert client.is_anthropic_key_set() is False
+
+    @responses.activate
     def test_set_model(self, client):
         responses.add(
             responses.POST,
@@ -281,6 +306,68 @@ class TestConnection:
         client.set_model("claude-sonnet-4-5-20250929")
         body = json.loads(responses.calls[0].request.body)
         assert "setf *claude-model*" in body["expression"]
+
+
+# ---------------------------------------------------------------------------
+# RepositoryConnection.startGraphTalker
+# ---------------------------------------------------------------------------
+
+
+class TestStartGraphTalker:
+    @staticmethod
+    def _start(**kwargs):
+        """Call startGraphTalker on a stand-in connection (no AG server needed)."""
+        conn = SimpleNamespace(
+            mini_repository=SimpleNamespace(
+                url="http://localhost:10035/repositories/kennedy",
+                user="test",
+                password="xyzzy",
+                startGraphTalker=lambda: 8080,
+            )
+        )
+        return RepositoryConnection.startGraphTalker(conn, **kwargs)
+
+    @staticmethod
+    def _expressions():
+        return [json.loads(c.request.body)["expression"] for c in responses.calls]
+
+    @responses.activate
+    def test_injects_anthropic_key_when_not_set(self):
+        responses.add(
+            responses.POST,
+            GT_PROXY_EVAL_URL,
+            json=eval_response(result="NIL"),
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            GT_PROXY_EVAL_URL,
+            json=eval_response(result='"sk-ant-123"'),
+            status=200,
+        )
+        self._start(anthropic_api_key="sk-ant-123")
+        expressions = self._expressions()
+        assert len(expressions) == 2
+        assert 'setf *anthropic-api-key* "sk-ant-123"' in expressions[1]
+
+    @responses.activate
+    def test_keeps_existing_anthropic_key(self):
+        responses.add(
+            responses.POST,
+            GT_PROXY_EVAL_URL,
+            json=eval_response(result="T"),
+            status=200,
+        )
+        self._start(anthropic_api_key="sk-ant-123")
+        expressions = self._expressions()
+        assert len(expressions) == 1
+        assert "setf" not in expressions[0]
+
+    @responses.activate
+    def test_no_anthropic_key_argument(self):
+        client = self._start()
+        assert isinstance(client, GraphTalkerClient)
+        assert len(responses.calls) == 0
 
 
 # ---------------------------------------------------------------------------

@@ -650,7 +650,6 @@ Setup
    ~GraphTalkerClient.connect
    ~GraphTalkerClient.test_connection
    ~GraphTalkerClient.is_anthropic_key_set
-   ~GraphTalkerClient.set_anthropic_key
    ~GraphTalkerClient.health_check
    ~GraphTalkerClient.stop
    ~GraphTalkerClient.close
