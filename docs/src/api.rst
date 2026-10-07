@@ -676,8 +676,7 @@ Configuration
    ~GraphTalkerClient.set_model
    ~GraphTalkerClient.set_api_key
    ~GraphTalkerClient.set_prompt_caching
-   ~GraphTalkerClient.set_query_library
-   ~GraphTalkerClient.set_meta_schema_repository
+   ~GraphTalkerClient.set_metagraph
    ~GraphTalkerClient.set_repository
    ~GraphTalkerClient.set_max_iterations
    ~GraphTalkerClient.load_config
@@ -694,6 +693,17 @@ Query Library
    ~GraphTalkerClient.search_queries
    ~GraphTalkerClient.list_all_queries
    ~GraphTalkerClient.delete_query
+
+Context Files
+~~~~~~~~~~~~~
+
+.. extautosummary::
+   :nosignatures:
+
+   ~GraphTalkerClient.list_context_files
+   ~GraphTalkerClient.read_context_file
+   ~GraphTalkerClient.write_context_file
+   ~GraphTalkerClient.delete_context_file
 
 Visualizations
 ~~~~~~~~~~~~~~

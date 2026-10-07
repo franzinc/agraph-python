@@ -5,7 +5,7 @@ via Claude AI, powered by the GraphTalker Common Lisp system.
 
 Example::
 
-    from graphtalker import GraphTalkerClient
+    from franz.graphtalker import GraphTalkerClient
 
     with GraphTalkerClient(port=8080, api_key="my-key") as client:
         client.connect("http", "localhost", 10035, "", "hr-analytics", "test", "xyzzy")
@@ -24,6 +24,7 @@ from franz.graphtalker.exceptions import (
     TimeoutError,
 )
 from franz.graphtalker.models import (
+    ContextFile,
     EvalResult,
     PendingVisualization,
     QueryResult,
@@ -42,6 +43,7 @@ __all__ = [
     "PendingVisualization",
     "Visualization",
     "SessionInfo",
+    "ContextFile",
     "GraphTalkerError",
     "ConnectionError",
     "AuthenticationError",

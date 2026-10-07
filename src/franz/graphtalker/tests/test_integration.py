@@ -27,6 +27,7 @@ import time
 import pytest
 
 from franz.graphtalker import (
+    ContextFile,
     EvalError,
     GraphTalkerClient,
     PendingVisualization,
@@ -182,6 +183,19 @@ class TestExecuteTool:
     def test_list_repositories(self, integration_client):
         result = integration_client.execute_tool("list_repositories")
         assert isinstance(result, str)
+
+
+# ---------------------------------------------------------------------------
+# Context Files
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestContextFiles:
+    def test_list_context_files(self, integration_client):
+        files = integration_client.list_context_files()
+        assert isinstance(files, list)
+        assert all(isinstance(f, ContextFile) for f in files)
 
 
 # ---------------------------------------------------------------------------

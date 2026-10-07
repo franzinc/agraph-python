@@ -12,6 +12,7 @@ import responses
 from franz.graphtalker import (
     AuthenticationError,
     ConnectionError,
+    ContextFile,
     EvalError,
     GraphTalkerClient,
     GraphTalkerError,
@@ -252,7 +253,19 @@ class TestConnection:
         assert "demos:northwind" in body["expression"]
 
     @responses.activate
-    def test_set_query_library(self, client):
+    def test_set_metagraph(self, client):
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result="T"),
+            status=200,
+        )
+        assert client.set_metagraph("/:query-library") is True
+        body = json.loads(responses.calls[0].request.body)
+        assert "set-metagraph" in body["expression"]
+
+    @responses.activate
+    def test_set_query_library_is_deprecated_alias(self, client):
         responses.add(
             responses.POST,
             EVAL_URL,
@@ -260,6 +273,8 @@ class TestConnection:
             status=200,
         )
         assert client.set_query_library("/:query-library") is True
+        body = json.loads(responses.calls[0].request.body)
+        assert "set-metagraph" in body["expression"]
 
     @responses.activate
     def test_set_api_key(self, client):
@@ -574,6 +589,110 @@ class TestQueryLibrary:
     def test_delete_query_no_params(self, client):
         with pytest.raises(ValueError, match="Must provide"):
             client.delete_query()
+
+
+# ---------------------------------------------------------------------------
+# Context Files
+# ---------------------------------------------------------------------------
+
+
+class TestContextFiles:
+    @responses.activate
+    def test_list_context_files(self, client):
+        files_json = json.dumps(
+            [
+                {"filename": "README.md", "modified": "2026-08-18T12:00:00"},
+                {"filename": "patterns.md", "modified": None},
+            ]
+        )
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result=f'"{_escape_json_in_lisp(files_json)}"'),
+            status=200,
+        )
+        files = client.list_context_files()
+        assert files == [
+            ContextFile(filename="README.md", modified="2026-08-18T12:00:00"),
+            ContextFile(filename="patterns.md", modified=None),
+        ]
+        body = json.loads(responses.calls[0].request.body)
+        assert "list-repository-context-files" in body["expression"]
+
+    @responses.activate
+    def test_list_context_files_unconfigured(self, client):
+        """An unconfigured repository yields JSON null, not an empty array."""
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result='"null"'),
+            status=200,
+        )
+        assert client.list_context_files() == []
+
+    @responses.activate
+    def test_list_context_files_malformed(self, client):
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result='"not json"'),
+            status=200,
+        )
+        assert client.list_context_files() == []
+
+    @responses.activate
+    def test_read_context_file(self, client):
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result='"# Patterns"'),
+            status=200,
+        )
+        assert client.read_context_file("patterns.md") == "# Patterns"
+        body = json.loads(responses.calls[0].request.body)
+        assert 'execute-tool "read_repository_context_file"' in body["expression"]
+        assert '"filename" "patterns.md"' in body["expression"]
+
+    @responses.activate
+    def test_read_context_file_index(self, client):
+        """Omitting the filename asks for the README.md index."""
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result='"# Index"'),
+            status=200,
+        )
+        assert client.read_context_file() == "# Index"
+        body = json.loads(responses.calls[0].request.body)
+        assert 'execute-tool "read_repository_context_file"' in body["expression"]
+        assert '"filename"' not in body["expression"]
+
+    @responses.activate
+    def test_write_context_file(self, client):
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result='"Context file written"'),
+            status=200,
+        )
+        result = client.write_context_file("patterns.md", "# Patterns")
+        assert "written" in result
+        body = json.loads(responses.calls[0].request.body)
+        assert 'execute-tool "write_repository_context_file"' in body["expression"]
+        assert '"filename" "patterns.md"' in body["expression"]
+        assert '"content" "# Patterns"' in body["expression"]
+
+    @responses.activate
+    def test_delete_context_file(self, client):
+        responses.add(
+            responses.POST,
+            EVAL_URL,
+            json=eval_response(result="T"),
+            status=200,
+        )
+        assert client.delete_context_file("patterns.md") is True
+        body = json.loads(responses.calls[0].request.body)
+        assert 'delete-context-file-content "patterns.md"' in body["expression"]
 
 
 # ---------------------------------------------------------------------------

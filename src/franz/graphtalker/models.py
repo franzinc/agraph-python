@@ -152,3 +152,16 @@ class SessionInfo:
     message_count: int = 0
     created: Optional[str] = None
     modified: Optional[str] = None
+
+
+@dataclass
+class ContextFile:
+    """A repository context file listed by the server.
+
+    Attributes:
+        filename: File name within the repository's context file directory.
+        modified: ISO 8601 last-modified timestamp (None if unavailable).
+    """
+
+    filename: str
+    modified: Optional[str] = None

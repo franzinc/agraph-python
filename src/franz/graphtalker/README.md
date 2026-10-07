@@ -48,6 +48,28 @@ all_queries = client.list_all_queries()
 print(all_queries)
 ```
 
+## Context Files
+
+Context files are per-repository notes that GraphTalker feeds to Claude
+alongside the schema: SPARQL patterns, ontology quirks, domain conventions.
+They live on the GraphTalker server's filesystem.
+
+```python
+# List the current repository's context files (README.md, the index, sorts first)
+for f in client.list_context_files():
+    print(f.filename, f.modified)
+
+# Read the README.md index, or a specific file
+index = client.read_context_file()
+patterns = client.read_context_file("sparql-patterns.md")
+
+# Write or overwrite a file (the filename must not contain path separators)
+client.write_context_file("sparql-patterns.md", "# SPARQL patterns\n\n...")
+
+# Delete a file
+client.delete_context_file("obsolete-notes.md")
+```
+
 ## Direct SPARQL (bypasses Claude)
 
 ```python
@@ -61,7 +83,7 @@ Long-running queries can be aborted from a different thread:
 
 ```python
 import threading, time
-from graphtalker import QueryAbortedError
+from franz.graphtalker import QueryAbortedError
 
 # Thread 1: long query
 def worker():
@@ -204,6 +226,15 @@ with GraphTalkerClient(port=8080, api_key="key") as client:
 | `sparql_update(update)` | Execute SPARQL UPDATE directly |
 | `abort_query()` | Abort running query from another thread |
 
+### Configuration
+
+| Method | Description |
+|--------|-------------|
+| `set_repository(repo_string)` | Switch the active repository (`"catalog:repository"` or `"repository"`) |
+| `set_metagraph(repo_string)` | Set the metagraph repository, where the query library and sessions are stored |
+
+`set_query_library()` is a deprecated alias for `set_metagraph()`.
+
 ### Token Usage & Cost
 
 | Method | Description |
@@ -219,6 +250,15 @@ with GraphTalkerClient(port=8080, api_key="key") as client:
 | `search_queries(search, repository=None)` | Search by description |
 | `list_all_queries(repository=None)` | List all queries |
 | `delete_query(*, query_uri=None, query_title=None, repository=None)` | Delete a query |
+
+### Context Files
+
+| Method | Description |
+|--------|-------------|
+| `list_context_files()` | List the repository's context files as `ContextFile` objects |
+| `read_context_file(filename=None)` | Read a context file, or the `README.md` index when omitted |
+| `write_context_file(filename, content)` | Write or overwrite a context file |
+| `delete_context_file(filename)` | Delete a context file, returns `True` on success |
 
 ### Session Management
 

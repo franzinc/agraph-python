@@ -20,6 +20,7 @@ from franz.graphtalker.exceptions import (
     TimeoutError,
 )
 from franz.graphtalker.models import (
+    ContextFile,
     EvalResult,
     PendingVisualization,
     QueryResult,
@@ -350,8 +351,8 @@ class GraphTalkerClient:
         result = self.eval(expr)
         return result.stdout.strip()
 
-    def set_query_library(self, repo_string: str) -> bool:
-        """Set the query library repository location.
+    def set_metagraph(self, repo_string: str) -> bool:
+        """Set the metagraph repository location.
 
         Args:
             repo_string: "catalog:repository", "/:repo" for root catalog,
@@ -360,24 +361,13 @@ class GraphTalkerClient:
         Returns:
             True if repository exists and was set, False otherwise.
         """
-        expr = _lisp.lisp_call("set-query-library", _lisp.lisp_string(repo_string))
+        expr = _lisp.lisp_call("set-metagraph", _lisp.lisp_string(repo_string))
         result = self.eval(expr)
         return result.parsed is True
 
-    def set_meta_schema_repository(self, repo_string: str) -> bool:
-        """Set the meta-schema repository for the semantic layer.
-
-        Args:
-            repo_string: "catalog:repository" or just repository name.
-
-        Returns:
-            True if repository exists and was set, False otherwise.
-        """
-        expr = _lisp.lisp_call(
-            "set-meta-schema-repository", _lisp.lisp_string(repo_string)
-        )
-        result = self.eval(expr)
-        return result.parsed is True
+    def set_query_library(self, repo_string: str) -> bool:
+        """Deprecated alias for :meth:`set_metagraph`."""
+        return self.set_metagraph(repo_string)
 
     def load_config(self, config_path: str) -> None:
         """Load configuration from a JSON file on the server.
@@ -706,6 +696,86 @@ class GraphTalkerClient:
         expr = _lisp.lisp_execute_tool("delete_query", **params)
         result = self.eval(expr)
         return result.parsed if isinstance(result.parsed, str) else result.result
+
+    # ------------------------------------------------------------------
+    # Context files
+    # ------------------------------------------------------------------
+    #
+    # Per-repository notes that GraphTalker feeds to Claude. These were called
+    # "tutorial files" before the rename; the client never exposed methods under
+    # that name, so there are no deprecated aliases here.
+
+    def list_context_files(self) -> List[ContextFile]:
+        """List the current repository's context files.
+
+        Covers both configured context file directories — the current one and the
+        legacy TUTORIAL_BASE_DIR location — as a single merged list.
+
+        Returns:
+            List of ContextFile objects, index (README.md) first then alphabetical.
+
+        Example::
+
+            for f in client.list_context_files():
+                print(f.filename, f.modified)
+        """
+        expr = "(write-json-to-string (list-repository-context-files))"
+        result = self.eval(expr)
+        return self._parse_context_file_list(result)
+
+    def read_context_file(self, filename: Optional[str] = None) -> str:
+        """Read a context file for the current repository.
+
+        Args:
+            filename: File to read. Omit to get the README.md index instead.
+
+        Returns:
+            The file's content, or the index when no filename is given.
+        """
+        params = {}
+        if filename:
+            params["filename"] = _lisp.lisp_string(filename)
+
+        expr = _lisp.lisp_execute_tool("read_repository_context_file", **params)
+        result = self.eval(expr)
+        return result.parsed if isinstance(result.parsed, str) else result.result
+
+    def write_context_file(self, filename: str, content: str) -> str:
+        """Write or overwrite a context file for the current repository.
+
+        An existing file is rewritten where it already lives and its prior content
+        is snapshotted to the version history first; new files are created under
+        CONTEXT_FILE_BASE_DIR.
+
+        Args:
+            filename: File to write. Must not contain path separators.
+            content: Full file content.
+
+        Returns:
+            Result confirmation.
+        """
+        expr = _lisp.lisp_execute_tool(
+            "write_repository_context_file",
+            filename=_lisp.lisp_string(filename),
+            content=_lisp.lisp_string(content),
+        )
+        result = self.eval(expr)
+        return result.parsed if isinstance(result.parsed, str) else result.result
+
+    def delete_context_file(self, filename: str) -> bool:
+        """Delete a context file from the current repository.
+
+        Args:
+            filename: File to delete, in whichever directory holds it.
+
+        Returns:
+            True when the file was deleted.
+        """
+        expr = _lisp.lisp_call(
+            "delete-context-file-content", _lisp.lisp_string(filename)
+        )
+        result = self.eval(expr)
+        return result.parsed is True
 
     # ------------------------------------------------------------------
     # Visualizations
@@ -1193,6 +1263,39 @@ class GraphTalkerClient:
                 )
             )
         return sessions
+
+    def _parse_context_file_list(self, result: EvalResult) -> List[ContextFile]:
+        """Parse a JSON string of context files into a list of ContextFile."""
+        raw = result.parsed
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            try:
+                data = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                return []
+        elif isinstance(raw, list):
+            data = raw
+        else:
+            return []
+
+        # An unconfigured repository yields Lisp NIL, which serializes to JSON
+        # null rather than an empty array.
+        if not isinstance(data, list):
+            return []
+
+        files = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            modified = item.get("modified")
+            files.append(
+                ContextFile(
+                    filename=item.get("filename", ""),
+                    modified=modified if isinstance(modified, str) else None,
+                )
+            )
+        return files
 
     def _parse_visualization_list(self, result: EvalResult) -> List[Visualization]:
         """Parse get_query_visualizations result into a list of Visualization."""
