@@ -1,8 +1,21 @@
 """Shared test fixtures and configuration for GraphTalker client tests."""
 
+import os
+
 import pytest
 
 from franz.graphtalker import GraphTalkerClient
+from franz.openrdf.rio.rdfformat import RDFFormat
+from franz.openrdf.sail.allegrographserver import AllegroGraphServer
+
+KENNEDY_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    os.pardir,
+    os.pardir,
+    "openrdf",
+    "tests",
+    "kennedy.ntriples",
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures for mocked tests (test_client.py, test_lisp.py)
@@ -40,9 +53,7 @@ def pytest_addoption(parser):
     parser.addoption("--ag-host", default="localhost", help="AllegroGraph host")
     parser.addoption("--ag-port", default="10035", help="AllegroGraph port")
     parser.addoption("--ag-catalog", default="", help="AllegroGraph catalog")
-    parser.addoption(
-        "--ag-repo", default="hr-analytics", help="AllegroGraph repository"
-    )
+    parser.addoption("--ag-repo", default="kennedy", help="AllegroGraph repository")
     parser.addoption("--ag-user", default="test", help="AllegroGraph user")
     parser.addoption("--ag-password", default="xyzzy", help="AllegroGraph password")
 
@@ -60,7 +71,44 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope="module")
-def integration_client(request):
+def kennedy_repository(request):
+    """Ensure the data repository exists, loading the Kennedy dataset if needed.
+
+    If the repository named by --ag-repo is missing, it is created, loaded
+    with kennedy.ntriples and deleted on teardown. An existing repository
+    is used as-is and left in place.
+    """
+    config = request.config
+    name = config.getoption("--ag-repo")
+    server = AllegroGraphServer(
+        protocol="http",
+        host=config.getoption("--ag-host"),
+        port=int(config.getoption("--ag-port")),
+        user=config.getoption("--ag-user"),
+        password=config.getoption("--ag-password"),
+    )
+    catalog = server.openCatalog(config.getoption("--ag-catalog") or None)
+    created = name not in catalog.listRepositories()
+    if created:
+        repo = catalog.createRepository(name)
+        try:
+            conn = repo.getConnection()
+            try:
+                conn.addFile(KENNEDY_FILE, format=RDFFormat.NTRIPLES)
+            finally:
+                conn.close()
+        except Exception:
+            catalog.deleteRepository(name)
+            raise
+    try:
+        yield name
+    finally:
+        if created:
+            catalog.deleteRepository(name)
+
+
+@pytest.fixture(scope="module")
+def integration_client(request, kennedy_repository):
     """Create a connected GraphTalkerClient for integration tests."""
     config = request.config
     c = GraphTalkerClient(
@@ -73,7 +121,7 @@ def integration_client(request):
         config.getoption("--ag-host"),
         int(config.getoption("--ag-port")),
         config.getoption("--ag-catalog"),
-        config.getoption("--ag-repo"),
+        kennedy_repository,
         config.getoption("--ag-user"),
         config.getoption("--ag-password"),
     )

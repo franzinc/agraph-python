@@ -14,7 +14,7 @@ Usage:
         --ag-host=localhost \
         --ag-port=10035 \
         --ag-catalog="" \
-        --ag-repo=hr-analytics \
+        --ag-repo=kennedy \
         --ag-user=test \
         --ag-password=xyzzy
 """
@@ -208,9 +208,9 @@ class TestClaudeQuery:
         )
         assert result.answer is not None
         assert len(result.answer) > 0
-        # hr-analytics should have Employee class
+        # kennedy should have person class
         answer_lower = result.answer.lower()
-        assert "employee" in answer_lower
+        assert "person" in answer_lower
 
     def test_claude_query_follow_up(self, integration_client):
         """Follow-up question should reuse conversation context."""
@@ -229,7 +229,8 @@ class TestClaudeQuery:
         """Generate SPARQL and verify it's valid by executing it."""
         integration_client.clear_conversation()
         sparql = integration_client.generate_sparql(
-            "Count the total number of triples in the repository"
+            "Write a SPARQL query that counts the total number of triples "
+            "in the repository"
         )
         assert sparql is not None
         assert len(sparql) > 0
@@ -250,8 +251,6 @@ class TestQueryLibrary:
     QUERY_TITLE = "__pytest_graphtalker_temp_query__"
     QUERY_SPARQL = "SELECT (COUNT(*) AS ?count) WHERE { ?s ?p ?o }"
 
-    REPOSITORY = "hr-analytics"
-
     @staticmethod
     def _cleanup_test_queries(client, title, repository):
         """Remove any leftover test queries from previous runs."""
@@ -264,11 +263,11 @@ class TestQueryLibrary:
             except Exception:
                 break
 
-    def test_store_and_search_and_delete(self, integration_client):
+    def test_store_and_search_and_delete(self, integration_client, kennedy_repository):
         """Full lifecycle: store, search, find, delete."""
         # Clean up any leftovers from previous failed runs
         self._cleanup_test_queries(
-            integration_client, self.QUERY_TITLE, self.REPOSITORY
+            integration_client, self.QUERY_TITLE, kennedy_repository
         )
 
         # Store
@@ -276,7 +275,7 @@ class TestQueryLibrary:
             title=self.QUERY_TITLE,
             description="Pytest temp query counts all triples",
             sparql_query=self.QUERY_SPARQL,
-            repository=self.REPOSITORY,
+            repository=kennedy_repository,
         )
         assert isinstance(result, str)
         assert "stored" in result.lower() or "query" in result.lower()
@@ -286,12 +285,12 @@ class TestQueryLibrary:
         assert self.QUERY_TITLE in found
 
         # List all
-        all_queries = integration_client.list_all_queries(repository=self.REPOSITORY)
+        all_queries = integration_client.list_all_queries(repository=kennedy_repository)
         assert self.QUERY_TITLE in all_queries
 
         # Delete by title + repository (both required)
         integration_client.delete_query(
-            query_title=self.QUERY_TITLE, repository=self.REPOSITORY
+            query_title=self.QUERY_TITLE, repository=kennedy_repository
         )
 
         # Verify deleted
@@ -447,10 +446,9 @@ class TestVisualizationEndToEnd:
     B) Claude generates viz → retrieve cached (no store)
     """
 
-    REPOSITORY = "northwind-traders"
     QUERY_TITLE = "__pytest_viz_e2e_query__"
 
-    def _cleanup(self, client):
+    def _cleanup(self, client, repository):
         """Remove test query and its visualizations."""
         for _ in range(5):
             found = client.search_queries(self.QUERY_TITLE)
@@ -459,7 +457,7 @@ class TestVisualizationEndToEnd:
             try:
                 client.delete_query(
                     query_title=self.QUERY_TITLE,
-                    repository=self.REPOSITORY,
+                    repository=repository,
                 )
             except Exception:
                 break
@@ -476,60 +474,52 @@ class TestVisualizationEndToEnd:
         visualization config that Claude just created without having
         to store it in the query library first.
         """
-        # Switch to northwind-traders
-        integration_client.set_repository(self.REPOSITORY)
         integration_client.start_conversation()
 
-        try:
-            # Ask Claude to create a visualization
-            result = integration_client.claude_query(
-                "Show me the number of products per category as a bar chart. "
-                "Do NOT store anything, just create the visualization."
-            )
+        # Ask Claude to create a visualization
+        result = integration_client.claude_query(
+            "Show me the number of people per profession as a bar chart. "
+            "Do NOT store anything, just create the visualization."
+        )
 
-            # Claude should have called prepare_visualization —
-            # look for reference IDs in both answer and stdout
-            all_text = result.answer + "\n" + result.stdout
-            ref_ids = self._extract_viz_ref_ids(all_text)
-            assert len(ref_ids) > 0, (
-                f"Expected viz-config-* reference ID in Claude's response.\n"
-                f"Answer: {result.answer[:500]}\n"
-                f"Stdout (last 1000): {result.stdout[-1000:]}"
-            )
+        # Claude should have called prepare_visualization —
+        # look for reference IDs in both answer and stdout
+        all_text = result.answer + "\n" + result.stdout
+        ref_ids = self._extract_viz_ref_ids(all_text)
+        assert len(ref_ids) > 0, (
+            f"Expected viz-config-* reference ID in Claude's response.\n"
+            f"Answer: {result.answer[:500]}\n"
+            f"Stdout (last 1000): {result.stdout[-1000:]}"
+        )
 
-            # Retrieve the cached config
-            ref_id = ref_ids[0]
-            viz = integration_client.get_pending_visualization(ref_id)
+        # Retrieve the cached config
+        ref_id = ref_ids[0]
+        viz = integration_client.get_pending_visualization(ref_id)
 
-            assert isinstance(viz, PendingVisualization)
-            assert viz.viz_type is not None
-            assert "chart" in viz.viz_type or "bar" in viz.viz_type
-            assert isinstance(viz.config, dict)
-            assert viz.description is not None
-            assert len(viz.description) > 0
+        assert isinstance(viz, PendingVisualization)
+        assert viz.viz_type is not None
+        assert "chart" in viz.viz_type or "bar" in viz.viz_type
+        assert isinstance(viz.config, dict)
+        assert viz.description is not None
+        assert len(viz.description) > 0
 
-            # The config should be valid Chart.js
-            assert "data" in viz.config
-            assert "type" in viz.config or "datasets" in viz.config.get("data", {})
+        # The config should be valid Chart.js
+        assert "data" in viz.config
+        assert "type" in viz.config or "datasets" in viz.config.get("data", {})
 
-        finally:
-            integration_client.set_repository("hr-analytics")
-
-    def test_path_a_store_and_retrieve(self, integration_client):
+    def test_path_a_store_and_retrieve(self, integration_client, kennedy_repository):
         """Claude generates a chart → store with ref ID → retrieve from library.
 
         Full lifecycle: ask Claude for a chart, cache it, store query +
         visualization, then retrieve the stored visualization via Python API.
         """
-        # Switch to northwind-traders
-        integration_client.set_repository(self.REPOSITORY)
         integration_client.start_conversation()
-        self._cleanup(integration_client)
+        self._cleanup(integration_client, kennedy_repository)
 
         try:
             # Ask Claude to create a visualization
             result = integration_client.claude_query(
-                "Show me the number of products per category as a pie chart. "
+                "Show me the number of people per profession as a pie chart. "
                 "Do NOT store anything yet."
             )
 
@@ -548,20 +538,20 @@ class TestVisualizationEndToEnd:
             # Store the query first
             integration_client.store_query(
                 title=self.QUERY_TITLE,
-                description="Product count by category",
-                sparql_query="SELECT ?cat (COUNT(?p) AS ?c) WHERE { ?p a <http://northwind.com/model/Product> ; <http://northwind.com/model/category> ?catNode . ?catNode <http://northwind.com/model/categoryName> ?cat } GROUP BY ?cat",
-                repository=self.REPOSITORY,
+                description="Person count by profession",
+                sparql_query="SELECT ?profession (COUNT(?p) AS ?c) WHERE { ?p a <http://www.franz.com/simple#person> ; <http://www.franz.com/simple#profession> ?profession } GROUP BY ?profession",
+                repository=kennedy_repository,
             )
 
             # Store the visualization using the reference ID
             store_result = integration_client.store_visualization(
-                self.QUERY_TITLE, ref_id, self.REPOSITORY
+                self.QUERY_TITLE, ref_id, kennedy_repository
             )
             assert "stored" in store_result.lower()
 
             # Retrieve stored visualizations from query library
             vizs = integration_client.get_visualizations(
-                self.QUERY_TITLE, repository=self.REPOSITORY
+                self.QUERY_TITLE, repository=kennedy_repository
             )
             assert len(vizs) >= 1
             assert isinstance(vizs[0], Visualization)
@@ -572,8 +562,7 @@ class TestVisualizationEndToEnd:
             assert "data" in config
 
         finally:
-            self._cleanup(integration_client)
-            integration_client.set_repository("hr-analytics")
+            self._cleanup(integration_client, kennedy_repository)
 
     def test_nonexistent_ref_id_raises(self, integration_client):
         """Fetching a bogus reference ID raises EvalError."""
