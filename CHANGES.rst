@@ -2,6 +2,31 @@
 AllegroGraph Python client release history
 ==========================================
 
+Release 105.4.0
+===============
+
+GraphTalker API updates
+-----------------------
+
+The ``franz.graphtalker`` client has been synchronized with the GraphTalker
+v9.1.0 APIs. The ``GraphTalkerClient`` class now provides:
+
+  - ``set_metagraph()`` to set the metagraph repository. The previous
+    ``set_query_library()`` is kept as a deprecated alias.
+  - ``list_context_files()``, ``read_context_file()``,
+    ``write_context_file()``, and ``delete_context_file()`` for managing
+    the GraphTalker context files, together with the new ``ContextFile``
+    model.
+
+The ``set_meta_schema_repository()`` method has been removed, because the
+server-side function it relied on is no longer available.
+
+Bug fixes
+---------
+
+``startGraphTalker()`` no longer silently ignores the ``anthropic_api_key``
+argument; the key is now passed on to the GraphTalker client correctly.
+
 Release 105.3.0
 ===============
 
