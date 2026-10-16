@@ -57,6 +57,10 @@ export NO_COLOR=1 # Disable color output, so it looks cleaner in Jenkins
 # Use the most portable variant of Python distributions
 # More details: https://hatch.pypa.io/1.13/plugins/environment/virtual/#cpython
 export HATCH_PYTHON_VARIANT_LINUX=v1
+# We are getting consistent CI failures, likely because pip's default
+# 15s read timeout is too short for slow PyPI downloads.
+export PIP_DEFAULT_TIMEOUT=120
+export PIP_RETRIES=10
 
 $(HATCH): $(PYTHON)
 	$(PYTHON) -m pip install --quiet --no-cache "virtualenv<21"
